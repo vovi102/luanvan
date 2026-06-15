@@ -1,0 +1,15 @@
+services:
+  fuseki:
+    image: stain/jena-fuseki:latest
+    container_name: nl2sparql-fuseki
+    command: ["/jena-fuseki/fuseki-server", "--update", "--mem", "/test"]
+    environment:
+      ADMIN_PASSWORD: admin
+    ports:
+      - "3030:3030"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3030/ >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s

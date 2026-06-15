@@ -1,0 +1,23 @@
+# Query 1: count all transactions
+PREFIX : <https://thesis.example.org/eth-kg/>
+SELECT (COUNT(?tx) AS ?n) WHERE { ?tx a :Transaction }
+
+# Query 2: list transactions with from/to labels
+PREFIX : <https://thesis.example.org/eth-kg/>
+SELECT ?tx ?fromLabel ?toLabel ?value WHERE {
+  ?tx a :Transaction ;
+      :hasFrom ?from ;
+      :hasTo ?to ;
+      :hasValue ?value .
+  ?from :hasLabel ?fromLabel .
+  ?to :hasLabel ?toLabel .
+}
+
+# Query 3: filter by value
+PREFIX : <https://thesis.example.org/eth-kg/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?tx WHERE {
+  ?tx a :Transaction ;
+      :hasValue ?v .
+  FILTER(?v >= 1000000000000000000)
+}

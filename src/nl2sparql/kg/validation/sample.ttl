@@ -1,0 +1,23 @@
+@prefix : <https://thesis.example.org/eth-kg/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:addr_alice a :Account ;
+    :hasLabel "Alice" .
+
+:addr_bob a :Account ;
+    :hasLabel "Bob" .
+
+:addr_charlie a :Account ;
+    :hasLabel "Charlie" .
+
+:tx_001 a :Transaction ;
+    :hasFrom :addr_alice ;
+    :hasTo :addr_bob ;
+    :hasValue "1000000000000000000"^^xsd:decimal ;
+    :hasTimestamp "2024-01-01T00:00:00Z"^^xsd:dateTime .
+
+:tx_002 a :Transaction ;
+    :hasFrom :addr_bob ;
+    :hasTo :addr_charlie ;
+    :hasValue "2500000000000000000"^^xsd:decimal ;
+    :hasTimestamp "2024-01-02T12:30:00Z"^^xsd:dateTime .
