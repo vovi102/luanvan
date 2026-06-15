@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environments and secrets
+.env
+.env.*
+!.env.example
+nl2sparql-thesis-*.json
+*.service-account.json
+*-key.json
+.venv/
+venv/
+.uv-cache/
+.uv-python/
+.worktrees/
+.local/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Local data and KG artifacts
+data/raw/*
+data/interim/*
+data/processed/*
+data/kg/*
+data/entities/*
+data/samples/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/kg/.gitkeep
+!data/entities/.gitkeep
+!data/samples/.gitkeep
+
+# Large model/experiment artifacts
+artifacts/
+checkpoints/
+wandb/
+*.ckpt
+*.bin
+*.safetensors
+
+# Generated RDF exports can be very large.
+*.nt
+*.nq
+*.trig
