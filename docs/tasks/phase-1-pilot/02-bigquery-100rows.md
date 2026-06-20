@@ -30,10 +30,10 @@ Bước pilot 2: verify pipeline BigQuery → CSV chạy được, hiểu format
 
 ## Acceptance criteria
 
-- [ ] CSV có đủ 100/10/100/50 rows.
-- [ ] Không lỗi parse (encoding, delimiter).
-- [ ] Identify ≥3 edge cases (NULL `to_address`, value=0, gas spike, ...).
-- [ ] Document trong `src/nl2sparql/kg/extraction/edge_cases.md`.
+- [x] CSV có đủ 100/10/100/50 rows.
+- [x] Không lỗi parse (encoding, delimiter).
+- [x] Identify ≥3 edge cases (zero-value, large integer, typed transaction).
+- [x] Document trong `src/nl2sparql/kg/extraction/edge_cases.md`.
 
 ## Hướng dẫn triển khai
 
@@ -117,4 +117,20 @@ Bước pilot 2: verify pipeline BigQuery → CSV chạy được, hiểu format
 
 ## Trạng thái
 
-`todo`
+`done — 2026-06-20`
+
+Kết quả pilot ngày `2024-01-15`:
+
+- Dry-run: tổng `0.50 GiB` cho 4 query.
+- CSV: transactions `100`, blocks `10`, token transfers `100`, contracts `50` rows.
+- Edge cases quan sát được: `80` zero-value transactions, `19` values vượt vùng số
+  nguyên chính xác IEEE-754, `93` typed transactions.
+- Dữ liệu pilot nằm trong `data/raw/pilot/` và được `.gitignore`; chỉ code, SQL,
+  notebook và tài liệu được commit.
+
+Verification:
+
+```bash
+uv run pytest -q
+uv run ruff check src tests scripts
+```

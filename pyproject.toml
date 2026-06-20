@@ -17,6 +17,7 @@ dependencies = [
   "bitsandbytes>=0.43,<0.46",
   "click>=8.1,<9",
   "datasets>=2.19,<3",
+  "db-dtypes>=1.2,<2",
   "google-cloud-bigquery>=3.20,<4",
   "gradio>=4.30,<5",
   "jupyter>=1.0,<2",
