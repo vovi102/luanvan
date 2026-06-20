@@ -244,10 +244,69 @@ def test_load_smoke_queries_returns_exactly_three_stripped_queries(tmp_path: Pat
     )
 
 
+def test_load_smoke_queries_accepts_indented_crlf_separator_lines(tmp_path: Path) -> None:
+    query_path = tmp_path / "queries.sparql"
+    query_path.write_bytes(
+        (
+            " SELECT * WHERE {} \r\n"
+            f"\t{QUERY_SEPARATOR}  \r\n"
+            " ASK {} \r\n"
+            f"  {QUERY_SEPARATOR}\t\r\n"
+            " CONSTRUCT {} WHERE {} \r\n"
+        ).encode()
+    )
+
+    assert load_smoke_queries(query_path) == (
+        "SELECT * WHERE {}",
+        "ASK {}",
+        "CONSTRUCT {} WHERE {}",
+    )
+
+
+def test_load_smoke_queries_does_not_split_embedded_marker_text(tmp_path: Path) -> None:
+    query_path = tmp_path / "queries.sparql"
+    query_path.write_text(
+        f'SELECT ("{QUERY_SEPARATOR}" AS ?text) WHERE {{}}\n'
+        f"# larger comment containing {QUERY_SEPARATOR} text\n"
+        f"{QUERY_SEPARATOR}\n"
+        "ASK {}\n"
+        f"{QUERY_SEPARATOR}\n"
+        "CONSTRUCT {} WHERE {}\n",
+        encoding="utf-8",
+    )
+
+    queries = load_smoke_queries(query_path)
+
+    assert len(queries) == 3
+    assert f'"{QUERY_SEPARATOR}"' in queries[0]
+    assert f"containing {QUERY_SEPARATOR} text" in queries[0]
+
+
+def test_load_smoke_queries_rejects_extra_consecutive_separator(tmp_path: Path) -> None:
+    query_path = tmp_path / "queries.sparql"
+    query_path.write_text(
+        f"SELECT * WHERE {{}}\n{QUERY_SEPARATOR}\n{QUERY_SEPARATOR}\n"
+        f"ASK {{}}\n{QUERY_SEPARATOR}\nCONSTRUCT {{}} WHERE {{}}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=r"expected 3.*actual 3.*slot count 4"):
+        load_smoke_queries(query_path)
+
+
+def test_load_smoke_queries_rejects_empty_middle_slot(tmp_path: Path) -> None:
+    query_path = tmp_path / "queries.sparql"
+    query_path.write_text(
+        f"SELECT * WHERE {{}}\n{QUERY_SEPARATOR}\n{QUERY_SEPARATOR}\nASK {{}}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=r"expected 3.*actual 2.*slot count 3"):
+        load_smoke_queries(query_path)
+
+
 @pytest.mark.parametrize("query_count", [0, 1, 2, 4])
-def test_load_smoke_queries_rejects_wrong_query_count(
-    tmp_path: Path, query_count: int
-) -> None:
+def test_load_smoke_queries_rejects_wrong_query_count(tmp_path: Path, query_count: int) -> None:
     query_path = tmp_path / "queries.sparql"
     query_path.write_text(
         f"\n{QUERY_SEPARATOR}\n".join(f"SELECT {index} WHERE {{}}" for index in range(query_count)),
@@ -286,6 +345,14 @@ def test_committed_ethon_smoke_artifact_has_three_distinct_query_contracts() -> 
     assert "?subclass rdfs:subClassOf ?superclass" in queries[2]
     assert "?subclass a owl:Class" in queries[2]
     assert "?superclass a owl:Class" in queries[2]
+    assert [
+        "ORDER BY ?class ?label",
+        "ORDER BY ?property ?domain ?range",
+        "ORDER BY ?subclass ?superclass",
+    ] == [
+        next(line for line in query.splitlines() if line.startswith("ORDER BY"))
+        for query in queries
+    ]
 
 
 def test_committed_ethon_smoke_queries_parse_and_return_explicit_results() -> None:

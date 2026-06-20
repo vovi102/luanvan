@@ -1,5 +1,6 @@
 """Deterministic helpers for inspecting the committed EthOn ontology."""
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urldefrag, urlparse
@@ -8,6 +9,10 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS
 
 QUERY_SEPARATOR = "# --- ETHON QUERY ---"
+_QUERY_SEPARATOR_LINE = re.compile(
+    rf"^[ \t]*{re.escape(QUERY_SEPARATOR)}[ \t]*$",
+    re.MULTILINE,
+)
 
 
 @dataclass(frozen=True)
@@ -70,14 +75,14 @@ def load_smoke_queries(path: Path) -> tuple[str, ...]:
     if not path.exists():
         raise FileNotFoundError(f"EthOn smoke query file not found: {path}")
 
-    queries = tuple(
-        segment.strip()
-        for segment in path.read_text(encoding="utf-8").split(QUERY_SEPARATOR)
-        if segment.strip()
-    )
-    if len(queries) != 3:
+    slots = _QUERY_SEPARATOR_LINE.split(path.read_text(encoding="utf-8"))
+    queries = tuple(slot.strip() for slot in slots)
+    non_empty_count = sum(bool(query) for query in queries)
+    if len(slots) != 3 or non_empty_count != 3:
         raise ValueError(
-            f"EthOn smoke query file expected 3 queries; actual {len(queries)}: {path}"
+            "EthOn smoke query file expected 3 non-empty queries in 3 slots; "
+            f"actual {non_empty_count} non-empty queries; actual slot count {len(slots)}: "
+            f"{path}"
         )
     return queries
 
