@@ -18,4 +18,7 @@ def test_ethon_source_metadata_is_committed() -> None:
     metadata = ETHON_METADATA_PATH.read_text(encoding="utf-8")
 
     assert "sha256=" in metadata
-    assert "source=https://raw.githubusercontent.com/ConsenSys/EthOn" in metadata
+    assert (
+        "source=https://raw.githubusercontent.com/ConsenSys/EthOn/master/EthOn.ttl"
+        in metadata.splitlines()
+    )
