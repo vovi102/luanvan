@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from rdflib import BNode, Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS
+from rdflib.plugins.parsers.notation3 import BadSyntax
 
 from nl2sparql.kg.ontology.ethon_pilot import (
     EthonInventory,
@@ -160,6 +161,41 @@ def test_render_property_inventory_has_one_final_newline_for_single_category(
     assert not markdown.endswith("\n\n")
 
 
+def test_render_class_inventory_matches_exact_markdown_with_fragment_local_name() -> None:
+    inventory = EthonInventory(
+        classes=("https://example.test/vocabulary#Widget",),
+        object_properties=(),
+        datatype_properties=(),
+        subclass_relations=(),
+    )
+
+    markdown = render_class_inventory(inventory, "abc123")
+
+    assert markdown == (
+        "# EthOn Classes\n"
+        "\n"
+        "Source SHA-256: `abc123`\n"
+        "\n"
+        "Total classes: 1\n"
+        "\n"
+        "- `Widget` — <https://example.test/vocabulary#Widget>\n"
+    )
+
+
+def test_render_class_inventory_has_one_final_newline_when_empty() -> None:
+    inventory = EthonInventory(
+        classes=(),
+        object_properties=("https://example.test/objectProperty",),
+        datatype_properties=(),
+        subclass_relations=(),
+    )
+
+    markdown = render_class_inventory(inventory, "checksum")
+
+    assert markdown.endswith("\n")
+    assert not markdown.endswith("\n\n")
+
+
 def test_load_ethon_rejects_missing_file(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="EthOn ontology not found"):
         load_ethon(tmp_path / "missing.ttl")
@@ -179,3 +215,11 @@ def test_load_ethon_rejects_parsed_graph_without_statements(tmp_path: Path) -> N
 
     with pytest.raises(ValueError, match="parsed to an empty graph"):
         load_ethon(empty_graph_path)
+
+
+def test_load_ethon_propagates_malformed_turtle_parse_error(tmp_path: Path) -> None:
+    malformed_path = tmp_path / "malformed.ttl"
+    malformed_path.write_text("@prefix broken syntax", encoding="utf-8")
+
+    with pytest.raises(BadSyntax):
+        load_ethon(malformed_path)

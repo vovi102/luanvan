@@ -10,7 +10,9 @@ from rdflib.namespace import OWL, RDF, RDFS
 
 @dataclass(frozen=True)
 class EthonInventory:
-    """Explicitly declared EthOn terms and subclass relationships.
+    """Canonical inventory produced by :func:`inspect_ethon`.
+
+    All fields are sorted, unique tuples of explicitly declared URI terms or URI pairs.
 
     Attributes:
         classes: IRIs explicitly declared as OWL classes.
@@ -106,7 +108,7 @@ def render_class_inventory(inventory: EthonInventory, checksum: str) -> str:
         "",
         *(_term_entry(iri) for iri in classes),
     ]
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines).rstrip("\n") + "\n"
 
 
 def render_property_inventory(inventory: EthonInventory, checksum: str) -> str:
