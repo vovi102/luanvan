@@ -33,7 +33,7 @@
 - Create: `data/ontologies/EthOn.sha256`
 - Create: `tests/unit/test_ethon_pilot.py`
 
-- [ ] **Step 1: Write failing artifact tests**
+- [x] **Step 1: Write failing artifact tests**
 
 Create `tests/unit/test_ethon_pilot.py` with:
 
@@ -60,7 +60,7 @@ def test_ethon_source_metadata_is_committed() -> None:
     assert "https://raw.githubusercontent.com/ConsenSys/EthOn/" in metadata
 ```
 
-- [ ] **Step 2: Run the tests and confirm the missing-artifact failure**
+- [x] **Step 2: Run the tests and confirm the missing-artifact failure**
 
 Run:
 
@@ -70,7 +70,7 @@ UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit
 
 Expected: FAIL because `data/ontologies/EthOn.ttl` does not exist.
 
-- [ ] **Step 3: Download the exact upstream file and record provenance**
+- [x] **Step 3: Download the exact upstream file and record provenance**
 
 Run:
 
@@ -89,13 +89,13 @@ source=https://raw.githubusercontent.com/ConsenSys/EthOn/master/EthOn.ttl
 sha256=e73e19bf0d6bbb0e28b1497a73e4499ca78ee9c1e8c475fa31e7c821354ce71d
 ```
 
-- [ ] **Step 4: Re-run artifact tests**
+- [x] **Step 4: Re-run artifact tests**
 
 Run the Step 2 command.
 
 Expected: 2 tests PASS; parsed triple count is at least 1,000.
 
-- [ ] **Step 5: Commit the ontology source**
+- [x] **Step 5: Commit the ontology source**
 
 ```bash
 git add data/ontologies/EthOn.ttl data/ontologies/EthOn.sha256 tests/unit/test_ethon_pilot.py
@@ -109,7 +109,7 @@ git commit -m "feat(kg): commit official EthOn ontology"
 - Create: `src/nl2sparql/kg/ontology/ethon_pilot.py`
 - Modify: `tests/unit/test_ethon_pilot.py`
 
-- [ ] **Step 1: Add failing inspection and rendering tests**
+- [x] **Step 1: Add failing inspection and rendering tests**
 
 Append to `tests/unit/test_ethon_pilot.py`:
 
@@ -166,7 +166,7 @@ def test_load_ethon_rejects_missing_file(tmp_path: Path) -> None:
         load_ethon(tmp_path / "missing.ttl")
 ```
 
-- [ ] **Step 2: Run the focused tests and confirm import failure**
+- [x] **Step 2: Run the focused tests and confirm import failure**
 
 Run:
 
@@ -176,7 +176,7 @@ UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit
 
 Expected: collection FAILS because `nl2sparql.kg.ontology.ethon_pilot` does not exist.
 
-- [ ] **Step 3: Implement the ontology helper**
+- [x] **Step 3: Implement the ontology helper**
 
 Create `src/nl2sparql/kg/ontology/__init__.py` with a package docstring. Create
 `src/nl2sparql/kg/ontology/ethon_pilot.py` with:
@@ -270,7 +270,7 @@ def _subjects(graph: Graph, predicate: URIRef, obj: URIRef) -> tuple[str, ...]:
     return tuple(sorted(str(term) for term in graph.subjects(predicate, obj) if isinstance(term, URIRef)))
 ```
 
-- [ ] **Step 4: Run inspection tests and fix only contract mismatches**
+- [x] **Step 4: Run inspection tests and fix only contract mismatches**
 
 Run the Step 2 command.
 
@@ -278,7 +278,7 @@ Expected: all tests in `test_ethon_pilot.py` PASS. If an upstream property is
 declared under a more specific OWL/RDFS type, update the test to assert a core
 property that is explicitly typed in `EthOn.ttl`; do not infer new triples.
 
-- [ ] **Step 5: Run Ruff and commit**
+- [x] **Step 5: Run Ruff and commit**
 
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run ruff check src/nl2sparql/kg/ontology tests/unit/test_ethon_pilot.py
@@ -293,7 +293,7 @@ git commit -m "feat(kg): inspect EthOn ontology"
 - Modify: `src/nl2sparql/kg/ontology/ethon_pilot.py`
 - Modify: `tests/unit/test_ethon_pilot.py`
 
-- [ ] **Step 1: Add a failing query-file test**
+- [x] **Step 1: Add a failing query-file test**
 
 Append to `tests/unit/test_ethon_pilot.py`:
 
@@ -315,7 +315,7 @@ def test_ethon_smoke_file_contains_three_parseable_nonempty_queries() -> None:
         assert list(graph.query(query))
 ```
 
-- [ ] **Step 2: Run the focused test and confirm missing API/artifact failure**
+- [x] **Step 2: Run the focused test and confirm missing API/artifact failure**
 
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit/test_ethon_pilot.py::test_ethon_smoke_file_contains_three_parseable_nonempty_queries -v
@@ -323,7 +323,7 @@ UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit
 
 Expected: FAIL because `load_smoke_queries` or the query file is missing.
 
-- [ ] **Step 3: Add the query loader**
+- [x] **Step 3: Add the query loader**
 
 Add to `ethon_pilot.py`:
 
@@ -341,7 +341,7 @@ def load_smoke_queries(path: Path) -> tuple[str, ...]:
     return queries
 ```
 
-- [ ] **Step 4: Create the query artifact**
+- [x] **Step 4: Create the query artifact**
 
 Create `src/nl2sparql/kg/validation/ethon_smoke.sparql` with exactly these three
 segments, separated by `# --- ETHON QUERY ---`:
@@ -371,7 +371,7 @@ SELECT ?subclass ?superclass WHERE {
 }
 ```
 
-- [ ] **Step 5: Run tests, Ruff, and commit**
+- [x] **Step 5: Run tests, Ruff, and commit**
 
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit/test_ethon_pilot.py -v
@@ -386,7 +386,7 @@ git commit -m "feat(kg): add EthOn smoke queries"
 - Create: `src/nl2sparql/kg/ontology/fuseki_pilot.py`
 - Create: `tests/unit/test_fuseki_pilot.py`
 
-- [ ] **Step 1: Write failing HTTP behavior tests**
+- [x] **Step 1: Write failing HTTP behavior tests**
 
 Create `tests/unit/test_fuseki_pilot.py` with a `FakeTransport` that records method,
 URL, headers, and body, then add these tests:
@@ -446,7 +446,7 @@ def test_http_failure_hides_password() -> None:
     assert "500" in str(error.value)
 ```
 
-- [ ] **Step 2: Run tests and confirm import failure**
+- [x] **Step 2: Run tests and confirm import failure**
 
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit/test_fuseki_pilot.py -v
@@ -454,7 +454,7 @@ UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit
 
 Expected: collection FAILS because `fuseki_pilot.py` does not exist.
 
-- [ ] **Step 3: Implement the client contracts**
+- [x] **Step 3: Implement the client contracts**
 
 Create `fuseki_pilot.py` with:
 
@@ -536,7 +536,7 @@ class FusekiPilotClient:
         raise FusekiError(f"Fuseki {operation} failed with HTTP {response.status}: {body}")
 ```
 
-- [ ] **Step 4: Run client tests and Ruff**
+- [x] **Step 4: Run client tests and Ruff**
 
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit/test_fuseki_pilot.py -v
@@ -546,7 +546,7 @@ UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run ruff check src/nl
 Expected: all client tests PASS and Ruff reports no errors. Apply formatting-only
 line wraps where Ruff requires them without changing the tested behavior.
 
-- [ ] **Step 5: Commit the Fuseki client**
+- [x] **Step 5: Commit the Fuseki client**
 
 ```bash
 git add src/nl2sparql/kg/ontology/fuseki_pilot.py tests/unit/test_fuseki_pilot.py
@@ -561,7 +561,7 @@ git commit -m "feat(kg): add Fuseki EthOn pilot client"
 - Create: `notebooks/02_ethon_pilot.ipynb`
 - Modify: `tests/unit/test_ethon_pilot.py`
 
-- [ ] **Step 1: Add failing committed-inventory tests**
+- [x] **Step 1: Add failing committed-inventory tests**
 
 Append to `tests/unit/test_ethon_pilot.py`:
 
@@ -579,7 +579,7 @@ def test_committed_inventories_match_the_ontology() -> None:
     assert PROPERTY_DOC.read_text(encoding="utf-8") == render_property_inventory(inventory, checksum)
 ```
 
-- [ ] **Step 2: Run the focused test and confirm missing-file failure**
+- [x] **Step 2: Run the focused test and confirm missing-file failure**
 
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit/test_ethon_pilot.py::test_committed_inventories_match_the_ontology -v
@@ -587,7 +587,7 @@ UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit
 
 Expected: FAIL because `ethon-classes.md` does not exist.
 
-- [ ] **Step 3: Generate the exact committed inventories**
+- [x] **Step 3: Generate the exact committed inventories**
 
 Run:
 
@@ -595,7 +595,7 @@ Run:
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run python -c 'from hashlib import sha256; from pathlib import Path; from nl2sparql.kg.ontology.ethon_pilot import inspect_ethon, load_ethon, render_class_inventory, render_property_inventory; p=Path("data/ontologies/EthOn.ttl"); i=inspect_ethon(load_ethon(p)); h=sha256(p.read_bytes()).hexdigest(); Path("src/nl2sparql/kg/ontology/ethon-classes.md").write_text(render_class_inventory(i,h),encoding="utf-8"); Path("src/nl2sparql/kg/ontology/ethon-properties.md").write_text(render_property_inventory(i,h),encoding="utf-8")'
 ```
 
-- [ ] **Step 4: Create the notebook as a thin client**
+- [x] **Step 4: Create the notebook as a thin client**
 
 Create `notebooks/02_ethon_pilot.ipynb` with executable Python cells equivalent to:
 
@@ -640,7 +640,7 @@ Include Markdown cells documenting the committed source, dataset name, and the
 fact that no reasoning/inference is enabled. Do not save the password or an
 Authorization header in cell output.
 
-- [ ] **Step 5: Run inventory tests and commit**
+- [x] **Step 5: Run inventory tests and commit**
 
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit/test_ethon_pilot.py -v
@@ -655,7 +655,7 @@ git commit -m "docs(kg): add EthOn pilot inventory notebook"
 - Modify: `docs/memory/05-DECISION_LOG.md`
 - Modify: `docs/superpowers/plans/2026-06-20-t1-1-ethon-pilot.md`
 
-- [ ] **Step 1: Start Fuseki and confirm container health**
+- [x] **Step 1: Start Fuseki and confirm container health**
 
 ```bash
 docker compose -f infrastructure/docker/docker-compose.fuseki.yml up -d
@@ -664,7 +664,7 @@ docker compose -f infrastructure/docker/docker-compose.fuseki.yml ps
 
 Expected: `nl2sparql-fuseki` is running and becomes healthy on port 3030.
 
-- [ ] **Step 2: Execute the notebook against real Fuseki**
+- [x] **Step 2: Execute the notebook against real Fuseki**
 
 ```bash
 JUPYTER_CONFIG_DIR=/tmp/t1-1-jupyter-config \
@@ -679,7 +679,7 @@ uv run jupyter nbconvert --to notebook --execute notebooks/02_ethon_pilot.ipynb 
 Expected: execution succeeds; ontology triple count is at least 1,000 and all
 three query result counts are greater than zero.
 
-- [ ] **Step 3: Query the real dataset count independently**
+- [x] **Step 3: Query the real dataset count independently**
 
 ```bash
 curl --fail --user admin:admin \
@@ -690,7 +690,7 @@ curl --fail --user admin:admin \
 
 Expected: HTTP 200 and the JSON binding contains a count of at least 1,000.
 
-- [ ] **Step 4: Record measured results and decision**
+- [x] **Step 4: Record measured results and decision**
 
 Change the task status to ``done — 2026-06-20`` and add the actual triple, class,
 object-property, datatype-property, and subclass-relation counts printed by the
@@ -710,7 +710,7 @@ notebook. Add a reverse-chronological decision-log entry with:
 
 Also replace the plan checkboxes completed during execution from `[ ]` to `[x]`.
 
-- [ ] **Step 5: Run fresh final verification**
+- [x] **Step 5: Run fresh final verification**
 
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest -q
@@ -722,14 +722,14 @@ git status --short
 Expected: all tests pass, Ruff reports no errors, `git diff --check` is empty,
 and status lists only the intended T1.1 documentation changes.
 
-- [ ] **Step 6: Commit task completion**
+- [x] **Step 6: Commit task completion**
 
 ```bash
 git add docs/tasks/phase-1-pilot/01-load-ethon.md docs/memory/05-DECISION_LOG.md docs/superpowers/plans/2026-06-20-t1-1-ethon-pilot.md
 git commit -m "docs(kg): complete EthOn pilot"
 ```
 
-- [ ] **Step 7: Verify the final branch state**
+- [x] **Step 7: Verify the final branch state**
 
 ```bash
 git status --short --branch

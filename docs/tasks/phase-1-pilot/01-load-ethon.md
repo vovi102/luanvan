@@ -29,11 +29,11 @@ EthOn (Ethereum Ontology) là ontology nền cho KG. Trước khi extract dữ l
 
 ## Acceptance criteria
 
-- [ ] EthOn.ttl tải về và parse được không lỗi (`rdflib.Graph().parse()`).
-- [ ] Load vào Fuseki dataset `ethon-pilot`, count triples ≥ vài trăm.
-- [ ] 3 SPARQL queries chạy ra kết quả không rỗng.
-- [ ] Liệt kê được tất cả class (subclass of `owl:Class`) trong EthOn — ghi danh sách vào `src/nl2sparql/kg/ontology/ethon-classes.md`.
-- [ ] Liệt kê được tất cả property — ghi vào `src/nl2sparql/kg/ontology/ethon-properties.md`.
+- [x] EthOn.ttl tải về và parse được không lỗi (`rdflib.Graph().parse()`).
+- [x] Load vào Fuseki dataset `ethon-pilot`, count triples ≥ vài trăm.
+- [x] 3 SPARQL queries chạy ra kết quả không rỗng.
+- [x] Liệt kê được tất cả class (subclass of `owl:Class`) trong EthOn — ghi danh sách vào `src/nl2sparql/kg/ontology/ethon-classes.md`.
+- [x] Liệt kê được tất cả property — ghi vào `src/nl2sparql/kg/ontology/ethon-properties.md`.
 
 ## Hướng dẫn triển khai
 
@@ -101,6 +101,22 @@ EthOn (Ethereum Ontology) là ontology nền cho KG. Trước khi extract dữ l
 
 0.5 ngày.
 
+## Kết quả
+
+- Source SHA-256: `e73e19bf0d6bbb0e28b1497a73e4499ca78ee9c1e8c475fa31e7c821354ce71d`; kích thước file: 86,718 bytes.
+- Ontology local: 1,423 triples, 40 classes, 48 object properties, 60 datatype properties và 29 quan hệ subclass.
+- Fuseki dataset `ethon-pilot`: 1,423 triples; ba smoke query trả lần lượt 45, 48 và 29 dòng.
+
+## Verification
+
+```bash
+UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest tests/unit/test_ethon_pilot.py tests/unit/test_fuseki_pilot.py -q
+UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run pytest -q
+docker compose -f infrastructure/docker/docker-compose.fuseki.yml ps
+JUPYTER_CONFIG_DIR=/tmp/t1-1-jupyter-config JUPYTER_DATA_DIR=/tmp/t1-1-jupyter-data JUPYTER_RUNTIME_DIR=/tmp/t1-1-jupyter-runtime UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv run jupyter nbconvert --to notebook --execute notebooks/02_ethon_pilot.ipynb --output /tmp/t1-1-ethon-pilot-verified.ipynb --ExecutePreprocessor.timeout=120
+curl --fail --user admin:admin --data-urlencode 'query=SELECT (COUNT(*) AS ?count) WHERE { ?s ?p ?o }' -H 'Accept: application/sparql-results+json' http://localhost:3030/ethon-pilot/query
+```
+
 ## Trạng thái
 
-`todo`
+`done — 2026-06-20`
