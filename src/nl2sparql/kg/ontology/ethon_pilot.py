@@ -68,10 +68,8 @@ def inspect_ethon(graph: Graph) -> EthonInventory:
 
     if not classes:
         raise ValueError("EthOn graph has no explicitly declared classes")
-    if not object_properties:
-        raise ValueError("EthOn graph has no explicitly declared object properties")
-    if not datatype_properties:
-        raise ValueError("EthOn graph has no explicitly declared datatype properties")
+    if not object_properties and not datatype_properties:
+        raise ValueError("EthOn graph has no explicitly declared object or datatype properties")
 
     subclass_relations = tuple(
         sorted(
@@ -100,9 +98,9 @@ def render_class_inventory(inventory: EthonInventory, checksum: str) -> str:
     """
     classes = sorted(inventory.classes)
     lines = [
-        "# EthOn class inventory",
+        "# EthOn Classes",
         "",
-        f"Source SHA-256: {checksum}",
+        f"Source SHA-256: `{checksum}`",
         "",
         f"Total classes: {len(classes)}",
         "",
@@ -124,9 +122,9 @@ def render_property_inventory(inventory: EthonInventory, checksum: str) -> str:
     object_properties = sorted(inventory.object_properties)
     datatype_properties = sorted(inventory.datatype_properties)
     lines = [
-        "# EthOn property inventory",
+        "# EthOn Properties",
         "",
-        f"Source SHA-256: {checksum}",
+        f"Source SHA-256: `{checksum}`",
         "",
         f"Object properties: {len(object_properties)}",
         f"Datatype properties: {len(datatype_properties)}",
