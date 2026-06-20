@@ -99,7 +99,6 @@ class FusekiPilotClient:
         """
         self._base_url = base_url.rstrip("/")
         self._dataset = dataset
-        self._username = username
         token = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
         self._authorization = f"Basic {token}"
         self._secrets = tuple(secret for secret in (password, token, self._authorization) if secret)
@@ -107,10 +106,7 @@ class FusekiPilotClient:
 
     def __repr__(self) -> str:
         """Return a representation that deliberately omits authentication data."""
-        return (
-            f"{type(self).__name__}(base_url={self._base_url!r}, "
-            f"dataset={self._dataset!r}, username={self._username!r})"
-        )
+        return f"{type(self).__name__}(base_url={self._base_url!r}, dataset={self._dataset!r})"
 
     def prepare_dataset(self) -> None:
         """Create the pilot dataset if needed and clear all existing data."""
@@ -168,11 +164,13 @@ class FusekiPilotClient:
             {200},
             accept="application/sparql-results+json",
         )
+        parse_error_message: str | None = None
         try:
             result = json.loads(response.body)
-        except (UnicodeDecodeError, json.JSONDecodeError) as error:
-            message = self._redact(f"parse query response failed for {endpoint}")
-            raise FusekiError(message) from error
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            parse_error_message = self._redact(f"parse query response failed for {endpoint}")
+        if parse_error_message is not None:
+            raise FusekiError(parse_error_message) from None
         if not isinstance(result, dict):
             message = self._redact(f"parse query response failed for {endpoint}: expected object")
             raise FusekiError(message)
@@ -207,19 +205,24 @@ class FusekiPilotClient:
         expected_statuses: set[int],
     ) -> HttpResponse:
         request_headers = {**headers, "Authorization": self._authorization}
+        network_error_message: str | None = None
         try:
             response = self._transport.request("POST", endpoint, request_headers, body)
         except URLError as error:
             reason = self._redact(str(error.reason))
-            endpoint = self._redact(endpoint)
-            raise FusekiError(f"{operation} failed for {endpoint}: {reason}") from error
+            safe_endpoint = self._redact(endpoint)
+            network_error_message = f"{operation} failed for {safe_endpoint}: {reason}"
+        if network_error_message is not None:
+            raise FusekiError(network_error_message) from None
         if response.status not in expected_statuses:
-            response_text = response.body.decode("utf-8", errors="replace")[:500]
+            # Redact before truncating so credential expansion cannot exceed the final bound.
+            response_text = self._redact(response.body.decode("utf-8", errors="replace"))[:500]
+            safe_endpoint = self._redact(endpoint)
             message = (
-                f"{operation} failed for {endpoint}: HTTP {response.status}; "
+                f"{operation} failed for {safe_endpoint}: HTTP {response.status}; "
                 f"response: {response_text}"
             )
-            raise FusekiError(self._redact(message))
+            raise FusekiError(message)
         return response
 
     def _redact(self, message: str) -> str:
