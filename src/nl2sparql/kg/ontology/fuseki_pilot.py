@@ -4,12 +4,46 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
+
+_SAFE_DATASET_PATTERN = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def _normalize_base_url(base_url: str) -> str:
+    parsed = None
+    try:
+        parsed = urlsplit(base_url)
+        valid = (
+            parsed.scheme in {"http", "https"}
+            and bool(parsed.netloc)
+            and bool(parsed.hostname)
+            and parsed.username is None
+            and parsed.password is None
+            and not parsed.query
+            and not parsed.fragment
+            and parsed.path in {"", "/"}
+        )
+    except ValueError:
+        valid = False
+    if not valid or parsed is None:
+        raise ValueError(
+            "Fuseki base URL must be an HTTP(S) root URL without userinfo, query, or fragment"
+        ) from None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _validate_dataset(dataset: str) -> str:
+    if _SAFE_DATASET_PATTERN.fullmatch(dataset) is None:
+        raise ValueError(
+            "Fuseki dataset must contain only letters, digits, underscores, and hyphens"
+        )
+    return dataset
 
 
 @dataclass(frozen=True)
@@ -97,8 +131,8 @@ class FusekiPilotClient:
             password: Fuseki HTTP Basic password.
             transport: Optional injectable HTTP transport.
         """
-        self._base_url = base_url.rstrip("/")
-        self._dataset = dataset
+        self._base_url = _normalize_base_url(base_url)
+        self._dataset = _validate_dataset(dataset)
         token = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
         self._authorization = f"Basic {token}"
         self._secrets = tuple(secret for secret in (password, token, self._authorization) if secret)

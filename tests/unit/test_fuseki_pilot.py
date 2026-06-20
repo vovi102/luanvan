@@ -267,3 +267,94 @@ def test_repr_omits_all_authentication_data() -> None:
     assert "admin" not in representation
     assert PASSWORD not in representation
     assert AUTH_TOKEN not in representation
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "ftp://fuseki:3030",
+        "fuseki:3030",
+        "http:///missing-host",
+        "http://admin:url-secret@fuseki:3030",
+        "http://fuseki:3030?token=url-secret",
+        "http://fuseki:3030#url-secret",
+        "http://fuseki:3030/fuseki",
+    ],
+)
+def test_invalid_base_url_is_rejected_without_contacting_transport(base_url: str) -> None:
+    transport = FakeTransport()
+
+    with pytest.raises(ValueError, match="base URL"):
+        make_client(transport, base_url=base_url)
+
+    assert transport.requests == []
+
+
+@pytest.mark.parametrize(
+    ("base_url", "expected_base_url"),
+    [
+        ("http://fuseki:3030", "http://fuseki:3030"),
+        ("http://fuseki:3030/", "http://fuseki:3030"),
+        ("https://fuseki.example/", "https://fuseki.example"),
+    ],
+)
+def test_http_and_https_root_urls_are_accepted_and_normalized(
+    base_url: str,
+    expected_base_url: str,
+) -> None:
+    transport = FakeTransport(HttpResponse(200, b'{"results":{"bindings":[]}}'))
+
+    client = make_client(transport, base_url=base_url)
+    client.query("ASK {}")
+
+    assert transport.requests[0]["url"] == f"{expected_base_url}/ethon-pilot/query"
+    assert expected_base_url in repr(client)
+
+
+def test_userinfo_url_rejection_does_not_leak_credentials() -> None:
+    url_username = "url-admin"
+    url_password = "url-secret"
+    credential_url = f"http://{url_username}:{url_password}@fuseki:3030"
+
+    with pytest.raises(ValueError) as caught:
+        make_client(FakeTransport(), base_url=credential_url)
+
+    formatted = "".join(traceback.format_exception(caught.value))
+    for secret in (url_username, url_password, credential_url):
+        assert secret not in str(caught.value)
+        assert secret not in formatted
+
+
+@pytest.mark.parametrize(
+    "dataset",
+    ["", "/", "a/b", "a?b", "a#b", "with space", "ethon%2Fpilot", ".", ".."],
+)
+def test_unsafe_dataset_is_rejected_without_affecting_routing(dataset: str) -> None:
+    transport = FakeTransport()
+
+    with pytest.raises(ValueError, match="dataset"):
+        FusekiPilotClient(
+            "http://fuseki:3030",
+            dataset,
+            "admin",
+            PASSWORD,
+            transport=transport,
+        )
+
+    assert transport.requests == []
+
+
+@pytest.mark.parametrize("dataset", ["ethon-pilot", "EthOn_2026", "pilot123"])
+def test_safe_dataset_is_used_as_one_path_segment(dataset: str) -> None:
+    transport = FakeTransport(HttpResponse(200, b'{"results":{"bindings":[]}}'))
+    client = FusekiPilotClient(
+        "http://fuseki:3030",
+        dataset,
+        "admin",
+        PASSWORD,
+        transport=transport,
+    )
+
+    client.query("ASK {}")
+
+    assert transport.requests[0]["url"] == f"http://fuseki:3030/{dataset}/query"
