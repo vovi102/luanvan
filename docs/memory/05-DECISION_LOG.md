@@ -24,6 +24,23 @@
 
 ## Entries
 
+### 2026-06-20 — Cố định và bảo toàn dữ liệu BigQuery pilot T1.2
+
+- **Context:** T1.2 cần một lát dữ liệu nhỏ, tái lập được để kiểm tra BigQuery → CSV
+  trước khi thiết kế RML mapping; các cột Ethereum NUMERIC có nguy cơ mất chính xác.
+- **Options considered:** Lấy ngày mới nhất động; lấy mẫu ngẫu nhiên; cố định ngày và
+  giới hạn dòng; serialize số qua float hoặc chuỗi thập phân.
+- **Decision:** Cố định ngày `2024-01-15`, giới hạn 100/10/100/50 dòng cho
+  transactions/blocks/token transfers/contracts, và serialize `Decimal` thành chuỗi.
+- **Rationale:** Query có thể tái lập, dry-run chỉ quét `0.50 GiB`, còn biểu diễn chuỗi
+  giữ nguyên giá trị wei trước bước RDF mapping.
+- **Consequences:** CSV pilot chỉ lưu local dưới `data/raw/pilot/` và bị `.gitignore`;
+  repo lưu SQL, extractor, notebook và mô tả edge cases. Sample ghi nhận 80 zero-value,
+  19 large-integer và 93 typed transactions.
+- **Revisit:** Phase 2 khi chốt slice extraction đầy đủ và schema literal trong RML.
+- **Linked:** `docs/tasks/phase-1-pilot/02-bigquery-100rows.md`,
+  `src/nl2sparql/kg/extraction/pilot_extract.py`.
+
 ### 2026-06-14 — Xác nhận BigQuery Ethereum smoke access và cost estimate
 
 - **Context:** T0.3 cần chứng minh service account local query được BigQuery public Ethereum và estimate chi phí extraction 1 tháng.
