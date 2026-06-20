@@ -1,4 +1,6 @@
+import ast
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -21,6 +23,9 @@ ROOT = Path(__file__).resolve().parents[2]
 ETHON_PATH = ROOT / "data" / "ontologies" / "EthOn.ttl"
 ETHON_METADATA_PATH = ROOT / "data" / "ontologies" / "EthOn.sha256"
 ETHON_SMOKE_PATH = ROOT / "src" / "nl2sparql" / "kg" / "validation" / "ethon_smoke.sparql"
+ETHON_CLASSES_PATH = ROOT / "src" / "nl2sparql" / "kg" / "ontology" / "ethon-classes.md"
+ETHON_PROPERTIES_PATH = ROOT / "src" / "nl2sparql" / "kg" / "ontology" / "ethon-properties.md"
+ETHON_NOTEBOOK_PATH = ROOT / "notebooks" / "02_ethon_pilot.ipynb"
 ETHON_SOURCE = "https://raw.githubusercontent.com/ConsenSys/EthOn/master/EthOn.ttl"
 ETHON_SHA256 = "e73e19bf0d6bbb0e28b1497a73e4499ca78ee9c1e8c475fa31e7c821354ce71d"
 ETHON_NAMESPACE = "http://ethon.consensys.net/"
@@ -139,6 +144,91 @@ def test_rendered_inventories_are_deterministic_and_end_with_one_newline() -> No
     assert property_markdown.index("containsTx") < property_markdown.index("to`")
     assert property_markdown.index("address") < property_markdown.index("blockHash")
     assert property_markdown.endswith("\n") and not property_markdown.endswith("\n\n")
+
+
+def test_committed_inventories_match_rendered_ethon_byte_for_byte() -> None:
+    checksum = hashlib.sha256(ETHON_PATH.read_bytes()).hexdigest()
+    inventory = inspect_ethon(load_ethon(ETHON_PATH))
+
+    expected_classes = render_class_inventory(inventory, checksum)
+    expected_properties = render_property_inventory(inventory, checksum)
+
+    assert ETHON_CLASSES_PATH.read_bytes() == expected_classes.encode("utf-8")
+    assert ETHON_PROPERTIES_PATH.read_bytes() == expected_properties.encode("utf-8")
+    assert f"Source SHA-256: `{checksum}`" in expected_classes
+    assert f"Total classes: {len(inventory.classes)}" in expected_classes
+    assert f"Source SHA-256: `{checksum}`" in expected_properties
+    assert f"Object properties: {len(inventory.object_properties)}" in expected_properties
+    assert f"Datatype properties: {len(inventory.datatype_properties)}" in expected_properties
+
+
+def test_ethon_pilot_notebook_exercises_exact_unexecuted_workflow() -> None:
+    notebook = json.loads(ETHON_NOTEBOOK_PATH.read_text(encoding="utf-8"))
+    code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
+    source = "\n".join("".join(cell["source"]) for cell in code_cells)
+    tree = ast.parse(source)
+
+    required_names = {
+        "Path",
+        "hashlib",
+        "os",
+        "load_ethon",
+        "inspect_ethon",
+        "FusekiPilotClient",
+        "load_smoke_queries",
+    }
+    referenced_names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+    called_attributes = {
+        node.func.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+
+    assert required_names <= referenced_names
+    assert {"prepare_dataset", "upload_turtle", "query"} <= called_attributes
+    assert '"EthOn.ttl"' in source
+    assert '"ethon_smoke.sparql"' in source
+    assert ETHON_SHA256 in source
+    assert 'result["results"]["bindings"]' in source
+    assert "assert bindings" in source
+    assert {"FUSEKI_URL", "FUSEKI_ADMIN_USER", "FUSEKI_ADMIN_PASSWORD"} <= {
+        node.args[0].value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "get"
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+        and isinstance(node.args[0].value, str)
+    }
+
+    client_call = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "FusekiPilotClient"
+    )
+    assert isinstance(client_call.args[1], ast.Constant)
+    assert client_call.args[1].value == "ethon-pilot"
+    assert all(isinstance(argument, ast.Name) for argument in client_call.args[2:4])
+
+    environment_defaults = {
+        node.args[0].value: node.args[1].value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "get"
+        and len(node.args) == 2
+        and all(isinstance(argument, ast.Constant) for argument in node.args)
+    }
+    assert environment_defaults == {
+        "FUSEKI_URL": "http://localhost:3030",
+        "FUSEKI_ADMIN_USER": "admin",
+        "FUSEKI_ADMIN_PASSWORD": "admin",
+    }
+    assert all(cell.get("outputs") == [] for cell in code_cells)
+    assert all(cell.get("execution_count") is None for cell in code_cells)
 
 
 @pytest.mark.parametrize(
