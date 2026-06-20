@@ -137,7 +137,7 @@ def render_property_inventory(inventory: EthonInventory, checksum: str) -> str:
         "",
         *(_term_entry(iri) for iri in datatype_properties),
     ]
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines).rstrip("\n") + "\n"
 
 
 def _typed_uri_subjects(graph: Graph, rdf_type: URIRef) -> tuple[str, ...]:

@@ -136,6 +136,30 @@ def test_rendered_inventories_are_deterministic_and_end_with_one_newline() -> No
     assert property_markdown.endswith("\n") and not property_markdown.endswith("\n\n")
 
 
+@pytest.mark.parametrize(
+    ("object_properties", "datatype_properties"),
+    [
+        (("https://example.test/objectProperty",), ()),
+        ((), ("https://example.test/datatypeProperty",)),
+    ],
+)
+def test_render_property_inventory_has_one_final_newline_for_single_category(
+    object_properties: tuple[str, ...],
+    datatype_properties: tuple[str, ...],
+) -> None:
+    inventory = EthonInventory(
+        classes=("https://example.test/Class",),
+        object_properties=object_properties,
+        datatype_properties=datatype_properties,
+        subclass_relations=(),
+    )
+
+    markdown = render_property_inventory(inventory, "checksum")
+
+    assert markdown.endswith("\n")
+    assert not markdown.endswith("\n\n")
+
+
 def test_load_ethon_rejects_missing_file(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="EthOn ontology not found"):
         load_ethon(tmp_path / "missing.ttl")
