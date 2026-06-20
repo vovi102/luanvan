@@ -1,0 +1,35 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?class ?label
+WHERE {
+  ?class a owl:Class .
+  OPTIONAL { ?class rdfs:label ?label . }
+}
+ORDER BY ?class ?label
+
+# --- ETHON QUERY ---
+
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?property ?domain ?range
+WHERE {
+  ?property a owl:ObjectProperty .
+  OPTIONAL { ?property rdfs:domain ?domain . }
+  OPTIONAL { ?property rdfs:range ?range . }
+}
+ORDER BY ?property ?domain ?range
+
+# --- ETHON QUERY ---
+
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?subclass ?superclass
+WHERE {
+  ?subclass rdfs:subClassOf ?superclass .
+  ?subclass a owl:Class .
+  ?superclass a owl:Class .
+}
+ORDER BY ?subclass ?superclass

@@ -5,11 +5,14 @@ import pytest
 from rdflib import BNode, Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS
 from rdflib.plugins.parsers.notation3 import BadSyntax
+from rdflib.plugins.sparql import prepareQuery
 
 from nl2sparql.kg.ontology.ethon_pilot import (
+    QUERY_SEPARATOR,
     EthonInventory,
     inspect_ethon,
     load_ethon,
+    load_smoke_queries,
     render_class_inventory,
     render_property_inventory,
 )
@@ -17,6 +20,7 @@ from nl2sparql.kg.ontology.ethon_pilot import (
 ROOT = Path(__file__).resolve().parents[2]
 ETHON_PATH = ROOT / "data" / "ontologies" / "EthOn.ttl"
 ETHON_METADATA_PATH = ROOT / "data" / "ontologies" / "EthOn.sha256"
+ETHON_SMOKE_PATH = ROOT / "src" / "nl2sparql" / "kg" / "validation" / "ethon_smoke.sparql"
 ETHON_SOURCE = "https://raw.githubusercontent.com/ConsenSys/EthOn/master/EthOn.ttl"
 ETHON_SHA256 = "e73e19bf0d6bbb0e28b1497a73e4499ca78ee9c1e8c475fa31e7c821354ce71d"
 ETHON_NAMESPACE = "http://ethon.consensys.net/"
@@ -223,3 +227,71 @@ def test_load_ethon_propagates_malformed_turtle_parse_error(tmp_path: Path) -> N
 
     with pytest.raises(BadSyntax):
         load_ethon(malformed_path)
+
+
+def test_load_smoke_queries_returns_exactly_three_stripped_queries(tmp_path: Path) -> None:
+    query_path = tmp_path / "queries.sparql"
+    query_path.write_text(
+        f"\nSELECT * WHERE {{}}\n{QUERY_SEPARATOR}\n\nASK {{}}\n"
+        f"{QUERY_SEPARATOR}\nCONSTRUCT {{}} WHERE {{}}\n",
+        encoding="utf-8",
+    )
+
+    assert load_smoke_queries(query_path) == (
+        "SELECT * WHERE {}",
+        "ASK {}",
+        "CONSTRUCT {} WHERE {}",
+    )
+
+
+@pytest.mark.parametrize("query_count", [0, 1, 2, 4])
+def test_load_smoke_queries_rejects_wrong_query_count(
+    tmp_path: Path, query_count: int
+) -> None:
+    query_path = tmp_path / "queries.sparql"
+    query_path.write_text(
+        f"\n{QUERY_SEPARATOR}\n".join(f"SELECT {index} WHERE {{}}" for index in range(query_count)),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=rf"expected 3.*actual {query_count}",
+    ):
+        load_smoke_queries(query_path)
+
+
+def test_load_smoke_queries_rejects_missing_file(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError, match="EthOn smoke query file not found"):
+        load_smoke_queries(tmp_path / "missing.sparql")
+
+
+def test_committed_ethon_smoke_artifact_has_three_distinct_query_contracts() -> None:
+    content = ETHON_SMOKE_PATH.read_text(encoding="utf-8")
+    queries = load_smoke_queries(ETHON_SMOKE_PATH)
+    owl_prefix = "PREFIX owl: <http://www.w3.org/2002/07/owl#>"
+    rdfs_prefix = "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"
+
+    assert content.count(QUERY_SEPARATOR) == 2
+    assert content.count(owl_prefix) == 3
+    assert content.count(rdfs_prefix) == 3
+    assert [query.count("SELECT") for query in queries] == [1, 1, 1]
+    assert "SELECT ?class ?label" in queries[0]
+    assert "?class a owl:Class" in queries[0]
+    assert "OPTIONAL" in queries[0] and "rdfs:label" in queries[0]
+    assert "SELECT ?property ?domain ?range" in queries[1]
+    assert "?property a owl:ObjectProperty" in queries[1]
+    assert "rdfs:domain" in queries[1] and "rdfs:range" in queries[1]
+    assert "SELECT ?subclass ?superclass" in queries[2]
+    assert "?subclass rdfs:subClassOf ?superclass" in queries[2]
+    assert "?subclass a owl:Class" in queries[2]
+    assert "?superclass a owl:Class" in queries[2]
+
+
+def test_committed_ethon_smoke_queries_parse_and_return_explicit_results() -> None:
+    graph = load_ethon(ETHON_PATH)
+
+    for query in load_smoke_queries(ETHON_SMOKE_PATH):
+        prepared_query = prepareQuery(query)
+
+        assert list(graph.query(prepared_query))

@@ -7,6 +7,8 @@ from urllib.parse import urldefrag, urlparse
 from rdflib import Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS
 
+QUERY_SEPARATOR = "# --- ETHON QUERY ---"
+
 
 @dataclass(frozen=True)
 class EthonInventory:
@@ -50,6 +52,34 @@ def load_ethon(path: Path) -> Graph:
     if not graph:
         raise ValueError(f"EthOn ontology parsed to an empty graph: {path}")
     return graph
+
+
+def load_smoke_queries(path: Path) -> tuple[str, ...]:
+    """Load the three deterministic EthOn smoke queries from a UTF-8 file.
+
+    Args:
+        path: Path to the separator-delimited SPARQL query file.
+
+    Returns:
+        The three non-empty, stripped SPARQL queries in file order.
+
+    Raises:
+        FileNotFoundError: If the smoke query file does not exist.
+        ValueError: If the file does not contain exactly three non-empty queries.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"EthOn smoke query file not found: {path}")
+
+    queries = tuple(
+        segment.strip()
+        for segment in path.read_text(encoding="utf-8").split(QUERY_SEPARATOR)
+        if segment.strip()
+    )
+    if len(queries) != 3:
+        raise ValueError(
+            f"EthOn smoke query file expected 3 queries; actual {len(queries)}: {path}"
+        )
+    return queries
 
 
 def inspect_ethon(graph: Graph) -> EthonInventory:
