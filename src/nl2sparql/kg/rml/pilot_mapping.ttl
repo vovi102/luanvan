@@ -1,0 +1,82 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix : <https://thesis.example.org/eth-kg/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<#TransactionMap> a rr:TriplesMap ;
+    rml:logicalSource [
+        rml:source "data/raw/pilot/transactions_pilot.csv" ;
+        rml:referenceFormulation ql:CSV
+    ] ;
+    rr:subjectMap [
+        rr:template "https://thesis.example.org/eth-kg/tx/{hash}" ;
+        rr:class :Transaction
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasFromAddress ;
+        rr:objectMap [
+            rr:template "https://thesis.example.org/eth-kg/addr/{from_address}" ;
+            rr:termType rr:IRI
+        ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasToAddress ;
+        rr:objectMap [
+            rr:template "https://thesis.example.org/eth-kg/addr/{to_address}" ;
+            rr:termType rr:IRI
+        ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasValue ;
+        rr:objectMap [ rml:reference "value" ; rr:datatype xsd:decimal ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasGasUsed ;
+        rr:objectMap [ rml:reference "gas" ; rr:datatype xsd:integer ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasBlockNumber ;
+        rr:objectMap [ rml:reference "block_number" ; rr:datatype xsd:integer ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasTimestamp ;
+        rr:objectMap [ rml:reference "block_timestamp" ; rr:datatype xsd:dateTime ]
+    ] .
+
+<#BlockMap> a rr:TriplesMap ;
+    rml:logicalSource [
+        rml:source "data/raw/pilot/blocks_pilot.csv" ;
+        rml:referenceFormulation ql:CSV
+    ] ;
+    rr:subjectMap [
+        rr:template "https://thesis.example.org/eth-kg/block/{number}" ;
+        rr:class :Block
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasBlockNumber ;
+        rr:objectMap [ rml:reference "number" ; rr:datatype xsd:integer ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasTimestamp ;
+        rr:objectMap [ rml:reference "timestamp" ; rr:datatype xsd:dateTime ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasMiner ;
+        rr:objectMap [
+            rr:template "https://thesis.example.org/eth-kg/addr/{miner}" ;
+            rr:termType rr:IRI
+        ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasGasUsed ;
+        rr:objectMap [ rml:reference "gas_used" ; rr:datatype xsd:integer ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasGasLimit ;
+        rr:objectMap [ rml:reference "gas_limit" ; rr:datatype xsd:integer ]
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate :hasTransactionCount ;
+        rr:objectMap [ rml:reference "transaction_count" ; rr:datatype xsd:integer ]
+    ] .
