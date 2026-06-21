@@ -1,0 +1,2 @@
+number,hash,timestamp,miner,gas_used,gas_limit,transaction_count
+42,0xblock42,2024-01-15T00:00:00+00:00,0xminer,51000,30000000,2
