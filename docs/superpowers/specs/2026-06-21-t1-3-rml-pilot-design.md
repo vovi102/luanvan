@@ -98,4 +98,3 @@ Development follows test-driven development.
 - automated tests for the mapping and runner
 - updated T1.3 task status, acceptance checkboxes, verification evidence, and
   Morph-KGC decision record
-
