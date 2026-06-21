@@ -26,11 +26,11 @@ Fuseki là triple store + SPARQL endpoint chính (Plan A). Cần verify cài đ�
 
 ## Acceptance criteria
 
-- [ ] Truy cập `http://localhost:3030/` thấy admin UI.
-- [ ] Tạo dataset name `test` (in-memory hoặc TDB2).
-- [ ] Upload file `src/nl2sparql/kg/validation/sample.ttl` (10-20 triples tự viết, ví dụ về địa chỉ + transaction giả) thành công.
-- [ ] Chạy 3 SPARQL queries qua `SPARQLWrapper` cho ra kết quả không rỗng.
-- [ ] Document quy trình start/stop Fuseki trong `docs/setup-fuseki.md`.
+- [x] Truy cập `http://localhost:3030/` thấy admin UI.
+- [x] Tạo dataset name `test` (in-memory hoặc TDB2).
+- [x] Upload file `src/nl2sparql/kg/validation/sample.ttl` (10-20 triples tự viết, ví dụ về địa chỉ + transaction giả) thành công.
+- [x] Chạy 3 SPARQL queries qua `SPARQLWrapper` cho ra kết quả không rỗng.
+- [x] Document quy trình start/stop Fuseki trong `docs/setup-fuseki.md`.
 
 ## Hướng dẫn triển khai
 

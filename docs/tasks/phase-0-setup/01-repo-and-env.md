@@ -30,7 +30,7 @@ Cần nền tảng repo trước khi làm bất kỳ task nào khác. Convention
 
 ## Acceptance criteria
 
-- [ ] `git clone <repo>` thành công.
+- [x] `git clone <repo>` thành công.
 - [x] `UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv sync` chạy hết không lỗi.
 - [x] Smoke test ở trên (import) chạy được.
 - [x] `uv run ruff check src tests` không báo lỗi.

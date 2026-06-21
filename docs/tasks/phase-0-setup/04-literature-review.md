@@ -40,11 +40,11 @@ Chương Related Work của thesis cần cite cẩn thận. Quan trọng hơn: *
 
 ## Acceptance criteria
 
-- [ ] ≥30 entries trong `papers.bib`, đầy đủ DOI/URL.
-- [ ] Mỗi paper có ≥2-3 câu summary trong `notes.md`.
-- [ ] Có ≥2 paper đại diện ở mỗi nhóm A-F.
-- [ ] Comparison table với ≥10 hàng.
-- [ ] Note ra ≥5 "gap" mà thesis này có thể lấp.
+- [x] ≥30 entries trong `papers.bib`, đầy đủ DOI/URL.
+- [x] Mỗi paper có ≥2-3 câu summary trong `notes.md`.
+- [x] Có ≥2 paper đại diện ở mỗi nhóm A-F.
+- [x] Comparison table với ≥10 hàng.
+- [x] Note ra ≥5 "gap" mà thesis này có thể lấp.
 
 ## Hướng dẫn triển khai
 
