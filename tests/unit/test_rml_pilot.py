@@ -1,5 +1,7 @@
 """Tests for the T1.3 RML pilot."""
 
+import ast
+import json
 from decimal import Decimal
 from pathlib import Path
 
@@ -19,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MAPPING_PATH = ROOT / "src/nl2sparql/kg/rml/pilot_mapping.ttl"
 FIXTURE_DIR = ROOT / "tests/fixtures/rml"
 EX = Namespace("https://thesis.example.org/eth-kg/")
+NOTEBOOK_PATH = ROOT / "notebooks/04_rml_pilot.ipynb"
 
 
 def test_required_input_paths_resolve_both_pilot_sources(tmp_path: Path) -> None:
@@ -96,3 +99,28 @@ def test_materialize_rejects_graph_below_minimum(tmp_path: Path) -> None:
             tmp_path / "small.ttl",
             minimum_triples=21,
         )
+
+
+def test_rml_notebook_contains_unexecuted_source_derived_fuseki_checks() -> None:
+    notebook = json.loads(NOTEBOOK_PATH.read_text(encoding="utf-8"))
+    code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
+    source = "\n".join("".join(cell["source"]) for cell in code_cells)
+    tree = ast.parse(source)
+    called_attributes = {
+        node.func.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+
+    assert {"prepare_dataset", "upload_turtle", "query"} <= called_attributes
+    assert '"pilot-kg"' in source
+    assert "transactions_pilot.csv" in source
+    assert "output.ttl" in source
+    assert "COUNT(?tx)" in source
+    assert "FILTER(?value > 1000000000000000000)" in source
+    assert "GROUP BY ?from" in source
+    assert "expected_transaction_count" in source
+    assert "expected_high_value_count" in source
+    assert "expected_top_senders" in source
+    assert all(cell.get("execution_count") is None for cell in code_cells)
+    assert all(cell.get("outputs") == [] for cell in code_cells)
