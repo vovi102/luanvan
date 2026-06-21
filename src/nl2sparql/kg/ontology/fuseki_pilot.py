@@ -135,7 +135,10 @@ class FusekiPilotClient:
         self._dataset = _validate_dataset(dataset)
         token = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
         self._authorization = f"Basic {token}"
-        self._secrets = tuple(secret for secret in (password, token, self._authorization) if secret)
+        secrets = dict.fromkeys(
+            secret for secret in (password, token, self._authorization) if secret
+        )
+        self._secrets = tuple(sorted(secrets, key=len, reverse=True))
         self._transport = transport or UrllibTransport()
 
     def __repr__(self) -> str:

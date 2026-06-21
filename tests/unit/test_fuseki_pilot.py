@@ -251,6 +251,46 @@ def test_status_error_redacts_then_limits_response_excerpt() -> None:
     assert short_password not in excerpt
 
 
+def test_status_error_redacts_overlapping_basic_auth_secrets() -> None:
+    password = "a"
+    token = base64.b64encode(f"admin:{password}".encode()).decode("ascii")
+    authorization = f"Basic {token}"
+    response_body = (
+        f"credential={password}; token={token}; authorization={authorization}"
+    ).encode()
+    transport = FakeTransport(HttpResponse(500, response_body))
+    client = FusekiPilotClient(
+        "http://fuseki:3030",
+        "ethon-pilot",
+        "admin",
+        password,
+        transport=transport,
+    )
+
+    with pytest.raises(FusekiError) as caught:
+        client.query("ASK {}")
+
+    forbidden = (
+        "credential=a",
+        token,
+        authorization,
+        "YWRt",
+        "W46YQ==",
+        "B[REDACTED]sic",
+    )
+    formatted = "".join(traceback.format_exception(caught.value))
+    assert all(secret not in formatted for secret in forbidden)
+
+    pending = [caught.value]
+    while pending:
+        error = pending.pop()
+        rendered = f"{error!s} {error!r}"
+        assert all(secret not in rendered for secret in forbidden)
+        pending.extend(
+            chained for chained in (error.__cause__, error.__context__) if chained is not None
+        )
+
+
 def test_trailing_base_url_slash_is_normalized() -> None:
     transport = FakeTransport(HttpResponse(200, b'{"results":{"bindings":[]}}'))
 
