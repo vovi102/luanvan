@@ -24,6 +24,16 @@
 
 ## Entries
 
+### 2026-06-20 — Commit EthOn 0.2 làm ontology nền cho pilot
+
+- **Context:** T1.1 cần ontology tái lập để kiểm chứng Fuseki và làm namespace nền cho RML pilot T1.3.
+- **Options considered:** Tải động mỗi lần; commit skeleton tối thiểu; commit toàn bộ ontology chính thức.
+- **Decision:** Commit toàn bộ `EthOn.ttl`, giữ nguyên namespace `http://ethon.consensys.net/`, và chạy truy vấn không inference.
+- **Rationale:** File chính thức nhỏ (86,718 bytes), loại bỏ phụ thuộc mạng và giữ đầy đủ source; SHA-256 là `e73e19bf0d6bbb0e28b1497a73e4499ca78ee9c1e8c475fa31e7c821354ce71d`.
+- **Consequences:** T1.3 có thể tham chiếu trực tiếp EthOn; ontology đo được 1,423 triples, 40 classes, 48 object properties, 60 datatype properties và 29 quan hệ subclass. DEX, lending, mixer, token standards và dữ liệu hậu PoS vẫn cần extension ở Phase 2.
+- **Revisit:** T2.1 khi thiết kế ontology extension.
+- **Linked:** `docs/tasks/phase-1-pilot/01-load-ethon.md`, `data/ontologies/EthOn.ttl`.
+
 ### 2026-06-20 — Cố định và bảo toàn dữ liệu BigQuery pilot T1.2
 
 - **Context:** T1.2 cần một lát dữ liệu nhỏ, tái lập được để kiểm tra BigQuery → CSV
