@@ -29,11 +29,11 @@ Viết RML rules mapping CSV pilot → TTL, chạy Morph-KGC, load TTL vào Fuse
 
 ## Acceptance criteria
 
-- [ ] Morph-KGC chạy không crash.
-- [ ] Output TTL parse được bằng `rdflib`.
-- [ ] Triple count ≥ 5 × 100 = 500 (vì mỗi tx tạo nhiều triple: type, from, to, value, timestamp, ...).
-- [ ] Upload vào Fuseki dataset `pilot-kg`.
-- [ ] 3 SPARQL queries chạy được, trả kết quả khớp với expected số rows.
+- [x] Morph-KGC chạy không crash.
+- [x] Output TTL parse được bằng `rdflib`.
+- [x] Triple count ≥ 5 × 100 = 500 (vì mỗi tx tạo nhiều triple: type, from, to, value, timestamp, ...).
+- [x] Upload vào Fuseki dataset `pilot-kg`.
+- [x] 3 SPARQL queries chạy được, trả kết quả khớp với expected số rows.
 
 ## Hướng dẫn triển khai
 
@@ -169,4 +169,24 @@ Viết RML rules mapping CSV pilot → TTL, chạy Morph-KGC, load TTL vào Fuse
 
 ## Trạng thái
 
-`todo`
+`done — 2026-06-21`
+
+## Kết quả
+
+- Morph-KGC 2.8.1 materialized 770 triples from 100 transactions and 10 blocks.
+- `rdflib` reparsed the generated Turtle without errors.
+- Fuseki dataset `pilot-kg` returned 100 transactions.
+- The high-value query returned 3 transactions, matching the source CSV.
+- The grouped sender query matched the deterministic top-10 result derived from CSV.
+- Missing recipients are omitted by the RML template; no empty address IRI is emitted.
+
+## Verification
+
+```bash
+uv run pytest -q
+uv run ruff check src tests
+uv run python -m nl2sparql.kg.rml.run_morph_pilot
+uv run jupyter nbconvert --to notebook --execute notebooks/04_rml_pilot.ipynb \
+  --output /tmp/t1-3-rml-pilot-verified.ipynb \
+  --ExecutePreprocessor.timeout=120
+```

@@ -22,6 +22,8 @@ MAPPING_PATH = ROOT / "src/nl2sparql/kg/rml/pilot_mapping.ttl"
 FIXTURE_DIR = ROOT / "tests/fixtures/rml"
 EX = Namespace("https://thesis.example.org/eth-kg/")
 NOTEBOOK_PATH = ROOT / "notebooks/04_rml_pilot.ipynb"
+TASK_PATH = ROOT / "docs/tasks/phase-1-pilot/03-rml-pilot.md"
+DECISION_LOG_PATH = ROOT / "docs/memory/05-DECISION_LOG.md"
 
 
 def test_required_input_paths_resolve_both_pilot_sources(tmp_path: Path) -> None:
@@ -124,3 +126,16 @@ def test_rml_notebook_contains_unexecuted_source_derived_fuseki_checks() -> None
     assert "expected_top_senders" in source
     assert all(cell.get("execution_count") is None for cell in code_cells)
     assert all(cell.get("outputs") == [] for cell in code_cells)
+
+
+def test_t1_3_completion_is_recorded_with_measured_evidence() -> None:
+    task = TASK_PATH.read_text(encoding="utf-8")
+    decision_log = DECISION_LOG_PATH.read_text(encoding="utf-8")
+
+    assert task.count("- [x]") >= 5
+    assert "`done — 2026-06-21`" in task
+    assert "770 triples" in task
+    assert "100 transactions" in task
+    assert "2026-06-21 — Giữ Morph-KGC cho RML pipeline sau pilot T1.3" in decision_log
+    assert "770 triples" in decision_log
+    assert "RMLMapper" in decision_log

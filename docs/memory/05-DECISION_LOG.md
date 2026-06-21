@@ -24,6 +24,16 @@
 
 ## Entries
 
+### 2026-06-21 — Giữ Morph-KGC cho RML pipeline sau pilot T1.3
+
+- **Context:** T1.3 cần chứng minh RML có thể chuyển dữ liệu BigQuery pilot thành RDF parse được và truy vấn được trước khi mở rộng sang Phase 2.
+- **Options considered:** Morph-KGC trực tiếp trên CSV; tiền xử lý CSV trước Morph-KGC; chuyển sang RMLMapper hoặc RDFLib thuần.
+- **Decision:** Giữ Morph-KGC 2.8.1 và mapping RML trực tiếp cho pipeline; pilot chỉ cover transactions và blocks.
+- **Rationale:** Morph-KGC materialized 770 triples từ 100 transactions và 10 blocks, giữ datatype RDF, upload Fuseki thành công và cả ba query khớp CSV nguồn.
+- **Consequences:** T2.4 có thể mở rộng mapping này cho token transfers và contracts. Dữ liệu CSV/TTL vẫn là artifact local bị ignore; mapping, runner, notebook và tests được version-control.
+- **Revisit:** T2.4 nếu dữ liệu một tháng gây vấn đề về tốc độ, bộ nhớ hoặc NULL handling; khi đó benchmark RMLMapper.
+- **Linked:** `docs/tasks/phase-1-pilot/03-rml-pilot.md`, `src/nl2sparql/kg/rml/pilot_mapping.ttl`, `notebooks/04_rml_pilot.ipynb`.
+
 ### 2026-06-20 — Commit EthOn 0.2 làm ontology nền cho pilot
 
 - **Context:** T1.1 cần ontology tái lập để kiểm chứng Fuseki và làm namespace nền cho RML pilot T1.3.
