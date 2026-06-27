@@ -1,0 +1,155 @@
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from nl2sparql.linking.dictionary import (
+    ALIASES_PATH,
+    CONCEPTS_PATH,
+    ENTITIES_PATH,
+    SOURCES_PATH,
+)
+from nl2sparql.linking.dictionary.schema import (
+    DictionaryValidationError,
+    normalize_address,
+    normalize_alias,
+    validate_confidence,
+)
+
+
+@dataclass(frozen=True)
+class DictionaryArtifacts:
+    entities_path: Path = ENTITIES_PATH
+    concepts_path: Path = CONCEPTS_PATH
+    aliases_path: Path = ALIASES_PATH
+    sources_path: Path = SOURCES_PATH
+
+
+def _load_json(path: Path) -> Any:
+    if not path.exists():
+        raise DictionaryValidationError(f"Missing dictionary artifact: {path}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def validate_artifacts(
+    artifacts: DictionaryArtifacts = DictionaryArtifacts(),
+    *,
+    min_entities: int = 3000,
+    min_aliases: int = 1000,
+) -> dict[str, int]:
+    entities = _load_json(artifacts.entities_path)
+    concepts = _load_json(artifacts.concepts_path)
+    aliases = _load_json(artifacts.aliases_path)
+    if not artifacts.sources_path.exists():
+        raise DictionaryValidationError(
+            f"Missing dictionary artifact: {artifacts.sources_path}"
+        )
+    if not isinstance(entities, list):
+        raise DictionaryValidationError("entities.json must contain a list")
+    if not isinstance(concepts, dict):
+        raise DictionaryValidationError("concepts.json must contain an object")
+    if not isinstance(aliases, dict):
+        raise DictionaryValidationError("aliases.json must contain an object")
+    if len(entities) < min_entities:
+        raise DictionaryValidationError(
+            f"entities.json has {len(entities)} entries; "
+            f"expected at least {min_entities}"
+        )
+    if not 8 <= len(concepts) <= 12:
+        raise DictionaryValidationError(
+            f"concepts.json has {len(concepts)} concepts; expected 8-12"
+        )
+    if len(aliases) < min_aliases:
+        raise DictionaryValidationError(
+            f"aliases.json has {len(aliases)} aliases; expected at least {min_aliases}"
+        )
+    if list(aliases) != sorted(aliases):
+        raise DictionaryValidationError("aliases.json keys must be sorted")
+
+    concept_keys = set(concepts)
+    owners = set()
+    seen_addresses = set()
+    entity_sort_keys = [
+        (entry.get("category"), entry.get("owner"), entry.get("address_lower"))
+        for entry in entities
+    ]
+    if entity_sort_keys != sorted(entity_sort_keys):
+        raise DictionaryValidationError(
+            "entities.json must be sorted by category, owner, address_lower"
+        )
+
+    for concept_key, concept in concepts.items():
+        if normalize_alias(concept_key) != concept_key:
+            raise DictionaryValidationError(
+                f"Concept key is not normalized: {concept_key!r}"
+            )
+        for field in ("ontology_class", "aliases", "instances", "description"):
+            if field not in concept:
+                raise DictionaryValidationError(
+                    f"Concept {concept_key!r} missing field {field!r}"
+                )
+        owners.update(concept["instances"])
+
+    required = {
+        "address",
+        "address_lower",
+        "primary_label",
+        "owner",
+        "category",
+        "concept_class",
+        "aliases",
+        "sources",
+        "confidence",
+        "verified_date",
+    }
+    for entry in entities:
+        missing = required - set(entry)
+        if missing:
+            raise DictionaryValidationError(f"Entity missing fields: {sorted(missing)}")
+        address_lower = normalize_address(entry["address"])
+        if entry["address_lower"] != address_lower:
+            raise DictionaryValidationError(
+                f"address_lower mismatch for {entry['address']}"
+            )
+        if address_lower in seen_addresses:
+            raise DictionaryValidationError(f"Duplicate address_lower: {address_lower}")
+        seen_addresses.add(address_lower)
+        if entry["category"] not in concept_keys:
+            raise DictionaryValidationError(f"Unknown category: {entry['category']}")
+        validate_confidence(entry["confidence"])
+        if not entry["sources"]:
+            raise DictionaryValidationError(
+                f"Entity has no sources: {entry['address']}"
+            )
+        owners.add(entry["owner"])
+        for alias in entry["aliases"]:
+            normalize_alias(alias)
+        for source in entry["sources"]:
+            for field in ("name", "url", "retrieved_date", "note"):
+                if field not in source:
+                    raise DictionaryValidationError(
+                        f"Source missing field {field!r} for {entry['address']}"
+                    )
+
+    for alias, target in aliases.items():
+        if normalize_alias(alias) != alias:
+            raise DictionaryValidationError(f"Alias key is not normalized: {alias!r}")
+        if target not in owners:
+            raise DictionaryValidationError(f"Alias target does not exist: {target!r}")
+
+    sources_text = artifacts.sources_path.read_text(encoding="utf-8")
+    for phrase in (
+        "Retrieved date:",
+        "Manual verification:",
+        "Automated acceptance criteria",
+    ):
+        if phrase not in sources_text:
+            raise DictionaryValidationError(f"sources.md missing phrase: {phrase}")
+
+    return {
+        "entity_count": len(entities),
+        "concept_count": len(concepts),
+        "alias_count": len(aliases),
+    }

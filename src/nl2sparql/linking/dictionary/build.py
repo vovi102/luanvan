@@ -26,6 +26,7 @@ def build_dictionary(raw_path: Path, concepts_path: Path) -> dict[str, Any]:
     concepts = json.loads(concepts_path.read_text(encoding="utf-8"))
     entities: list[dict[str, Any]] = []
     aliases: dict[str, str] = {}
+    ambiguous_aliases: set[str] = set()
     seen_addresses: set[str] = set()
 
     for concept in concepts.values():
@@ -43,12 +44,13 @@ def build_dictionary(raw_path: Path, concepts_path: Path) -> dict[str, Any]:
         entry_aliases.append(normalize_alias(row["owner"]))
         entry_aliases = sorted(set(entry_aliases))
         for alias in entry_aliases:
+            if alias in ambiguous_aliases:
+                continue
             existing = aliases.get(alias)
             if existing is not None and existing != row["owner"]:
-                raise ValueError(
-                    f"Alias collision: {alias!r} maps to both "
-                    f"{existing!r} and {row['owner']!r}"
-                )
+                aliases.pop(alias)
+                ambiguous_aliases.add(alias)
+                continue
             aliases[alias] = row["owner"]
         concepts[row["category"]]["instances"].append(row["owner"])
         entities.append(

@@ -79,3 +79,37 @@ def test_build_dictionary_merges_real_source_rows_and_sorts_outputs(tmp_path):
     )
     assert built["aliases"]["binance hot wallet"] == "Binance"
     assert built["concepts"]["exchange"]["instances"] == ["Binance"]
+
+
+def test_build_dictionary_drops_ambiguous_aliases_without_dropping_entities(tmp_path):
+    raw_path = tmp_path / "entities.csv"
+    concepts_path = tmp_path / "concepts.json"
+    raw_path.write_text(
+        "\n".join(
+            [
+                "address,primary_label,owner,category,concept_class,aliases,source_name,source_url,retrieved_date,confidence",
+                "0x1111111111111111111111111111111111111111,Spurdo token,Spurdo,token_contract,TokenContract,spurdo|spurdo token,coingecko_token_list,https://tokens.coingecko.com/uniswap/all.json,2026-06-28,medium",
+                "0x2222222222222222222222222222222222222222,SPURDO token,SPURDO,token_contract,TokenContract,spurdo|spurdo token,coingecko_token_list,https://tokens.coingecko.com/uniswap/all.json,2026-06-28,medium",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    concepts_path.write_text(
+        json.dumps(
+            {
+                "token_contract": {
+                    "ontology_class": "https://thesis.example.org/eth-kg/TokenContract",
+                    "aliases": ["token", "erc20"],
+                    "description": "Token contracts",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    built = build_dictionary(raw_path, concepts_path)
+
+    assert [entry["owner"] for entry in built["entities"]] == ["SPURDO", "Spurdo"]
+    assert "spurdo" not in built["aliases"]
+    assert "spurdo token" not in built["aliases"]
