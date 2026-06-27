@@ -28,12 +28,12 @@ EthOn cover transaction/block cơ bản, nhưng **không có** khái niệm DeFi
 
 ## Acceptance criteria
 
-- [ ] File `.ttl` parse được bằng `rdflib`, không lỗi.
-- [ ] Load vào Protégé không có inconsistency (chạy reasoner FaCT++ hoặc HermiT).
-- [ ] Có ≥15 class, ≥25 property.
-- [ ] **MỌI property có:** `rdfs:label`, `rdfs:comment` (≥2 câu), `:synonyms` (≥3 từ đồng nghĩa), `:exampleUsage`, `rdfs:domain`, `rdfs:range`.
-- [ ] 30+ competency questions, mỗi câu có ghi class/property cần dùng.
-- [ ] Cover được ≥80% trong 30 competency questions (~24 câu).
+- [x] File `.ttl` parse được bằng `rdflib`, không lỗi.
+- [ ] Load vào Protégé không có inconsistency (chạy reasoner FaCT++ hoặc HermiT). **Manual pending:** cần mở GUI ngoài CLI.
+- [x] Có ≥15 class, ≥25 property. Kết quả v0.1.0: 17 local classes, 30 local properties.
+- [x] **MỌI property có:** `rdfs:label`, `rdfs:comment` (≥2 câu), `:synonyms` (≥3 từ đồng nghĩa), `:exampleUsage`, `rdfs:domain`, `rdfs:range`.
+- [x] 30+ competency questions, mỗi câu có ghi class/property cần dùng.
+- [x] Cover được ≥80% trong 30 competency questions (~24 câu). Kết quả v0.1.0: 30/30 covered.
 
 ## Hướng dẫn triển khai
 
@@ -165,4 +165,26 @@ EthOn cover transaction/block cơ bản, nhưng **không có** khái niệm DeFi
 
 ## Trạng thái
 
-`todo`
+`done-local`
+
+## Kết quả triển khai
+
+- Ontology artifact: `src/nl2sparql/kg/ontology/eth-kg-extension-v0.1.0.ttl`.
+- Changelog: `src/nl2sparql/kg/ontology/changelog.md`.
+- Competency questions: `src/nl2sparql/kg/ontology/competency-questions.md`.
+- Ontology reference updated: `docs/memory/03-ONTOLOGY_REFERENCE.md`.
+- Decision log updated: `docs/memory/05-DECISION_LOG.md`.
+- Automated validation: `tests/unit/test_ontology_extension.py`.
+
+## Verification evidence
+
+- Focused ontology tests:
+  `UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python uv run pytest tests/unit/test_ontology_extension.py -q`
+  → `4 passed`.
+- Full unit test suite:
+  `UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python uv run pytest -q`
+  → `99 passed, 45 warnings`.
+- Whitespace check:
+  `git diff --check`
+  → exit code 0.
+- Protégé reasoner validation: manual pending because the current CLI environment does not provide Protégé/FaCT++/HermiT GUI execution.

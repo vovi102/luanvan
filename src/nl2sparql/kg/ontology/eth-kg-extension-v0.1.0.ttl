@@ -1,0 +1,373 @@
+@prefix : <https://thesis.example.org/eth-kg/> .
+@prefix ethon: <http://ethon.consensys.net/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:EthereumKGExtension a owl:Ontology ;
+    rdfs:label "Ethereum KG Extension v0.1.0" ;
+    rdfs:comment "Local ontology extension for the thesis Ethereum knowledge graph. The extension keeps EthOn terms intact and adds DeFi, entity-labeling, and schema-linker metadata." ;
+    owl:versionInfo "0.1.0" .
+
+:synonyms a owl:AnnotationProperty ;
+    rdfs:label "synonyms" ;
+    rdfs:comment "Comma-separated synonym phrases used for schema linking from natural-language questions. These terms are embedded with labels and comments in Phase 4." .
+
+:exampleUsage a owl:AnnotationProperty ;
+    rdfs:label "example usage in SPARQL" ;
+    rdfs:comment "A SPARQL fragment showing canonical use of the ontology term. The fragment is documentation for prompting and validation, not executable query text by itself." .
+
+# ---------- Classes ----------
+
+:Account a owl:Class ;
+    rdfs:subClassOf ethon:Account ;
+    rdfs:label "Ethereum Account (extended)" ;
+    rdfs:comment "Any Ethereum account represented in the local KG. This class extends EthOn accounts with labels, categories, ownership, and DeFi-specific semantics." ;
+    :synonyms "account, address, wallet, Ethereum address" .
+
+:ExternallyOwnedAccount a owl:Class ;
+    rdfs:subClassOf :Account ;
+    rdfs:label "Externally Owned Account" ;
+    rdfs:comment "An Ethereum account controlled by a private key rather than deployed bytecode. It commonly appears in natural-language questions as a wallet, user, sender, or recipient." ;
+    :synonyms "EOA, wallet, user account, externally owned address" .
+
+:IndividualAccount a owl:Class ;
+    rdfs:subClassOf :ExternallyOwnedAccount ;
+    rdfs:label "Individual Account" ;
+    rdfs:comment "An externally owned account with no known institutional owner. This class provides a neutral category for addresses that are labeled as personal or unknown wallets." ;
+    :synonyms "individual, personal wallet, user wallet, unknown wallet" .
+
+:ExchangeAccount a owl:Class ;
+    rdfs:subClassOf :ExternallyOwnedAccount ;
+    rdfs:label "Centralized Exchange Account" ;
+    rdfs:comment "An externally owned account belonging to a centralized cryptocurrency exchange. Examples include hot wallets, cold wallets, and deposit addresses operated by Binance, Coinbase, Kraken, or similar entities." ;
+    :synonyms "exchange, CEX, centralized exchange, exchange wallet, hot wallet" .
+
+:ValidatorAccount a owl:Class ;
+    rdfs:subClassOf :ExternallyOwnedAccount ;
+    rdfs:label "Validator Account" ;
+    rdfs:comment "An account associated with block validation or staking activity after the Ethereum proof-of-stake transition. It supports questions about block producers and validator-owned flows." ;
+    :synonyms "validator, staking account, block producer, proposer" .
+
+:MEVActorAccount a owl:Class ;
+    rdfs:subClassOf :ExternallyOwnedAccount ;
+    rdfs:label "MEV Actor Account" ;
+    rdfs:comment "An externally owned account associated with maximal extractable value behavior such as searchers or builders. This label is optional and depends on external entity attribution." ;
+    :synonyms "MEV, searcher, builder, arbitrage bot, sandwich bot" .
+
+:ContractAccount a owl:Class ;
+    rdfs:subClassOf :Account ;
+    rdfs:label "Smart Contract Account" ;
+    rdfs:comment "An Ethereum account with deployed bytecode that executes when called. This local class mirrors EthOn contract accounts while keeping local DeFi subclasses under one namespace." ;
+    :synonyms "contract, smart contract, deployed contract, contract address" .
+
+:MixerAccount a owl:Class ;
+    rdfs:subClassOf :ContractAccount ;
+    rdfs:label "Mixer or Privacy Tool Contract" ;
+    rdfs:comment "A smart contract or service address used to obscure transaction provenance. Examples include mixer, tumbler, and privacy-tool contracts such as Tornado Cash." ;
+    :synonyms "mixer, tumbler, privacy tool, anonymizer, Tornado Cash" .
+
+:DEXProtocol a owl:Class ;
+    rdfs:subClassOf :ContractAccount ;
+    rdfs:label "Decentralized Exchange Protocol" ;
+    rdfs:comment "A smart contract or protocol address that enables token swaps without a centralized intermediary. Examples include Uniswap, Curve, SushiSwap, and Balancer pools or routers." ;
+    :synonyms "DEX, AMM, decentralized exchange, swap protocol, liquidity pool" .
+
+:LendingProtocol a owl:Class ;
+    rdfs:subClassOf :ContractAccount ;
+    rdfs:label "Lending Protocol Contract" ;
+    rdfs:comment "A DeFi contract used for collateralized borrowing, lending, or money-market activity. Examples include Aave, Compound, MakerDAO, and similar lending systems." ;
+    :synonyms "lending, borrowing protocol, money market, DeFi lending" .
+
+:BridgeProtocol a owl:Class ;
+    rdfs:subClassOf :ContractAccount ;
+    rdfs:label "Bridge Protocol Contract" ;
+    rdfs:comment "A contract address used to move value or messages between Ethereum and another chain or layer. Bridge contracts are important for tracing cross-chain fund movement." ;
+    :synonyms "bridge, cross-chain bridge, bridge contract, token bridge" .
+
+:NFTMarketplace a owl:Class ;
+    rdfs:subClassOf :ContractAccount ;
+    rdfs:label "NFT Marketplace Contract" ;
+    rdfs:comment "A contract address used for NFT listing, sale, or exchange activity. Examples include marketplace, exchange, and aggregator contracts for ERC-721 or ERC-1155 assets." ;
+    :synonyms "NFT marketplace, marketplace, NFT exchange, OpenSea, Blur" .
+
+:TokenContract a owl:Class ;
+    rdfs:subClassOf :ContractAccount ;
+    rdfs:label "Token Contract" ;
+    rdfs:comment "A contract implementing token behavior such as ERC-20, ERC-721, or ERC-1155. Token metadata properties attach symbol, name, and decimals to this class." ;
+    :synonyms "token, ERC20, ERC721, ERC1155, NFT contract" .
+
+:Transaction a owl:Class ;
+    rdfs:subClassOf ethon:Tx ;
+    rdfs:label "Ethereum Transaction (extended)" ;
+    rdfs:comment "An Ethereum transaction with local analytics fields for value, gas, sender, recipient, timestamp, and status. This class is the primary subject for native ETH transfer queries." ;
+    :synonyms "transaction, tx, Ethereum transaction, transfer" .
+
+:Block a owl:Class ;
+    rdfs:subClassOf ethon:Block ;
+    rdfs:label "Ethereum Block (extended)" ;
+    rdfs:comment "An Ethereum block with selected local analytics fields. The class supports block-number, timestamp, validator, gas, and transaction-count queries." ;
+    :synonyms "block, Ethereum block, chain block, ledger block" .
+
+:TokenTransfer a owl:Class ;
+    rdfs:subClassOf ethon:LogEntry ;
+    rdfs:label "Token Transfer Event" ;
+    rdfs:comment "A token transfer emitted as an event log inside a transaction. It is distinct from native ETH value transfer and supports ERC-20, ERC-721, and ERC-1155 style questions." ;
+    :synonyms "token transfer, ERC20 transfer, NFT transfer, transfer event" .
+
+:ProtocolInteraction a owl:Class ;
+    rdfs:subClassOf ethon:LogEntry ;
+    rdfs:label "Protocol Interaction Event" ;
+    rdfs:comment "A local event resource representing interaction with a DeFi protocol. It gives later mappings a place to attach swap, lending, bridge, and marketplace activity." ;
+    :synonyms "protocol event, DeFi interaction, contract interaction, protocol call" .
+
+# ---------- Identity datatype properties ----------
+
+:hasLabel a owl:DatatypeProperty ;
+    rdfs:label "has label" ;
+    rdfs:comment "A human-readable label for an Ethereum account or contract. This is the display name used when an address is known from curated sources or public attribution lists." ;
+    :synonyms "label, name, display name, address label, known as" ;
+    :exampleUsage "?account :hasLabel \"Binance: Hot Wallet 14\" ." ;
+    rdfs:domain :Account ;
+    rdfs:range xsd:string .
+
+:hasAlias a owl:DatatypeProperty ;
+    rdfs:label "has alias" ;
+    rdfs:comment "An alternative name or spelling for an account, owner, token, or protocol. Aliases improve entity linking when a user mentions a short name, ticker, brand variant, or common nickname." ;
+    :synonyms "alias, also known as, nickname, alternate name, aka" ;
+    :exampleUsage "?account :hasAlias \"Binance hot wallet\" ." ;
+    rdfs:domain :Account ;
+    rdfs:range xsd:string .
+
+:hasOwner a owl:DatatypeProperty ;
+    rdfs:label "has owner" ;
+    rdfs:comment "The organization, protocol, or person believed to control an account. This is stored as a literal to support early entity linking before a separate organization ontology exists." ;
+    :synonyms "owner, controlled by, belongs to, operator, organization" ;
+    :exampleUsage "?account :hasOwner \"Binance\" ." ;
+    rdfs:domain :Account ;
+    rdfs:range xsd:string .
+
+:hasCategory a owl:DatatypeProperty ;
+    rdfs:label "has category" ;
+    rdfs:comment "A text category assigned to an account such as exchange, mixer, DEX, or lending protocol. The category mirrors class membership and keeps simple SPARQL filters easy to express." ;
+    :synonyms "category, type, account type, classification, tag" ;
+    :exampleUsage "?account :hasCategory \"exchange\" ." ;
+    rdfs:domain :Account ;
+    rdfs:range xsd:string .
+
+:hasConfidenceScore a owl:DatatypeProperty ;
+    rdfs:label "has confidence score" ;
+    rdfs:comment "A confidence value for a label, category, or owner attribution. Higher values indicate stronger evidence from curated data or repeated source agreement." ;
+    :synonyms "confidence, certainty, score, trust score, attribution confidence" ;
+    :exampleUsage "?account :hasConfidenceScore \"0.95\"^^xsd:decimal ." ;
+    rdfs:domain :Account ;
+    rdfs:range xsd:decimal .
+
+:hasSource a owl:DatatypeProperty ;
+    rdfs:label "has attribution source" ;
+    rdfs:comment "The data source used to assign an account label or category. This value helps explain provenance when the system returns a known exchange, mixer, or protocol address." ;
+    :synonyms "source, provenance, data source, attribution source, evidence" ;
+    :exampleUsage "?account :hasSource \"curated-labels-v0.1\" ." ;
+    rdfs:domain :Account ;
+    rdfs:range xsd:string .
+
+# ---------- Transaction properties ----------
+
+:hasFrom a owl:ObjectProperty ;
+    rdfs:label "has from address" ;
+    rdfs:comment "The sender address of an Ethereum transaction. This is the account that submitted or signed the transaction in the standard transaction model." ;
+    :synonyms "sender, from, source, origin, sent by" ;
+    :exampleUsage "?tx :hasFrom ?sender ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range :Account .
+
+:hasTo a owl:ObjectProperty ;
+    rdfs:label "has to address" ;
+    rdfs:comment "The recipient address of an Ethereum transaction. The recipient can be an externally owned account, a smart contract, or absent for contract-creation transactions." ;
+    :synonyms "recipient, to, destination, receiver, sent to" ;
+    :exampleUsage "?tx :hasTo ?recipient ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range :Account .
+
+:hasValue a owl:DatatypeProperty ;
+    rdfs:label "has value in wei" ;
+    rdfs:comment "The native ETH amount transferred by a transaction, stored as integer-valued wei. User questions may mention ETH, but conversion to wei is handled before SPARQL generation." ;
+    :synonyms "value, amount, ETH amount, wei value, transferred ETH" ;
+    :exampleUsage "?tx :hasValue ?weiValue ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range xsd:decimal .
+
+:hasGasUsed a owl:DatatypeProperty ;
+    rdfs:label "has gas used" ;
+    rdfs:comment "The amount of gas consumed by a transaction or block. This property supports cost, efficiency, and filtering questions over transaction execution." ;
+    :synonyms "gas used, consumed gas, execution gas, gas consumption, used gas" ;
+    :exampleUsage "?tx :hasGasUsed ?gasUsed ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range xsd:integer .
+
+:hasGasPrice a owl:DatatypeProperty ;
+    rdfs:label "has gas price" ;
+    rdfs:comment "The gas price or effective gas price associated with a transaction, represented in wei per gas unit. It supports questions about expensive transactions and fee behavior." ;
+    :synonyms "gas price, fee price, effective gas price, transaction fee rate, price per gas" ;
+    :exampleUsage "?tx :hasGasPrice ?gasPrice ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range xsd:decimal .
+
+:hasNonce a owl:DatatypeProperty ;
+    rdfs:label "has transaction nonce" ;
+    rdfs:comment "The nonce used by the sender for a transaction. It indicates account transaction ordering and helps identify repeated activity from the same sender." ;
+    :synonyms "nonce, tx nonce, sequence number, sender nonce, account nonce" ;
+    :exampleUsage "?tx :hasNonce ?nonce ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range xsd:integer .
+
+:hasInputData a owl:DatatypeProperty ;
+    rdfs:label "has input data" ;
+    rdfs:comment "The raw calldata or input payload submitted with a transaction. It is useful for contract-call detection and later protocol interaction decoding." ;
+    :synonyms "input, calldata, input data, payload, transaction data" ;
+    :exampleUsage "?tx :hasInputData ?calldata ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range xsd:string .
+
+:hasReceiptStatus a owl:DatatypeProperty ;
+    rdfs:label "has receipt status" ;
+    rdfs:comment "The execution status recorded in the transaction receipt. A true value indicates success while a false value indicates a reverted or failed transaction." ;
+    :synonyms "status, receipt status, success, failed, reverted" ;
+    :exampleUsage "?tx :hasReceiptStatus true ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range xsd:boolean .
+
+:includedInBlock a owl:ObjectProperty ;
+    rdfs:label "included in block" ;
+    rdfs:comment "The block that contains a transaction. This relationship enables joins from transaction attributes to block timestamp, validator, gas, and block-number fields." ;
+    :synonyms "included in, mined in, block, contained in block, appears in block" ;
+    :exampleUsage "?tx :includedInBlock ?block ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range :Block .
+
+:hasTimestamp a owl:DatatypeProperty ;
+    rdfs:label "has timestamp" ;
+    rdfs:comment "The UTC timestamp associated with a block, transaction, or event. For transaction resources, the timestamp is copied from the containing block to make time filters simple." ;
+    :synonyms "timestamp, time, date, block time, occurred at" ;
+    :exampleUsage "?tx :hasTimestamp ?timestamp ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range xsd:dateTime .
+
+:hasBlockNumber a owl:DatatypeProperty ;
+    rdfs:label "has block number" ;
+    rdfs:comment "The Ethereum block number associated with a block, transaction, or event. This numeric field supports range filters and deterministic ordering over chain history." ;
+    :synonyms "block number, height, block height, number, chain height" ;
+    :exampleUsage "?tx :hasBlockNumber ?blockNumber ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range xsd:integer .
+
+# ---------- Token transfer properties ----------
+
+:emittedInTransaction a owl:ObjectProperty ;
+    rdfs:label "emitted in transaction" ;
+    rdfs:comment "The transaction that emitted a token transfer or protocol event. This relationship connects event-level facts back to native ETH value, sender, recipient, and gas information." ;
+    :synonyms "emitted in, event transaction, logged in, transaction event, inside transaction" ;
+    :exampleUsage "?transfer :emittedInTransaction ?tx ." ;
+    rdfs:domain :TokenTransfer ;
+    rdfs:range :Transaction .
+
+:tokenTransferFrom a owl:ObjectProperty ;
+    rdfs:label "token transfer from" ;
+    rdfs:comment "The source account in a token transfer event. This may differ from the native transaction sender when a contract moves tokens on behalf of a user." ;
+    :synonyms "token sender, transfer from, token source, from holder, sender holder" ;
+    :exampleUsage "?transfer :tokenTransferFrom ?from ." ;
+    rdfs:domain :TokenTransfer ;
+    rdfs:range :Account .
+
+:tokenTransferTo a owl:ObjectProperty ;
+    rdfs:label "token transfer to" ;
+    rdfs:comment "The destination account in a token transfer event. This account receives the token amount or NFT referenced by the event log." ;
+    :synonyms "token recipient, transfer to, token destination, receiver holder, recipient holder" ;
+    :exampleUsage "?transfer :tokenTransferTo ?to ." ;
+    rdfs:domain :TokenTransfer ;
+    rdfs:range :Account .
+
+:transferredToken a owl:ObjectProperty ;
+    rdfs:label "transferred token" ;
+    rdfs:comment "The token contract whose asset moved in a token transfer event. Joining through this property gives access to token symbol, name, decimals, and token class." ;
+    :synonyms "token, asset, transferred asset, token contract, ERC token" ;
+    :exampleUsage "?transfer :transferredToken ?token ." ;
+    rdfs:domain :TokenTransfer ;
+    rdfs:range :TokenContract .
+
+:transferredAmount a owl:DatatypeProperty ;
+    rdfs:label "transferred token amount" ;
+    rdfs:comment "The raw token amount recorded in a transfer event. The value is stored in the token's smallest unit and must be scaled by decimals for display." ;
+    :synonyms "amount, token amount, quantity, transferred quantity, raw amount" ;
+    :exampleUsage "?transfer :transferredAmount ?amount ." ;
+    rdfs:domain :TokenTransfer ;
+    rdfs:range xsd:decimal .
+
+:hasTokenSymbol a owl:DatatypeProperty ;
+    rdfs:label "has token symbol" ;
+    rdfs:comment "The short ticker symbol of a token contract, such as USDC, WETH, or UNI. Symbols are useful for natural-language linking but are not guaranteed unique." ;
+    :synonyms "symbol, ticker, token symbol, asset symbol, coin symbol" ;
+    :exampleUsage "?token :hasTokenSymbol \"USDC\" ." ;
+    rdfs:domain :TokenContract ;
+    rdfs:range xsd:string .
+
+:hasTokenName a owl:DatatypeProperty ;
+    rdfs:label "has token name" ;
+    rdfs:comment "The human-readable name of a token contract. This value supports questions that mention full token names instead of symbols." ;
+    :synonyms "token name, name, asset name, full name, contract name" ;
+    :exampleUsage "?token :hasTokenName \"USD Coin\" ." ;
+    rdfs:domain :TokenContract ;
+    rdfs:range xsd:string .
+
+:hasDecimals a owl:DatatypeProperty ;
+    rdfs:label "has token decimals" ;
+    rdfs:comment "The number of decimals used by a fungible token contract. It is needed to convert raw token amounts into human-readable units." ;
+    :synonyms "decimals, precision, token decimals, scale, decimal places" ;
+    :exampleUsage "?token :hasDecimals 6 ." ;
+    rdfs:domain :TokenContract ;
+    rdfs:range xsd:integer .
+
+# ---------- Block properties ----------
+
+:hasMiner a owl:ObjectProperty ;
+    rdfs:label "has miner or validator" ;
+    rdfs:comment "The account credited as miner, validator, proposer, or beneficiary for a block. The property name keeps compatibility with BigQuery fields while the label covers post-merge terminology." ;
+    :synonyms "miner, validator, proposer, block producer, beneficiary" ;
+    :exampleUsage "?block :hasMiner ?validator ." ;
+    rdfs:domain :Block ;
+    rdfs:range :Account .
+
+:hasGasLimit a owl:DatatypeProperty ;
+    rdfs:label "has gas limit" ;
+    rdfs:comment "The maximum gas allowed in a block. This value supports block-capacity analysis and comparisons against gas used." ;
+    :synonyms "gas limit, block gas limit, maximum gas, gas cap, capacity" ;
+    :exampleUsage "?block :hasGasLimit ?gasLimit ." ;
+    rdfs:domain :Block ;
+    rdfs:range xsd:integer .
+
+:hasTxCount a owl:DatatypeProperty ;
+    rdfs:label "has transaction count" ;
+    rdfs:comment "The number of transactions included in a block. It supports queries about busy blocks, block throughput, and transaction density." ;
+    :synonyms "transaction count, tx count, number of transactions, block transactions, throughput" ;
+    :exampleUsage "?block :hasTxCount ?txCount ." ;
+    rdfs:domain :Block ;
+    rdfs:range xsd:integer .
+
+# ---------- Meta-transaction properties ----------
+
+:initiatedBy a owl:ObjectProperty ;
+    rdfs:label "initiated by" ;
+    rdfs:comment "The original account that initiated a meta-transaction or account-abstraction operation. In standard Ethereum transactions this usually matches the sender, but relayed transactions can differ." ;
+    :synonyms "original signer, true sender, initiator, user operation sender, meta transaction signer" ;
+    :exampleUsage "?tx :initiatedBy ?user ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range :Account .
+
+:executedBy a owl:ObjectProperty ;
+    rdfs:label "executed by" ;
+    rdfs:comment "The account or relayer that executed a transaction on behalf of another initiator. This property supports account-abstraction and meta-transaction questions where signer and executor differ." ;
+    :synonyms "executor, relayer, executed by, submitted by, bundler" ;
+    :exampleUsage "?tx :executedBy ?relayer ." ;
+    rdfs:domain :Transaction ;
+    rdfs:range :Account .
