@@ -24,6 +24,16 @@
 
 ## Entries
 
+### 2026-06-28 — T2.2 dictionary dùng committed source snapshots
+
+- **Context:** Public label sources for Ethereum addresses can change, rate-limit, or block automation. T2.2 still needs a stable input for Phase 4 entity linking and for thesis reproducibility.
+- **Options considered:** Live scrape in CI; keep only final JSON artifacts; commit raw source snapshots plus final generated artifacts.
+- **Decision:** Commit `data/entity_dictionary/raw/entities.csv`, curated coverage metadata, and final dictionary JSON artifacts. Live fetchers are optional acquisition tools and must not be required by CI.
+- **Rationale:** A committed raw snapshot makes future refreshes auditable through git diffs while keeping tests deterministic and offline.
+- **Consequences:** Automated acceptance can verify structure, count, coverage, sorting, normalization, and provenance locally. The 50-entry manual verification remains a separate evidence step and must stay pending until sampled rows are checked against external source pages.
+- **Revisit:** When refreshing the dictionary after Phase 4 linker evaluation or when replacing source acquisition with a stable API/keyed provider.
+- **Linked:** `docs/tasks/phase-2-kg/02-entity-dictionary.md`, `data/entity_dictionary/raw/entities.csv`, `src/nl2sparql/linking/dictionary/sources.md`.
+
 ### 2026-06-27 — Chốt ontology extension v0.1.0 cho Ethereum KG
 
 - **Context:** EthOn cover tốt transaction/block/account nền tảng nhưng thiếu DeFi protocol classes, semantic labels cho địa chỉ, token-transfer model thân thiện với NL2SPARQL, và metadata giàu cho schema linker.

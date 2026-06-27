@@ -31,12 +31,12 @@ Xây hierarchical entity dictionary 2 tầng (concept-level + instance-level) ch
 
 ## Acceptance criteria
 
-- [ ] `entities.json` có ≥3000 entries (mục tiêu 5000).
-- [ ] Mỗi entry có format chuẩn (xem dưới).
+- [x] `entities.json` có ≥3000 entries (mục tiêu 5000).
+- [x] Mỗi entry có format chuẩn (xem dưới).
 - [ ] Sample 50 entries verify thủ công không có sai sót lớn.
-- [ ] Cover top-30 exchange + top-50 DeFi protocol.
-- [ ] `concepts.json` có 8-12 concept (exchange, mixer, DEX, lending, NFT marketplace, ...).
-- [ ] `aliases.json` cover ≥1000 alias mapping.
+- [x] Cover top-30 exchange + top-50 DeFi protocol.
+- [x] `concepts.json` có 8-12 concept (exchange, mixer, DEX, lending, NFT marketplace, ...).
+- [x] `aliases.json` cover ≥1000 alias mapping.
 
 ## Hướng dẫn triển khai
 
@@ -144,4 +144,45 @@ Xây hierarchical entity dictionary 2 tầng (concept-level + instance-level) ch
 
 ## Trạng thái
 
-`todo`
+`done-local-auto-pending-manual`
+
+Automated acceptance đã pass locally. Manual sample 50 entries vẫn chưa tick vì cần human check từng mẫu ngẫu nhiên với source page/API tương ứng.
+
+## Evidence — 2026-06-28
+
+- Snapshot counts:
+  - `entities`: 4,520
+  - `aliases`: 16,158
+  - `concepts`: 10
+- Category distribution:
+  - `bridge`: 38
+  - `dex`: 80
+  - `exchange`: 879
+  - `lending`: 100
+  - `mev`: 35
+  - `stablecoin`: 2
+  - `staking`: 33
+  - `token_contract`: 3,353
+- Source distribution:
+  - `coingecko_token_list`: 3,200 rows
+  - `defillama_adapters`: 879 rows
+  - `defillama_protocols`: 441 rows
+- Focused verification:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run pytest tests/unit/test_entity_dictionary_schema.py tests/unit/test_entity_dictionary_artifacts.py -q
+  ```
+  Result: `11 passed in 0.22s`.
+- Notebook verification:
+  ```bash
+  JUPYTER_CONFIG_DIR=/tmp/t2-2-jupyter-config \
+  JUPYTER_DATA_DIR=/tmp/t2-2-jupyter-data \
+  JUPYTER_RUNTIME_DIR=/tmp/t2-2-jupyter-runtime \
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run jupyter nbconvert --to notebook --execute notebooks/05_dict_eda.ipynb \
+    --output /tmp/t2-2-dict-eda-verified.ipynb \
+    --ExecutePreprocessor.timeout=120
+  ```
+  Result: nbconvert exited `0` and wrote `/tmp/t2-2-dict-eda-verified.ipynb`.
