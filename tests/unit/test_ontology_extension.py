@@ -8,6 +8,7 @@ from rdflib import OWL, RDF, RDFS, Graph, Literal, Namespace
 
 ROOT = Path(__file__).resolve().parents[2]
 ONTOLOGY_PATH = ROOT / "src/nl2sparql/kg/ontology/eth-kg-extension-v0.1.0.ttl"
+COMPETENCY_QUESTIONS_PATH = ROOT / "src/nl2sparql/kg/ontology/competency-questions.md"
 ETHKG = Namespace("https://thesis.example.org/eth-kg/")
 
 
@@ -71,3 +72,17 @@ def test_all_local_properties_have_schema_linker_metadata(ontology_graph: Graph)
         assert len(synonym_terms) >= 3, f"{prop} has fewer than 3 synonyms"
         assert isinstance(examples[0], Literal)
         assert "?" in str(examples[0]), f"{prop} example does not look like a SPARQL fragment"
+
+
+def test_competency_questions_document_required_coverage() -> None:
+    text = COMPETENCY_QUESTIONS_PATH.read_text(encoding="utf-8")
+    question_lines = re.findall(r"^- \[x\] CQ\d+:", text, flags=re.MULTILINE)
+    covered_lines = re.findall(r"Coverage: covered", text)
+    assert len(question_lines) >= 30
+    assert len(covered_lines) >= 24
+    assert "## Trivial questions" in text
+    assert "## Medium questions" in text
+    assert "## Hard questions" in text
+    assert "Classes:" in text
+    assert "Properties:" in text
+    assert "SPARQL sketch:" in text
