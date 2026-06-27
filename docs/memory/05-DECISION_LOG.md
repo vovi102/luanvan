@@ -24,6 +24,16 @@
 
 ## Entries
 
+### 2026-06-27 — Chốt ontology extension v0.1.0 cho Ethereum KG
+
+- **Context:** EthOn cover tốt transaction/block/account nền tảng nhưng thiếu DeFi protocol classes, semantic labels cho địa chỉ, token-transfer model thân thiện với NL2SPARQL, và metadata giàu cho schema linker.
+- **Options considered:** Sửa trực tiếp EthOn; tạo ontology local tối thiểu chỉ cho RML; tạo ontology extension versioned với class/property local và documentation contract.
+- **Decision:** Tạo `eth-kg-extension-v0.1.0.ttl` trong namespace `https://thesis.example.org/eth-kg/`, subclass EthOn classes, không override EthOn predicates, và bắt buộc mỗi property có label/comment/synonyms/example/domain/range.
+- **Rationale:** Extension local giữ EthOn nguyên vẹn nhưng cung cấp đúng abstraction cho thesis: exchange, mixer, DEX, lending, bridge, NFT marketplace, token transfer, metadata entity-labeling và meta-transaction. Documentation contract tạo input nhất quán cho schema linker ở Phase 4.
+- **Consequences:** T2.2 có thể xây entity dictionary dựa trên account classes/identity properties; T2.4 có schema ổn định để mở rộng RML mapping; Phase 3 có competency questions làm seed cho query templates. Protégé reasoner validation vẫn cần manual GUI check ngoài CLI.
+- **Revisit:** Khi hoàn thành T2.4 nếu mapping full cần đổi domain/range hoặc thêm protocol-specific event classes.
+- **Linked:** `docs/tasks/phase-2-kg/01-ontology-extension.md`, `src/nl2sparql/kg/ontology/eth-kg-extension-v0.1.0.ttl`, `src/nl2sparql/kg/ontology/competency-questions.md`.
+
 ### 2026-06-21 — Giữ Morph-KGC cho RML pipeline sau pilot T1.3
 
 - **Context:** T1.3 cần chứng minh RML có thể chuyển dữ liệu BigQuery pilot thành RDF parse được và truy vấn được trước khi mở rộng sang Phase 2.
