@@ -1,0 +1,91 @@
+{
+  "bridge": {
+    "ontology_class": "https://thesis.example.org/eth-kg/BridgeProtocol",
+    "aliases": [
+      "bridge",
+      "cross chain bridge"
+    ],
+    "description": "Cross-chain bridge protocols."
+  },
+  "dex": {
+    "ontology_class": "https://thesis.example.org/eth-kg/DEXProtocol",
+    "aliases": [
+      "dex",
+      "amm",
+      "decentralized exchange",
+      "swap"
+    ],
+    "description": "Decentralized exchange protocols and router contracts."
+  },
+  "exchange": {
+    "ontology_class": "https://thesis.example.org/eth-kg/ExchangeAccount",
+    "aliases": [
+      "exchange",
+      "cex",
+      "centralized exchange",
+      "exchange wallet"
+    ],
+    "description": "Centralized exchange-owned accounts and wallets."
+  },
+  "lending": {
+    "ontology_class": "https://thesis.example.org/eth-kg/LendingProtocol",
+    "aliases": [
+      "lending",
+      "borrow",
+      "money market"
+    ],
+    "description": "Lending and borrowing protocols."
+  },
+  "mev": {
+    "ontology_class": "https://thesis.example.org/eth-kg/MEVActor",
+    "aliases": [
+      "mev",
+      "searcher",
+      "builder"
+    ],
+    "description": "MEV searchers, builders, and relays."
+  },
+  "mixer": {
+    "ontology_class": "https://thesis.example.org/eth-kg/MixerAccount",
+    "aliases": [
+      "mixer",
+      "tumbler",
+      "privacy tool"
+    ],
+    "description": "Mixer or privacy-service accounts and contracts."
+  },
+  "nft_marketplace": {
+    "ontology_class": "https://thesis.example.org/eth-kg/NFTMarketplace",
+    "aliases": [
+      "nft marketplace",
+      "nft market"
+    ],
+    "description": "NFT marketplace protocols and exchange contracts."
+  },
+  "stablecoin": {
+    "ontology_class": "https://thesis.example.org/eth-kg/StablecoinIssuer",
+    "aliases": [
+      "stablecoin",
+      "stable coin"
+    ],
+    "description": "Stablecoin issuers and token contracts."
+  },
+  "staking": {
+    "ontology_class": "https://thesis.example.org/eth-kg/StakingAccount",
+    "aliases": [
+      "staking",
+      "validator",
+      "liquid staking"
+    ],
+    "description": "Staking and liquid-staking accounts."
+  },
+  "token_contract": {
+    "ontology_class": "https://thesis.example.org/eth-kg/TokenContract",
+    "aliases": [
+      "token contract",
+      "erc20",
+      "erc721"
+    ],
+    "description": "Token contracts and token issuer contracts."
+  }
+}
