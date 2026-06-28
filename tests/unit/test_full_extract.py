@@ -11,6 +11,7 @@ from nl2sparql.kg.extraction.full_extract import (
     build_full_extract_queries,
     compute_full_extract_date_range,
     load_dictionary_addresses,
+    run_full_extract_dry_run,
     validate_csv_outputs,
     write_manifest,
 )
@@ -109,3 +110,35 @@ def test_validate_csv_outputs_confirms_pandas_can_read_expected_files(tmp_path: 
         "token_transfers.csv": 1,
         "contracts.csv": 1,
     }
+
+
+class FakeDryRunJob:
+    def __init__(self, processed: int) -> None:
+        self.total_bytes_processed = processed
+        self.total_bytes_billed = processed
+
+
+class FakeDryRunClient:
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+
+    def query(self, sql: str, job_config=None) -> FakeDryRunJob:
+        self.queries.append(sql)
+        return FakeDryRunJob(1024)
+
+
+def test_run_full_extract_dry_run_writes_manifest(tmp_path: Path) -> None:
+    client = FakeDryRunClient()
+
+    manifest_path = run_full_extract_dry_run(
+        client,
+        output_dir=tmp_path,
+        start_date=date(2026, 5, 27),
+        end_date=date(2026, 6, 26),
+        labeled_table="project.dataset.labeled_addresses",
+        dictionary_count=4520,
+    )
+
+    assert manifest_path == tmp_path / "manifest.json"
+    assert len(client.queries) == 4
+    assert manifest_path.exists()

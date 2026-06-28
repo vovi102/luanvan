@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from google.cloud import bigquery
 
 from nl2sparql.kg.extraction.bigquery_smoke import (
     BLOCKS_TABLE,
@@ -218,3 +219,61 @@ def validate_csv_outputs(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, int
         frame = pd.read_csv(csv_path)
         rows[filename] = len(frame)
     return rows
+
+
+def run_full_extract_dry_run(
+    client: Any,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    labeled_table: str = "project.dataset.labeled_addresses",
+    dictionary_path: Path | None = None,
+    dictionary_count: int | None = None,
+    maximum_bytes_billed: int = MAX_BYTES_BILLED,
+) -> Path:
+    """Run BigQuery dry-run estimates for all full extraction queries."""
+    period_start, period_end = (
+        (start_date, end_date)
+        if start_date is not None and end_date is not None
+        else compute_full_extract_date_range()
+    )
+    queries = build_full_extract_queries(
+        start_date=period_start,
+        end_date=period_end,
+        labeled_table=labeled_table,
+    )
+    config = bigquery.QueryJobConfig(
+        dry_run=True,
+        use_query_cache=False,
+        maximum_bytes_billed=maximum_bytes_billed,
+        query_parameters=[
+            bigquery.ScalarQueryParameter("start_date", "DATE", period_start),
+            bigquery.ScalarQueryParameter("end_date", "DATE", period_end),
+        ],
+    )
+
+    bytes_processed: dict[str, int] = {}
+    bytes_billed: dict[str, int] = {}
+    for filename, sql in queries.items():
+        job = client.query(sql, job_config=config)
+        processed = int(getattr(job, "total_bytes_processed", 0) or 0)
+        billed = int(getattr(job, "total_bytes_billed", processed) or processed)
+        assert_within_cost_guard(processed, maximum_bytes_billed=maximum_bytes_billed)
+        bytes_processed[filename] = processed
+        bytes_billed[filename] = billed
+
+    assert_within_cost_guard(
+        sum(bytes_processed.values()),
+        maximum_bytes_billed=maximum_bytes_billed,
+    )
+    return write_manifest(
+        output_dir=output_dir,
+        start_date=period_start,
+        end_date=period_end,
+        rows={},
+        bytes_processed=bytes_processed,
+        bytes_billed=bytes_billed,
+        mode="dry-run",
+        dictionary_path=dictionary_path,
+        dictionary_count=dictionary_count,
+    )
