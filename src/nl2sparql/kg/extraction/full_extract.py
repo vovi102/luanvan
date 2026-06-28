@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
+
+import pandas as pd
 
 from nl2sparql.kg.extraction.bigquery_smoke import (
     BLOCKS_TABLE,
@@ -155,3 +157,64 @@ def _quote_table(table_name: str) -> str:
     if table_name.startswith("`") and table_name.endswith("`"):
         return table_name
     return f"`{table_name}`"
+
+
+def write_manifest(
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    rows: dict[str, int] | None = None,
+    bytes_processed: dict[str, int] | None = None,
+    bytes_billed: dict[str, int] | None = None,
+    mode: str = "dry-run",
+    dictionary_path: Path | None = None,
+    dictionary_count: int | None = None,
+) -> Path:
+    """Write full extraction metadata to `manifest.json`."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    period_start, period_end = (
+        (start_date, end_date)
+        if start_date is not None and end_date is not None
+        else compute_full_extract_date_range()
+    )
+    billed = bytes_billed or {}
+    total_bytes_billed = sum(billed.values())
+    manifest: dict[str, Any] = {
+        "mode": mode,
+        "extraction_date": datetime.now(timezone.utc).date().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "data_period": {
+            "start": period_start.isoformat(),
+            "end": period_end.isoformat(),
+        },
+        "rows": rows or {},
+        "bytes_processed": bytes_processed or {},
+        "bytes_billed": billed,
+        "total_bytes_billed": total_bytes_billed,
+        "estimated_cost_usd": estimate_bigquery_cost_usd(total_bytes_billed),
+        "dictionary": {
+            "path": str(dictionary_path) if dictionary_path is not None else None,
+            "address_count": dictionary_count,
+        },
+        "source_tables": {
+            "transactions": TRANSACTIONS_TABLE,
+            "blocks": BLOCKS_TABLE,
+            "token_transfers": TOKEN_TRANSFERS_TABLE,
+            "contracts": CONTRACTS_TABLE,
+        },
+    }
+    manifest_path = output_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    return manifest_path
+
+
+def validate_csv_outputs(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, int]:
+    """Validate that all full extraction CSV outputs can be read by pandas."""
+    rows: dict[str, int] = {}
+    for filename in FULL_OUTPUT_FILENAMES:
+        csv_path = output_dir / filename
+        if not csv_path.exists():
+            raise FileNotFoundError(f"Missing expected full extraction output: {csv_path}")
+        frame = pd.read_csv(csv_path)
+        rows[filename] = len(frame)
+    return rows
