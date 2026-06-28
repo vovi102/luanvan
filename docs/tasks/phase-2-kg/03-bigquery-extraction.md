@@ -38,6 +38,15 @@ Extract dữ liệu Ethereum 1 tháng gần nhất từ BigQuery thành CSV file
 - [ ] Pandas đọc được không lỗi.
 - [ ] Manifest ghi đầy đủ metadata.
 
+## Local automation scaffold
+
+- [x] `src/nl2sparql/kg/extraction/full_extract.py` có helper load dictionary address, date window, SQL builder, cost guard, manifest writer.
+- [x] `src/nl2sparql/kg/extraction/full_extract.sql` ghi lại strategy query tier1/tier2.
+- [x] `scripts/04_bigquery_full_extract.py` có CLI dry-run và chặn live extraction nếu chưa có `--force`.
+- [x] Unit tests cover dictionary loading, date range, SQL shape, cost guard, manifest schema, CSV read validation, dry-run orchestration.
+- [ ] BigQuery dry-run đã chạy với credentials thật và table `labeled_addresses` thật.
+- [ ] Live extraction đã export 4 CSV thật vào `data/raw/full/`.
+
 ## Hướng dẫn triển khai
 
 ### Strategy: filter tx theo entity dictionary
@@ -175,4 +184,41 @@ BigQuery có limit số phần tử trong `ARRAY` parameter (~10000). Nếu `add
 
 ## Trạng thái
 
-`todo`
+`in-progress-local-scaffold`
+
+Local scaffold đã sẵn sàng để chạy dry-run thật. Chưa mark done vì acceptance criteria chính cần BigQuery dry-run/live extraction và kiểm tra CSV thực tế.
+
+## Evidence — 2026-06-28
+
+- Branch: `feat/t2-3-bigquery-extraction`.
+- Implemented files:
+  - `src/nl2sparql/kg/extraction/full_extract.py`
+  - `src/nl2sparql/kg/extraction/full_extract.sql`
+  - `scripts/04_bigquery_full_extract.py`
+  - `tests/unit/test_full_extract.py`
+- Focused local verification:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run pytest tests/unit/test_full_extract.py -q
+  ```
+  Result: `7 passed`.
+- CLI help smoke:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run python scripts/04_bigquery_full_extract.py --help
+  ```
+  Result: exit `0`.
+- Full local verification:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run pytest -q
+  ```
+  Result: `117 passed, 45 warnings`.
+- Whitespace verification:
+  ```bash
+  git diff --check
+  ```
+  Result: exit `0`.
