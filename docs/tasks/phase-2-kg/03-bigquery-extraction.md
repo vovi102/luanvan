@@ -44,7 +44,7 @@ Extract dữ liệu Ethereum 1 tháng gần nhất từ BigQuery thành CSV file
 - [x] `src/nl2sparql/kg/extraction/full_extract.sql` ghi lại strategy query tier1/tier2.
 - [x] `scripts/04_bigquery_full_extract.py` có CLI dry-run và chặn live extraction nếu chưa có `--force`.
 - [x] Unit tests cover dictionary loading, date range, SQL shape, cost guard, manifest schema, CSV read validation, dry-run orchestration.
-- [ ] BigQuery dry-run đã chạy với credentials thật và table `labeled_addresses` thật.
+- [x] BigQuery dry-run đã chạy với credentials thật và table `labeled_addresses` thật.
 - [ ] Live extraction đã export 4 CSV thật vào `data/raw/full/`.
 
 ## Hướng dẫn triển khai
@@ -184,9 +184,9 @@ BigQuery có limit số phần tử trong `ARRAY` parameter (~10000). Nếu `add
 
 ## Trạng thái
 
-`in-progress-local-scaffold`
+`in-progress-dry-run-passed`
 
-Local scaffold đã sẵn sàng để chạy dry-run thật. Chưa mark done vì acceptance criteria chính cần BigQuery dry-run/live extraction và kiểm tra CSV thực tế.
+Local scaffold đã sẵn sàng và dry-run thật đã pass. Chưa mark done vì acceptance criteria chính vẫn cần live extraction và kiểm tra CSV thực tế.
 
 ## Evidence — 2026-06-28
 
@@ -222,3 +222,30 @@ Local scaffold đã sẵn sàng để chạy dry-run thật. Chưa mark done vì
   git diff --check
   ```
   Result: exit `0`.
+
+## Evidence — 2026-07-02
+
+- Project: `nl2sparql-thesis`.
+- Created BigQuery dataset/table for dictionary filter:
+  - Dataset: `nl2sparql_kg` in location `US`.
+  - Table: `nl2sparql-thesis.nl2sparql_kg.labeled_addresses`.
+  - Rows: `4520`.
+- Dry-run command:
+  ```bash
+  GOOGLE_CLOUD_PROJECT=nl2sparql-thesis \
+  BIGQUERY_PROJECT=nl2sparql-thesis \
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run python scripts/04_bigquery_full_extract.py \
+      --dry-run \
+      --labeled-table nl2sparql-thesis.nl2sparql_kg.labeled_addresses
+  ```
+  Result: exit `0`, wrote `data/raw/full/manifest.json`.
+- Dry-run estimates:
+  - `transactions.csv`: `14433666940` bytes.
+  - `blocks.csv`: `11317628172` bytes.
+  - `token_transfers.csv`: `39430730824` bytes.
+  - `contracts.csv`: `5483255956` bytes.
+  - Total billed estimate: `70665281892` bytes.
+  - Estimated cost: `$0.32`.
+- Data period: `2026-05-31` to `2026-06-30`.
