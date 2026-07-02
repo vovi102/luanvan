@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 import json
-from datetime import date, datetime, timezone, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -182,8 +183,8 @@ def write_manifest(
     total_bytes_billed = sum(billed.values())
     manifest: dict[str, Any] = {
         "mode": mode,
-        "extraction_date": datetime.now(timezone.utc).date().isoformat(),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "extraction_date": datetime.now(UTC).date().isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "data_period": {
             "start": period_start.isoformat(),
             "end": period_end.isoformat(),
@@ -219,6 +220,49 @@ def validate_csv_outputs(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, int
         frame = pd.read_csv(csv_path)
         rows[filename] = len(frame)
     return rows
+
+
+def _row_to_dict(row: Any) -> dict[str, Any]:
+    if isinstance(row, dict):
+        return row
+    if hasattr(row, "items"):
+        return dict(row.items())
+    if hasattr(row, "keys"):
+        return {key: row[key] for key in row.keys()}
+    raise TypeError(f"Unsupported BigQuery row type: {type(row)!r}")
+
+
+def _csv_value(value: Any) -> Any:
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return value
+
+
+def _write_query_results_csv(job: Any, csv_path: Path, page_size: int = 10_000) -> int:
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    row_count = 0
+    fieldnames: list[str] | None = None
+    result = job.result(page_size=page_size)
+
+    with csv_path.open("w", newline="", encoding="utf-8") as handle:
+        writer: csv.DictWriter[str] | None = None
+        for page in result.pages:
+            for row in page:
+                record = _row_to_dict(row)
+                if writer is None:
+                    fieldnames = list(record)
+                    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                    writer.writeheader()
+                writer.writerow({key: _csv_value(value) for key, value in record.items()})
+                row_count += 1
+
+        if writer is None:
+            schema = getattr(result, "schema", None) or getattr(job, "schema", None) or []
+            fieldnames = [field.name for field in schema]
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+
+    return row_count
 
 
 def run_full_extract_dry_run(
@@ -274,6 +318,66 @@ def run_full_extract_dry_run(
         bytes_processed=bytes_processed,
         bytes_billed=bytes_billed,
         mode="dry-run",
+        dictionary_path=dictionary_path,
+        dictionary_count=dictionary_count,
+    )
+
+
+def run_full_extract_live(
+    client: Any,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    labeled_table: str = "project.dataset.labeled_addresses",
+    dictionary_path: Path | None = None,
+    dictionary_count: int | None = None,
+    maximum_bytes_billed: int = MAX_BYTES_BILLED,
+) -> Path:
+    """Run live BigQuery extraction queries and stream results to CSV files."""
+    period_start, period_end = (
+        (start_date, end_date)
+        if start_date is not None and end_date is not None
+        else compute_full_extract_date_range()
+    )
+    queries = build_full_extract_queries(
+        start_date=period_start,
+        end_date=period_end,
+        labeled_table=labeled_table,
+    )
+    config = bigquery.QueryJobConfig(
+        dry_run=False,
+        use_query_cache=False,
+        maximum_bytes_billed=maximum_bytes_billed,
+        query_parameters=[
+            bigquery.ScalarQueryParameter("start_date", "DATE", period_start),
+            bigquery.ScalarQueryParameter("end_date", "DATE", period_end),
+        ],
+    )
+
+    rows: dict[str, int] = {}
+    bytes_processed: dict[str, int] = {}
+    bytes_billed: dict[str, int] = {}
+    for filename, sql in queries.items():
+        job = client.query(sql, job_config=config)
+        rows[filename] = _write_query_results_csv(job, output_dir / filename)
+        processed = int(getattr(job, "total_bytes_processed", 0) or 0)
+        billed = int(getattr(job, "total_bytes_billed", processed) or processed)
+        assert_within_cost_guard(processed, maximum_bytes_billed=maximum_bytes_billed)
+        bytes_processed[filename] = processed
+        bytes_billed[filename] = billed
+
+    assert_within_cost_guard(
+        sum(bytes_processed.values()),
+        maximum_bytes_billed=maximum_bytes_billed,
+    )
+    return write_manifest(
+        output_dir=output_dir,
+        start_date=period_start,
+        end_date=period_end,
+        rows=rows,
+        bytes_processed=bytes_processed,
+        bytes_billed=bytes_billed,
+        mode="live",
         dictionary_path=dictionary_path,
         dictionary_count=dictionary_count,
     )

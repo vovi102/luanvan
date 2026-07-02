@@ -16,6 +16,7 @@ from nl2sparql.kg.extraction.full_extract import (
     compute_full_extract_date_range,
     load_dictionary_addresses,
     run_full_extract_dry_run,
+    run_full_extract_live,
 )
 
 
@@ -52,14 +53,9 @@ def main(
     dry_run: bool,
     force: bool,
 ) -> None:
-    """Run dry-run estimates or reject unsafe live extraction."""
+    """Run dry-run estimates or live extraction when explicitly forced."""
     if not dry_run and not force:
         raise click.ClickException("Live full extraction requires --force after dry-run review.")
-    if not dry_run:
-        raise click.ClickException(
-            "Live full extraction is intentionally blocked until temp-table/export "
-            "settings are configured for this environment."
-        )
 
     if (start_date is None) != (end_date is None):
         raise click.ClickException("--start-date and --end-date must be provided together.")
@@ -75,7 +71,8 @@ def main(
         raise click.ClickException(f"BigQuery authentication failed: {exc}") from exc
 
     dictionary_count = len(load_dictionary_addresses(dictionary_path))
-    manifest_path = run_full_extract_dry_run(
+    runner = run_full_extract_dry_run if dry_run else run_full_extract_live
+    manifest_path = runner(
         client,
         output_dir=output_dir,
         start_date=period_start,
