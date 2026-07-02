@@ -1,9 +1,11 @@
-from datetime import date
+import importlib.util
 import json
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from click.testing import CliRunner
 
 from nl2sparql.kg.extraction.full_extract import (
     MAX_BYTES_BILLED,
@@ -12,6 +14,7 @@ from nl2sparql.kg.extraction.full_extract import (
     compute_full_extract_date_range,
     load_dictionary_addresses,
     run_full_extract_dry_run,
+    run_full_extract_live,
     validate_csv_outputs,
     write_manifest,
 )
@@ -142,3 +145,107 @@ def test_run_full_extract_dry_run_writes_manifest(tmp_path: Path) -> None:
     assert manifest_path == tmp_path / "manifest.json"
     assert len(client.queries) == 4
     assert manifest_path.exists()
+
+
+class FakeLiveResult:
+    def __init__(self, rows: list[dict[str, object]]) -> None:
+        self.pages = [rows]
+
+
+class FakeLiveJob:
+    def __init__(self, rows: list[dict[str, object]], processed: int = 1024) -> None:
+        self._rows = rows
+        self.total_bytes_processed = processed
+        self.total_bytes_billed = processed
+
+    def result(self, page_size: int | None = None) -> FakeLiveResult:
+        assert page_size is not None
+        return FakeLiveResult(self._rows)
+
+
+class FakeLiveClient:
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+        self.job_configs: list[object] = []
+        self._jobs = [
+            FakeLiveJob([{"hash": "0x1", "tier": "tier1"}]),
+            FakeLiveJob([{"number": 1, "hash": "0xb"}]),
+            FakeLiveJob([{"transaction_hash": "0x1", "log_index": 0}]),
+            FakeLiveJob([{"address": "0xabc", "is_erc20": True}]),
+        ]
+
+    def query(self, sql: str, job_config=None) -> FakeLiveJob:
+        self.queries.append(sql)
+        self.job_configs.append(job_config)
+        return self._jobs.pop(0)
+
+
+def test_run_full_extract_live_streams_csvs_and_writes_manifest(tmp_path: Path) -> None:
+    client = FakeLiveClient()
+
+    manifest_path = run_full_extract_live(
+        client,
+        output_dir=tmp_path,
+        start_date=date(2026, 5, 27),
+        end_date=date(2026, 6, 26),
+        labeled_table="project.dataset.labeled_addresses",
+        dictionary_count=4520,
+    )
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    rows = validate_csv_outputs(tmp_path)
+
+    assert len(client.queries) == 4
+    assert all(not config.dry_run for config in client.job_configs)
+    assert rows == {
+        "transactions.csv": 1,
+        "blocks.csv": 1,
+        "token_transfers.csv": 1,
+        "contracts.csv": 1,
+    }
+    assert manifest["mode"] == "live"
+    assert manifest["rows"] == rows
+
+
+def _load_full_extract_script():
+    script_path = Path("scripts/04_bigquery_full_extract.py").resolve()
+    spec = importlib.util.spec_from_file_location("bigquery_full_extract_script", script_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_full_extract_cli_force_runs_live_extraction(tmp_path: Path, monkeypatch) -> None:
+    module = _load_full_extract_script()
+    calls: dict[str, object] = {}
+
+    def fake_client():
+        return object()
+
+    def fake_run_live(client, **kwargs):
+        calls["client"] = client
+        calls["kwargs"] = kwargs
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text("{}", encoding="utf-8")
+        return manifest_path
+
+    monkeypatch.setattr(module.bigquery, "Client", fake_client)
+    monkeypatch.setattr(module, "run_full_extract_live", fake_run_live)
+    monkeypatch.setattr(module, "load_dictionary_addresses", lambda dictionary_path: ["0xabc"])
+
+    result = CliRunner().invoke(
+        module.main,
+        [
+            "--force",
+            "--output-dir",
+            str(tmp_path),
+            "--labeled-table",
+            "project.dataset.labeled_addresses",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert calls["kwargs"]["output_dir"] == tmp_path
+    assert calls["kwargs"]["labeled_table"] == "project.dataset.labeled_addresses"

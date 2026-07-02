@@ -31,21 +31,21 @@ Extract dữ liệu Ethereum 1 tháng gần nhất từ BigQuery thành CSV file
 
 ## Acceptance criteria
 
-- [ ] Tổng size CSV ≤ 5GB.
-- [ ] BigQuery cost dưới $5 (cảnh báo nếu vượt — re-strategize).
-- [ ] Schema khớp với pilot CSV.
-- [ ] Cover ≥80% các "interesting addresses" từ entity dictionary.
-- [ ] Pandas đọc được không lỗi.
-- [ ] Manifest ghi đầy đủ metadata.
+- [x] Tổng size CSV ≤ 5GB.
+- [x] BigQuery cost dưới $5 (cảnh báo nếu vượt — re-strategize).
+- [x] Schema khớp với pilot CSV.
+- [x] Cover ≥80% các "interesting addresses" từ entity dictionary.
+- [x] Pandas đọc được không lỗi.
+- [x] Manifest ghi đầy đủ metadata.
 
 ## Local automation scaffold
 
 - [x] `src/nl2sparql/kg/extraction/full_extract.py` có helper load dictionary address, date window, SQL builder, cost guard, manifest writer.
 - [x] `src/nl2sparql/kg/extraction/full_extract.sql` ghi lại strategy query tier1/tier2.
-- [x] `scripts/04_bigquery_full_extract.py` có CLI dry-run và chặn live extraction nếu chưa có `--force`.
+- [x] `scripts/04_bigquery_full_extract.py` có CLI dry-run, live extraction qua `--force`, và chặn live extraction nếu chưa có `--force`.
 - [x] Unit tests cover dictionary loading, date range, SQL shape, cost guard, manifest schema, CSV read validation, dry-run orchestration.
 - [x] BigQuery dry-run đã chạy với credentials thật và table `labeled_addresses` thật.
-- [ ] Live extraction đã export 4 CSV thật vào `data/raw/full/`.
+- [x] Live extraction đã export 4 CSV thật vào `data/raw/full/`.
 
 ## Hướng dẫn triển khai
 
@@ -184,9 +184,9 @@ BigQuery có limit số phần tử trong `ARRAY` parameter (~10000). Nếu `add
 
 ## Trạng thái
 
-`in-progress-dry-run-passed`
+`done`
 
-Local scaffold đã sẵn sàng và dry-run thật đã pass. Chưa mark done vì acceptance criteria chính vẫn cần live extraction và kiểm tra CSV thực tế.
+Local scaffold, dry-run thật, live extraction, và kiểm tra CSV thực tế đã hoàn tất.
 
 ## Evidence — 2026-06-28
 
@@ -249,3 +249,48 @@ Local scaffold đã sẵn sàng và dry-run thật đã pass. Chưa mark done v�
   - Total billed estimate: `70665281892` bytes.
   - Estimated cost: `$0.32`.
 - Data period: `2026-05-31` to `2026-06-30`.
+
+## Evidence — 2026-07-02 Live Extraction
+
+- Live command:
+  ```bash
+  GOOGLE_CLOUD_PROJECT=nl2sparql-thesis \
+  BIGQUERY_PROJECT=nl2sparql-thesis \
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run python scripts/04_bigquery_full_extract.py \
+      --force \
+      --labeled-table nl2sparql-thesis.nl2sparql_kg.labeled_addresses
+  ```
+  Result: exit `0`, wrote `data/raw/full/manifest.json`.
+- Output size:
+  - `data/raw/full/`: `1.9G`.
+  - `transactions.csv`: `979057090` bytes.
+  - `blocks.csv`: `37203055` bytes.
+  - `token_transfers.csv`: `974736705` bytes.
+  - `contracts.csv`: `287870` bytes.
+- Manifest rows:
+  - `transactions.csv`: `4431329`.
+  - `blocks.csv`: `221548`.
+  - `token_transfers.csv`: `4001230`.
+  - `contracts.csv`: `3513`.
+- Manifest cost:
+  - Total billed estimate: `70668779520` bytes.
+  - Estimated cost: `$0.32`.
+- Pandas validation:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run python - <<'PY'
+  from nl2sparql.kg.extraction.full_extract import validate_csv_outputs
+  print(validate_csv_outputs())
+  PY
+  ```
+  Result: `{'transactions.csv': 4431329, 'blocks.csv': 221548, 'token_transfers.csv': 4001230, 'contracts.csv': 3513}`.
+- Dictionary coverage:
+  - Dictionary addresses: `4520`.
+  - Covered in extracted address columns: `3747`.
+  - Coverage: `82.8982%`.
+- Schema check:
+  - Full outputs include all pilot core columns.
+  - Full extraction adds `tier` to `transactions.csv` and `log_index` to `token_transfers.csv` for downstream KG mapping.
