@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 from collections.abc import Sequence
@@ -117,3 +118,44 @@ def validate_full_output(
             f"Morph-KGC produced {len(graph)} triples; minimum is {minimum_triples}"
         )
     return len(graph)
+
+
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse command-line options for the full RML runner."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=PROJECT_ROOT)
+    parser.add_argument("--mapping", type=Path, default=DEFAULT_MAPPING_PATH)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
+    parser.add_argument("--dictionary", type=Path, default=DEFAULT_DICTIONARY_PATH)
+    parser.add_argument("--entities-csv", type=Path, default=DEFAULT_ENTITIES_CSV_PATH)
+    parser.add_argument("--minimum-triples", type=int, default=MINIMUM_FULL_TRIPLES)
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--fixture-mode", action="store_true")
+    parser.add_argument("--prepare-only", action="store_true")
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run preparation or guarded full materialization."""
+    args = parse_args(argv)
+    count = prepare_entities_csv(args.dictionary.resolve(), args.entities_csv.resolve())
+    if args.prepare_only:
+        print(f"Prepared {count} entity rows: {args.entities_csv.resolve()}")
+        return 0
+    if not args.force and not args.fixture_mode:
+        print("Refusing full materialization without --force or --fixture-mode.")
+        return 2
+    inputs = required_full_input_paths(args.root.resolve())
+    validate_required_files(args.mapping.resolve(), inputs)
+    graph = materialize_full(
+        args.mapping.resolve(),
+        args.output.resolve(),
+        minimum_triples=args.minimum_triples,
+    )
+    print(f"Morph-KGC full triples: {len(graph)}")
+    print(f"Output: {args.output.resolve()}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

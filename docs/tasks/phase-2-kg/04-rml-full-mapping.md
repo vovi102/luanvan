@@ -25,7 +25,7 @@ Mở rộng RML mapping pilot để cover toàn bộ dữ liệu CSV; chạy Mor
 
 - File `src/nl2sparql/kg/rml/full_mapping.ttl` — RML rules đầy đủ.
 - File `src/nl2sparql/kg/rml/run_morph_full.py` — chạy Morph-KGC.
-- File `data/processed/full/output.ttl` (output, có thể chia nhiều file nếu lớn).
+- File `data/processed/full/output.nt` (output, có thể chia nhiều file nếu lớn).
 - Fuseki TDB2 dataset `eth-kg` với data đã load.
 - Notebook `notebooks/06_kg_load.ipynb` — verify queries.
 
@@ -36,6 +36,14 @@ Mở rộng RML mapping pilot để cover toàn bộ dữ liệu CSV; chạy Mor
 - [ ] Fuseki TDB2 có thể query, response time < 2s cho query đơn giản (count, simple filter).
 - [ ] 10 SPARQL competency queries từ T2.1 chạy được trên KG, trả kết quả hợp lý.
 - [ ] Memory footprint TDB2 ≤ 30GB (cho persistent indexes).
+
+## Local automation scaffold
+
+- [x] `src/nl2sparql/kg/rml/full_mapping.ttl` có 5 TriplesMap cho transactions, blocks, token transfers, contracts, và entity labels.
+- [x] `src/nl2sparql/kg/rml/run_morph_full.py` có helper validate inputs, prepare `entities.csv`, build Morph-KGC config, materialize output N-Triples, validate output, và CLI guardrails.
+- [x] Unit tests materialize fixture CSV nhỏ qua Morph-KGC và assert ontology-aligned predicates từ T2.1.
+- [x] CLI `--prepare-only` chạy được để tạo `data/raw/full/entities.csv` từ dictionary JSON.
+- [x] Full live materialization bị chặn nếu thiếu `--force` hoặc `--fixture-mode`.
 
 ## Hướng dẫn triển khai
 
@@ -222,4 +230,48 @@ SELECT ?owner (COUNT(?tx) AS ?n) WHERE {
 
 ## Trạng thái
 
-`todo`
+`scaffold done; live materialization pending`
+
+Local scaffold đã hoàn tất để kiểm tra mapping bằng fixture nhỏ. Các acceptance criteria ở trên vẫn pending vì chưa chạy Morph-KGC trên `data/raw/full/`, chưa build Fuseki TDB2, chưa đo 50M+ triple count, và chưa benchmark competency queries trên KG thật.
+
+## Evidence — 2026-07-04 Scaffold
+
+- Branch: `feat/t2-4-rml-full-mapping`.
+- Design/spec:
+  - `docs/superpowers/specs/2026-07-04-t2-4-rml-full-mapping-design.md`
+  - `docs/superpowers/plans/2026-07-04-t2-4-rml-full-mapping.md`
+- Implemented files:
+  - `src/nl2sparql/kg/rml/full_mapping.ttl`
+  - `src/nl2sparql/kg/rml/run_morph_full.py`
+  - `tests/unit/test_rml_full.py`
+  - `tests/fixtures/rml/full/`
+- Focused local verification:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run pytest tests/unit/test_rml_full.py -q
+  ```
+  Result: `9 passed, 51 warnings`.
+- CLI help smoke:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run python src/nl2sparql/kg/rml/run_morph_full.py --help
+  ```
+  Result: exit `0`.
+
+## Next live evidence step
+
+Run only when enough disk/time is available:
+
+```bash
+UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+uv run python src/nl2sparql/kg/rml/run_morph_full.py --prepare-only
+
+UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+uv run python src/nl2sparql/kg/rml/run_morph_full.py --force
+```
+
+After live materialization, record output size, triple count, wall time, TDB2 load command, Fuseki query benchmark, and TDB2 disk footprint here.

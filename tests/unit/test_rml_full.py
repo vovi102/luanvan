@@ -12,7 +12,9 @@ from rdflib.namespace import RDF, XSD
 from nl2sparql.kg.rml.run_morph_full import (
     FullMaterializationError,
     build_morph_config,
+    main,
     materialize_full,
+    parse_args,
     prepare_entities_csv,
     required_full_input_paths,
     validate_full_output,
@@ -170,3 +172,34 @@ def test_materialize_full_fixture_emits_core_kg_shapes(tmp_path: Path) -> None:
         EX["tx/0xtx1"],
     ) in graph
     assert URIRef(f"{EX}addr/") not in set(graph.all_nodes())
+
+
+def test_parse_args_defaults_to_guarded_full_run() -> None:
+    args = parse_args([])
+
+    assert args.force is False
+    assert args.fixture_mode is False
+    assert args.prepare_only is False
+
+
+def test_main_prepare_only_writes_entities_csv(tmp_path: Path) -> None:
+    output = tmp_path / "entities.csv"
+
+    status = main(
+        [
+            "--prepare-only",
+            "--dictionary",
+            str(FIXTURE_DIR / "entities.json"),
+            "--entities-csv",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    assert output.is_file()
+
+
+def test_main_refuses_live_materialization_without_force(tmp_path: Path) -> None:
+    status = main(["--root", str(tmp_path)])
+
+    assert status == 2
