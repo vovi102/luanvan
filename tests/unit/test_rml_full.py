@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+from rdflib import Graph
 
 from nl2sparql.kg.rml.run_morph_full import (
     FullMaterializationError,
@@ -13,6 +14,9 @@ from nl2sparql.kg.rml.run_morph_full import (
     required_full_input_paths,
     validate_required_files,
 )
+
+ROOT = Path(__file__).resolve().parents[2]
+MAPPING_PATH = ROOT / "src/nl2sparql/kg/rml/full_mapping.ttl"
 
 
 def test_required_full_input_paths_resolve_all_full_sources(tmp_path: Path) -> None:
@@ -82,3 +86,28 @@ def test_build_morph_config_uses_nt_output_and_process_count(tmp_path: Path) -> 
     assert "output_format: N-TRIPLES" in config
     assert "number_of_processes: 2" in config
     assert f"mappings: {mapping.resolve()}" in config
+
+
+def test_full_mapping_parses_and_declares_expected_sources() -> None:
+    graph = Graph().parse(MAPPING_PATH, format="turtle")
+    text = MAPPING_PATH.read_text(encoding="utf-8")
+
+    assert len(graph) > 0
+    assert text.count("a rr:TriplesMap") == 5
+    assert 'rml:source "data/raw/full/transactions.csv"' in text
+    assert 'rml:source "data/raw/full/blocks.csv"' in text
+    assert 'rml:source "data/raw/full/token_transfers.csv"' in text
+    assert 'rml:source "data/raw/full/contracts.csv"' in text
+    assert 'rml:source "data/raw/full/entities.csv"' in text
+    for predicate in (
+        ":hasFrom",
+        ":hasTo",
+        ":includedInBlock",
+        ":emittedInTransaction",
+        ":tokenTransferFrom",
+        ":tokenTransferTo",
+        ":transferredToken",
+        ":hasLabel",
+        ":hasAlias",
+    ):
+        assert predicate in text
