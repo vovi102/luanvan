@@ -8,6 +8,9 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+import morph_kgc
+from rdflib import Graph
+
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_MAPPING_PATH = PROJECT_ROOT / "src/nl2sparql/kg/rml/full_mapping.ttl"
 DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "data/processed/full/output.nt"
@@ -86,3 +89,31 @@ def build_morph_config(
         "[DataSource1]\n"
         f"mappings: {mapping_path.resolve()}\n"
     )
+
+
+def materialize_full(
+    mapping_path: Path,
+    output_path: Path,
+    minimum_triples: int = MINIMUM_FULL_TRIPLES,
+) -> Graph:
+    """Materialize, serialize, reparse, and validate the full mapping."""
+    graph = morph_kgc.materialize(build_morph_config(mapping_path))
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    graph.serialize(destination=output_path, format="nt")
+    validate_full_output(output_path, minimum_triples=minimum_triples)
+    return Graph().parse(output_path, format="nt")
+
+
+def validate_full_output(
+    output_path: Path,
+    minimum_triples: int = MINIMUM_FULL_TRIPLES,
+) -> int:
+    """Parse an existing full output artifact and validate triple count."""
+    if not output_path.is_file():
+        raise FullMaterializationError(f"Missing full RML output: {output_path}")
+    graph = Graph().parse(output_path, format="nt")
+    if len(graph) < minimum_triples:
+        raise FullMaterializationError(
+            f"Morph-KGC produced {len(graph)} triples; minimum is {minimum_triples}"
+        )
+    return len(graph)

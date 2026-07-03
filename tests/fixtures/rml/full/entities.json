@@ -1,0 +1,22 @@
+[
+  {
+    "address": "0x1111111111111111111111111111111111111111",
+    "address_lower": "0x1111111111111111111111111111111111111111",
+    "primary_label": "Binance Hot Wallet",
+    "owner": "Binance",
+    "category": "exchange",
+    "concept_class": "ExchangeAccount",
+    "aliases": ["binance", "binance wallet"],
+    "confidence": "high"
+  },
+  {
+    "address": "0x5555555555555555555555555555555555555555",
+    "address_lower": "0x5555555555555555555555555555555555555555",
+    "primary_label": "Fixture Token",
+    "owner": "Fixture Token",
+    "category": "token_contract",
+    "concept_class": "TokenContract",
+    "aliases": ["fixture token", "fixture"],
+    "confidence": "high"
+  }
+]

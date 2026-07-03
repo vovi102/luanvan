@@ -2,21 +2,27 @@
 
 import csv
 import json
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from rdflib import Graph
+from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF, XSD
 
 from nl2sparql.kg.rml.run_morph_full import (
     FullMaterializationError,
     build_morph_config,
+    materialize_full,
     prepare_entities_csv,
     required_full_input_paths,
+    validate_full_output,
     validate_required_files,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
 MAPPING_PATH = ROOT / "src/nl2sparql/kg/rml/full_mapping.ttl"
+FIXTURE_DIR = ROOT / "tests/fixtures/rml/full"
+EX = Namespace("https://thesis.example.org/eth-kg/")
 
 
 def test_required_full_input_paths_resolve_all_full_sources(tmp_path: Path) -> None:
@@ -111,3 +117,56 @@ def test_full_mapping_parses_and_declares_expected_sources() -> None:
         ":hasAlias",
     ):
         assert predicate in text
+
+
+def _fixture_mapping(tmp_path: Path) -> Path:
+    fixture_entities = tmp_path / "entities.csv"
+    prepare_entities_csv(FIXTURE_DIR / "entities.json", fixture_entities)
+    fixture_mapping = tmp_path / "full_mapping.ttl"
+    mapping_text = MAPPING_PATH.read_text(encoding="utf-8")
+    replacements = {
+        "data/raw/full/transactions.csv": (FIXTURE_DIR / "transactions.csv").as_posix(),
+        "data/raw/full/blocks.csv": (FIXTURE_DIR / "blocks.csv").as_posix(),
+        "data/raw/full/token_transfers.csv": (
+            FIXTURE_DIR / "token_transfers.csv"
+        ).as_posix(),
+        "data/raw/full/contracts.csv": (FIXTURE_DIR / "contracts.csv").as_posix(),
+        "data/raw/full/entities.csv": fixture_entities.as_posix(),
+    }
+    for old, new in replacements.items():
+        mapping_text = mapping_text.replace(old, new)
+    fixture_mapping.write_text(mapping_text, encoding="utf-8")
+    return fixture_mapping
+
+
+def test_materialize_full_fixture_emits_core_kg_shapes(tmp_path: Path) -> None:
+    output = tmp_path / "output.nt"
+
+    graph = materialize_full(_fixture_mapping(tmp_path), output, minimum_triples=35)
+
+    assert output.is_file()
+    assert len(graph) >= 35
+    assert validate_full_output(output, minimum_triples=35) == len(graph)
+    assert (EX["tx/0xtx1"], RDF.type, EX.Transaction) in graph
+    assert (EX["block/19000000"], RDF.type, EX.Block) in graph
+    assert (EX["transfer/0xtx1-0"], RDF.type, EX.TokenTransfer) in graph
+    assert (
+        EX["addr/0x2222222222222222222222222222222222222222"],
+        RDF.type,
+        EX.ContractAccount,
+    ) in graph
+    assert (
+        EX["addr/0x1111111111111111111111111111111111111111"],
+        RDF.type,
+        EX.ExchangeAccount,
+    ) in graph
+    value = next(graph.objects(EX["tx/0xtx1"], EX.hasValue))
+    assert value.datatype == XSD.decimal
+    assert value.toPython() == Decimal("2000000000000000000")
+    assert (EX["tx/0xtx1"], EX.includedInBlock, EX["block/19000000"]) in graph
+    assert (
+        EX["transfer/0xtx1-0"],
+        EX.emittedInTransaction,
+        EX["tx/0xtx1"],
+    ) in graph
+    assert URIRef(f"{EX}addr/") not in set(graph.all_nodes())
