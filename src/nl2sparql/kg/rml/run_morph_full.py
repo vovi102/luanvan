@@ -138,13 +138,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run preparation or guarded full materialization."""
     args = parse_args(argv)
-    count = prepare_entities_csv(args.dictionary.resolve(), args.entities_csv.resolve())
     if args.prepare_only:
+        count = prepare_entities_csv(args.dictionary.resolve(), args.entities_csv.resolve())
         print(f"Prepared {count} entity rows: {args.entities_csv.resolve()}")
         return 0
     if not args.force and not args.fixture_mode:
         print("Refusing full materialization without --force or --fixture-mode.")
         return 2
+    prepare_entities_csv(args.dictionary.resolve(), args.entities_csv.resolve())
     inputs = required_full_input_paths(args.root.resolve())
     validate_required_files(args.mapping.resolve(), inputs)
     graph = materialize_full(

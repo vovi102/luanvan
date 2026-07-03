@@ -200,6 +200,18 @@ def test_main_prepare_only_writes_entities_csv(tmp_path: Path) -> None:
 
 
 def test_main_refuses_live_materialization_without_force(tmp_path: Path) -> None:
-    status = main(["--root", str(tmp_path)])
+    output = tmp_path / "entities.csv"
+
+    status = main(
+        [
+            "--root",
+            str(tmp_path),
+            "--dictionary",
+            str(FIXTURE_DIR / "entities.json"),
+            "--entities-csv",
+            str(output),
+        ]
+    )
 
     assert status == 2
+    assert not output.exists()
