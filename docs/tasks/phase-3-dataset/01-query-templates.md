@@ -35,6 +35,17 @@ Templates là xương sống của synthetic data pipeline. Chất lượng và 
 - [ ] Phân bố category: cover ≥6 categories (xem dưới).
 - [ ] Document format chi tiết.
 
+## Local automation scaffold
+
+- [x] `src/nl2sparql/dataset/templates/templates.json` có 25 SPARQL templates.
+- [x] Template schema có `slots`, `sparql_template`, `nl_seed`, `expected_columns`, `ontology_elements`, và `example_fill`.
+- [x] Phân bố difficulty đạt yêu cầu: 8 easy, 11 medium, 6 hard.
+- [x] Category coverage đạt yêu cầu: cover 10 categories.
+- [x] `src/nl2sparql/dataset/templates/README.md` document schema, slot types, và Fuseki validation workflow.
+- [x] `notebooks/07_template_validate.ipynb` là notebook unexecuted để render templates và chuẩn bị Fuseki validation.
+- [x] Unit tests verify count, uniqueness, distribution, placeholder consistency, expected SELECT columns, README, và notebook contract.
+- [x] Live Fuseki execution vẫn pending cho đến khi full KG từ T2.4 được load.
+
 ## Hướng dẫn triển khai
 
 ### Format template
@@ -163,4 +174,29 @@ Pipeline T3.2 sẽ sample slot values theo type — tránh sinh slot values inva
 
 ## Trạng thái
 
-`todo`
+`scaffold done; Fuseki execution pending`
+
+Local template library đã hoàn tất và được kiểm tra offline. Acceptance criterion "Mỗi template có ≥1 example fill-in chạy thành công trên Fuseki" vẫn pending vì full KG live chưa được load.
+
+## Evidence — 2026-07-04 Scaffold
+
+- Branch: `feat/t3-1-query-template-library`.
+- Design/spec:
+  - `docs/superpowers/specs/2026-07-04-t3-1-query-template-library-design.md`
+  - `docs/superpowers/plans/2026-07-04-t3-1-query-template-library.md`
+- Implemented files:
+  - `src/nl2sparql/dataset/templates/templates.json`
+  - `src/nl2sparql/dataset/templates/README.md`
+  - `notebooks/07_template_validate.ipynb`
+  - `tests/unit/test_query_templates.py`
+- Focused local verification:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run pytest tests/unit/test_query_templates.py -q
+  ```
+  Result: `6 passed`.
+
+## Next live evidence step
+
+After T2.4 full KG load, open `notebooks/07_template_validate.ipynb` or port the same logic into a script, execute all 25 rendered `example_fill` queries against Fuseki, and record execution status plus any zero-row but valid queries here.
