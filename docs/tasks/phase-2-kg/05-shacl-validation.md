@@ -31,6 +31,14 @@ Viết SHACL shapes describe constraint cho KG, chạy validation, fix các vi p
 - [ ] ≤1% vi phạm critical (missing required property).
 - [ ] Tất cả vi phạm được phân loại + có plan handle (fix data hoặc relax shape).
 
+## Local automation scaffold
+
+- [x] `src/nl2sparql/kg/validation/shapes.ttl` parse được và dùng SHACL Core.
+- [x] `src/nl2sparql/kg/validation/run_shacl.py` validate RDF local, ghi report TTL, và ghi markdown summary.
+- [x] Fixture conforming/nonconforming trong `tests/fixtures/shacl/` cover transaction, block, account, exchange account, token transfer, và token contract.
+- [x] Unit tests verify conforming graph pass, violating graph fail, summary grouping, CLI return code, và CLI `--allow-nonconform`.
+- [x] Full KG validation vẫn pending cho đến khi T2.4 live materialization + TDB2 load hoàn tất.
+
 ## Hướng dẫn triển khai
 
 ### 1. Define shapes
@@ -212,4 +220,50 @@ Date: 2025-XX-XX. Total triples: 50,432,103. Total violations: 8,234 (0.0163%).
 
 ## Trạng thái
 
-`todo`
+`scaffold done; full KG validation pending`
+
+Local scaffold đã hoàn tất để kiểm tra SHACL shapes bằng fixture RDF nhỏ. Acceptance criteria phía trên vẫn pending cho full KG vì chưa chạy validation trên `data/processed/full/output.nt` hoặc Fuseki dataset `eth-kg`.
+
+## Evidence — 2026-07-04 Scaffold
+
+- Branch: `feat/t2-5-shacl-validation`.
+- Design/spec:
+  - `docs/superpowers/specs/2026-07-04-t2-5-shacl-validation-design.md`
+  - `docs/superpowers/plans/2026-07-04-t2-5-shacl-validation.md`
+- Implemented files:
+  - `src/nl2sparql/kg/validation/shapes.ttl`
+  - `src/nl2sparql/kg/validation/run_shacl.py`
+  - `tests/unit/test_shacl_validation.py`
+  - `tests/fixtures/shacl/conforming.ttl`
+  - `tests/fixtures/shacl/violating.ttl`
+- Focused local verification:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run pytest tests/unit/test_shacl_validation.py -q
+  ```
+  Result: `7 passed`.
+- CLI help smoke:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run python src/nl2sparql/kg/validation/run_shacl.py --help
+  ```
+  Result: exit `0`.
+
+## Next live evidence step
+
+Run only after T2.4 live materialization creates `data/processed/full/output.nt`:
+
+```bash
+UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+uv run python src/nl2sparql/kg/validation/run_shacl.py \
+    --data data/processed/full/output.nt \
+    --shapes src/nl2sparql/kg/validation/shapes.ttl \
+    --report data/processed/full/shacl_report.ttl \
+    --summary src/nl2sparql/kg/validation/violations_summary.md \
+    --allow-nonconform
+```
+
+After live validation, record triple count, validation wall time, conformance status, critical violation rate, and planned fixes here.
