@@ -44,6 +44,7 @@ Mở rộng RML mapping pilot để cover toàn bộ dữ liệu CSV; chạy Mor
 - [x] Unit tests materialize fixture CSV nhỏ qua Morph-KGC và assert ontology-aligned predicates từ T2.1.
 - [x] CLI `--prepare-only` chạy được để tạo `data/raw/full/entities.csv` từ dictionary JSON.
 - [x] Full live materialization bị chặn nếu thiếu `--force` hoặc `--fixture-mode`.
+- [x] Full live materialization dùng chunked mode mặc định để tránh giữ toàn bộ RDFLib graph trong RAM.
 
 ## Hướng dẫn triển khai
 
@@ -271,7 +272,23 @@ uv run python src/nl2sparql/kg/rml/run_morph_full.py --prepare-only
 
 UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
 UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
-uv run python src/nl2sparql/kg/rml/run_morph_full.py --force
+uv run python src/nl2sparql/kg/rml/run_morph_full.py --force --chunk-rows 100000
 ```
 
 After live materialization, record output size, triple count, wall time, TDB2 load command, Fuseki query benchmark, and TDB2 disk footprint here.
+
+## Evidence — 2026-07-04 Chunked runner update
+
+- Root cause: original `--force` path called `morph_kgc.materialize()` once for all full CSV files, keeping the full RDFLib graph in memory until final serialization.
+- Fix: `--force` now uses `materialize_full_chunked()` by default. Each chunk writes bounded temporary CSV slices, materializes one chunk, appends chunk N-Triples to `data/processed/full/output.nt`, and releases the chunk graph.
+- Controls:
+  - `--chunk-rows`: source rows per chunk, default `100000`.
+  - `--number-of-processes`: Morph-KGC process count per chunk, default `1`.
+  - `--single-shot`: explicit opt-in to the old all-at-once materialization path.
+- Focused verification:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run pytest tests/unit/test_rml_full.py -q
+  ```
+  Result: `10 passed`.

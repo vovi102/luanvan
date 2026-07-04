@@ -1,6 +1,7 @@
 """Tests for the T2.4 full RML mapping scaffold."""
 
 import csv
+import shutil
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -12,6 +13,7 @@ from rdflib.namespace import RDF, XSD
 from nl2sparql.kg.rml.run_morph_full import (
     FullMaterializationError,
     build_morph_config,
+    materialize_full_chunked,
     main,
     materialize_full,
     parse_args,
@@ -170,6 +172,37 @@ def test_materialize_full_fixture_emits_core_kg_shapes(tmp_path: Path) -> None:
         EX["transfer/0xtx1-0"],
         EX.emittedInTransaction,
         EX["tx/0xtx1"],
+    ) in graph
+    assert URIRef(f"{EX}addr/") not in set(graph.all_nodes())
+
+
+def test_materialize_full_chunked_limits_sources_and_appends_output(tmp_path: Path) -> None:
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    for filename in ("transactions.csv", "blocks.csv", "token_transfers.csv", "contracts.csv"):
+        shutil.copyfile(FIXTURE_DIR / filename, input_dir / filename)
+    prepare_entities_csv(FIXTURE_DIR / "entities.json", input_dir / "entities.csv")
+    output = tmp_path / "chunked-output.nt"
+
+    triple_count = materialize_full_chunked(
+        mapping_path=MAPPING_PATH,
+        input_dir=input_dir,
+        output_path=output,
+        work_dir=tmp_path / "chunks",
+        chunk_rows=1,
+        minimum_triples=35,
+        number_of_processes=1,
+    )
+    graph = Graph().parse(output, format="nt")
+
+    assert output.is_file()
+    assert triple_count == len(graph)
+    assert (EX["tx/0xtx1"], RDF.type, EX.Transaction) in graph
+    assert (EX["transfer/0xtx1-0"], RDF.type, EX.TokenTransfer) in graph
+    assert (
+        EX["addr/0x1111111111111111111111111111111111111111"],
+        RDF.type,
+        EX.ExchangeAccount,
     ) in graph
     assert URIRef(f"{EX}addr/") not in set(graph.all_nodes())
 
