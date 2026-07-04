@@ -38,6 +38,14 @@ Chất lượng "execute và non-empty" rất quan trọng: nếu sinh template 
 - [ ] Stratified theo difficulty: ~30% Easy, ~45% Medium, ~25% Hard.
 - [ ] Có seed cố định (42), reproducible.
 
+## Local automation scaffold
+
+- [x] `src/nl2sparql/dataset/generate.py` load templates, render deterministic Stage A records, write JSONL, write stats, and expose CLI.
+- [x] Unit tests verify deterministic generation, record schema, unique SPARQL strings, template frequency cap, JSONL writing, and stats writing.
+- [x] `notebooks/08_generate_synthetic.ipynb` is an unexecuted notebook scaffold for local generation.
+- [x] Scaffold records use `verification_mode = "offline_render_only"`.
+- [x] Live Fuseki execution and non-empty filtering remain pending until full KG is loaded.
+
 ## Hướng dẫn triển khai
 
 ### Schema record output
@@ -143,4 +151,28 @@ def main():
 
 ## Trạng thái
 
-todo
+`scaffold done; Fuseki execution pending`
+
+Local offline rendering scaffold is complete. Full acceptance remains pending because `data/processed/full/output.nt` and Fuseki `eth-kg` live verification are not available yet.
+
+## Evidence — 2026-07-04 Scaffold
+
+- Branch: `feat/t3-2-synthetic-pipeline-scaffold`.
+- Design/spec:
+  - `docs/superpowers/specs/2026-07-04-t3-2-synthetic-pipeline-scaffold-design.md`
+  - `docs/superpowers/plans/2026-07-04-t3-2-synthetic-pipeline-scaffold.md`
+- Implemented files:
+  - `src/nl2sparql/dataset/generate.py`
+  - `tests/unit/test_synthetic_generate.py`
+  - `notebooks/08_generate_synthetic.ipynb`
+- Focused local verification:
+  ```bash
+  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
+  uv run pytest tests/unit/test_synthetic_generate.py -q
+  ```
+  Result: `3 passed`.
+
+## Next live evidence step
+
+After the full KG is loaded in Fuseki, extend `generate.py` with query execution/rejection, run target count 1000, and record duplicate rate, reject rate, template distribution, entity distribution, and non-empty verification results here.
