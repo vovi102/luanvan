@@ -5,8 +5,11 @@ from pathlib import Path
 from rdflib import Graph, Namespace
 from rdflib.namespace import RDF
 
+from nl2sparql.kg.validation.run_shacl import parse_rdf_graph, run_shacl_validation
+
 ROOT = Path(__file__).resolve().parents[2]
 SHAPES_PATH = ROOT / "src/nl2sparql/kg/validation/shapes.ttl"
+FIXTURE_DIR = ROOT / "tests/fixtures/shacl"
 SH = Namespace("http://www.w3.org/ns/shacl#")
 EX = Namespace("https://thesis.example.org/eth-kg/")
 
@@ -38,3 +41,24 @@ def test_shapes_cover_ontology_predicates_used_by_full_mapping() -> None:
         ":hasOwner",
     ):
         assert predicate in text
+
+
+def test_parse_rdf_graph_loads_fixture_turtle() -> None:
+    graph = parse_rdf_graph(FIXTURE_DIR / "conforming.ttl")
+
+    assert len(graph) > 0
+    assert (EX["tx/0xtx1"], RDF.type, EX.Transaction) in graph
+
+
+def test_run_shacl_validation_conforming_fixture_writes_report(tmp_path: Path) -> None:
+    report_path = tmp_path / "shacl_report.ttl"
+
+    result = run_shacl_validation(
+        data_path=FIXTURE_DIR / "conforming.ttl",
+        shapes_path=SHAPES_PATH,
+        report_path=report_path,
+    )
+
+    assert result.conforms is True
+    assert result.results_text.startswith("Validation Report")
+    assert report_path.is_file()

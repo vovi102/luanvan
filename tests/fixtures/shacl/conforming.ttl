@@ -1,0 +1,44 @@
+@prefix : <https://thesis.example.org/eth-kg/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://thesis.example.org/eth-kg/tx/0xtx1> a :Transaction ;
+    :hasFrom <https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111> ;
+    :hasTo <https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222> ;
+    :hasValue "2000000000000000000"^^xsd:decimal ;
+    :hasGasUsed 21000 ;
+    :hasGasPrice "1000000000"^^xsd:decimal ;
+    :hasReceiptStatus true ;
+    :hasBlockNumber 19000000 ;
+    :hasTimestamp "2024-01-15T00:00:00Z"^^xsd:dateTime ;
+    :includedInBlock <https://thesis.example.org/eth-kg/block/19000000> .
+
+<https://thesis.example.org/eth-kg/block/19000000> a :Block ;
+    :hasBlockNumber 19000000 ;
+    :hasTimestamp "2024-01-15T00:00:00Z"^^xsd:dateTime ;
+    :hasMiner <https://thesis.example.org/eth-kg/addr/0x4444444444444444444444444444444444444444> ;
+    :hasGasUsed 7400000 ;
+    :hasGasLimit 30000000 ;
+    :hasTxCount 2 .
+
+<https://thesis.example.org/eth-kg/transfer/0xtx1-0> a :TokenTransfer ;
+    :emittedInTransaction <https://thesis.example.org/eth-kg/tx/0xtx1> ;
+    :tokenTransferFrom <https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111> ;
+    :tokenTransferTo <https://thesis.example.org/eth-kg/addr/0x3333333333333333333333333333333333333333> ;
+    :transferredToken <https://thesis.example.org/eth-kg/addr/0x5555555555555555555555555555555555555555> ;
+    :transferredAmount "5000000"^^xsd:decimal ;
+    :hasTimestamp "2024-01-15T00:00:02Z"^^xsd:dateTime .
+
+<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111> a :Account, :ExchangeAccount ;
+    :hasLabel "Binance Hot Wallet" ;
+    :hasOwner "Binance" ;
+    :hasCategory "exchange" ;
+    :hasAlias "binance|binance wallet" .
+
+<https://thesis.example.org/eth-kg/addr/0x5555555555555555555555555555555555555555> a :Account, :TokenContract ;
+    :hasLabel "Fixture Token" ;
+    :hasOwner "Fixture Token" ;
+    :hasCategory "token_contract" ;
+    :hasAlias "fixture token|fixture" ;
+    :hasTokenSymbol "FIX" ;
+    :hasTokenName "Fixture Token" ;
+    :hasDecimals 6 .
