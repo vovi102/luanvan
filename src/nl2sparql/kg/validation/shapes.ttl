@@ -1,0 +1,179 @@
+@prefix : <https://thesis.example.org/eth-kg/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:TransactionShape a sh:NodeShape ;
+    sh:targetClass :Transaction ;
+    sh:property [
+        sh:path :hasFrom ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every transaction must have exactly one :hasFrom account."
+    ] ;
+    sh:property [
+        sh:path :hasTo ;
+        sh:maxCount 1 ;
+        sh:message "A transaction can have at most one :hasTo account; contract creation may omit it."
+    ] ;
+    sh:property [
+        sh:path :hasValue ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+        sh:message "Every transaction must have one non-negative decimal :hasValue in wei."
+    ] ;
+    sh:property [
+        sh:path :hasGasUsed ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 0
+    ] ;
+    sh:property [
+        sh:path :hasGasPrice ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0
+    ] ;
+    sh:property [
+        sh:path :hasReceiptStatus ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:boolean
+    ] ;
+    sh:property [
+        sh:path :hasBlockNumber ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:message "Every transaction must carry the containing block number."
+    ] ;
+    sh:property [
+        sh:path :hasTimestamp ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:message "Every transaction must carry a UTC xsd:dateTime timestamp."
+    ] ;
+    sh:property [
+        sh:path :includedInBlock ;
+        sh:maxCount 1
+    ] .
+
+:BlockShape a sh:NodeShape ;
+    sh:targetClass :Block ;
+    sh:property [
+        sh:path :hasBlockNumber ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer
+    ] ;
+    sh:property [
+        sh:path :hasTimestamp ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] ;
+    sh:property [
+        sh:path :hasMiner ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path :hasGasUsed ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 0
+    ] ;
+    sh:property [
+        sh:path :hasGasLimit ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 0
+    ] ;
+    sh:property [
+        sh:path :hasTxCount ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 0
+    ] .
+
+:AccountShape a sh:NodeShape ;
+    sh:targetClass :Account ;
+    sh:property [
+        sh:path :hasLabel ;
+        sh:datatype xsd:string
+    ] ;
+    sh:property [
+        sh:path :hasAlias ;
+        sh:datatype xsd:string
+    ] ;
+    sh:property [
+        sh:path :hasOwner ;
+        sh:datatype xsd:string
+    ] ;
+    sh:property [
+        sh:path :hasCategory ;
+        sh:datatype xsd:string
+    ] .
+
+:ExchangeAccountShape a sh:NodeShape ;
+    sh:targetClass :ExchangeAccount ;
+    sh:property [
+        sh:path :hasLabel ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "ExchangeAccount must have :hasLabel."
+    ] ;
+    sh:property [
+        sh:path :hasOwner ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "ExchangeAccount must have :hasOwner."
+    ] .
+
+:TokenTransferShape a sh:NodeShape ;
+    sh:targetClass :TokenTransfer ;
+    sh:property [
+        sh:path :emittedInTransaction ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every token transfer must link to the transaction that emitted it."
+    ] ;
+    sh:property [
+        sh:path :tokenTransferFrom ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path :tokenTransferTo ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path :transferredToken ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path :transferredAmount ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0
+    ] ;
+    sh:property [
+        sh:path :hasTimestamp ;
+        sh:datatype xsd:dateTime
+    ] .
+
+:TokenContractShape a sh:NodeShape ;
+    sh:targetClass :TokenContract ;
+    sh:property [
+        sh:path :hasTokenSymbol ;
+        sh:datatype xsd:string
+    ] ;
+    sh:property [
+        sh:path :hasTokenName ;
+        sh:datatype xsd:string
+    ] ;
+    sh:property [
+        sh:path :hasDecimals ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 0
+    ] .
