@@ -1,0 +1,10 @@
+@prefix : <https://thesis.example.org/eth-kg/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://thesis.example.org/eth-kg/tx/0xbadtx> a :Transaction ;
+    :hasTo <https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222> ;
+    :hasValue "-1"^^xsd:decimal ;
+    :hasBlockNumber 19000000 .
+
+<https://thesis.example.org/eth-kg/addr/0xbadexchange000000000000000000000000000000> a :Account, :ExchangeAccount ;
+    :hasCategory "exchange" .
