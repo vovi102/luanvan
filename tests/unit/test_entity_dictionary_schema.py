@@ -1,4 +1,10 @@
+import csv
+import importlib.util
 import json
+import subprocess
+import sys
+from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -13,6 +19,35 @@ from nl2sparql.linking.dictionary.schema import (
     validate_source_locator,
     validate_source_revision,
 )
+
+
+@pytest.fixture(scope="module")
+def fetcher() -> ModuleType:
+    script_path = Path("scripts/03_fetch_entity_labels.py").resolve()
+    spec = importlib.util.spec_from_file_location("fetch_entity_labels", script_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def valid_chain_aware_row(*, address: str) -> dict[str, str]:
+    return {
+        "address": address,
+        "primary_label": "Reviewed entity",
+        "owner": "Reviewed Owner",
+        "category": "dex",
+        "concept_class": "DEXProtocol",
+        "aliases": "reviewed owner",
+        "chain_id": "1",
+        "address_role": "operational",
+        "source_name": "reviewed_source",
+        "source_url": "https://example.test/pinned-source",
+        "source_revision": "a" * 40,
+        "source_locator": "projects/reviewed/index.js:L1-L4",
+        "retrieved_date": "2026-08-09",
+        "confidence": "high",
+    }
 
 
 def test_normalize_alias_lowercases_trims_and_collapses_spaces():
@@ -82,6 +117,145 @@ def test_validate_source_locator_rejects_blank_value():
         validate_source_locator("  ")
 
 
+def test_coingecko_compiler_keeps_only_exact_ethereum_mainnet_tokens(fetcher):
+    snapshot = {
+        "tokens": [
+            {
+                "chainId": 1,
+                "address": "0x" + "1" * 40,
+                "name": "One Token",
+                "symbol": "ONE",
+            },
+            {
+                "chainId": 42161,
+                "address": "0x" + "2" * 40,
+                "name": "Two Token",
+                "symbol": "TWO",
+            },
+        ]
+    }
+
+    rows = fetcher.rows_from_coingecko(
+        snapshot,
+        revision="sha256:" + "a" * 64,
+        retrieved_date="2026-08-09",
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["address"] == "0x" + "1" * 40
+    assert rows[0]["chain_id"] == "1"
+    assert rows[0]["address_role"] == "token"
+    assert rows[0]["source_locator"] == "/tokens/0"
+
+
+def test_coingecko_compiler_rejects_address_prefix_embedded_in_long_identifier(
+    fetcher,
+):
+    snapshot = {
+        "tokens": [
+            {
+                "chainId": 1,
+                "address": "0x" + "3" * 64,
+                "name": "Aptos-shaped",
+                "symbol": "BAD",
+            }
+        ]
+    }
+
+    with pytest.raises(DictionaryValidationError, match="Invalid Ethereum address"):
+        fetcher.rows_from_coingecko(
+            snapshot,
+            revision="sha256:" + "b" * 64,
+            retrieved_date="2026-08-09",
+        )
+
+
+def test_compile_rows_rejects_duplicate_address_across_sources(fetcher):
+    row = valid_chain_aware_row(address="0x" + "4" * 40)
+
+    with pytest.raises(DictionaryValidationError, match="Duplicate Ethereum entity"):
+        fetcher.compile_rows([row], [dict(row)])
+
+
+@pytest.mark.parametrize(
+    ("case_name", "chain_id", "address", "locator"),
+    [
+        ("swissborg_arbitrum", "42161", "0x" + "5" * 40, "ethereum:L1"),
+        ("bitget_bsc", "56", "0x" + "6" * 40, "ethereum:L1"),
+        ("kelp_zksync", "324", "0x" + "7" * 40, "ethereum:L1"),
+        ("buidl_aptos", "1", "0x" + "8" * 64, "aptos:L1"),
+        ("curve_base", "8453", "0x" + "9" * 40, "ethereum:L1"),
+        ("spiko_polygon", "137", "0x" + "a" * 40, "ethereum:L1"),
+        ("avalon_mantle", "5000", "0x" + "b" * 40, "ethereum:L1"),
+        ("missing_locator", "1", "0x" + "c" * 40, "  "),
+    ],
+)
+def test_compile_rows_rejects_audited_chain_and_provenance_failures(
+    fetcher,
+    case_name,
+    chain_id,
+    address,
+    locator,
+):
+    row = valid_chain_aware_row(address=address)
+    row["chain_id"] = chain_id
+    row["source_locator"] = locator
+
+    with pytest.raises(DictionaryValidationError, match="chain_id|address|locator"):
+        fetcher.compile_rows([], [row])
+
+
+def test_compiler_cli_writes_deterministic_offline_snapshot(tmp_path):
+    token_snapshot = tmp_path / "tokens.json"
+    reviewed_snapshot = tmp_path / "reviewed.csv"
+    output = tmp_path / "entities.csv"
+    token_snapshot.write_text(
+        json.dumps(
+            {
+                "tokens": [
+                    {
+                        "chainId": 1,
+                        "address": "0x" + "d" * 40,
+                        "name": "Delta Token",
+                        "symbol": "DELTA",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    row = valid_chain_aware_row(address="0x" + "e" * 40)
+    with reviewed_snapshot.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(row))
+        writer.writeheader()
+        writer.writerow(row)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/03_fetch_entity_labels.py",
+            "--coingecko-snapshot",
+            str(token_snapshot),
+            "--reviewed-rows",
+            str(reviewed_snapshot),
+            "--retrieved-date",
+            "2026-08-09",
+            "--output",
+            str(output),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    with output.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    assert [entry["owner"] for entry in rows] == ["Reviewed Owner", "Delta Token"]
+    assert rows[0]["address_role"] == "operational"
+    assert rows[1]["source_revision"].startswith("sha256:")
+
+
 def test_build_dictionary_merges_real_source_rows_and_sorts_outputs(tmp_path):
     raw_path = tmp_path / "entities.csv"
     concepts_path = tmp_path / "concepts.json"
@@ -124,10 +298,7 @@ def test_build_dictionary_merges_real_source_rows_and_sorts_outputs(tmp_path):
     built = build_dictionary(raw_path, concepts_path)
 
     assert [entry["owner"] for entry in built["entities"]] == ["Curve", "Binance"]
-    assert (
-        built["entities"][0]["address_lower"]
-        == "0x0000000000000000000000000000000000000000"
-    )
+    assert built["entities"][0]["address_lower"] == "0x0000000000000000000000000000000000000000"
     assert built["aliases"]["binance hot wallet"] == "Binance"
     assert built["concepts"]["exchange"]["instances"] == ["Binance"]
 
