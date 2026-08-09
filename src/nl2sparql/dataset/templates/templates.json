@@ -4,1144 +4,349 @@
     "name": "Count transactions in time range",
     "category": "time_range",
     "difficulty": "easy",
-    "slots": {
-      "start_date": {
-        "type": "date",
-        "default_range": [
-          "2024-01-01",
-          "2024-12-31"
-        ]
-      },
-      "end_date": {
-        "type": "date",
-        "default_range": [
-          "2024-01-01",
-          "2024-12-31"
-        ],
-        "constraint": "after start_date"
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT (COUNT(?tx) AS ?count) WHERE {{\n  ?tx a :Transaction ; :hasTimestamp ?ts .\n  FILTER(?ts >= \"{start_date}T00:00:00Z\"^^xsd:dateTime)\n  FILTER(?ts < \"{end_date}T00:00:00Z\"^^xsd:dateTime)\n}}",
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}},
+    "sql_template": "SELECT COUNT(*) AS transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')",
     "nl_seed": "How many transactions happened between {start_date} and {end_date}?",
-    "expected_columns": [
-      "count"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasTimestamp"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "expected_columns": ["transaction_count"],
+    "schema_elements": ["transaction_facts", "transaction_facts.transaction_hash", "transaction_facts.block_timestamp"],
+    "cq_ids": ["CQ01"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16"},
+    "validation": {"expect_non_empty": true, "scope_note": "One-day bounded transaction aggregate."}
   },
   {
     "id": "T_LIST_TX_FROM_ACCOUNT",
-    "name": "List transactions from account",
+    "name": "List transactions from an account",
     "category": "entity_lookup",
     "difficulty": "easy",
-    "slots": {
-      "account": {
-        "type": "ethereum_iri"
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx WHERE {{\n  ?tx a :Transaction ; :hasFrom {account} .\n}} LIMIT {n}",
-    "nl_seed": "List {n} transactions sent by {account}.",
-    "expected_columns": [
-      "tx"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasFrom"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"account": {"type": "ethereum_address"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, to_address, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE from_address = '{account}'\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "List {n} transactions sent by {account} between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "to_address", "value_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei", "entity_labels_v1.address"],
+    "cq_ids": ["CQ04"],
+    "example_fill": {"account": "0x6454ac71ca260f99cca99a3f4241dfda20cfa965", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Known Binance treasury sender."}
   },
   {
     "id": "T_LIST_TX_TO_ACCOUNT",
-    "name": "List transactions to account",
+    "name": "List transactions to an account",
     "category": "entity_lookup",
     "difficulty": "easy",
-    "slots": {
-      "account": {
-        "type": "ethereum_iri"
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx WHERE {{\n  ?tx a :Transaction ; :hasTo {account} .\n}} LIMIT {n}",
-    "nl_seed": "List {n} transactions received by {account}.",
-    "expected_columns": [
-      "tx"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasTo"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"account": {"type": "ethereum_address"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE to_address = '{account}'\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "List {n} transactions received by {account} between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "value_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei", "entity_labels_v1.address"],
+    "cq_ids": ["CQ05"],
+    "example_fill": {"account": "0x6454ac71ca260f99cca99a3f4241dfda20cfa965", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Known Binance treasury recipient."}
   },
   {
     "id": "T_FILTER_TX_BY_VALUE",
-    "name": "Transactions above value threshold",
+    "name": "Transactions above a value threshold",
     "category": "simple_filter",
     "difficulty": "easy",
-    "slots": {
-      "value_wei": {
-        "type": "decimal_wei",
-        "default_range": [
-          "1000000000000000000",
-          "1000000000000000000000"
-        ]
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx ?value WHERE {{\n  ?tx a :Transaction ; :hasValue ?value .\n  FILTER(?value >= {value_wei})\n}} ORDER BY DESC(?value) LIMIT {n}",
-    "nl_seed": "Which {n} transactions transferred at least {value_wei} wei?",
-    "expected_columns": [
-      "tx",
-      "value"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasValue"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"value_wei": {"type": "decimal_wei"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, to_address, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE value_wei >= NUMERIC '{value_wei}'\nORDER BY value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} transactions moved at least {value_wei} wei between {start_date} and {end_date}?",
+    "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "to_address", "value_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei"],
+    "cq_ids": ["CQ02"],
+    "example_fill": {"value_wei": "1000000000000000000", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "One ETH threshold."}
   },
   {
     "id": "T_LIST_FAILED_TX",
     "name": "List failed transactions",
     "category": "simple_filter",
     "difficulty": "easy",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx WHERE {{\n  ?tx a :Transaction ; :hasReceiptStatus false .\n}} LIMIT {n}",
-    "nl_seed": "Show {n} failed transactions.",
-    "expected_columns": [
-      "tx"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasReceiptStatus"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, to_address, receipt_gas_used\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE is_success IS FALSE\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} failed transactions between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "to_address", "receipt_gas_used"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.is_success", "transaction_facts.receipt_gas_used"],
+    "cq_ids": ["CQ03"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Failed receipt status only."}
   },
   {
     "id": "T_BLOCK_BY_NUMBER",
-    "name": "Block metadata by number",
+    "name": "Block details by number",
     "category": "entity_lookup",
     "difficulty": "easy",
-    "slots": {
-      "block_number": {
-        "type": "integer"
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?block ?timestamp ?txCount WHERE {{\n  ?block a :Block ; :hasBlockNumber {block_number} ; :hasTimestamp ?timestamp .\n  OPTIONAL {{ ?block :hasTxCount ?txCount . }}\n}}",
-    "nl_seed": "Show metadata for block {block_number}.",
-    "expected_columns": [
-      "block",
-      "timestamp",
-      "txCount"
-    ],
-    "ontology_elements": [
-      ":Block",
-      ":hasBlockNumber",
-      ":hasTimestamp",
-      ":hasTxCount"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"block_number": {"type": "block_number"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}},
+    "sql_template": "SELECT block_number, block_hash, block_timestamp, beneficiary_address, transaction_count, gas_used\nFROM `nl2sparql-thesis.nl2sparql_analytics.block_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE block_number = {block_number}",
+    "nl_seed": "What are the details for block {block_number} between {start_date} and {end_date}?",
+    "expected_columns": ["block_number", "block_hash", "block_timestamp", "beneficiary_address", "transaction_count", "gas_used"],
+    "schema_elements": ["block_facts.block_number", "block_facts.block_hash", "block_facts.block_timestamp", "block_facts.beneficiary_address", "block_facts.transaction_count", "block_facts.gas_used"],
+    "cq_ids": ["CQ09"],
+    "example_fill": {"block_number": 0, "start_date": "2026-06-15", "end_date": "2026-06-16"},
+    "validation": {"expect_non_empty": false, "scope_note": "Block number is replaced with a live value after preflight discovery."}
   },
   {
     "id": "T_TX_BY_HASH",
-    "name": "Transaction facts by IRI",
+    "name": "Transaction details by hash",
     "category": "entity_lookup",
     "difficulty": "easy",
-    "slots": {
-      "tx": {
-        "type": "transaction_iri"
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?from ?to ?value ?timestamp WHERE {{\n  {tx} a :Transaction ; :hasFrom ?from ; :hasValue ?value ; :hasTimestamp ?timestamp .\n  OPTIONAL {{ {tx} :hasTo ?to . }}\n}}",
-    "nl_seed": "Show sender, recipient, value, and timestamp for transaction {tx}.",
-    "expected_columns": [
-      "from",
-      "to",
-      "value",
-      "timestamp"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasFrom",
-      ":hasTo",
-      ":hasValue",
-      ":hasTimestamp"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"transaction_hash": {"type": "transaction_hash"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, to_address, value_wei, is_success\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE transaction_hash = '{transaction_hash}'",
+    "nl_seed": "Show transaction {transaction_hash} between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "to_address", "value_wei", "is_success"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei", "transaction_facts.is_success"],
+    "cq_ids": ["CQ01", "CQ02", "CQ03"],
+    "example_fill": {"transaction_hash": "0x0000000000000000000000000000000000000000000000000000000000000000", "start_date": "2026-06-15", "end_date": "2026-06-16"},
+    "validation": {"expect_non_empty": false, "scope_note": "Hash is replaced with a live value after preflight discovery."}
   },
   {
     "id": "T_LIST_KNOWN_EXCHANGES",
-    "name": "List known exchange accounts",
+    "name": "List known exchange treasury accounts",
     "category": "class_level",
     "difficulty": "easy",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?account ?label ?owner WHERE {{\n  ?account a :ExchangeAccount ; :hasLabel ?label ; :hasOwner ?owner .\n}} LIMIT {n}",
-    "nl_seed": "List {n} known exchange accounts with labels and owners.",
-    "expected_columns": [
-      "account",
-      "label",
-      "owner"
-    ],
-    "ontology_elements": [
-      ":ExchangeAccount",
-      ":hasLabel",
-      ":hasOwner"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT address, primary_label, owner, confidence\nFROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`\nWHERE address_role = 'treasury' AND category = 'exchange'\nORDER BY owner, address\nLIMIT {n}",
+    "nl_seed": "List {n} known exchange treasury accounts.",
+    "expected_columns": ["address", "primary_label", "owner", "confidence"],
+    "schema_elements": ["entity_labels_v1.address", "entity_labels_v1.primary_label", "entity_labels_v1.owner", "entity_labels_v1.confidence", "entity_labels_v1.address_role", "entity_labels_v1.category"],
+    "cq_ids": ["CQ07", "CQ10"],
+    "example_fill": {"n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Treasury role remains distinct from operational endpoints."}
   },
   {
     "id": "T_TOP_SENDERS_BY_VALUE",
-    "name": "Top senders by total value",
+    "name": "Top senders by native value",
     "category": "transaction_aggregation",
     "difficulty": "medium",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?sender (SUM(?value) AS ?totalWei) WHERE {{\n  ?tx a :Transaction ; :hasFrom ?sender ; :hasValue ?value .\n}} GROUP BY ?sender ORDER BY DESC(?totalWei) LIMIT {n}",
-    "nl_seed": "Who are the top {n} senders by total ETH value?",
-    "expected_columns": [
-      "sender",
-      "totalWei"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasFrom",
-      ":hasValue"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT from_address AS sender_address, SUM(value_wei) AS total_value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nGROUP BY sender_address\nORDER BY total_value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Who were the top {n} senders by wei between {start_date} and {end_date}?",
+    "expected_columns": ["sender_address", "total_value_wei"],
+    "schema_elements": ["transaction_facts.from_address", "transaction_facts.value_wei"],
+    "cq_ids": ["CQ11"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Native value remains NUMERIC wei."}
   },
   {
     "id": "T_TOP_RECIPIENTS_BY_COUNT",
     "name": "Top recipients by transaction count",
     "category": "top_k",
     "difficulty": "medium",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?recipient (COUNT(?tx) AS ?count) WHERE {{\n  ?tx a :Transaction ; :hasTo ?recipient .\n}} GROUP BY ?recipient ORDER BY DESC(?count) LIMIT {n}",
-    "nl_seed": "Who are the top {n} recipients by transaction count?",
-    "expected_columns": [
-      "recipient",
-      "count"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasTo"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT to_address AS recipient_address, COUNT(*) AS transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE to_address IS NOT NULL\nGROUP BY recipient_address\nORDER BY transaction_count DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} addresses received the most transactions between {start_date} and {end_date}?",
+    "expected_columns": ["recipient_address", "transaction_count"],
+    "schema_elements": ["transaction_facts.to_address", "transaction_facts.transaction_hash"],
+    "cq_ids": ["CQ12"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Null contract-creation recipients are excluded."}
   },
   {
     "id": "T_TX_BETWEEN_ACCOUNTS",
     "name": "Transactions between two accounts",
     "category": "comparison",
     "difficulty": "medium",
-    "slots": {
-      "account": {
-        "type": "ethereum_iri"
-      },
-      "account_b": {
-        "type": "ethereum_iri"
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx ?value WHERE {{\n  ?tx a :Transaction ; :hasFrom {account} ; :hasTo {account_b} ; :hasValue ?value .\n}} LIMIT {n}",
-    "nl_seed": "List {n} transactions from {account} to {account_b}.",
-    "expected_columns": [
-      "tx",
-      "value"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasFrom",
-      ":hasTo",
-      ":hasValue"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"account": {"type": "ethereum_address"}, "account_b": {"type": "ethereum_address"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, to_address, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE (from_address = '{account}' AND to_address = '{account_b}')\n   OR (from_address = '{account_b}' AND to_address = '{account}')\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} transactions between {account} and {account_b} from {start_date} to {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "to_address", "value_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei"],
+    "cq_ids": ["CQ13"],
+    "example_fill": {"account": "0x6454ac71ca260f99cca99a3f4241dfda20cfa965", "account_b": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": false, "scope_note": "Specific treasury/factory pair may have no direct one-day flow."}
   },
   {
     "id": "T_TX_GROUPED_BY_OWNER",
-    "name": "Transactions grouped by owner",
+    "name": "Transactions grouped by labeled owner",
     "category": "transaction_aggregation",
     "difficulty": "medium",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?owner (COUNT(?tx) AS ?count) WHERE {{\n  ?tx a :Transaction ; :hasTo ?account .\n  ?account :hasOwner ?owner .\n}} GROUP BY ?owner ORDER BY DESC(?count) LIMIT {n}",
-    "nl_seed": "Group received transactions by account owner and show top {n}.",
-    "expected_columns": [
-      "owner",
-      "count"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasTo",
-      ":hasOwner"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT from_owner AS owner, COUNT(*) AS transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE from_owner IS NOT NULL\nGROUP BY owner\nORDER BY transaction_count DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} labeled owners sent the most transactions between {start_date} and {end_date}?",
+    "expected_columns": ["owner", "transaction_count"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.from_address", "entity_labels_v1.owner"],
+    "cq_ids": ["CQ20", "CQ22"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Groups only addresses present in the accepted dictionary."}
   },
   {
     "id": "T_TOKEN_VOLUME_BY_SYMBOL",
-    "name": "Token volume by symbol",
+    "name": "Token transfer volume by symbol",
     "category": "token_specific",
     "difficulty": "medium",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?symbol (SUM(?amount) AS ?volume) WHERE {{\n  ?transfer a :TokenTransfer ; :transferredToken ?token ; :transferredAmount ?amount .\n  ?token :hasTokenSymbol ?symbol .\n}} GROUP BY ?symbol ORDER BY DESC(?volume) LIMIT {n}",
-    "nl_seed": "What are the top {n} token symbols by transferred amount?",
-    "expected_columns": [
-      "symbol",
-      "volume"
-    ],
-    "ontology_elements": [
-      ":TokenTransfer",
-      ":transferredToken",
-      ":transferredAmount",
-      ":hasTokenSymbol"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT token_symbol, SUM(normalized_amount) AS total_amount\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '{start_date}', DATE '{end_date}')\nWHERE normalized_amount IS NOT NULL AND token_symbol IS NOT NULL\nGROUP BY token_symbol\nORDER BY total_amount DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} token symbols had the highest fungible volume between {start_date} and {end_date}?",
+    "expected_columns": ["token_symbol", "total_amount"],
+    "schema_elements": ["token_transfer_facts.token_symbol", "token_transfer_facts.normalized_amount", "token_transfer_facts.is_erc20", "token_transfer_facts.is_erc721"],
+    "cq_ids": ["CQ15"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Only precision-safe fungible normalized amounts."}
   },
   {
     "id": "T_TOKEN_TRANSFERS_OF_TOKEN",
-    "name": "Transfers of token symbol",
+    "name": "Transfers for a token symbol",
     "category": "token_specific",
     "difficulty": "medium",
-    "slots": {
-      "token_symbol": {
-        "type": "token_symbol"
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?transfer ?amount WHERE {{\n  ?transfer a :TokenTransfer ; :transferredToken ?token ; :transferredAmount ?amount .\n  ?token :hasTokenSymbol \"{token_symbol}\" .\n}} LIMIT {n}",
-    "nl_seed": "List {n} transfers for token {token_symbol}.",
-    "expected_columns": [
-      "transfer",
-      "amount"
-    ],
-    "ontology_elements": [
-      ":TokenTransfer",
-      ":transferredToken",
-      ":transferredAmount",
-      ":hasTokenSymbol"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"token_symbol": {"type": "token_symbol"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, log_index, block_timestamp, token_address, from_address, to_address, normalized_amount\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '{start_date}', DATE '{end_date}')\nWHERE UPPER(token_symbol) = UPPER('{token_symbol}')\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "List {n} {token_symbol} transfers between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "log_index", "block_timestamp", "token_address", "from_address", "to_address", "normalized_amount"],
+    "schema_elements": ["token_transfer_facts.transaction_hash", "token_transfer_facts.log_index", "token_transfer_facts.block_timestamp", "token_transfer_facts.token_address", "token_transfer_facts.from_address", "token_transfer_facts.to_address", "token_transfer_facts.normalized_amount", "token_transfer_facts.token_symbol"],
+    "cq_ids": ["CQ15"],
+    "example_fill": {"token_symbol": "USDC", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "USDC is expected in the pinned window."}
   },
   {
     "id": "T_FAILED_HIGH_GAS_TX",
-    "name": "Failed high gas transactions",
+    "name": "Failed high-gas transactions",
     "category": "simple_filter",
     "difficulty": "medium",
-    "slots": {
-      "gas_used": {
-        "type": "integer",
-        "default_range": [
-          21000,
-          1000000
-        ]
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx ?gasUsed ?gasPrice WHERE {{\n  ?tx a :Transaction ; :hasReceiptStatus false ; :hasGasUsed ?gasUsed ; :hasGasPrice ?gasPrice .\n  FILTER(?gasUsed > {gas_used})\n}} LIMIT {n}",
-    "nl_seed": "Show {n} failed transactions using more than {gas_used} gas.",
-    "expected_columns": [
-      "tx",
-      "gasUsed",
-      "gasPrice"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasReceiptStatus",
-      ":hasGasUsed",
-      ":hasGasPrice"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"gas_used": {"type": "integer", "min": 1, "max": 100000000}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, receipt_gas_used, gas_price_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE is_success IS FALSE AND receipt_gas_used >= {gas_used}\nORDER BY receipt_gas_used DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} failed transactions using at least {gas_used} gas between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "receipt_gas_used", "gas_price_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.is_success", "transaction_facts.receipt_gas_used", "transaction_facts.gas_price_wei"],
+    "cq_ids": ["CQ16"],
+    "example_fill": {"gas_used": 500000, "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Receipt gas, not gas limit."}
   },
   {
     "id": "T_BLOCKS_BY_VALIDATOR",
-    "name": "Blocks by validator account",
+    "name": "Blocks by beneficiary address",
     "category": "class_level",
     "difficulty": "medium",
-    "slots": {
-      "account": {
-        "type": "ethereum_iri"
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?block ?number ?timestamp WHERE {{\n  ?block a :Block ; :hasMiner {account} ; :hasBlockNumber ?number ; :hasTimestamp ?timestamp .\n}} LIMIT {n}",
-    "nl_seed": "Show {n} blocks proposed by validator {account}.",
-    "expected_columns": [
-      "block",
-      "number",
-      "timestamp"
-    ],
-    "ontology_elements": [
-      ":Block",
-      ":hasMiner",
-      ":hasBlockNumber",
-      ":hasTimestamp"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"account": {"type": "ethereum_address"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT block_number, block_hash, block_timestamp, beneficiary_address, transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.block_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE beneficiary_address = '{account}'\nORDER BY block_number DESC\nLIMIT {n}",
+    "nl_seed": "List {n} blocks whose beneficiary was {account} between {start_date} and {end_date}.",
+    "expected_columns": ["block_number", "block_hash", "block_timestamp", "beneficiary_address", "transaction_count"],
+    "schema_elements": ["block_facts.block_number", "block_facts.block_hash", "block_facts.block_timestamp", "block_facts.beneficiary_address", "block_facts.transaction_count"],
+    "cq_ids": ["CQ17"],
+    "example_fill": {"account": "0x0000000000000000000000000000000000000000", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": false, "scope_note": "Source proves beneficiary/fee recipient, not validator identity."}
   },
   {
     "id": "T_ACCOUNTS_BY_CATEGORY",
-    "name": "Accounts grouped by category",
+    "name": "Labeled accounts grouped by category",
     "category": "transaction_aggregation",
     "difficulty": "medium",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?category (COUNT(?account) AS ?count) WHERE {{\n  ?account a :Account ; :hasCategory ?category .\n}} GROUP BY ?category ORDER BY DESC(?count) LIMIT {n}",
-    "nl_seed": "Show the top {n} account categories by count.",
-    "expected_columns": [
-      "category",
-      "count"
-    ],
-    "ontology_elements": [
-      ":Account",
-      ":hasCategory"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT category, address_role, COUNT(*) AS account_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`\nGROUP BY category, address_role\nORDER BY account_count DESC\nLIMIT {n}",
+    "nl_seed": "Show the top {n} label categories and roles by account count.",
+    "expected_columns": ["category", "address_role", "account_count"],
+    "schema_elements": ["entity_labels_v1.category", "entity_labels_v1.address_role", "entity_labels_v1.address"],
+    "cq_ids": ["CQ20"],
+    "example_fill": {"n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Role remains visible in grouping."}
   },
   {
     "id": "T_TX_BY_HOUR",
     "name": "Transactions grouped by hour",
     "category": "temporal_pattern",
     "difficulty": "medium",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          24
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?hour (COUNT(?tx) AS ?count) WHERE {{\n  ?tx a :Transaction ; :hasTimestamp ?timestamp .\n  BIND(HOURS(?timestamp) AS ?hour)\n}} GROUP BY ?hour ORDER BY ?hour LIMIT {n}",
-    "nl_seed": "Show transaction counts for the top {n} hours of day.",
-    "expected_columns": [
-      "hour",
-      "count"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasTimestamp"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT TIMESTAMP_TRUNC(block_timestamp, HOUR) AS hour, COUNT(*) AS transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nGROUP BY hour\nORDER BY transaction_count DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} hours had the most transactions between {start_date} and {end_date}?",
+    "expected_columns": ["hour", "transaction_count"],
+    "schema_elements": ["transaction_facts.block_timestamp", "transaction_facts.transaction_hash"],
+    "cq_ids": ["CQ01"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "UTC timestamp buckets."}
   },
   {
     "id": "T_LARGE_TX_TO_CLASS",
-    "name": "Large transactions to concept class",
+    "name": "Large transactions to a labeled concept class",
     "category": "class_level",
     "difficulty": "medium",
-    "slots": {
-      "concept_class": {
-        "type": "concept_class"
-      },
-      "value_wei": {
-        "type": "decimal_wei",
-        "default_range": [
-          "1000000000000000000",
-          "1000000000000000000000"
-        ]
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx ?recipient ?value WHERE {{\n  ?tx a :Transaction ; :hasTo ?recipient ; :hasValue ?value .\n  ?recipient a :{concept_class} .\n  FILTER(?value >= {value_wei})\n}} ORDER BY DESC(?value) LIMIT {n}",
-    "nl_seed": "Which {n} large transactions went to :{concept_class}?",
-    "expected_columns": [
-      "tx",
-      "recipient",
-      "value"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasTo",
-      ":hasValue"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"concept_class": {"type": "concept_class"}, "value_wei": {"type": "decimal_wei"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, to_address, to_owner, to_concept_class, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE to_concept_class = '{concept_class}' AND value_wei >= NUMERIC '{value_wei}'\nORDER BY value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} transactions of at least {value_wei} wei to {concept_class} between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "to_address", "to_owner", "to_concept_class", "value_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.to_address", "transaction_facts.value_wei", "entity_labels_v1.owner", "entity_labels_v1.concept_class"],
+    "cq_ids": ["CQ21", "CQ25"],
+    "example_fill": {"concept_class": "DEXProtocol", "value_wei": "1000000000000000000", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": false, "scope_note": "Operational DEX coverage is small and may yield zero rows."}
   },
   {
     "id": "T_EXCHANGE_TO_DEX_FLOW",
-    "name": "Exchange to DEX native flow",
+    "name": "Exchange treasury to DEX operational flow",
     "category": "multi_hop",
     "difficulty": "hard",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx ?exchange ?dex ?value WHERE {{\n  ?tx a :Transaction ; :hasFrom ?exchange ; :hasTo ?dex ; :hasValue ?value .\n  ?exchange a :ExchangeAccount .\n  ?dex a :DEXProtocol .\n}} ORDER BY DESC(?value) LIMIT {n}",
-    "nl_seed": "Show {n} exchange to DEX transactions by value.",
-    "expected_columns": [
-      "tx",
-      "exchange",
-      "dex",
-      "value"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasFrom",
-      ":hasTo",
-      ":hasValue",
-      ":ExchangeAccount",
-      ":DEXProtocol"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, from_owner, to_address, to_owner, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE from_address_role = 'treasury'\n  AND from_category = 'exchange'\n  AND to_address_role = 'operational'\n  AND to_concept_class = 'DEXProtocol'\nORDER BY value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} exchange-treasury to DEX-operational transactions between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "from_owner", "to_address", "to_owner", "value_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei", "entity_labels_v1.owner", "entity_labels_v1.category", "entity_labels_v1.concept_class", "entity_labels_v1.address_role"],
+    "cq_ids": ["CQ13"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": false, "scope_note": "Distinct treasury and operational roles are mandatory."}
   },
   {
     "id": "T_MIXER_TO_DEX_LARGE_FLOW",
-    "name": "Large mixer to DEX flows",
+    "name": "Large mixer to DEX flow",
     "category": "multi_hop",
     "difficulty": "hard",
-    "slots": {
-      "value_wei": {
-        "type": "decimal_wei",
-        "default_range": [
-          "1000000000000000000",
-          "1000000000000000000000"
-        ]
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx ?mixer ?dex ?value WHERE {{\n  ?tx a :Transaction ; :hasFrom ?mixer ; :hasTo ?dex ; :hasValue ?value .\n  ?mixer a :MixerAccount .\n  ?dex a :DEXProtocol .\n  FILTER(?value >= {value_wei})\n}} LIMIT {n}",
-    "nl_seed": "Find {n} large mixer to DEX flows above {value_wei} wei.",
-    "expected_columns": [
-      "tx",
-      "mixer",
-      "dex",
-      "value"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasFrom",
-      ":hasTo",
-      ":hasValue",
-      ":MixerAccount",
-      ":DEXProtocol"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"value_wei": {"type": "decimal_wei"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, from_owner, to_address, to_owner, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE from_address_role = 'operational'\n  AND from_concept_class = 'MixerAccount'\n  AND to_address_role = 'operational'\n  AND to_concept_class = 'DEXProtocol'\n  AND value_wei >= NUMERIC '{value_wei}'\nORDER BY value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} mixer-to-DEX flows above {value_wei} wei between {start_date} and {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "from_owner", "to_address", "to_owner", "value_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei", "entity_labels_v1.owner", "entity_labels_v1.concept_class", "entity_labels_v1.address_role"],
+    "cq_ids": ["CQ21"],
+    "example_fill": {"value_wei": "1000000000000000000", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": false, "scope_note": "Known coverage gap: no accepted operational mixer endpoint."}
   },
   {
     "id": "T_TOKEN_AFTER_NATIVE_FUNDING",
     "name": "Token transfer after native funding",
     "category": "multi_hop",
     "difficulty": "hard",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?funding ?transfer ?account ?exchange WHERE {{\n  ?funding a :Transaction ; :hasTo ?account ; :hasTimestamp ?fundingTime .\n  ?transfer a :TokenTransfer ; :tokenTransferFrom ?account ; :tokenTransferTo ?exchange ; :hasTimestamp ?transferTime .\n  ?exchange a :ExchangeAccount .\n  FILTER(?transferTime >= ?fundingTime)\n}} LIMIT {n}",
-    "nl_seed": "Which accounts sent tokens to exchanges after receiving native funding?",
-    "expected_columns": [
-      "funding",
-      "transfer",
-      "account",
-      "exchange"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":TokenTransfer",
-      ":hasTo",
-      ":hasTimestamp",
-      ":tokenTransferFrom",
-      ":tokenTransferTo",
-      ":ExchangeAccount"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"duration_minutes": {"type": "duration_minutes", "min": 1, "max": 1440}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "WITH funding AS (\n  SELECT transaction_hash, block_timestamp, from_address, to_address\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\n  WHERE to_address IS NOT NULL AND from_address_role = 'treasury'\n), transfers AS (\n  SELECT transaction_hash, log_index, block_timestamp, from_address, to_address, token_symbol, normalized_amount\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '{start_date}', DATE '{end_date}')\n)\nSELECT funding.transaction_hash AS funding_hash, transfers.transaction_hash AS transfer_hash, transfers.log_index, funding.to_address AS funded_address, transfers.token_symbol, transfers.normalized_amount\nFROM funding\nJOIN transfers ON transfers.from_address = funding.to_address\n  AND transfers.block_timestamp >= funding.block_timestamp\n  AND transfers.block_timestamp < TIMESTAMP_ADD(funding.block_timestamp, INTERVAL {duration_minutes} MINUTE)\nORDER BY transfers.block_timestamp\nLIMIT {n}",
+    "nl_seed": "Find {n} token transfers within {duration_minutes} minutes after exchange funding from {start_date} to {end_date}.",
+    "expected_columns": ["funding_hash", "transfer_hash", "log_index", "funded_address", "token_symbol", "normalized_amount"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "token_transfer_facts.transaction_hash", "token_transfer_facts.log_index", "token_transfer_facts.block_timestamp", "token_transfer_facts.from_address", "token_transfer_facts.token_symbol", "token_transfer_facts.normalized_amount", "entity_labels_v1.address_role"],
+    "cq_ids": ["CQ29"],
+    "example_fill": {"duration_minutes": 60, "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": false, "scope_note": "Bounded temporal join may be empty for a one-day sample."}
   },
   {
     "id": "T_CROSS_EXCHANGE_FLOW",
-    "name": "Cross-exchange transaction flow",
+    "name": "Native flow between exchange treasuries",
     "category": "comparison",
     "difficulty": "hard",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?tx ?fromOwner ?toOwner ?value WHERE {{\n  ?tx a :Transaction ; :hasFrom ?from ; :hasTo ?to ; :hasValue ?value .\n  ?from a :ExchangeAccount ; :hasOwner ?fromOwner .\n  ?to a :ExchangeAccount ; :hasOwner ?toOwner .\n  FILTER(?fromOwner != ?toOwner)\n}} ORDER BY DESC(?value) LIMIT {n}",
-    "nl_seed": "Show {n} largest flows between different exchange owners.",
-    "expected_columns": [
-      "tx",
-      "fromOwner",
-      "toOwner",
-      "value"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasFrom",
-      ":hasTo",
-      ":hasValue",
-      ":ExchangeAccount",
-      ":hasOwner"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_owner, to_owner, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE from_address_role = 'treasury'\n  AND to_address_role = 'treasury'\n  AND from_owner != to_owner\nORDER BY value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} native transactions between different exchange owners from {start_date} to {end_date}.",
+    "expected_columns": ["transaction_hash", "block_timestamp", "from_owner", "to_owner", "value_wei"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.value_wei", "entity_labels_v1.owner", "entity_labels_v1.address_role"],
+    "cq_ids": ["CQ13", "CQ22"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": false, "scope_note": "Only known treasury addresses; one-day direct flow may be empty."}
   },
   {
     "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE",
     "name": "Bridge outflow after exchange deposit",
     "category": "multi_hop",
     "difficulty": "hard",
-    "slots": {
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?deposit ?transfer ?bridge WHERE {{\n  ?deposit a :Transaction ; :hasFrom ?exchange ; :hasTo ?bridge .\n  ?exchange a :ExchangeAccount .\n  ?bridge a :BridgeProtocol .\n  ?transfer a :TokenTransfer ; :tokenTransferFrom ?bridge .\n}} LIMIT {n}",
-    "nl_seed": "Find bridge token outflows after exchange deposits.",
-    "expected_columns": [
-      "deposit",
-      "transfer",
-      "bridge"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":TokenTransfer",
-      ":hasFrom",
-      ":hasTo",
-      ":ExchangeAccount",
-      ":BridgeProtocol",
-      ":tokenTransferFrom"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"duration_minutes": {"type": "duration_minutes", "min": 1, "max": 1440}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "WITH deposits AS (\n  SELECT transaction_hash, block_timestamp, from_owner, to_address\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\n  WHERE from_address_role = 'treasury'\n    AND to_address_role = 'operational'\n    AND to_concept_class = 'BridgeProtocol'\n), outflows AS (\n  SELECT transaction_hash, log_index, block_timestamp, from_address, to_address, token_symbol, normalized_amount\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '{start_date}', DATE '{end_date}')\n)\nSELECT deposits.transaction_hash AS deposit_hash, outflows.transaction_hash AS transfer_hash, outflows.log_index, deposits.from_owner AS exchange_owner, deposits.to_address AS bridge_address, outflows.token_symbol, outflows.normalized_amount\nFROM deposits\nJOIN outflows ON outflows.from_address = deposits.to_address\n  AND outflows.block_timestamp >= deposits.block_timestamp\n  AND outflows.block_timestamp < TIMESTAMP_ADD(deposits.block_timestamp, INTERVAL {duration_minutes} MINUTE)\nORDER BY outflows.block_timestamp\nLIMIT {n}",
+    "nl_seed": "Find {n} bridge outflows within {duration_minutes} minutes after exchange deposits from {start_date} to {end_date}.",
+    "expected_columns": ["deposit_hash", "transfer_hash", "log_index", "exchange_owner", "bridge_address", "token_symbol", "normalized_amount"],
+    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.to_address", "token_transfer_facts.transaction_hash", "token_transfer_facts.log_index", "token_transfer_facts.block_timestamp", "token_transfer_facts.from_address", "token_transfer_facts.token_symbol", "token_transfer_facts.normalized_amount", "entity_labels_v1.owner", "entity_labels_v1.concept_class", "entity_labels_v1.address_role"],
+    "cq_ids": ["CQ26"],
+    "example_fill": {"duration_minutes": 60, "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": false, "scope_note": "Bounded bridge pattern depends on limited operational coverage."}
   },
   {
     "id": "T_REPEATED_PAIR_FLOW",
-    "name": "Repeated pair transaction pattern",
+    "name": "Repeated transaction pairs",
     "category": "temporal_pattern",
     "difficulty": "hard",
-    "slots": {
-      "start_date": {
-        "type": "date",
-        "default_range": [
-          "2024-01-01",
-          "2024-12-31"
-        ]
-      },
-      "end_date": {
-        "type": "date",
-        "default_range": [
-          "2024-01-01",
-          "2024-12-31"
-        ],
-        "constraint": "after start_date"
-      },
-      "n": {
-        "type": "integer",
-        "default_range": [
-          5,
-          100
-        ]
-      }
-    },
-    "sparql_template": "PREFIX : <https://thesis.example.org/eth-kg/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nSELECT ?from ?to (COUNT(?tx) AS ?count) WHERE {{\n  ?tx a :Transaction ; :hasFrom ?from ; :hasTo ?to ; :hasTimestamp ?timestamp .\n  FILTER(?timestamp >= \"{start_date}T00:00:00Z\"^^xsd:dateTime)\n  FILTER(?timestamp < \"{end_date}T00:00:00Z\"^^xsd:dateTime)\n}} GROUP BY ?from ?to HAVING(COUNT(?tx) > 1) ORDER BY DESC(?count) LIMIT {n}",
-    "nl_seed": "Which account pairs transacted repeatedly between {start_date} and {end_date}?",
-    "expected_columns": [
-      "from",
-      "to",
-      "count"
-    ],
-    "ontology_elements": [
-      ":Transaction",
-      ":hasFrom",
-      ":hasTo",
-      ":hasTimestamp"
-    ],
-    "example_fill": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-02-01",
-      "n": 10,
-      "value_wei": "1000000000000000000",
-      "gas_used": 500000,
-      "account": "<https://thesis.example.org/eth-kg/addr/0x1111111111111111111111111111111111111111>",
-      "account_b": "<https://thesis.example.org/eth-kg/addr/0x2222222222222222222222222222222222222222>",
-      "tx": "<https://thesis.example.org/eth-kg/tx/0xtx1>",
-      "block_number": 19000000,
-      "token_symbol": "USDC",
-      "owner": "Binance",
-      "category": "exchange",
-      "concept_class": "ExchangeAccount",
-      "window_minutes": 30
-    }
+    "slots": {"start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "SELECT from_address, to_address, COUNT(*) AS transaction_count, SUM(value_wei) AS total_value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE to_address IS NOT NULL\nGROUP BY from_address, to_address\nHAVING transaction_count > 1\nORDER BY transaction_count DESC, total_value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} address pairs repeated transactions most often between {start_date} and {end_date}?",
+    "expected_columns": ["from_address", "to_address", "transaction_count", "total_value_wei"],
+    "schema_elements": ["transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.transaction_hash", "transaction_facts.value_wei"],
+    "cq_ids": ["CQ23", "CQ28"],
+    "example_fill": {"start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Direct repeated pairs; no unsupported actor identity inferred."}
   }
 ]
