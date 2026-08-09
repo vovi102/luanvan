@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 import re
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
+
+from google.cloud import bigquery
+
+from nl2sparql.sql.label_layer import (
+    DEFAULT_LOCATION,
+    DEFAULT_MAXIMUM_BYTES_BILLED,
+)
 
 TOTAL_BENCHMARK_BYTES_CAP = 107_374_182_400
 START_DATE_LITERAL = "DATE '2026-05-31'"
@@ -23,6 +33,44 @@ class BenchmarkCase:
     difficulty: str
     sql: str
     requires_window: bool
+
+
+@dataclass(frozen=True)
+class BenchmarkDryRun:
+    case_id: str
+    estimated_bytes: int
+
+
+@dataclass(frozen=True)
+class BenchmarkPreflight:
+    cases: tuple[BenchmarkDryRun, ...]
+    total_estimated_bytes: int
+
+
+@dataclass(frozen=True)
+class BenchmarkResult:
+    case_id: str
+    passed: bool
+    diagnostics: dict[str, Any]
+    estimated_bytes: int
+    processed_bytes: int
+    billed_bytes: int
+    wall_latency_ms: float
+    server_latency_ms: float | None
+    slot_millis: int
+    cache_hit: bool
+
+
+@dataclass(frozen=True)
+class BenchmarkReport:
+    preflight: BenchmarkPreflight
+    results: tuple[BenchmarkResult, ...]
+
+    @property
+    def all_passed(self) -> bool:
+        return len(self.results) == len(self.preflight.cases) and all(
+            result.passed for result in self.results
+        )
 
 
 BENCHMARK_CASES = (
@@ -185,3 +233,140 @@ def validate_benchmark_cases(
 
 
 validate_benchmark_cases()
+
+
+def _query_config(*, dry_run: bool) -> bigquery.QueryJobConfig:
+    return bigquery.QueryJobConfig(
+        dry_run=dry_run,
+        use_query_cache=False,
+        use_legacy_sql=False,
+        maximum_bytes_billed=DEFAULT_MAXIMUM_BYTES_BILLED,
+    )
+
+
+def _dry_run_case(client: Any, case: BenchmarkCase, *, location: str) -> int:
+    job = client.query(
+        case.sql,
+        job_config=_query_config(dry_run=True),
+        location=location,
+    )
+    return int(getattr(job, "total_bytes_processed", 0) or 0)
+
+
+def dry_run_benchmark(
+    client: Any,
+    *,
+    cases: tuple[BenchmarkCase, ...] = BENCHMARK_CASES,
+    location: str = DEFAULT_LOCATION,
+    per_case_bytes_cap: int = DEFAULT_MAXIMUM_BYTES_BILLED,
+    total_bytes_cap: int = TOTAL_BENCHMARK_BYTES_CAP,
+) -> BenchmarkPreflight:
+    """Dry-run the complete workload and enforce per-case and aggregate caps."""
+    validate_benchmark_cases(cases)
+    results: list[BenchmarkDryRun] = []
+    for case in cases:
+        estimated_bytes = _dry_run_case(client, case, location=location)
+        if estimated_bytes > per_case_bytes_cap:
+            raise BenchmarkError(
+                f"{case.case_id} exceeds the 50 GiB per-case cap: {estimated_bytes} bytes"
+            )
+        results.append(BenchmarkDryRun(case_id=case.case_id, estimated_bytes=estimated_bytes))
+    total_estimated_bytes = sum(result.estimated_bytes for result in results)
+    if total_estimated_bytes > total_bytes_cap:
+        raise BenchmarkError(
+            f"Benchmark aggregate estimate exceeds the 100 GiB cap: {total_estimated_bytes} bytes"
+        )
+    return BenchmarkPreflight(
+        cases=tuple(results),
+        total_estimated_bytes=total_estimated_bytes,
+    )
+
+
+def _row_mapping(row: Any) -> dict[str, Any]:
+    if hasattr(row, "items"):
+        return dict(row.items())
+    if hasattr(row, "__dict__"):
+        return dict(vars(row))
+    raise BenchmarkError(f"Benchmark result row is not mappable: {type(row).__name__}")
+
+
+def _server_latency_ms(job: Any) -> float | None:
+    started = getattr(job, "started", None)
+    ended = getattr(job, "ended", None)
+    if started is None or ended is None:
+        return None
+    return (ended - started).total_seconds() * 1000
+
+
+def _execute_case(
+    client: Any,
+    case: BenchmarkCase,
+    *,
+    estimated_bytes: int,
+    location: str,
+    clock_ns: Callable[[], int],
+) -> BenchmarkResult:
+    start_ns = clock_ns()
+    job = client.query(
+        case.sql,
+        job_config=_query_config(dry_run=False),
+        location=location,
+    )
+    rows = list(job.result())
+    end_ns = clock_ns()
+    if len(rows) != 1:
+        raise BenchmarkError(f"{case.case_id} must return exactly one row; received {len(rows)}")
+    values = _row_mapping(rows[0])
+    passed = values.pop("passed", None)
+    if not isinstance(passed, bool):
+        raise BenchmarkError(f"{case.case_id} must return a boolean passed field")
+    if not passed:
+        raise BenchmarkError(f"Benchmark assertion failed for {case.case_id}: diagnostics={values}")
+    return BenchmarkResult(
+        case_id=case.case_id,
+        passed=passed,
+        diagnostics=values,
+        estimated_bytes=estimated_bytes,
+        processed_bytes=int(getattr(job, "total_bytes_processed", 0) or 0),
+        billed_bytes=int(getattr(job, "total_bytes_billed", 0) or 0),
+        wall_latency_ms=(end_ns - start_ns) / 1_000_000,
+        server_latency_ms=_server_latency_ms(job),
+        slot_millis=int(getattr(job, "slot_millis", 0) or 0),
+        cache_hit=bool(getattr(job, "cache_hit", False)),
+    )
+
+
+def execute_benchmark(
+    client: Any,
+    *,
+    cases: tuple[BenchmarkCase, ...] = BENCHMARK_CASES,
+    location: str = DEFAULT_LOCATION,
+    per_case_bytes_cap: int = DEFAULT_MAXIMUM_BYTES_BILLED,
+    total_bytes_cap: int = TOTAL_BENCHMARK_BYTES_CAP,
+    clock_ns: Callable[[], int] = time.perf_counter_ns,
+) -> BenchmarkReport:
+    """Preflight all cases, then execute each after an immediate fresh dry run."""
+    preflight = dry_run_benchmark(
+        client,
+        cases=cases,
+        location=location,
+        per_case_bytes_cap=per_case_bytes_cap,
+        total_bytes_cap=total_bytes_cap,
+    )
+    results: list[BenchmarkResult] = []
+    for case in cases:
+        estimated_bytes = _dry_run_case(client, case, location=location)
+        if estimated_bytes > per_case_bytes_cap:
+            raise BenchmarkError(
+                f"{case.case_id} exceeds the 50 GiB per-case cap: {estimated_bytes} bytes"
+            )
+        results.append(
+            _execute_case(
+                client,
+                case,
+                estimated_bytes=estimated_bytes,
+                location=location,
+                clock_ns=clock_ns,
+            )
+        )
+    return BenchmarkReport(preflight=preflight, results=tuple(results))
