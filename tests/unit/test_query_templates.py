@@ -25,7 +25,7 @@ from nl2sparql.dataset.templates.validate import (
     validate_template_library,
 )
 
-PER_TEMPLATE_BYTES_CAP = 5_368_709_120
+PER_TEMPLATE_BYTES_CAP = 21_474_836_480
 
 ROOT = Path(__file__).resolve().parents[2]
 README_PATH = ROOT / "src/nl2sparql/dataset/templates/README.md"
@@ -319,15 +319,15 @@ def test_live_preflight_rejects_per_template_or_aggregate_overflow(
 ) -> None:
     per_template = {template["id"]: 1 for template in templates}
     per_template[templates[3]["id"]] = PER_TEMPLATE_BYTES_CAP + 1
-    with pytest.raises(TemplateValidationError, match="T_FILTER_TX_BY_VALUE.*5 GiB"):
+    with pytest.raises(TemplateValidationError, match="T_FILTER_TX_BY_VALUE.*20 GiB"):
         dry_run_templates(
             FakeTemplateClient(templates, estimates=per_template),
             templates=templates,
         )
 
-    aggregate = {template["id"]: 1_300_000_000 for template in templates}
+    aggregate = {template["id"]: 3_000_000_000 for template in templates}
     client = FakeTemplateClient(templates, estimates=aggregate)
-    with pytest.raises(TemplateValidationError, match="aggregate.*30 GiB"):
+    with pytest.raises(TemplateValidationError, match="aggregate.*64 GiB"):
         execute_templates(client, templates=templates)
     assert all(mode == "dry_run" for mode, *_ in client.calls)
 

@@ -24,6 +24,31 @@
 
 ## Entries
 
+### 2026-08-09 — T3.1 dùng contract-v2 GoogleSQL và live cap 20/64 GiB
+
+- **Context:** Phase 3 vẫn có 25 SPARQL/Fuseki templates từ trước Pivot #1.
+  Proposal live gate 5 GiB/query và 30 GiB/library fail closed ở query token đầu
+  tiên vì enriched token TVF quét thêm contract dimension lịch sử.
+- **Options considered:** Giữ dual SQL/SPARQL contract; bỏ live execution; nâng
+  tùy ý riêng query lỗi; materialize token dimension; hoặc đo đủ distribution
+  rồi chốt một gate chung có headroom.
+- **Decision:** Migrate atomically sang 25 GoogleSQL contract-v2 templates, giữ
+  stable IDs và 8/11/6 distribution. Chốt live cap 20 GiB/template và 64
+  GiB/library sau diagnostic dry-run đủ 25 cases; execution luôn full-preflight,
+  immediate re-dry-run, cache off, schema và non-empty policy fail closed.
+- **Rationale:** 21 queries chỉ 0–0,33 GiB; bốn token queries 12,80–13,38 GiB do
+  shared dimension, tổng 56,53 GiB. Gate 20/64 bao workload thật với headroom
+  nhưng vẫn thấp hơn general cap 50 GiB/query và không che cost.
+- **Consequences:** Dry-run và execute đều pass 25/25; 60.698.067.264 processed,
+  60.749.250.560 billed, 0 cache hits, max wall 18,41s. 16 cases non-empty; 9
+  empty cases đều explicit policy/gap. T3.2 phải dùng `sql_template`, typed slots,
+  schema/CQ metadata và bounded date windows.
+- **Revisit:** Sau Phase 5 evaluation; nếu typical token templates tiến sát 20
+  GiB hoặc latency 30s, cân nhắc materialized token/contract enrichment.
+- **Linked:** `docs/tasks/phase-3-dataset/01-query-templates.md`,
+  `src/nl2sparql/dataset/templates/validate.py`,
+  `scripts/08_validate_sql_templates.py`.
+
 ### 2026-08-09 — Phase 3 dùng bounded full-fact SQL với explicit latency evidence
 
 - **Context:** T2-SQL-3 cần gate Plan B bằng live results. Run đầu phát hiện

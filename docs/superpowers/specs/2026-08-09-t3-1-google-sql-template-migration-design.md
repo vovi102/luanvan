@@ -73,8 +73,12 @@ SQL safety, placeholders, slot types/values, date spans, schema references and
 CQ references offline. Rendering uses type-aware literal rules rather than
 blindly trusting arbitrary strings.
 
-Live mode first dry-runs all 25 examples. Each case has a 5 GiB cap and the
-whole library a 30 GiB cap, materially below the general 50 GiB/query contract.
+Live mode first dry-runs all 25 examples. The initial 5/30 GiB proposal failed
+closed because token TVFs also scan the historical contract dimension. A full
+diagnostic dry run measured 21 queries below 0.33 GiB and four token queries at
+12.80–13.38 GiB, 56.53 GiB total. The accepted evidence-based gate is therefore
+20 GiB per template and 64 GiB for the library, while the per-query cap remains
+well below the general 50 GiB contract.
 Execution is a separate explicit flag, starts only after complete preflight,
 disables cache, verifies returned column names and enforces per-template
 non-empty policy. It records bytes and latency but does not rerun to improve
@@ -87,4 +91,3 @@ distribution, safe bounded SQL, correct schema/CQ references, typed rendering,
 live fake-client budgets/order/result handling, README and notebook migration.
 Then live dry-run/execute evidence, full pytest, Ruff, format and whitespace
 checks close the task.
-

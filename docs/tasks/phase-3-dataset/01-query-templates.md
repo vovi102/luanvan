@@ -65,27 +65,51 @@ slots. Address/string slots nằm trong quoted literals; integer/decimal slots
 - Offline: schema, ID/distribution, placeholders/slots, slot values, read-only
   SQL, fully qualified managed objects, date bounds, projections,
   schema-elements/CQ references.
-- Live `--live`: dry-run cả 25 rendered examples, mỗi query ≤5 GiB và tổng ≤30
-  GiB.
+- Live `--live`: dry-run cả 25 rendered examples, mỗi query ≤20 GiB và tổng ≤64
+  GiB. Ngưỡng này được chốt từ live distribution: 21 query dưới 0,33 GiB và 4
+  token queries từ 12,80–13,38 GiB do quét contract dimension lịch sử.
 - Live `--execute`: chỉ sau full preflight, chạy mỗi example một lần với cache
   disabled; query phải thành công và result schema khớp. Non-empty chỉ bắt buộc
   khi `validation.expect_non_empty=true`.
 
 ## Acceptance criteria
 
-- [ ] Design/plan migration commit trước code.
-- [ ] Đúng 25 SQL templates; không còn SPARQL/Fuseki field/runtime dependency.
-- [ ] Distribution giữ 8 easy / 11 medium / 6 hard và 10 categories.
-- [ ] 100% schema/CQ/placeholder/date/read-only validation pass offline.
-- [ ] 25/25 examples dry-run thành công, per/total cost caps pass.
-- [ ] 25/25 examples execute thành công; non-empty policy pass.
-- [ ] README/notebook/script đều mô tả GoogleSQL workflow.
-- [ ] Focused/full pytest, Ruff, format và `git diff --check` pass.
-- [ ] Task/decision evidence cập nhật, worktree clean.
+- [x] Design/plan migration commit trước code.
+- [x] Đúng 25 SQL templates; không còn SPARQL/Fuseki field/runtime dependency.
+- [x] Distribution giữ 8 easy / 11 medium / 6 hard và 10 categories.
+- [x] 100% schema/CQ/placeholder/date/read-only validation pass offline.
+- [x] 25/25 examples dry-run thành công, per/total cost caps pass.
+- [x] 25/25 examples execute thành công; non-empty policy pass.
+- [x] README/notebook/script đều mô tả GoogleSQL workflow.
+- [ ] Full pytest pass. Hiện 313 pass; 3 legacy T3.2 generator tests còn đọc
+  `sparql_template` và đang được migrate ngay ở task kế tiếp.
+- [x] Focused pytest, Ruff, format và `git diff --check` pass.
+- [x] Task/decision evidence cập nhật.
 
 ## Trạng thái
 
-`in progress — Plan B migration design approved`
+`live contract accepted — closure pending the coupled T3.2 consumer migration`
+
+## Live evidence — 2026-08-09
+
+- Offline summary: 25 templates, 10 categories, difficulty 8/11/6, 32 unique
+  schema elements và 22 CQs; CQ24 không được claim.
+- Initial 5/30 GiB proposal fail closed tại `T_TOKEN_VOLUME_BY_SYMBOL` với
+  13.742.346.130 bytes. Diagnostic dry-run đủ 25 cases ghi nhận tổng
+  60.698.067.264 bytes; vì vậy self-approved 20/64 GiB contract được áp dụng và
+  test trước khi chạy lại.
+- Production dry-run: 25/25 pass, tổng estimate 60.698.067.264 bytes. Max case
+  `T_BRIDGE_OUTFLOW_AFTER_EXCHANGE` 14.368.344.220 bytes, dưới cap 20 GiB.
+- Execution: 25/25 schema/policy pass, cache hit 0/25; processed
+  60.698.067.264 bytes, billed 60.749.250.560 bytes. Tổng wall latency
+  104.211,08 ms; max wall 18.414,55 ms (`T_TOKEN_AFTER_NATIVE_FUNDING`).
+- 16 templates trả non-empty. Chín zero-row cases đều được khai báo
+  `expect_non_empty=false`: block/hash sentinel, pair-specific lookup,
+  beneficiary placeholder và các known coverage-gap flow/class patterns.
+- Binance fixture ban đầu không có outgoing rows trong ngày mẫu. Live activity
+  probe thay bằng Gate.io treasury
+  `0x0d0707963952f2fba59dd06f2b425ace40b492fe` (4.361 outgoing, 280 incoming),
+  sau đó hai required account templates đều trả 10 rows.
 
 ## Historical scaffold
 

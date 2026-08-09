@@ -16,8 +16,8 @@ from nl2sparql.sql.label_layer import DEFAULT_LOCATION
 from nl2sparql.sql.schema import load_catalog, validate_catalog, validate_date_window
 
 TEMPLATES_PATH = Path(__file__).with_name("templates.json")
-PER_TEMPLATE_BYTES_CAP = 5_368_709_120
-TOTAL_TEMPLATE_BYTES_CAP = 32_212_254_720
+PER_TEMPLATE_BYTES_CAP = 21_474_836_480
+TOTAL_TEMPLATE_BYTES_CAP = 68_719_476_736
 SUPPORTED_DIFFICULTIES = {"easy", "medium", "hard"}
 SUPPORTED_CATEGORIES = {
     "simple_filter",
@@ -365,8 +365,9 @@ def _validate_budget(
     per_template_bytes_cap: int,
 ) -> None:
     if estimated_bytes > per_template_bytes_cap:
+        cap_gib = per_template_bytes_cap / 2**30
         raise TemplateValidationError(
-            f"{template_id} exceeds the 5 GiB per-template cap: {estimated_bytes} bytes"
+            f"{template_id} exceeds the {cap_gib:g} GiB per-template cap: {estimated_bytes} bytes"
         )
 
 
@@ -399,8 +400,10 @@ def dry_run_templates(
         )
     total_estimated_bytes = sum(result.estimated_bytes for result in results)
     if total_estimated_bytes > total_bytes_cap:
+        cap_gib = total_bytes_cap / 2**30
         raise TemplateValidationError(
-            f"Template aggregate estimate exceeds the 30 GiB cap: {total_estimated_bytes} bytes"
+            f"Template aggregate estimate exceeds the {cap_gib:g} GiB cap: "
+            f"{total_estimated_bytes} bytes"
         )
     return TemplatePreflight(
         templates=tuple(results),

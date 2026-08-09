@@ -59,7 +59,8 @@ uv run python scripts/08_validate_sql_templates.py
 ```
 
 BigQuery dry-run validation compiles all rendered templates, disables cache
-assumptions, and enforces byte budgets without executing them:
+assumptions, and enforces the accepted 20 GiB/template and 64 GiB/library byte
+budgets without executing them:
 
 ```bash
 uv run python scripts/08_validate_sql_templates.py --live

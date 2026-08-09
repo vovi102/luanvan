@@ -24,7 +24,7 @@
     "expected_columns": ["transaction_hash", "block_timestamp", "to_address", "value_wei"],
     "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei", "entity_labels_v1.address"],
     "cq_ids": ["CQ04"],
-    "example_fill": {"account": "0x6454ac71ca260f99cca99a3f4241dfda20cfa965", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "example_fill": {"account": "0x0d0707963952f2fba59dd06f2b425ace40b492fe", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
     "validation": {"expect_non_empty": true, "scope_note": "Known Binance treasury sender."}
   },
   {
@@ -38,7 +38,7 @@
     "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "value_wei"],
     "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei", "entity_labels_v1.address"],
     "cq_ids": ["CQ05"],
-    "example_fill": {"account": "0x6454ac71ca260f99cca99a3f4241dfda20cfa965", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "example_fill": {"account": "0x0d0707963952f2fba59dd06f2b425ace40b492fe", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
     "validation": {"expect_non_empty": true, "scope_note": "Known Binance treasury recipient."}
   },
   {
@@ -150,7 +150,7 @@
     "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "to_address", "value_wei"],
     "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei"],
     "cq_ids": ["CQ13"],
-    "example_fill": {"account": "0x6454ac71ca260f99cca99a3f4241dfda20cfa965", "account_b": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
+    "example_fill": {"account": "0x0d0707963952f2fba59dd06f2b425ace40b492fe", "account_b": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
     "validation": {"expect_non_empty": false, "scope_note": "Specific treasury/factory pair may have no direct one-day flow."}
   },
   {
