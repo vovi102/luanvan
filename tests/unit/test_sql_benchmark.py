@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import importlib.util
+import json
 import re
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from click.testing import CliRunner
 
 from nl2sparql.sql.benchmark import (
     BENCHMARK_CASES,
@@ -275,3 +279,66 @@ def test_execution_fails_closed_for_invalid_result_rows(rows, message: str) -> N
 
     with pytest.raises(BenchmarkError, match=message):
         execute_benchmark(client)
+
+
+def load_benchmark_script():
+    script_path = Path("scripts/07_benchmark_sql_layer.py").resolve()
+    spec = importlib.util.spec_from_file_location("benchmark_sql_layer_script", script_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_benchmark_cli_defaults_to_dry_run_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    script = load_benchmark_script()
+    client = FakeBenchmarkClient()
+    monkeypatch.setattr(script.bigquery, "Client", lambda **_: client)
+
+    result = CliRunner().invoke(script.main, ["--project", "nl2sparql-thesis"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["mode"] == "dry-run"
+    assert payload["total_estimated_bytes"] == 21_000_000
+    assert len(payload["cases"]) == 6
+    assert all(mode == "dry_run" for mode, _ in client.calls)
+
+
+def test_benchmark_cli_executes_only_with_explicit_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    script = load_benchmark_script()
+    client = FakeBenchmarkClient()
+    monkeypatch.setattr(script.bigquery, "Client", lambda **_: client)
+
+    result = CliRunner().invoke(
+        script.main,
+        ["--project", "nl2sparql-thesis", "--execute"],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["mode"] == "execute"
+    assert payload["all_passed"] is True
+    assert len(payload["results"]) == 6
+    assert sum(mode == "execute" for mode, _ in client.calls) == 6
+
+
+def test_benchmark_cli_exits_nonzero_on_budget_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    script = load_benchmark_script()
+    estimates = {case.case_id: 1 for case in BENCHMARK_CASES}
+    estimates["contract_dimension_contract"] = DEFAULT_MAXIMUM_BYTES_BILLED + 1
+    client = FakeBenchmarkClient(estimates=estimates)
+    monkeypatch.setattr(script.bigquery, "Client", lambda **_: client)
+
+    result = CliRunner().invoke(script.main, ["--project", "nl2sparql-thesis"])
+
+    assert result.exit_code != 0
+    assert "contract_dimension_contract" in result.output
+    assert "50 GiB" in result.output
