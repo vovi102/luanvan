@@ -1,178 +1,109 @@
-# T3.2 — Synthetic Generation Pipeline (Bước A)
+# T3.2 — Witness-Grounded GoogleSQL Generation (Stage A)
 
 ## Mục tiêu
 
-Sinh ~1000 cặp `(SPARQL, NL_seed)` từ templates + entity sampling từ KG. Mỗi cặp đảm bảo SPARQL chạy thực và trả kết quả non-empty trên Fuseki.
+Sinh đúng 1.000 cặp `(GoogleSQL, nl_seed)` deterministic từ T3.1 contract v2,
+sau đó dùng bounded BigQuery witnesses để chứng minh 100% records non-empty mà
+không lặp lại cùng một scan cho mọi biến thể `LIMIT`.
 
-## Bối cảnh & lý do
+## Bối cảnh
 
-Đây là bước A trong pipeline sinh dataset 4-bước (A→B→C→D). Output của bước này là input cho paraphrasing (T3.3).
+Scaffold tháng 7 dùng `sparql_template`, Fuseki, RDF IRI và window 2024 nên đã
+superseded sau Pivot #1. T3.1 hiện có 25 typed GoogleSQL templates, nhưng chín
+example thuộc sentinel/coverage gap có thể trả rỗng và không được đưa vào
+training Stage A.
 
-Chất lượng "execute và non-empty" rất quan trọng: nếu sinh template + entity ngẫu nhiên ra trả 0 kết quả, training data sẽ teach model sinh query "rỗng" — phải reject và regenerate.
+Live probe toàn tháng xác nhận chỉ hai hard templates có dữ liệu:
+`T_TOKEN_AFTER_NATIVE_FUNDING` và `T_REPEATED_PAIR_FLOW`. Với cap 10% mỗi
+template, hard share tối đa trung thực là 20%; target cũ khoảng 25% không thể đạt
+nếu vẫn bắt buộc non-empty.
 
 ## Phụ thuộc
 
-- T3.1 — `templates.json` đã có ≥25 templates verified.
-- T2.2 — Entity dictionary (`entities.json`).
-- T2.4 — Full KG đã load vào Fuseki.
-
-## Đầu vào
-
-- `src/nl2sparql/dataset/templates/templates.json`.
-- `src/nl2sparql/linking/dictionary/entities.json`.
-- Fuseki endpoint full KG.
+- T3.1 — 25 GoogleSQL templates, typed renderer và live 20/64 GiB gate.
+- T2.2 — role-aware entity dictionary.
+- T2-SQL-2 — managed views/TVFs trên BigQuery.
+- T2-SQL-3 — bounded-window correctness/cost evidence.
 
 ## Đầu ra
 
-- File `data/dataset/raw/synthetic-stage-a.jsonl` — ~1000-1200 records (sinh dư để loss khi reject).
-- Notebook `notebooks/08_generate_synthetic.ipynb`.
-- Script `src/nl2sparql/dataset/generate.py` — CLI có thể chạy lại reproducible.
-- Report `data/dataset/raw/stats.md` — phân bố templates, difficulty, entities.
+- `data/dataset/raw/synthetic-stage-a.jsonl` — 1.000 verified SQL records.
+- `data/dataset/raw/generation-config.json` — seed, allocations, input/artifact
+  hashes và live witness metrics.
+- `data/dataset/raw/stats.md` — difficulty/template/entity/proof/cost stats.
+- `src/nl2sparql/dataset/generate.py` — network-free candidate generator.
+- `src/nl2sparql/dataset/stage_a/verify.py` — BigQuery witness verifier.
+- `scripts/09_generate_stage_a.py` — offline/live atomic artifact CLI.
+- `notebooks/08_generate_synthetic.ipynb` — unexecuted workflow.
+
+## Record contract
+
+Mỗi record lưu stable ID, template/category/difficulty, typed slot values,
+`entities_used`, canonical `sql`, `nl_seed`, schema/CQ links, template/record
+SHA-256, seed, witness group và verification object. Candidate identity không
+phụ thuộc live latency/timestamp.
+
+Witness group chỉ được bỏ slot `n`. Query có `LIMIT 1` được execute exact; nếu
+có row thì mọi record cùng semantics với `n >= 1` được đánh dấu
+`live_limit_monotonic`. Query không có `n` là singleton `live_exact`. Không
+record nào claim exact result count từ propagated proof.
+
+## Distribution contract
+
+- easy: 350 records trên 6 live templates;
+- medium: 450 records trên 8 live templates;
+- hard: 200 records trên 2 live hard templates;
+- mỗi template tối đa 100 records;
+- mỗi typed entity value tối đa 50 records;
+- 1.000 SQL strings và record hashes phải unique bằng slot variation thật,
+  không dùng comment/tautology để giả diversity.
+
+## Validation và cost safety
+
+- Offline: exact allocation/schema/hash/render checks, typed pool provenance,
+  unique SQL/IDs, template/entity caps và seed 42.
+- Live: dry-run toàn bộ witness set trước mọi execution, tối đa 20 GiB/witness
+  và 96 GiB tổng.
+- Mỗi witness được re-dry-run ngay trước execution; query cache disabled; result
+  columns phải exact; zero row/cache hit/schema drift đều fail closed.
+- `T_COUNT_TX_IN_RANGE` chỉ pass khi `transaction_count > 0`, không chỉ vì
+  aggregate query trả một row.
+- Final JSONL/config/stats chỉ được replace sau khi toàn bộ verification pass.
 
 ## Acceptance criteria
 
-- [ ] ≥1000 records không trùng SPARQL.
-- [ ] 100% records có SPARQL chạy thành công trên Fuseki, kết quả non-empty.
-- [ ] Phân bố template: không template nào chiếm >10% dataset.
-- [ ] Phân bố entity: không entity nào chiếm >5% (tránh model nhớ địa chỉ cụ thể).
-- [ ] Stratified theo difficulty: ~30% Easy, ~45% Medium, ~25% Hard.
-- [ ] Có seed cố định (42), reproducible.
-
-## Local automation scaffold
-
-- [x] `src/nl2sparql/dataset/generate.py` load templates, render deterministic Stage A records, write JSONL, write stats, and expose CLI.
-- [x] Unit tests verify deterministic generation, record schema, unique SPARQL strings, template frequency cap, JSONL writing, and stats writing.
-- [x] `notebooks/08_generate_synthetic.ipynb` is an unexecuted notebook scaffold for local generation.
-- [x] Scaffold records use `verification_mode = "offline_render_only"`.
-- [x] Live Fuseki execution and non-empty filtering remain pending until full KG is loaded.
-
-## Hướng dẫn triển khai
-
-### Schema record output
-
-```json
-{
-  "id": "syn-000123",
-  "template_id": "T_TX_TOP_N_BY_VALUE",
-  "difficulty": "medium",
-  "slot_values": {
-    "n": 10,
-    "start_date": "2024-01-15",
-    "end_date": "2024-01-20"
-  },
-  "entities_used": [
-    {"slot": null, "type": "time_filter", "value": "2024-01-15"}
-  ],
-  "sparql": "SELECT ?tx ?value WHERE { ... } ORDER BY DESC(?value) LIMIT 10",
-  "nl_seed": "Top 10 transactions by value between 2024-01-15 and 2024-01-20",
-  "result_preview": [
-    {"tx": "0xabc...", "value": "1234.5"}
-  ],
-  "result_count": 10,
-  "execution_time_ms": 234,
-  "verified_at": "2026-04-15T10:30:00Z"
-}
-```
-
-### Pipeline logic
-
-```python
-def generate_one(template, entity_pool):
-    # 1. Sample slot values
-    slot_values = {}
-    for slot_name, slot_def in template["slots"].items():
-        slot_values[slot_name] = sample_slot(slot_def, entity_pool)
-
-    # 2. Fill template
-    sparql = fill_sparql(template["sparql_template"], slot_values)
-    nl_seed = fill_nl(template["nl_seed"], slot_values)
-
-    # 3. Execute on Fuseki (with timeout 10s)
-    try:
-        result = run_sparql(sparql, timeout=10)
-    except TimeoutError:
-        return None  # reject
-
-    # 4. Check non-empty
-    if len(result) == 0:
-        return None  # reject
-
-    # 5. Build record
-    return build_record(...)
-
-def main():
-    target = 1000
-    accepted = []
-    attempts = 0
-    while len(accepted) < target and attempts < target * 5:
-        template = sample_template_stratified(templates)
-        rec = generate_one(template, entity_pool)
-        if rec:
-            accepted.append(rec)
-        attempts += 1
-```
-
-### Sampling slot
-
-- `entity_address` slot → sample từ `entities.json` weighted theo confidence.
-- `entity_owner` slot → sample owner (e.g. "Binance") từ unique owners list.
-- `concept_class` slot → sample từ {Exchange, DEXProtocol, MixerAccount, ...}.
-- `decimal_eth` slot → sample log-uniform [0.01, 10000].
-- `integer` (top-N) → sample {5, 10, 20, 50, 100}.
-- `date` → sample uniform trong dataset time range.
-- `duration` → {"1 hour", "1 day", "1 week", "last month"}.
-
-### Stratified template sampling
-
-- Tính tần suất template theo difficulty target.
-- Mỗi vòng `random.choices(templates, weights=...)` để tránh chỉ pick easy.
-
-### Reject conditions
-
-1. SPARQL timeout >10s (skip, không retry cùng entity).
-2. Result empty.
-3. SPARQL parse error (báo bug template).
-4. Result quá lớn (>1000 rows) → có thể OK nhưng đánh dấu để paraphrasing không expand kết quả.
-
-### Reproducibility
-
-- `random.seed(42)`.
-- Lưu `generation_config.json` với seed, template hash, dictionary version.
-
-## Rủi ro & note
-
-- **Templates thiếu data:** một số template (e.g. "transactions to mixer") có thể không có nhiều entity match → distribution skew. Giải pháp: log reject rate per template, nếu template nào reject >50% → quay lại sửa template.
-- **Sinh quá nhiều variant của 1 template:** dùng cap 10% để tránh.
-- **Slow generation:** parallel execution Fuseki với `concurrent.futures` (5-10 workers).
-
-## Estimated effort
-
-2 ngày.
+- [x] Plan B design/plan được duyệt và commit trước implementation.
+- [x] Candidate generator dùng `sql`, không còn SPARQL/Fuseki runtime contract.
+- [x] Exact 1.000 records, seed 42 byte-stable, 1.000 unique SQL/hashes.
+- [x] Distribution 350/450/200; template cap 100; entity cap 50.
+- [x] Fake-client tests cover witness planning, full preflight, caps, schema,
+  non-empty/count/cache và proof propagation.
+- [x] CLI offline không tạo BigQuery client; live outputs chỉ ghi sau success.
+- [ ] Live preflight pass trong 20/96 GiB gates.
+- [ ] 100% final records có non-empty witness; zero cache hits.
+- [ ] Final artifacts/stats/config được tạo và hash-verified.
+- [ ] Full pytest, Ruff, format, `git diff --check` pass; worktree clean.
 
 ## Trạng thái
 
-`scaffold done; Fuseki execution pending`
+`implementation green locally — live witness run pending`
 
-Local offline rendering scaffold is complete. Full acceptance remains pending because `data/processed/full/output.nt` and Fuseki `eth-kg` live verification are not available yet.
+## Chạy lại
 
-## Evidence — 2026-07-04 Scaffold
+Offline deterministic candidates:
 
-- Branch: `feat/t3-2-synthetic-pipeline-scaffold`.
-- Design/spec:
-  - `docs/superpowers/specs/2026-07-04-t3-2-synthetic-pipeline-scaffold-design.md`
-  - `docs/superpowers/plans/2026-07-04-t3-2-synthetic-pipeline-scaffold.md`
-- Implemented files:
-  - `src/nl2sparql/dataset/generate.py`
-  - `tests/unit/test_synthetic_generate.py`
-  - `notebooks/08_generate_synthetic.ipynb`
-- Focused local verification:
-  ```bash
-  UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
-  UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
-  uv run pytest tests/unit/test_synthetic_generate.py -q
-  ```
-  Result: `3 passed`.
+```bash
+uv run python scripts/09_generate_stage_a.py
+```
 
-## Next live evidence step
+Live witness verification:
 
-After the full KG is loaded in Fuseki, extend `generate.py` with query execution/rejection, run target count 1000, and record duplicate rate, reject rate, template distribution, entity distribution, and non-empty verification results here.
+```bash
+uv run python scripts/09_generate_stage_a.py --live
+```
+
+## Historical scaffold
+
+Scaffold SPARQL ngày 2026-07-04 được giữ trong git history và hai design/plan
+files có nhãn superseded. Evidence `3 passed` khi đó chỉ chứng minh offline
+rendering, không còn là acceptance contract hiện hành.

@@ -1,5 +1,9 @@
 # T3.2 Synthetic Pipeline Scaffold Design
 
+> **Superseded 2026-08-09:** This SPARQL/Fuseki scaffold is historical. The
+> active design is
+> `docs/superpowers/specs/2026-08-09-t3-2-witness-grounded-stage-a-design.md`.
+
 ## Goal
 
 Build an offline, reproducible scaffold for Stage A synthetic dataset generation. The scaffold renders T3.1 templates into `(SPARQL, nl_seed)` records using deterministic slot fills, writes JSONL and stats artifacts, and leaves Fuseki execution/non-empty verification pending until the full KG is loaded.
