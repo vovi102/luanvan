@@ -53,7 +53,8 @@ acceptance from consumer naming.
 ## Object model
 
 All managed objects live in `nl2sparql-thesis.nl2sparql_analytics`, location
-`US`, with no default table or partition expiration.
+`US`. The durable contract requires no default table or partition expiration;
+the current Sandbox exception is documented below.
 
 | Object | Kind | Purpose |
 |---|---|---|
@@ -123,8 +124,8 @@ mutation.
 Apply proceeds as follows:
 
 1. Preflight local artifacts and DDL.
-2. Create the durable dataset, or verify an existing dataset's location and
-   expiration policy.
+2. Create the durable dataset, read it back from the server, and verify location
+   and expiration policy; request-side values are not trusted as final state.
 3. Load the immutable snapshot with `WRITE_EMPTY`, or validate and reuse the
    same-digest table.
 4. Run a small capped aggregate query for total rows, distinct addresses, role
@@ -149,11 +150,32 @@ unknown roles, invalid provenance, digest/name mismatch, and catalog
 incompatibility. DDL tests assert explicit projection, qualified identifiers,
 parameter/date guards, safe casts, and left-join role fields.
 
-Remote validation rejects a wrong dataset location, default expiration, an
+Remote validation rejects a wrong dataset location, unexpected expiration,
 existing incompatible snapshot schema, count/role/digest mismatch, missing
 objects, unexpected routine types, or dry runs above the catalog cap. Metadata
 and snapshot validation may execute; large public data queries remain dry-run
 only.
+
+## Deployment constraint discovered during live apply
+
+Readback on 2026-08-09 showed that the project has `billingEnabled=false`.
+BigQuery Sandbox therefore overrides the requested no-expiration dataset policy
+with a 60-day `5,184,000,000 ms` default. The snapshot and logical views expire
+on 2026-10-08. This is a platform constraint: an unbilled project cannot request
+a longer lifetime.
+
+The implementation preserves the durable contract as its default and fails
+closed on any server-applied TTL. An operator must pass
+`--allow-sandbox-expiration` to accept exactly the known 60-day policy. In that
+mode the deployer reports the dataset default and snapshot expiry explicitly;
+other TTL values remain errors. Same-digest redeployment is idempotent while the
+snapshot exists. Billing must be enabled or the layer redeployed before expiry.
+The deployer never claims an expiring object is durable.
+
+The constraint and removal semantics follow the official BigQuery
+[dataset creation](https://cloud.google.com/bigquery/docs/datasets) and
+[expiration update](https://cloud.google.com/bigquery/docs/updating-datasets)
+documentation.
 
 After all remote validation succeeds, the T2-SQL-1 catalog changes the managed
 source from a deferred table to the live `entity_labels_v1` logical view. The
@@ -168,4 +190,3 @@ rollback rendering, and remote summary mismatches. Live deployment follows only
 after the offline suite passes. Completion requires focused tests, the full
 suite, Ruff, formatting, whitespace checks, live metadata verification, and
 documented dry-run bytes.
-

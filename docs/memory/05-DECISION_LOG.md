@@ -24,6 +24,32 @@
 
 ## Entries
 
+### 2026-08-09 — T2-SQL-2 dùng immutable label snapshots và explicit Sandbox TTL
+
+- **Context:** Plan B cần stable entity labels và canonical BigQuery routines.
+  Live apply đồng thời phát hiện project `nl2sparql-thesis` chưa bật billing nên
+  BigQuery Sandbox tự áp default expiration 60 ngày dù create request gửi
+  `None`.
+- **Options considered:** Mutable label table; version column trong một table;
+  immutable digest snapshots sau stable view; coi Sandbox TTL như durable; hoặc
+  fail mọi deployment cho tới khi bật billing.
+- **Decision:** Dùng immutable `entity_labels_snapshot_<sha12>` sau stable
+  `entity_labels_v1`, 2 logical views và 6 bounded TVFs. Durable mode fail
+  closed trên mọi TTL. Flag explicit `--allow-sandbox-expiration` chỉ accept
+  đúng `5.184.000.000 ms`, read-back server policy/expiry và in deadline.
+- **Rationale:** Snapshot + stable view giữ audit/rollback và ngăn version join
+  duplication. Explicit Sandbox mode cho phép tiếp tục research trên hạ tầng
+  hiện có mà không che giấu retention constraint hoặc tự ý thay đổi billing.
+- **Consequences:** 5.135 unique labels và toàn bộ routines đang live; 6/6 source
+  schemas pass, representative dry-run cao nhất 30.551.889.008 bytes dưới cap
+  50 GiB. Snapshot/view hiện expire 2026-10-08; phải bật billing hoặc redeploy
+  trước đó. Legacy `nl2sparql_kg.labeled_addresses` được giữ nguyên.
+- **Revisit:** Trước 2026-10-01 hoặc ngay khi project bật billing; redeploy ở
+  durable mode và xác nhận dataset/snapshot/view không còn expiration.
+- **Linked:** `docs/tasks/phase-2-sql/02-label-enriched-layer.md`,
+  `src/nl2sparql/sql/label_layer.py`,
+  `scripts/06_deploy_sql_label_layer.py`.
+
 ### 2026-08-09 — Plan B dùng hybrid GoogleSQL catalog và date-bounded TVFs
 
 - **Context:** Pivot #1 chuyển execution target sang BigQuery, nhưng raw public

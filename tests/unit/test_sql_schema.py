@@ -188,7 +188,12 @@ def test_committed_catalog_encodes_approved_source_and_relation_contract(
     )
     assert sources["transactions"]["partition_field"] == "block_timestamp"
     assert sources["amended_tokens"]["object_kind"] == "logical_view"
-    assert sources["entity_labels_v1"]["deployment_status"] == "deferred"
+    assert sources["entity_labels_v1"]["deployment_status"] == "live"
+    assert sources["entity_labels_v1"]["object_kind"] == "logical_view"
+    assert sources["entity_labels_v1"]["object"] == (
+        "nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1"
+    )
+    assert sources["entity_labels_v1"]["fields"]["address"]["mode"] == "NULLABLE"
     assert relations["transaction_facts"]["kind"] == "parameterized_fact"
     assert relations["contract_dimension"]["kind"] == "bounded_dimension"
     assert relations["token_dimension"]["kind"] == "parameterless_dimension"
@@ -521,9 +526,9 @@ def test_validate_live_schemas_accepts_expected_and_extra_upstream_fields(
 
     summary = validate_live_schemas(catalog, schemas)
 
-    assert summary.checked_source_count == 5
-    assert summary.deferred_source_count == 1
-    assert summary.checked_field_count > 40
+    assert summary.checked_source_count == 6
+    assert summary.deferred_source_count == 0
+    assert summary.checked_field_count > 50
 
 
 def test_validate_live_schemas_rejects_missing_live_source(
@@ -559,13 +564,13 @@ def test_validate_live_schemas_rejects_required_field_drift(
         validate_live_schemas(catalog, schemas)
 
 
-def test_validate_live_schemas_does_not_require_deferred_managed_source(
+def test_validate_live_schemas_requires_deployed_managed_label_view(
     catalog: dict[str, object],
 ) -> None:
     schemas = live_schemas_from_catalog(catalog)
 
-    assert "entity_labels_v1" not in schemas
-    assert validate_live_schemas(catalog, schemas).deferred_source_count == 1
+    assert "entity_labels_v1" in schemas
+    assert validate_live_schemas(catalog, schemas).deferred_source_count == 0
 
 
 def load_validate_sql_schema_script():
@@ -642,7 +647,7 @@ def test_schema_cli_fails_closed_for_invalid_catalog(tmp_path: Path) -> None:
     assert "catalog_version" in result.output
 
 
-def test_schema_cli_live_mode_reads_only_current_public_metadata(
+def test_schema_cli_live_mode_reads_public_and_managed_metadata(
     catalog: dict[str, object], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     script = load_validate_sql_schema_script()
@@ -658,10 +663,10 @@ def test_schema_cli_live_mode_reads_only_current_public_metadata(
 
     assert result.exit_code == 0, result.output
     assert projects == ["nl2sparql-thesis"]
-    assert len(client.requested_objects) == 5
-    assert all("entity_labels_v1" not in name for name in client.requested_objects)
-    assert "live_checked_sources=5" in result.output
-    assert "live_deferred_sources=1" in result.output
+    assert len(client.requested_objects) == 6
+    assert any("entity_labels_v1" in name for name in client.requested_objects)
+    assert "live_checked_sources=6" in result.output
+    assert "live_deferred_sources=0" in result.output
 
 
 def test_schema_cli_live_mode_exits_nonzero_on_schema_drift(

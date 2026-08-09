@@ -104,35 +104,35 @@
       }
     },
     "entity_labels_v1": {
-      "object_template": "{project}.nl2sparql_analytics.entity_labels_v1",
-      "object_kind": "managed_table",
-      "deployment_status": "deferred",
+      "object": "nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1",
+      "object_kind": "logical_view",
+      "deployment_status": "live",
       "location": "US",
       "key_fields": ["address"],
       "fields": {
-        "address": {"type": "STRING", "mode": "REQUIRED"},
-        "chain_id": {"type": "INTEGER", "mode": "REQUIRED"},
-        "primary_label": {"type": "STRING", "mode": "REQUIRED"},
-        "owner": {"type": "STRING", "mode": "REQUIRED"},
-        "category": {"type": "STRING", "mode": "REQUIRED"},
-        "concept_class": {"type": "STRING", "mode": "REQUIRED"},
-        "address_role": {"type": "STRING", "mode": "REQUIRED"},
+        "address": {"type": "STRING", "mode": "NULLABLE"},
+        "chain_id": {"type": "INTEGER", "mode": "NULLABLE"},
+        "primary_label": {"type": "STRING", "mode": "NULLABLE"},
+        "owner": {"type": "STRING", "mode": "NULLABLE"},
+        "category": {"type": "STRING", "mode": "NULLABLE"},
+        "concept_class": {"type": "STRING", "mode": "NULLABLE"},
+        "address_role": {"type": "STRING", "mode": "NULLABLE"},
         "aliases": {"type": "STRING", "mode": "REPEATED"},
-        "confidence": {"type": "STRING", "mode": "REQUIRED"},
-        "verified_date": {"type": "DATE", "mode": "REQUIRED"},
+        "confidence": {"type": "STRING", "mode": "NULLABLE"},
+        "verified_date": {"type": "DATE", "mode": "NULLABLE"},
         "sources": {
           "type": "RECORD",
           "mode": "REPEATED",
           "fields": {
-            "name": {"type": "STRING", "mode": "REQUIRED"},
-            "url": {"type": "STRING", "mode": "REQUIRED"},
-            "revision": {"type": "STRING", "mode": "REQUIRED"},
-            "locator": {"type": "STRING", "mode": "REQUIRED"},
-            "retrieved_date": {"type": "DATE", "mode": "REQUIRED"},
+            "name": {"type": "STRING", "mode": "NULLABLE"},
+            "url": {"type": "STRING", "mode": "NULLABLE"},
+            "revision": {"type": "STRING", "mode": "NULLABLE"},
+            "locator": {"type": "STRING", "mode": "NULLABLE"},
+            "retrieved_date": {"type": "DATE", "mode": "NULLABLE"},
             "note": {"type": "STRING", "mode": "NULLABLE"}
           }
         },
-        "dictionary_sha256": {"type": "STRING", "mode": "REQUIRED"}
+        "dictionary_sha256": {"type": "STRING", "mode": "NULLABLE"}
       }
     }
   },

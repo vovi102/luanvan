@@ -4,8 +4,9 @@
 > `superpowers:executing-plans` and `superpowers:test-driven-development`.
 > Complete each task test-first and checkpoint it separately.
 
-**Goal:** Deploy a durable, versioned entity-label dimension and canonical
-GoogleSQL views/TVFs with safe plan/apply behavior and reproducible validation.
+**Goal:** Deploy a versioned entity-label dimension and canonical GoogleSQL
+views/TVFs with safe plan/apply behavior, reproducible validation, and explicit
+handling when BigQuery Sandbox prevents durable storage.
 
 **Architecture:** A deterministic local builder converts the accepted dictionary
 to explicit BigQuery rows and a digest-addressed immutable snapshot. A stable
@@ -19,7 +20,8 @@ Ruff, standard-library `hashlib`/`json`/`dataclasses`.
 ## Global constraints
 
 - Plan-only is the default; only `--apply` mutates BigQuery.
-- Managed objects stay in `US` and durable dataset defaults never expire them.
+- Managed objects stay in `US`; durable mode rejects expiration. Explicit
+  Sandbox mode accepts only the known 60-day policy and reports its deadline.
 - Snapshot identity comes from raw `entities.json` SHA-256 and is immutable.
 - Stable view changes only after full snapshot validation.
 - No deploy or rollback path deletes an old snapshot.
@@ -109,10 +111,12 @@ Ruff, standard-library `hashlib`/`json`/`dataclasses`.
   repoints after validation.
 - [ ] Write failing CLI tests for deterministic plan output and explicit apply.
 - [ ] Confirm RED before deployment implementation.
-- [ ] Implement a narrow BigQuery boundary, explicit load schema and capped
+- [x] Implement a narrow BigQuery boundary, explicit load schema and capped
   validation query.
-- [ ] Implement the CLI without importing credentials/network in plan-only mode.
-- [ ] Run focused tests to GREEN and commit deploy orchestration.
+- [x] Implement the CLI without importing credentials/network in plan-only mode.
+- [x] Add server-state readback after create/load and explicit
+  `--allow-sandbox-expiration` after live discovery showed unbilled-project TTL.
+- [x] Run focused tests to GREEN and commit deploy orchestration.
 
 ---
 
@@ -124,18 +128,18 @@ Ruff, standard-library `hashlib`/`json`/`dataclasses`.
 - Modify `docs/tasks/phase-2-sql/02-label-enriched-layer.md`
 - Modify `docs/memory/05-DECISION_LOG.md`
 
-- [ ] Run the complete offline focused suite and plan output.
-- [ ] Apply to `nl2sparql-thesis.nl2sparql_analytics` and record the accepted
+- [x] Run the complete offline focused suite and plan output.
+- [x] Apply to `nl2sparql-thesis.nl2sparql_analytics` and record the accepted
   snapshot/object metadata.
-- [ ] Run the small snapshot aggregate validation and metadata readback.
-- [ ] Dry-run representative calls to each fact/enriched TVF; record bytes and
+- [x] Run the small snapshot aggregate validation and metadata readback.
+- [x] Dry-run representative calls to each fact/enriched TVF; record bytes and
   require each below 53,687,091,200.
-- [ ] Only after live success, update catalog `entity_labels_v1` to the managed
+- [x] Only after live success, update catalog `entity_labels_v1` to the managed
   logical view and update deferred/live schema tests test-first.
-- [ ] Run `scripts/05_validate_sql_schema.py --live --project
+- [x] Run `scripts/05_validate_sql_schema.py --live --project
   nl2sparql-thesis` and require all six sources to pass.
-- [ ] Run full pytest, Ruff, format and `git diff --check`.
-- [ ] Close task evidence and decision log truthfully; commit closure.
+- [x] Run full pytest, Ruff, format and `git diff --check`.
+- [x] Close task evidence and decision log truthfully; commit closure.
 
 ## Completion checkpoint
 
