@@ -9,6 +9,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 
 from nl2sparql.linking.dictionary import ENTITIES_PATH
@@ -26,6 +27,9 @@ from nl2sparql.linking.dictionary.validate import validate_artifacts
 
 LABEL_SNAPSHOT_PREFIX = "entity_labels_snapshot_"
 LABEL_ROLES = ("operational", "token", "treasury")
+DEFAULT_DATASET = "nl2sparql_analytics"
+DEFAULT_LOCATION = "US"
+DEFAULT_MAXIMUM_BYTES_BILLED = 53_687_091_200
 
 SOURCE_SCHEMA = (
     bigquery.SchemaField("name", "STRING", mode="REQUIRED"),
@@ -72,6 +76,23 @@ class SqlObject:
     kind: str
     dependencies: tuple[str, ...]
     ddl: str
+
+
+@dataclass(frozen=True)
+class DeploymentPlan:
+    project: str
+    dataset: str
+    location: str
+    maximum_bytes_billed: int
+    snapshot: LabelSnapshot
+    sql_objects: tuple[SqlObject, ...]
+
+
+@dataclass(frozen=True)
+class DeploymentResult:
+    created_dataset: bool
+    snapshot_action: str
+    deployed_objects: tuple[str, ...]
 
 
 _PROJECT_ID_RE = re.compile(r"^[a-z][a-z0-9-]*[a-z0-9]$")
@@ -407,6 +428,243 @@ def render_label_layer_ddl(
 def render_rollback_ddl(project: str, dataset: str, snapshot_table: str) -> str:
     """Render a non-destructive stable-view rollback to an accepted snapshot."""
     return _stable_label_view_ddl(project, dataset, snapshot_table)
+
+
+def build_deployment_plan(
+    *,
+    project: str,
+    dataset: str = DEFAULT_DATASET,
+    location: str = DEFAULT_LOCATION,
+    entities_path: Path = ENTITIES_PATH,
+    maximum_bytes_billed: int = DEFAULT_MAXIMUM_BYTES_BILLED,
+) -> DeploymentPlan:
+    """Build and validate a deployment plan without making remote calls."""
+    _validate_identifiers(project, dataset, "entity_labels_v1")
+    if location != DEFAULT_LOCATION:
+        raise LabelLayerError(
+            f"Managed label layer location must be {DEFAULT_LOCATION}, received {location!r}"
+        )
+    if not isinstance(maximum_bytes_billed, int) or maximum_bytes_billed <= 0:
+        raise LabelLayerError("maximum_bytes_billed must be a positive integer")
+    snapshot = build_label_snapshot(entities_path)
+    return DeploymentPlan(
+        project=project,
+        dataset=dataset,
+        location=location,
+        maximum_bytes_billed=maximum_bytes_billed,
+        snapshot=snapshot,
+        sql_objects=render_label_layer_ddl(project, dataset, snapshot.table_name),
+    )
+
+
+def _ensure_dataset(plan: DeploymentPlan, client: Any) -> bool:
+    dataset_ref = f"{plan.project}.{plan.dataset}"
+    try:
+        dataset = client.get_dataset(dataset_ref)
+    except NotFound:
+        dataset = bigquery.Dataset(dataset_ref)
+        dataset.location = plan.location
+        dataset.default_table_expiration_ms = None
+        dataset.default_partition_expiration_ms = None
+        dataset.description = "Durable Plan B NL2SQL analytical layer."
+        dataset.labels = {"system": "nl2sparql", "layer": "analytics"}
+        client.create_dataset(dataset, exists_ok=False)
+        return True
+
+    if dataset.location != plan.location:
+        raise LabelLayerError(
+            f"Dataset location mismatch: expected {plan.location}, received {dataset.location}"
+        )
+    if dataset.default_table_expiration_ms is not None:
+        raise LabelLayerError("Dataset must not have a default table expiration")
+    if dataset.default_partition_expiration_ms is not None:
+        raise LabelLayerError("Dataset must not have a default partition expiration")
+    return False
+
+
+def _schema_signature(fields: Any) -> tuple[tuple[object, ...], ...]:
+    return tuple(
+        (
+            field.name,
+            field.field_type,
+            field.mode,
+            _schema_signature(field.fields),
+        )
+        for field in fields
+    )
+
+
+def _snapshot_ref(plan: DeploymentPlan) -> str:
+    return f"{plan.project}.{plan.dataset}.{plan.snapshot.table_name}"
+
+
+def _ensure_snapshot(plan: DeploymentPlan, client: Any) -> str:
+    table_ref = _snapshot_ref(plan)
+    try:
+        table = client.get_table(table_ref)
+    except NotFound:
+        load_config = bigquery.LoadJobConfig(
+            schema=LABEL_TABLE_SCHEMA,
+            create_disposition=bigquery.CreateDisposition.CREATE_IF_NEEDED,
+            write_disposition=bigquery.WriteDisposition.WRITE_EMPTY,
+        )
+        client.load_table_from_json(
+            plan.snapshot.rows,
+            table_ref,
+            job_config=load_config,
+            location=plan.location,
+        ).result()
+        return "loaded"
+
+    if getattr(table, "location", plan.location) != plan.location:
+        raise LabelLayerError(f"Snapshot location mismatch for {table_ref}: {table.location}")
+    if _schema_signature(table.schema) != _schema_signature(LABEL_TABLE_SCHEMA):
+        raise LabelLayerError(f"Snapshot schema mismatch for {table_ref}")
+    return "reused"
+
+
+def _query_config(maximum_bytes_billed: int) -> bigquery.QueryJobConfig:
+    return bigquery.QueryJobConfig(
+        use_legacy_sql=False,
+        maximum_bytes_billed=maximum_bytes_billed,
+    )
+
+
+def _validation_sql(project: str, dataset: str, snapshot_table: str) -> str:
+    table = _qualified(project, dataset, snapshot_table)
+    return f"""SELECT
+  COUNT(*) AS entity_count,
+  COUNT(DISTINCT address) AS unique_address_count,
+  COUNTIF(address_role = 'operational') AS operational_count,
+  COUNTIF(address_role = 'token') AS token_count,
+  COUNTIF(address_role = 'treasury') AS treasury_count,
+  COUNT(DISTINCT dictionary_sha256) AS digest_count,
+  ANY_VALUE(dictionary_sha256) AS dictionary_sha256
+FROM {table}"""
+
+
+def validate_deployed_snapshot(
+    snapshot: LabelSnapshot,
+    client: Any,
+    *,
+    project: str,
+    dataset: str = DEFAULT_DATASET,
+    location: str = DEFAULT_LOCATION,
+    maximum_bytes_billed: int = DEFAULT_MAXIMUM_BYTES_BILLED,
+) -> None:
+    """Validate counts, uniqueness, roles, and digest using a small query."""
+    sql = _validation_sql(project, dataset, snapshot.table_name)
+    rows = list(
+        client.query(
+            sql,
+            job_config=_query_config(maximum_bytes_billed),
+            location=location,
+        ).result()
+    )
+    if len(rows) != 1:
+        raise LabelLayerError(
+            f"Snapshot validation returned {len(rows)} rows; expected exactly one"
+        )
+    row = rows[0]
+    expected = {
+        "entity_count": snapshot.entity_count,
+        "unique_address_count": snapshot.entity_count,
+        "operational_count": snapshot.role_counts["operational"],
+        "token_count": snapshot.role_counts["token"],
+        "treasury_count": snapshot.role_counts["treasury"],
+        "digest_count": 1,
+        "dictionary_sha256": snapshot.digest,
+    }
+    for field, expected_value in expected.items():
+        actual_value = getattr(row, field)
+        if actual_value != expected_value:
+            raise LabelLayerError(
+                f"Snapshot validation mismatch for {field}: "
+                f"expected {expected_value!r}, received {actual_value!r}"
+            )
+
+
+def _execute_ddl(
+    sql: str,
+    client: Any,
+    *,
+    location: str,
+    maximum_bytes_billed: int,
+) -> None:
+    client.query(
+        sql,
+        job_config=_query_config(maximum_bytes_billed),
+        location=location,
+    ).result()
+
+
+def apply_deployment(plan: DeploymentPlan, client: Any) -> DeploymentResult:
+    """Apply a validated plan in dependency order without deleting old state."""
+    created_dataset = _ensure_dataset(plan, client)
+    snapshot_action = _ensure_snapshot(plan, client)
+    validate_deployed_snapshot(
+        plan.snapshot,
+        client,
+        project=plan.project,
+        dataset=plan.dataset,
+        location=plan.location,
+        maximum_bytes_billed=plan.maximum_bytes_billed,
+    )
+    for sql_object in plan.sql_objects:
+        _execute_ddl(
+            sql_object.ddl,
+            client,
+            location=plan.location,
+            maximum_bytes_billed=plan.maximum_bytes_billed,
+        )
+    return DeploymentResult(
+        created_dataset=created_dataset,
+        snapshot_action=snapshot_action,
+        deployed_objects=tuple(obj.name for obj in plan.sql_objects),
+    )
+
+
+def apply_rollback(
+    *,
+    project: str,
+    dataset: str,
+    snapshot: LabelSnapshot,
+    client: Any,
+    location: str = DEFAULT_LOCATION,
+    maximum_bytes_billed: int = DEFAULT_MAXIMUM_BYTES_BILLED,
+) -> None:
+    """Validate a known snapshot and repoint only the stable label view."""
+    plan = DeploymentPlan(
+        project=project,
+        dataset=dataset,
+        location=location,
+        maximum_bytes_billed=maximum_bytes_billed,
+        snapshot=snapshot,
+        sql_objects=(),
+    )
+    _validate_identifiers(project, dataset, snapshot.table_name)
+    _ensure_dataset(plan, client)
+    table_ref = _snapshot_ref(plan)
+    try:
+        table = client.get_table(table_ref)
+    except NotFound as exc:
+        raise LabelLayerError(f"Rollback snapshot does not exist: {table_ref}") from exc
+    if _schema_signature(table.schema) != _schema_signature(LABEL_TABLE_SCHEMA):
+        raise LabelLayerError(f"Snapshot schema mismatch for {table_ref}")
+    validate_deployed_snapshot(
+        snapshot,
+        client,
+        project=project,
+        dataset=dataset,
+        location=location,
+        maximum_bytes_billed=maximum_bytes_billed,
+    )
+    _execute_ddl(
+        render_rollback_ddl(project, dataset, snapshot.table_name),
+        client,
+        location=location,
+        maximum_bytes_billed=maximum_bytes_billed,
+    )
 
 
 def _required_string(entry: dict[str, Any], field: str, *, context: str) -> str:

@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from nl2sparql.linking.dictionary import ENTITIES_PATH
 from nl2sparql.sql.label_layer import (
+    DEFAULT_MAXIMUM_BYTES_BILLED,
     LABEL_TABLE_SCHEMA,
+    DeploymentPlan,
     LabelLayerError,
+    apply_deployment,
+    apply_rollback,
+    build_deployment_plan,
     build_label_snapshot,
     render_label_layer_ddl,
     render_rollback_ddl,
@@ -295,3 +302,243 @@ def test_rollback_ddl_only_repoints_stable_view_to_named_snapshot() -> None:
     assert "`nl2sparql-thesis.nl2sparql_analytics.entity_labels_snapshot_0123456789ab`" in ddl
     assert "DROP " not in ddl
     assert "DELETE " not in ddl
+
+
+class FakeJob:
+    def __init__(self, rows=()) -> None:
+        self.rows = rows
+
+    def result(self):
+        return self.rows
+
+
+class FakeBigQueryClient:
+    def __init__(
+        self,
+        *,
+        dataset_exists: bool = False,
+        snapshot_exists: bool = False,
+        validation_overrides: dict[str, object] | None = None,
+        dataset_location: str = "US",
+        default_table_expiration_ms: int | None = None,
+        default_partition_expiration_ms: int | None = None,
+    ) -> None:
+        from google.api_core.exceptions import NotFound
+
+        self.NotFound = NotFound
+        self.calls: list[tuple[str, object]] = []
+        self.dataset = (
+            SimpleNamespace(
+                location=dataset_location,
+                default_table_expiration_ms=default_table_expiration_ms,
+                default_partition_expiration_ms=default_partition_expiration_ms,
+            )
+            if dataset_exists
+            else None
+        )
+        self.snapshot_exists = snapshot_exists
+        self.validation_overrides = validation_overrides or {}
+        self.loaded_rows: list[dict[str, object]] = []
+        self.load_config = None
+
+    def get_dataset(self, dataset_ref: str):
+        self.calls.append(("get_dataset", dataset_ref))
+        if self.dataset is None:
+            raise self.NotFound("dataset missing")
+        return self.dataset
+
+    def create_dataset(self, dataset, *, exists_ok: bool = False):
+        self.calls.append(("create_dataset", dataset.full_dataset_id))
+        self.dataset = dataset
+        return dataset
+
+    def get_table(self, table_ref: str):
+        self.calls.append(("get_table", table_ref))
+        if not self.snapshot_exists:
+            raise self.NotFound("table missing")
+        return SimpleNamespace(schema=LABEL_TABLE_SCHEMA, location="US")
+
+    def load_table_from_json(self, rows, destination: str, *, job_config, location: str):
+        self.calls.append(("load_table_from_json", destination))
+        self.loaded_rows = list(rows)
+        self.load_config = job_config
+        self.snapshot_exists = True
+        return FakeJob()
+
+    def query(self, sql: str, *, job_config, location: str):
+        self.calls.append(("query", sql))
+        if sql.lstrip().startswith("SELECT"):
+            expected = {
+                "entity_count": 5135,
+                "unique_address_count": 5135,
+                "operational_count": 14,
+                "token_count": 5091,
+                "treasury_count": 30,
+                "digest_count": 1,
+                "dictionary_sha256": (
+                    "190f73a91b7affa8b8396cc189e4a6b332dc6f7f0109037a0d44edb14531c536"
+                ),
+            }
+            expected.update(self.validation_overrides)
+            return FakeJob([SimpleNamespace(**expected)])
+        return FakeJob()
+
+
+def test_build_deployment_plan_is_deterministic_and_side_effect_free() -> None:
+    plan = build_deployment_plan(project="nl2sparql-thesis")
+
+    assert isinstance(plan, DeploymentPlan)
+    assert plan.dataset == "nl2sparql_analytics"
+    assert plan.location == "US"
+    assert plan.maximum_bytes_billed == DEFAULT_MAXIMUM_BYTES_BILLED
+    assert plan.snapshot.table_name == "entity_labels_snapshot_190f73a91b7a"
+    assert len(plan.sql_objects) == 8
+
+
+def test_apply_deployment_creates_durable_dataset_then_validates_before_view_swap() -> None:
+    plan = build_deployment_plan(project="nl2sparql-thesis")
+    client = FakeBigQueryClient()
+
+    result = apply_deployment(plan, client)
+
+    operation_names = [call[0] for call in client.calls]
+    assert operation_names[:4] == [
+        "get_dataset",
+        "create_dataset",
+        "get_table",
+        "load_table_from_json",
+    ]
+    validation_index = next(
+        index
+        for index, call in enumerate(client.calls)
+        if call[0] == "query" and str(call[1]).lstrip().startswith("SELECT")
+    )
+    view_swap_index = next(
+        index
+        for index, call in enumerate(client.calls)
+        if call[0] == "query" and "CREATE OR REPLACE VIEW" in str(call[1])
+    )
+    assert validation_index < view_swap_index
+    assert client.load_config.write_disposition == "WRITE_EMPTY"
+    assert client.load_config.create_disposition == "CREATE_IF_NEEDED"
+    assert tuple(client.load_config.schema) == LABEL_TABLE_SCHEMA
+    assert len(client.loaded_rows) == 5135
+    assert result.created_dataset is True
+    assert result.snapshot_action == "loaded"
+    assert result.deployed_objects == tuple(obj.name for obj in plan.sql_objects)
+
+
+@pytest.mark.parametrize(
+    ("client", "message"),
+    [
+        (
+            FakeBigQueryClient(dataset_exists=True, dataset_location="EU"),
+            "location",
+        ),
+        (
+            FakeBigQueryClient(dataset_exists=True, default_table_expiration_ms=86_400_000),
+            "default table expiration",
+        ),
+        (
+            FakeBigQueryClient(dataset_exists=True, default_partition_expiration_ms=86_400_000),
+            "default partition expiration",
+        ),
+    ],
+)
+def test_apply_deployment_fails_closed_for_incompatible_dataset(
+    client: FakeBigQueryClient, message: str
+) -> None:
+    plan = build_deployment_plan(project="nl2sparql-thesis")
+
+    with pytest.raises(LabelLayerError, match=message):
+        apply_deployment(plan, client)
+
+    assert all(call[0] != "load_table_from_json" for call in client.calls)
+
+
+def test_same_digest_deployment_reuses_existing_snapshot_idempotently() -> None:
+    plan = build_deployment_plan(project="nl2sparql-thesis")
+    client = FakeBigQueryClient(dataset_exists=True, snapshot_exists=True)
+
+    result = apply_deployment(plan, client)
+
+    assert result.created_dataset is False
+    assert result.snapshot_action == "reused"
+    assert all(call[0] != "load_table_from_json" for call in client.calls)
+
+
+def test_snapshot_validation_mismatch_fails_before_stable_view_swap() -> None:
+    plan = build_deployment_plan(project="nl2sparql-thesis")
+    client = FakeBigQueryClient(validation_overrides={"unique_address_count": 5134})
+
+    with pytest.raises(LabelLayerError, match="unique_address_count"):
+        apply_deployment(plan, client)
+
+    assert all(
+        not (call[0] == "query" and "CREATE OR REPLACE VIEW" in str(call[1]))
+        for call in client.calls
+    )
+
+
+def test_rollback_validates_named_snapshot_then_only_repoints_view() -> None:
+    snapshot = build_label_snapshot()
+    client = FakeBigQueryClient(dataset_exists=True, snapshot_exists=True)
+
+    apply_rollback(
+        project="nl2sparql-thesis",
+        dataset="nl2sparql_analytics",
+        snapshot=snapshot,
+        client=client,
+    )
+
+    queries = [str(call[1]) for call in client.calls if call[0] == "query"]
+    assert queries[0].lstrip().startswith("SELECT")
+    assert len(queries) == 2
+    assert queries[1].startswith("CREATE OR REPLACE VIEW")
+    assert all("DROP " not in sql and "DELETE " not in sql for sql in queries)
+
+
+def load_deploy_script():
+    script_path = Path("scripts/06_deploy_sql_label_layer.py").resolve()
+    spec = importlib.util.spec_from_file_location("deploy_sql_label_layer_script", script_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_deploy_cli_defaults_to_plan_only_without_creating_client() -> None:
+    from click.testing import CliRunner
+
+    script = load_deploy_script()
+
+    class ForbiddenClient:
+        def __init__(self, *args, **kwargs) -> None:
+            raise AssertionError("plan-only mode must not create a BigQuery client")
+
+    script.bigquery.Client = ForbiddenClient
+    result = CliRunner().invoke(script.main, ["--project", "nl2sparql-thesis"])
+
+    assert result.exit_code == 0, result.output
+    assert "mode=plan" in result.output
+    assert "snapshot=entity_labels_snapshot_190f73a91b7a" in result.output
+    assert "entities=5135" in result.output
+    assert "objects=8" in result.output
+
+
+def test_deploy_cli_requires_explicit_apply_before_remote_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from click.testing import CliRunner
+
+    script = load_deploy_script()
+    client = FakeBigQueryClient()
+    monkeypatch.setattr(script.bigquery, "Client", lambda **_: client)
+
+    result = CliRunner().invoke(script.main, ["--project", "nl2sparql-thesis", "--apply"])
+
+    assert result.exit_code == 0, result.output
+    assert "mode=apply" in result.output
+    assert "snapshot_action=loaded" in result.output
+    assert "deployed_objects=8" in result.output
