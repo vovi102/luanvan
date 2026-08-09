@@ -24,6 +24,26 @@
 
 ## Entries
 
+### 2026-08-09 — Materialize full KG bằng chunk 50k có checkpoint xác thực
+
+- **Context:** Live Morph-KGC với chunk 100k tạo 2.43M triples rồi bị kernel kill
+  (exit 137) khi RDFLib serialize trên máy 7.4 GiB RAM. Run nhiều giờ cũng cần
+  tiếp tục an toàn sau interruption.
+- **Options considered:** Single-shot; chunk 100k không resume; chunk 50k với
+  reuse mọi `output.nt`; chunk 50k với manifest và completion marker.
+- **Decision:** Mặc định 50k rows/chunk, chỉ reuse chunk có completion marker,
+  và bắt buộc manifest SHA-256 của mapping/input/chunk size khớp khi `--resume`.
+- **Rationale:** 50k giữ peak memory dưới giới hạn host và hoàn tất 89/89 chunk;
+  manifest ngăn trộn output từ input hoặc cấu hình khác, marker ngăn tin partial
+  file sau crash.
+- **Consequences:** Full output đạt 73,906,181 triples và TDB2 chỉ 10.88 GB.
+  Selective queries đạt <2s nhưng aggregate counts mất 15.12-69.68s, nên T2.6
+  phải xem đây là NO-GO evidence thay vì coi T2.4 pass hoàn toàn.
+- **Revisit:** Nếu tiếp tục Plan A sau Pivot #1, benchmark pre-aggregation hoặc
+  cached dataset statistics mà không thay thế metric exact-match cốt lõi.
+- **Linked:** `src/nl2sparql/kg/rml/run_morph_full.py`,
+  `docs/tasks/phase-2-kg/04-rml-full-mapping.md`, `docs/kg-benchmark.md`.
+
 ### 2026-06-28 — T2.2 dictionary dùng committed source snapshots
 
 - **Context:** Public label sources for Ethereum addresses can change, rate-limit, or block automation. T2.2 still needs a stable input for Phase 4 entity linking and for thesis reproducibility.

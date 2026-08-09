@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import shutil
@@ -20,7 +21,7 @@ DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "data/processed/full/output.nt"
 DEFAULT_DICTIONARY_PATH = PROJECT_ROOT / "src/nl2sparql/linking/dictionary/entities.json"
 DEFAULT_ENTITIES_CSV_PATH = PROJECT_ROOT / "data/raw/full/entities.csv"
 MINIMUM_FULL_TRIPLES = 1_000
-DEFAULT_CHUNK_ROWS = 100_000
+DEFAULT_CHUNK_ROWS = 50_000
 FULL_SOURCE_FILENAMES = (
     "transactions.csv",
     "blocks.csv",
@@ -106,11 +107,14 @@ def _csv_data_row_count(csv_path: Path) -> int:
 def _write_csv_chunk(source_path: Path, output_path: Path, start: int, limit: int) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     written = 0
-    with source_path.open(newline="", encoding="utf-8") as source, output_path.open(
-        "w",
-        newline="",
-        encoding="utf-8",
-    ) as output:
+    with (
+        source_path.open(newline="", encoding="utf-8") as source,
+        output_path.open(
+            "w",
+            newline="",
+            encoding="utf-8",
+        ) as output,
+    ):
         reader = csv.reader(source)
         writer = csv.writer(output)
         header = next(reader)
@@ -125,7 +129,9 @@ def _write_csv_chunk(source_path: Path, output_path: Path, start: int, limit: in
     return written
 
 
-def _mapping_for_chunk(mapping_path: Path, chunk_sources: dict[str, Path], output_path: Path) -> Path:
+def _mapping_for_chunk(
+    mapping_path: Path, chunk_sources: dict[str, Path], output_path: Path
+) -> Path:
     mapping_text = mapping_path.read_text(encoding="utf-8")
     for filename, source_path in chunk_sources.items():
         mapping_text = mapping_text.replace(
@@ -149,6 +155,54 @@ def _materialize_mapping_to_nt(
     return len(graph)
 
 
+def _completed_chunk_triples(chunk_dir: Path) -> int | None:
+    output_path = chunk_dir / "output.nt"
+    completion_path = chunk_dir / "complete.json"
+    if not output_path.is_file() or not completion_path.is_file():
+        return None
+    try:
+        completion = json.loads(completion_path.read_text(encoding="utf-8"))
+        triple_count = int(completion["triple_count"])
+        output_size = int(completion["output_size"])
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+    if triple_count < 1 or output_path.stat().st_size != output_size:
+        return None
+    return triple_count
+
+
+def _commit_completed_chunk(chunk_dir: Path, triple_count: int) -> None:
+    output_path = chunk_dir / "output.nt"
+    completion_path = chunk_dir / "complete.json"
+    completion_path.write_text(
+        json.dumps(
+            {"output_size": output_path.stat().st_size, "triple_count": triple_count},
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _file_sha256(path: Path) -> str:
+    with path.open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
+
+
+def _run_manifest(
+    mapping_path: Path, input_paths: Sequence[Path], chunk_rows: int
+) -> dict[str, Any]:
+    return {
+        "version": 1,
+        "chunk_rows": chunk_rows,
+        "mapping_sha256": _file_sha256(mapping_path),
+        "inputs": {
+            path.name: {"size": path.stat().st_size, "sha256": _file_sha256(path)}
+            for path in input_paths
+        },
+    }
+
+
 def materialize_full(
     mapping_path: Path,
     output_path: Path,
@@ -170,25 +224,43 @@ def materialize_full_chunked(
     chunk_rows: int = DEFAULT_CHUNK_ROWS,
     minimum_triples: int = MINIMUM_FULL_TRIPLES,
     number_of_processes: int = 1,
+    resume: bool = False,
 ) -> int:
-    """Materialize full CSV inputs in row-bounded chunks and append N-Triples."""
+    """Materialize full CSV inputs with bounded, resumable N-Triples chunks."""
     if chunk_rows < 1:
         raise ValueError("chunk_rows must be >= 1")
     input_paths = tuple(input_dir / filename for filename in FULL_SOURCE_FILENAMES)
     validate_required_files(mapping_path, input_paths)
 
     row_counts = {
-        filename: _csv_data_row_count(input_dir / filename)
-        for filename in FULL_SOURCE_FILENAMES
+        filename: _csv_data_row_count(input_dir / filename) for filename in FULL_SOURCE_FILENAMES
     }
     total_chunks = max(
         1,
         max(math.ceil(count / chunk_rows) for count in row_counts.values()),
     )
     chunk_root = work_dir or output_path.parent / "chunks"
-    if chunk_root.exists():
+    expected_manifest = _run_manifest(mapping_path, input_paths, chunk_rows)
+    manifest_path = chunk_root / "manifest.json"
+    if resume:
+        if not manifest_path.is_file():
+            raise FullMaterializationError(
+                f"Resume manifest is missing: {manifest_path}. Start a new run without --resume."
+            )
+        existing_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if existing_manifest != expected_manifest:
+            raise FullMaterializationError(
+                "Resume manifest does not match the mapping, inputs, or chunk size. "
+                "Start a new run without --resume."
+            )
+    if chunk_root.exists() and not resume:
         shutil.rmtree(chunk_root)
     chunk_root.mkdir(parents=True, exist_ok=True)
+    if not resume:
+        manifest_path.write_text(
+            json.dumps(expected_manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if output_path.exists():
         output_path.unlink()
@@ -197,31 +269,34 @@ def materialize_full_chunked(
     for chunk_index in range(total_chunks):
         start = chunk_index * chunk_rows
         chunk_dir = chunk_root / f"chunk-{chunk_index:05d}"
-        chunk_sources: dict[str, Path] = {}
-        for filename in FULL_SOURCE_FILENAMES:
-            chunk_source = chunk_dir / filename
-            _write_csv_chunk(
-                input_dir / filename,
-                chunk_source,
-                start=start,
-                limit=chunk_rows,
-            )
-            chunk_sources[filename] = chunk_source
-
-        chunk_mapping = _mapping_for_chunk(
-            mapping_path,
-            chunk_sources,
-            chunk_dir / "full_mapping.ttl",
-        )
         chunk_output = chunk_dir / "output.nt"
-        chunk_triples = _materialize_mapping_to_nt(
-            chunk_mapping,
-            chunk_output,
-            number_of_processes=number_of_processes,
-        )
-        if chunk_output.exists():
-            with output_path.open("ab") as final_handle, chunk_output.open("rb") as chunk_handle:
-                shutil.copyfileobj(chunk_handle, final_handle)
+        completed_triples = _completed_chunk_triples(chunk_dir) if resume else None
+        if completed_triples is not None:
+            chunk_triples = completed_triples
+        else:
+            (chunk_dir / "complete.json").unlink(missing_ok=True)
+            chunk_sources: dict[str, Path] = {}
+            for filename in FULL_SOURCE_FILENAMES:
+                chunk_source = chunk_dir / filename
+                _write_csv_chunk(
+                    input_dir / filename,
+                    chunk_source,
+                    start=start,
+                    limit=chunk_rows,
+                )
+                chunk_sources[filename] = chunk_source
+
+            chunk_mapping = _mapping_for_chunk(
+                mapping_path,
+                chunk_sources,
+                chunk_dir / "full_mapping.ttl",
+            )
+            chunk_triples = _materialize_mapping_to_nt(
+                chunk_mapping,
+                chunk_output,
+                number_of_processes=number_of_processes,
+            )
+            _commit_completed_chunk(chunk_dir, chunk_triples)
         total_triples += chunk_triples
         print(
             f"Chunk {chunk_index + 1}/{total_chunks}: "
@@ -232,6 +307,11 @@ def materialize_full_chunked(
         raise FullMaterializationError(
             f"Morph-KGC produced {total_triples} triples; minimum is {minimum_triples}"
         )
+    with output_path.open("wb") as final_handle:
+        for chunk_index in range(total_chunks):
+            chunk_output = chunk_root / f"chunk-{chunk_index:05d}" / "output.nt"
+            with chunk_output.open("rb") as chunk_handle:
+                shutil.copyfileobj(chunk_handle, final_handle)
     return total_triples
 
 
@@ -266,6 +346,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--number-of-processes", type=int, default=1)
     parser.add_argument("--work-dir", type=Path, default=None)
     parser.add_argument("--single-shot", action="store_true")
+    parser.add_argument("--resume", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -299,6 +380,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             chunk_rows=args.chunk_rows,
             minimum_triples=args.minimum_triples,
             number_of_processes=args.number_of_processes,
+            resume=args.resume,
         )
     print(f"Morph-KGC full triples: {triple_count}")
     print(f"Output: {args.output.resolve()}")
