@@ -140,8 +140,7 @@ def write_violations_summary(
             ]
         )
         lines.extend(
-            f"| `{summary.path}` | {summary.message} | {summary.count} |"
-            for summary in summaries
+            f"| `{summary.path}` | {summary.message} | {summary.count} |" for summary in summaries
         )
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -220,9 +220,14 @@ Date: 2025-XX-XX. Total triples: 50,432,103. Total violations: 8,234 (0.0163%).
 
 ## Trạng thái
 
-`scaffold done; full KG validation pending`
+`superseded by Pivot #1; scaffold retained, full KG validation not run`
 
-Local scaffold đã hoàn tất để kiểm tra SHACL shapes bằng fixture RDF nhỏ. Acceptance criteria phía trên vẫn pending cho full KG vì chưa chạy validation trên `data/processed/full/output.nt` hoặc Fuseki dataset `eth-kg`.
+Local scaffold đã hoàn tất để kiểm tra SHACL shapes bằng fixture RDF nhỏ. Full
+pySHACL validation không chạy vì file RDF 16,8 GB vượt RAM host; thiết kế
+SPARQL-backed validation chưa được duyệt trước khi T2.6 kích hoạt NO-GO #3.
+Theo `docs/pivot-decision-1.md`, dự án chuyển sang NL2SQL và dừng đầu tư Plan A.
+Các acceptance criteria full-KG phía trên cố ý giữ unchecked để không biến một
+task bị supersede thành kết quả pass giả.
 
 ## Evidence — 2026-07-04 Scaffold
 

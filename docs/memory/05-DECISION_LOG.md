@@ -24,6 +24,268 @@
 
 ## Entries
 
+### 2026-08-09 — T3.4 dùng exact deterministic quotas và bảo vệ semantic anchors
+
+- **Context:** Task noise cũ dùng Bernoulli 5%, cho phép compound labels và gọi
+  gold query là SPARQL. Cách này không đảm bảo count/type distribution, khó tái
+  lập, và có thể làm hỏng entity/date/number anchors.
+- **Options considered:** Random 5% theo từng record; sinh nhiều candidates rồi
+  filter; hoặc deterministic single-operation allocation với exact quotas.
+- **Decision:** Giữ 3.000 Stage C originals và thêm đúng 150 variants bằng seed
+  42: 38 typo, 38 abbrev, 37 fragment, 37 mixed case. Mỗi source tối đa một
+  variant; chỉ structural phrases được abbreviation; mọi slot/entity anchor được
+  bảo vệ và validate lại. SQL, Stage A hash và generation metadata bất biến.
+- **Rationale:** Exact quotas và SHA-derived RNG làm dataset byte-stable và audit
+  được. Single-operation labels giúp ablation rõ nghĩa; protected spans giảm
+  semantic drift trong khi vẫn tạo lỗi surface realistic.
+- **Consequences:** Pipeline full-size fixture, exact validators, manifest,
+  process lock, unique staging và journaled recovery đã sẵn sàng. Vì POSIX không
+  thể atomic rename hai sibling paths như một unit, mỗi file atomic riêng và
+  manifest hash làm split pair fail closed. `nl_normalized` phải recompute vì nó
+  là derived field của noisy `nl`. Final artifact và audit 30 rows vẫn chờ T3.3
+  live output; automated gates không thay tiêu chí ít nhất 27/30 decipherable.
+- **Revisit:** Sau manual audit; nếu một type thường khó hiểu, chỉnh dictionary
+  hoặc transform nhưng giữ count/quota contract và tăng schema version.
+- **Linked:** `docs/tasks/phase-3-dataset/04-noise-injection.md`,
+  `src/nl2sparql/dataset/noise/`, `scripts/11_inject_noise.py`.
+
+### 2026-08-09 — T3.3 dùng hai model OpenRouter với structured output và actual-cost gate
+
+- **Context:** Stage A đã pivot sang 1.000 GoogleSQL records có live witness,
+  nhưng task paraphrase cũ vẫn mô tả SPARQL, model gợi ý chưa pin và cost estimate
+  theo bảng giá hard-code. Môi trường hiện không có LLM credential/runtime.
+- **Options considered:** Một model free-form; rewrite rules offline; hoặc hai model
+  pinned qua OpenRouter với strict schema, checkpoint và deterministic validators.
+- **Decision:** Stage B dùng `openai/gpt-4.1-mini` temperature 0; Stage C dùng
+  `google/gemini-2.5-flash` temperature 0.7. Bắt buộc structured output,
+  `require_parameters=true`, canonical fact/anchor checks, 3.000 normalized unique
+  questions, mean distance >0.30 và tổng `usage.cost` không quá $30.
+- **Rationale:** Hai model giảm single-model bias; strict schema và validators ngăn
+  semantic drift; actual API accounting bền hơn bảng giá tĩnh. Checkpoint cho phép
+  dừng/resume mà không trả tiền lại và vẫn cộng chi phí lịch sử vào cap.
+- **Consequences:** Implementation, tests, atomic writers, manifest và offline
+  preflight đã sẵn sàng. Live 2.000 calls, artifacts và manual audits phải chờ
+  `OPENROUTER_API_KEY`; không hạ acceptance hoặc sinh dữ liệu giả.
+- **Revisit:** Khi credential được cấu hình hoặc model ID mất structured-output
+  support; sau live run cập nhật audit evidence và output hashes.
+- **Linked:** `docs/tasks/phase-3-dataset/03-paraphrasing.md`,
+  `scripts/10_paraphrase_stage_a.py`,
+  `docs/superpowers/specs/2026-08-09-t3-3-sql-paraphrasing-design.md`.
+
+### 2026-08-09 — T3.2 dùng limit-monotonic live witnesses thay vì 1.000 scans
+
+- **Context:** T3.2 cũ sinh SPARQL offline. Nếu execute độc lập 1.000 GoogleSQL
+  records, enriched token templates sẽ lặp nhiều scan 13–14 GB và có thể vượt
+  BigQuery Sandbox quota. Đồng thời live month probes chỉ tìm thấy hai hard
+  templates non-empty, nên target hard 25% xung đột cap 10%/template.
+- **Options considered:** Execute đủ 1.000 queries; giữ offline-only; chấp nhận
+  zero rows; hoặc group các query chỉ khác `LIMIT n` và execute witness nhỏ
+  nhất để dùng tính đơn điệu non-empty.
+- **Decision:** Sinh deterministic 1.000 SQL records với allocation 350 easy /
+  450 medium / 200 hard. Chỉ dùng 16 live templates. Execute 81 witnesses;
+  singleton dùng `live_exact`, còn cùng semantics với `n` lớn hơn dùng
+  `live_limit_monotonic`. Gate 20 GiB/witness, 96 GiB tổng, cache off.
+- **Rationale:** Nếu query `LIMIT 1` trả row thì cùng query với limit lớn hơn
+  chắc chắn non-empty; proof không claim exact cardinality. 20% hard là maximum
+  honest share từ hai live hard templates dưới cap 100 records/template.
+- **Consequences:** 1.000/1.000 records có proof, 81 exact + 919 monotonic, 0
+  cache hits. Run xử lý 61.855.311.688 và billed 61.918.412.800 bytes. Artifact
+  1.559.692 bytes có SHA-256
+  `a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709`.
+  T3.3 phải consume field `sql` và giữ record hash/proof metadata.
+- **Revisit:** Khi operational/mixer/bridge coverage tăng đủ ít nhất ba hard
+  templates non-empty; khi đó có thể khôi phục hard share 25% mà không phá cap.
+- **Linked:** `docs/tasks/phase-3-dataset/02-synthetic-pipeline.md`,
+  `src/nl2sparql/dataset/generate.py`,
+  `src/nl2sparql/dataset/stage_a/verify.py`,
+  `data/dataset/raw/generation-config.json`.
+
+### 2026-08-09 — T3.1 dùng contract-v2 GoogleSQL và live cap 20/64 GiB
+
+- **Context:** Phase 3 vẫn có 25 SPARQL/Fuseki templates từ trước Pivot #1.
+  Proposal live gate 5 GiB/query và 30 GiB/library fail closed ở query token đầu
+  tiên vì enriched token TVF quét thêm contract dimension lịch sử.
+- **Options considered:** Giữ dual SQL/SPARQL contract; bỏ live execution; nâng
+  tùy ý riêng query lỗi; materialize token dimension; hoặc đo đủ distribution
+  rồi chốt một gate chung có headroom.
+- **Decision:** Migrate atomically sang 25 GoogleSQL contract-v2 templates, giữ
+  stable IDs và 8/11/6 distribution. Chốt live cap 20 GiB/template và 64
+  GiB/library sau diagnostic dry-run đủ 25 cases; execution luôn full-preflight,
+  immediate re-dry-run, cache off, schema và non-empty policy fail closed.
+- **Rationale:** 21 queries chỉ 0–0,33 GiB; bốn token queries 12,80–13,38 GiB do
+  shared dimension, tổng 56,53 GiB. Gate 20/64 bao workload thật với headroom
+  nhưng vẫn thấp hơn general cap 50 GiB/query và không che cost.
+- **Consequences:** Dry-run và execute đều pass 25/25; 60.698.067.264 processed,
+  60.749.250.560 billed, 0 cache hits, max wall 18,41s. 16 cases non-empty; 9
+  empty cases đều explicit policy/gap. T3.2 phải dùng `sql_template`, typed slots,
+  schema/CQ metadata và bounded date windows.
+- **Revisit:** Sau Phase 5 evaluation; nếu typical token templates tiến sát 20
+  GiB hoặc latency 30s, cân nhắc materialized token/contract enrichment.
+- **Linked:** `docs/tasks/phase-3-dataset/01-query-templates.md`,
+  `src/nl2sparql/dataset/templates/validate.py`,
+  `scripts/08_validate_sql_templates.py`.
+
+### 2026-08-09 — Phase 3 dùng bounded full-fact SQL với explicit latency evidence
+
+- **Context:** T2-SQL-3 cần gate Plan B bằng live results. Run đầu phát hiện
+  counts T2.3 là dictionary+1% filtered KG subset, không phải full public facts.
+  Corrected full-month benchmark sau đó pass correctness nhưng labeled token
+  stress case mất 45,79s, vượt descriptive target 30s.
+- **Options considered:** Giữ filtered counts làm oracle; tự chấp nhận observed
+  values; independent raw count; retry/cache để latency đẹp hơn; materialize
+  full-month facts; hoặc giữ public facts và bắt buộc bounded windows.
+- **Decision:** Pin independent raw oracles 65.621.456 transactions, 222.310
+  blocks, 125.320.919 transfers. Giữ logical/TVF layer, không retry/cache hoặc
+  materialize từ một stress run. Phase 3+ phải sinh date-bounded query với
+  window hẹp nhất hợp lý và log dry-run bytes/latency.
+- **Rationale:** Independent source count tránh population mismatch; 6/6
+  correctness và 66,17 GB total chứng minh layer đúng/bounded. Một full-month
+  exact-distinct+precision audit là upper-bound workload, không đủ evidence để
+  đổi architecture nhưng latency miss phải còn visible.
+- **Consequences:** Phase 2 SQL đủ điều kiện mở Phase 3. Interactive/evaluation
+  token queries không được mặc định quét trọn 31 ngày; validator/cost display
+  là contract bắt buộc. Filtered KG counts vẫn dùng đúng scope cho Plan A.
+- **Revisit:** Sau Phase 5 execution evaluation; nếu typical bounded queries
+  vẫn >30s, cân nhắc materialized aggregates hoặc giảm maximum window.
+- **Linked:** `docs/tasks/phase-2-sql/03-smoke-benchmark.md`,
+  `docs/sql-benchmark.md`, `src/nl2sparql/sql/benchmark.py`.
+
+### 2026-08-09 — T2-SQL-2 dùng immutable label snapshots và explicit Sandbox TTL
+
+- **Context:** Plan B cần stable entity labels và canonical BigQuery routines.
+  Live apply đồng thời phát hiện project `nl2sparql-thesis` chưa bật billing nên
+  BigQuery Sandbox tự áp default expiration 60 ngày dù create request gửi
+  `None`.
+- **Options considered:** Mutable label table; version column trong một table;
+  immutable digest snapshots sau stable view; coi Sandbox TTL như durable; hoặc
+  fail mọi deployment cho tới khi bật billing.
+- **Decision:** Dùng immutable `entity_labels_snapshot_<sha12>` sau stable
+  `entity_labels_v1`, 2 logical views và 6 bounded TVFs. Durable mode fail
+  closed trên mọi TTL. Flag explicit `--allow-sandbox-expiration` chỉ accept
+  đúng `5.184.000.000 ms`, read-back server policy/expiry và in deadline.
+- **Rationale:** Snapshot + stable view giữ audit/rollback và ngăn version join
+  duplication. Explicit Sandbox mode cho phép tiếp tục research trên hạ tầng
+  hiện có mà không che giấu retention constraint hoặc tự ý thay đổi billing.
+- **Consequences:** 5.135 unique labels và toàn bộ routines đang live; 6/6 source
+  schemas pass, representative dry-run cao nhất 30.551.889.008 bytes dưới cap
+  50 GiB. Snapshot/view hiện expire 2026-10-08; phải bật billing hoặc redeploy
+  trước đó. Legacy `nl2sparql_kg.labeled_addresses` được giữ nguyên.
+- **Revisit:** Trước 2026-10-01 hoặc ngay khi project bật billing; redeploy ở
+  durable mode và xác nhận dataset/snapshot/view không còn expiration.
+- **Linked:** `docs/tasks/phase-2-sql/02-label-enriched-layer.md`,
+  `src/nl2sparql/sql/label_layer.py`,
+  `scripts/06_deploy_sql_label_layer.py`.
+
+### 2026-08-09 — Plan B dùng hybrid GoogleSQL catalog và date-bounded TVFs
+
+- **Context:** Pivot #1 chuyển execution target sang BigQuery, nhưng raw public
+  tables không tự cung cấp canonical joins, role-aware entity semantics hoặc
+  bắt buộc date/cost guards. Logical views cũng không nhận query parameters.
+- **Options considered:** Prompt query trực tiếp public tables; materialize full
+  monthly snapshot; hoặc hybrid layer dùng public facts, managed label
+  dimension và parameterized TVFs.
+- **Decision:** Chọn hybrid. T2-SQL-1 commit machine-readable catalog gồm 6
+  sources, 6 relations, 6 joins, 41 semantic mappings và CQ01-CQ30. Fact
+  windows dùng half-open `[start_date, end_date)`, tối đa 31 ngày, dry-run và
+  cap 50 GiB/query. T2-SQL-2 sẽ tạo `entity_labels_v1` và TVFs.
+- **Rationale:** Cách này giữ partition pruning và dữ liệu public cập nhật mà
+  vẫn cho downstream một interface nhỏ, testable và fail closed. CQ mapping
+  buộc gaps/unsupported semantics phải hiện rõ thay vì model tự suy diễn.
+- **Consequences:** 25 CQs supported; CQ21/CQ23/CQ27/CQ28 thiếu operational
+  label coverage; CQ24 không hỗ trợ vì public substrate không decode distinct
+  meta-transaction initiator/executor. CQ17 chỉ dùng block beneficiary, không
+  claim validator identity. CQ18 bổ sung canonical transaction→contract join.
+- **Revisit:** Sau T2-SQL-3 nếu representative query vượt 50 GiB hoặc latency
+  gate yêu cầu materialized intermediate; không nới role/semantic safety để
+  làm benchmark pass.
+- **Linked:** `docs/tasks/phase-2-sql/01-analytical-schema.md`,
+  `src/nl2sparql/sql/catalog/ethereum_analytics.json`,
+  `docs/research/bigquery-analytical-layer-options-2026-08-09.md`.
+
+### 2026-08-09 — T2.2 dùng role-aware hybrid snapshots và fail closed
+
+- **Context:** Seed-42 audit chứng minh extraction theo chuỗi giống EVM address
+  làm mất chain context. Protocol token, operational contract và exchange
+  treasury cũng không thể dùng thay thế nhau trong downstream queries.
+- **Options considered:** Parse/execute mọi adapter JavaScript; curate thủ công
+  toàn bộ dictionary; hoặc hybrid snapshot với automated chain-aware tokens và
+  reviewed pinned CEX/protocol evidence.
+- **Decision:** Chọn hybrid fail-closed. Tất cả rows bắt buộc `chain_id=1`, role
+  `operational|token|treasury`, immutable revision và row locator. CoinGecko
+  `chainId=1` cung cấp bulk tokens; reviewed rows có precedence; ambiguous hoặc
+  non-Ethereum evidence bị loại.
+- **Rationale:** Cách này giữ được scale 5.135 records và CI offline nhưng không
+  thực thi upstream code hay suy diễn chain/role từ address shape.
+- **Consequences:** Independent seed-20260809 audit pass 50/50. Chỉ 14 rows được
+  phép dùng cho flow analysis; token/treasury rows vẫn hữu ích cho linking và
+  attribution nhưng không được giả làm operational endpoints.
+- **Revisit:** Khi Phase 4/Plan B evaluation cần tăng operational coverage; mỗi
+  row mới vẫn phải qua cùng provenance contract và independent audit.
+- **Linked:** `docs/superpowers/specs/2026-08-09-t2-2-chain-aware-remediation-design.md`,
+  `data/entity_dictionary/curated/reviewed_ethereum_entities.csv`,
+  `docs/research/entity-dictionary-manual-sample-remediated-2026-08-09.md`.
+
+### 2026-08-09 — T2.2 phải rebuild DefiLlama rows theo chain context
+
+- **Context:** Manual audit seed 42 trên 50 dictionary rows chỉ pass 43. Hai CEX
+  addresses thuộc BSC/Arbitrum; bốn protocol addresses thuộc Base, Polygon,
+  Arbitrum, Mantle hoặc zkSync; một row là prefix bị cắt từ Aptos resource.
+- **Options considered:** Tick acceptance dựa trên 86% sample pass; xóa riêng 7
+  rows; hoặc rebuild toàn bộ DefiLlama-derived rows bằng parser chain-aware.
+- **Decision:** Không tick T2.2 manual acceptance và không vá riêng sample.
+  Rebuild toàn bộ DefiLlama rows, chỉ nhận explicit Ethereum chain context và
+  pin row-level provenance trước khi audit lại.
+- **Rationale:** Lỗi đến từ acquisition method nên 7 sampled rows không phải
+  outlier độc lập. Vá sample sẽ che population risk và làm entity linker học
+  attribution sai chain.
+- **Consequences:** Dictionary hiện tại vẫn dùng được để phát triển structural
+  tests nhưng không được coi là production-quality Ethereum dictionary. T2-SQL
+  label views và Phase 3 entity sampling phải chờ artifact remediated.
+- **Revisit:** Sau khi regenerate artifacts và independent sample 50 pass.
+- **Linked:** `docs/tasks/phase-2-kg/02-entity-dictionary.md`,
+  `docs/research/entity-dictionary-manual-sample-2026-08-09.md`,
+  `src/nl2sparql/linking/dictionary/sources.md`.
+
+### 2026-08-09 — Pivot từ NL2SPARQL sang NL2SQL tại Pivot Point #1
+
+- **Context:** Full KG 73,9M triples load được vào TDB2 nhưng benchmark chính
+  thức cho Q1 count và Q2 filter không LIMIT mất lần lượt 34,55s và 38,01s.
+  Dictionary có 4.520 entries nhưng manual sample sau đó fail 7/50.
+- **Options considered:** Tiếp tục Plan A và tối ưu/cache Fuseki; thu nhỏ KG;
+  hoặc tuân thủ NO-GO gate và pivot Plan B trên BigQuery.
+- **Decision:** Pivot sang NL2SQL. Giữ full KG như negative-result artifact,
+  dừng T2.5 full validation và không đầu tư thêm vào optimization Plan A.
+- **Rationale:** T2.6 quy định bất kỳ một NO-GO trigger nào cũng buộc pivot;
+  query đơn giản >5s đã kích hoạt trigger #3. Cache/pre-aggregation hoặc thu nhỏ
+  KG sẽ thay đổi workload thay vì làm evidence hiện tại pass.
+- **Consequences:** Bổ sung Phase 2 SQL schema/views/smoke tasks; migrate target
+  của Phase 3–7 từ SPARQL sang Standard SQL. Dictionary, extraction, dataset
+  protocol, linker/evaluation methodology và model training vẫn tái sử dụng.
+- **Revisit:** Không đảo lại Plan A trong implementation; chỉ thảo luận KG như
+  negative finding/limitation khi viết luận văn.
+- **Linked:** `docs/pivot-decision-1.md`, `docs/plan-b-adjustments.md`,
+  `docs/tasks/phase-2-kg/06-pivot-decision.md`, `docs/kg-benchmark.md`.
+
+### 2026-08-09 — Materialize full KG bằng chunk 50k có checkpoint xác thực
+
+- **Context:** Live Morph-KGC với chunk 100k tạo 2.43M triples rồi bị kernel kill
+  (exit 137) khi RDFLib serialize trên máy 7.4 GiB RAM. Run nhiều giờ cũng cần
+  tiếp tục an toàn sau interruption.
+- **Options considered:** Single-shot; chunk 100k không resume; chunk 50k với
+  reuse mọi `output.nt`; chunk 50k với manifest và completion marker.
+- **Decision:** Mặc định 50k rows/chunk, chỉ reuse chunk có completion marker,
+  và bắt buộc manifest SHA-256 của mapping/input/chunk size khớp khi `--resume`.
+- **Rationale:** 50k giữ peak memory dưới giới hạn host và hoàn tất 89/89 chunk;
+  manifest ngăn trộn output từ input hoặc cấu hình khác, marker ngăn tin partial
+  file sau crash.
+- **Consequences:** Full output đạt 73,906,181 triples và TDB2 chỉ 10.88 GB.
+  Selective queries đạt <2s nhưng aggregate counts mất 15.12-69.68s, nên T2.6
+  phải xem đây là NO-GO evidence thay vì coi T2.4 pass hoàn toàn.
+- **Revisit:** Nếu tiếp tục Plan A sau Pivot #1, benchmark pre-aggregation hoặc
+  cached dataset statistics mà không thay thế metric exact-match cốt lõi.
+- **Linked:** `src/nl2sparql/kg/rml/run_morph_full.py`,
+  `docs/tasks/phase-2-kg/04-rml-full-mapping.md`, `docs/kg-benchmark.md`.
+
 ### 2026-06-28 — T2.2 dictionary dùng committed source snapshots
 
 - **Context:** Public label sources for Ethereum addresses can change, rate-limit, or block automation. T2.2 still needs a stable input for Phase 4 entity linking and for thesis reproducibility.
@@ -160,9 +422,9 @@
 - [ ] Phase 2: Chốt namespace ontology cuối cùng.
 - [ ] Phase 2: Chốt mức độ extension EthOn (số class/property thêm).
 - [ ] Phase 2: Chốt kích thước slice BigQuery (1 tháng → bao nhiêu transactions thực tế).
-- [ ] Phase 2: **Pivot Point #1** — Plan A tiếp tục hay Plan B.
+- [x] Phase 2: **Pivot Point #1** — pivot Plan B (2026-08-09).
 - [ ] Phase 3: Chốt số templates cuối cùng (mục tiêu 25-30).
-- [ ] Phase 3: Chốt LLM dùng cho paraphrase (Llama 3 70B qua OpenRouter? Mistral Large?).
+- [x] Phase 3: Chốt LLM dùng cho paraphrase (GPT-4.1 Mini + Gemini 2.5 Flash qua OpenRouter).
 - [ ] Phase 3: Chốt mức noise injection (% items, loại noise nào).
 - [ ] Phase 4: Chốt embedding model cuối (MiniLM-L6 hay multilingual?).
 - [ ] Phase 4: Chốt fuzzy threshold sau hyperparam search.

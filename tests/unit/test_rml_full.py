@@ -1,8 +1,8 @@
 """Tests for the T2.4 full RML mapping scaffold."""
 
 import csv
-import shutil
 import json
+import shutil
 from decimal import Decimal
 from pathlib import Path
 
@@ -10,12 +10,13 @@ import pytest
 from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
 
+from nl2sparql.kg.rml import run_morph_full
 from nl2sparql.kg.rml.run_morph_full import (
     FullMaterializationError,
     build_morph_config,
-    materialize_full_chunked,
     main,
     materialize_full,
+    materialize_full_chunked,
     parse_args,
     prepare_entities_csv,
     required_full_input_paths,
@@ -131,9 +132,7 @@ def _fixture_mapping(tmp_path: Path) -> Path:
     replacements = {
         "data/raw/full/transactions.csv": (FIXTURE_DIR / "transactions.csv").as_posix(),
         "data/raw/full/blocks.csv": (FIXTURE_DIR / "blocks.csv").as_posix(),
-        "data/raw/full/token_transfers.csv": (
-            FIXTURE_DIR / "token_transfers.csv"
-        ).as_posix(),
+        "data/raw/full/token_transfers.csv": (FIXTURE_DIR / "token_transfers.csv").as_posix(),
         "data/raw/full/contracts.csv": (FIXTURE_DIR / "contracts.csv").as_posix(),
         "data/raw/full/entities.csv": fixture_entities.as_posix(),
     }
@@ -205,6 +204,118 @@ def test_materialize_full_chunked_limits_sources_and_appends_output(tmp_path: Pa
         EX.ExchangeAccount,
     ) in graph
     assert URIRef(f"{EX}addr/") not in set(graph.all_nodes())
+
+
+def test_materialize_full_chunked_resumes_completed_chunks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    for filename in ("transactions.csv", "blocks.csv", "token_transfers.csv", "contracts.csv"):
+        shutil.copyfile(FIXTURE_DIR / filename, input_dir / filename)
+    prepare_entities_csv(FIXTURE_DIR / "entities.json", input_dir / "entities.csv")
+    output = tmp_path / "chunked-output.nt"
+    work_dir = tmp_path / "chunks"
+    expected_triples = materialize_full_chunked(
+        mapping_path=MAPPING_PATH,
+        input_dir=input_dir,
+        output_path=output,
+        work_dir=work_dir,
+        chunk_rows=1,
+        minimum_triples=35,
+        number_of_processes=1,
+    )
+    output.unlink()
+
+    def fail_if_materialized(*args: object, **kwargs: object) -> int:
+        raise AssertionError("completed chunks must not be materialized again")
+
+    monkeypatch.setattr(run_morph_full, "_materialize_mapping_to_nt", fail_if_materialized)
+
+    resumed_triples = materialize_full_chunked(
+        mapping_path=MAPPING_PATH,
+        input_dir=input_dir,
+        output_path=output,
+        work_dir=work_dir,
+        chunk_rows=1,
+        minimum_triples=35,
+        number_of_processes=1,
+        resume=True,
+    )
+
+    assert resumed_triples == expected_triples
+    assert len(Graph().parse(output, format="nt")) == expected_triples
+
+
+def test_materialize_full_chunked_rejects_incompatible_resume(tmp_path: Path) -> None:
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    for filename in ("transactions.csv", "blocks.csv", "token_transfers.csv", "contracts.csv"):
+        shutil.copyfile(FIXTURE_DIR / filename, input_dir / filename)
+    prepare_entities_csv(FIXTURE_DIR / "entities.json", input_dir / "entities.csv")
+    output = tmp_path / "chunked-output.nt"
+    work_dir = tmp_path / "chunks"
+    materialize_full_chunked(
+        mapping_path=MAPPING_PATH,
+        input_dir=input_dir,
+        output_path=output,
+        work_dir=work_dir,
+        chunk_rows=1,
+        minimum_triples=35,
+        number_of_processes=1,
+    )
+
+    with pytest.raises(FullMaterializationError, match="does not match"):
+        materialize_full_chunked(
+            mapping_path=MAPPING_PATH,
+            input_dir=input_dir,
+            output_path=output,
+            work_dir=work_dir,
+            chunk_rows=2,
+            minimum_triples=1,
+            number_of_processes=1,
+            resume=True,
+        )
+
+
+def test_materialize_full_chunked_rebuilds_uncommitted_chunk(tmp_path: Path) -> None:
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    for filename in ("transactions.csv", "blocks.csv", "token_transfers.csv", "contracts.csv"):
+        shutil.copyfile(FIXTURE_DIR / filename, input_dir / filename)
+    prepare_entities_csv(FIXTURE_DIR / "entities.json", input_dir / "entities.csv")
+    output = tmp_path / "chunked-output.nt"
+    work_dir = tmp_path / "chunks"
+    expected_triples = materialize_full_chunked(
+        mapping_path=MAPPING_PATH,
+        input_dir=input_dir,
+        output_path=output,
+        work_dir=work_dir,
+        chunk_rows=1,
+        minimum_triples=35,
+        number_of_processes=1,
+    )
+    first_chunk = work_dir / "chunk-00000"
+    (first_chunk / "complete.json").unlink()
+    (first_chunk / "output.nt").write_text(
+        "<https://example.org/s> <https://example.org/p> <https://example.org/o> .\n",
+        encoding="utf-8",
+    )
+
+    resumed_triples = materialize_full_chunked(
+        mapping_path=MAPPING_PATH,
+        input_dir=input_dir,
+        output_path=output,
+        work_dir=work_dir,
+        chunk_rows=1,
+        minimum_triples=35,
+        number_of_processes=1,
+        resume=True,
+    )
+
+    assert resumed_triples == expected_triples
+    assert len(Graph().parse(output, format="nt")) == expected_triples
 
 
 def test_parse_args_defaults_to_guarded_full_run() -> None:

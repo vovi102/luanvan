@@ -1,53 +1,74 @@
 # Query Template Library
 
-This directory contains the T3.1 SPARQL template library used by the synthetic
-dataset pipeline. Templates are stored in `templates.json` so later stages can
-sample slot values, render SPARQL, and generate natural-language questions.
+This directory contains the active T3.1 GoogleSQL template library for the
+synthetic dataset pipeline. The 25 stable template IDs and their approved
+difficulty/category distribution are preserved from the original taxonomy, but
+the executable contract now targets the managed BigQuery analytical layer.
 
-## Template schema
+## Template contract v2
 
-Each template object has these fields:
+Each object in `templates.json` contains exactly these fields:
 
 - `id`: stable `T_...` identifier.
 - `name`: short human-readable label.
-- `category`: analytics family such as `entity_lookup`, `top_k`, or `multi_hop`.
-- `difficulty`: one of `easy`, `medium`, or `hard`.
-- `slots`: mapping from placeholder name to slot metadata.
-- `sparql_template`: canonical SPARQL string rendered with Python `str.format`.
+- `category`: one of the ten approved analytics families.
+- `difficulty`: `easy`, `medium`, or `hard`.
+- `slots`: typed placeholder definitions and optional bounds.
+- `sql_template`: read-only Standard SQL rendered by the typed validator.
 - `nl_seed`: natural-language seed using the same placeholders.
-- `expected_columns`: result variables expected from the SELECT projection.
-- `ontology_elements`: local ontology classes/properties referenced by the query.
-- `example_fill`: deterministic fill-in used for offline formatting and future Fuseki checks.
+- `expected_columns`: aliases required in the result projection.
+- `schema_elements`: canonical analytical catalog relations and fields.
+- `cq_ids`: supported competency questions exercised by the template.
+- `example_fill`: deterministic, bounded example values.
+- `validation`: execution expectations such as whether a non-empty result is
+  required.
+
+Legacy `sparql_template` and `ontology_elements` fields are rejected. Every
+query references the fully qualified `nl2sparql-thesis.nl2sparql_analytics`
+dataset and uses its views or table-valued functions; direct access to public
+source tables is not part of this contract.
 
 ## Slot types
 
-Supported slot types for T3.1 are:
+The renderer supports these fail-closed slot types:
 
 - `integer`
 - `date`
 - `decimal_wei`
-- `ethereum_iri`
-- `transaction_iri`
+- `ethereum_address`
+- `transaction_hash`
+- `block_number`
 - `token_symbol`
 - `entity_owner`
 - `entity_category`
 - `concept_class`
+- `duration_minutes`
 
-T3.2 may extend the slot sampler, but new slot types should be documented here
-and covered by tests before use.
+Values are validated before interpolation. Strings are quoted safely, integer
+and decimal bounds are enforced, and fact-query date windows cannot be reversed
+or exceed 31 days.
 
 ## Validation
 
-Offline validation checks JSON shape, placeholder consistency, difficulty and
-category coverage, expected SELECT columns, ontology element notation, and the
-unexecuted notebook contract.
+Offline validation checks JSON shape, stable IDs, placeholder consistency,
+difficulty/category coverage, expected aliases, schema and competency-question
+references, safe read-only SQL, and managed-object usage:
 
-Live validation requires Fuseki and a loaded KG:
+```bash
+uv run python scripts/08_validate_sql_templates.py
+```
 
-1. Load `templates.json`.
-2. Render each `sparql_template` with `example_fill`.
-3. Submit the rendered query to the Fuseki `/eth-kg/sparql` endpoint.
-4. Record whether the query executes and whether it returns plausible rows.
+BigQuery dry-run validation compiles all rendered templates, disables cache
+assumptions, and enforces the accepted 20 GiB/template and 64 GiB/library byte
+budgets without executing them:
 
-Live Fuseki execution is pending until the full T2.4 KG materialization and load
-are complete.
+```bash
+uv run python scripts/08_validate_sql_templates.py --live
+```
+
+Execution is opt-in and still applies the configured per-template and library
+budgets:
+
+```bash
+uv run python scripts/08_validate_sql_templates.py --execute
+```

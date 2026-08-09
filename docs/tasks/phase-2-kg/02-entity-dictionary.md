@@ -33,7 +33,7 @@ Xây hierarchical entity dictionary 2 tầng (concept-level + instance-level) ch
 
 - [x] `entities.json` có ≥3000 entries (mục tiêu 5000).
 - [x] Mỗi entry có format chuẩn (xem dưới).
-- [ ] Sample 50 entries verify thủ công không có sai sót lớn.
+- [x] Sample 50 entries verify thủ công không có sai sót lớn.
 - [x] Cover top-30 exchange + top-50 DeFi protocol.
 - [x] `concepts.json` có 8-12 concept (exchange, mixer, DEX, lending, NFT marketplace, ...).
 - [x] `aliases.json` cover ≥1000 alias mapping.
@@ -144,9 +144,40 @@ Xây hierarchical entity dictionary 2 tầng (concept-level + instance-level) ch
 
 ## Trạng thái
 
-`done-local-auto-pending-manual`
+`done — chain-aware snapshot accepted`
 
-Automated acceptance đã pass locally. Manual sample 50 entries vẫn chưa tick vì cần human check từng mẫu ngẫu nhiên với source page/API tương ứng.
+Snapshot đã được rebuild fail-closed với `chain_id=1`, address role và immutable
+row-level provenance. Independent audit seed `20260809` pass 50/50; historical
+seed-42 failure được giữ lại làm root-cause evidence.
+
+## Evidence — 2026-08-09 Chain-Aware Remediation
+
+- Report:
+  `docs/research/entity-dictionary-manual-sample-remediated-2026-08-09.md`.
+- Sample: 50/5.135 records, `random.Random(20260809)`, không thay thế.
+- Kết quả: 50 pass, 0 critical errors, 0 minor errors.
+- Counts: 5.135 entities, 8.538 aliases, 10 concepts.
+- Roles: 5.091 `token`, 30 `treasury`, 14 `operational`.
+- Sources: 5.064 CoinGecko, 21 DefiLlama protocols API, 49 pinned DefiLlama
+  adapter rows và 1 pinned Concrete API row.
+- Top-30 exchange đều có `treasury` row; top-50 DeFi owner coverage được giữ.
+- Downstream flow queries chỉ được dùng 14 `operational` rows.
+- Focused verification: `46 passed`.
+- Full test suite: `182 passed` (342 upstream deprecation/user warnings).
+
+## Evidence — 2026-08-09 Manual Audit
+
+- Report: `docs/research/entity-dictionary-manual-sample-2026-08-09.md`.
+- Sample: 50/4.520 records, `random.Random(42)`, không thay thế.
+- Kết quả: 43 pass, 7 fail; error rate 14%.
+- CoinGecko: 30/30 pass với exact name/address và `chainId=1`.
+- DefiLlama CEX: 13/15 pass; 2 wrong-chain records.
+- DefiLlama protocols: 0/5 pass; 4 wrong-chain records và 1 truncated Aptos
+  resource address.
+- Root cause: acquisition không giữ chain context khi nhận diện chuỗi giống EVM
+  address; source URLs CEX không đủ row-level và đã stale.
+- Required fix: rebuild DefiLlama rows chỉ từ explicit Ethereum sections, pin
+  provenance, regenerate artifacts và audit sample mới.
 
 ## Evidence — 2026-06-28
 

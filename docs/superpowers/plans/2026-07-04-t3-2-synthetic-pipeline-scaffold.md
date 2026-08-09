@@ -1,5 +1,9 @@
 # T3.2 Synthetic Pipeline Scaffold Implementation Plan
 
+> **Superseded 2026-08-09:** This offline SPARQL plan is historical. The active
+> implementation plan is
+> `docs/superpowers/plans/2026-08-09-t3-2-witness-grounded-stage-a.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add deterministic offline Stage A generation scaffold.

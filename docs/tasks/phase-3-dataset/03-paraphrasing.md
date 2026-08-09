@@ -1,138 +1,93 @@
-# T3.3 — Paraphrasing 2 giai đoạn (Bước B + C)
+# T3.3 — Paraphrasing GoogleSQL hai giai đoạn
 
 ## Mục tiêu
 
-Biến `nl_seed` (câu hỏi "robotic" sinh từ template) thành câu hỏi tiếng Anh tự nhiên qua 2 stage:
-- **Stage B:** SPARQL → câu hỏi "trang trọng" (chuẩn ngữ pháp).
-- **Stage C:** Paraphrase thành 3 phiên bản đa dạng (đời thường / casual / abbreviated).
+Chuyển 1.000 câu `nl_seed` đã được live-verify ở Stage A thành tiếng Anh tự
+nhiên mà không thay đổi ý nghĩa truy vấn:
 
-## Bối cảnh & lý do
+- **Stage B:** một câu hỏi formal cho mỗi GoogleSQL record.
+- **Stage C:** ba biến thể `casual`, `abbreviated`, `alternative` cho mỗi câu
+  formal.
 
-`nl_seed` từ template thường cứng và lặp lại pattern, model sẽ overfit. Paraphrasing tạo đa dạng linguistic diversity quan trọng cho generalization.
+Hai stage dùng model khác nhau để giảm single-model bias. SQL và provenance
+Stage A là immutable; LLM chỉ sinh câu hỏi.
 
-Dùng 2 LLM khác nhau ở stage B và C để tránh bias một model. Stage B cần "faithful" (không đổi nghĩa), stage C cần "diverse".
+## Contract đã chốt
 
-## Phụ thuộc
+- Source: `data/dataset/raw/synthetic-stage-a.jsonl`, đúng 1.000 records, SHA-256
+  `a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709`.
+- Stage B: `openai/gpt-4.1-mini`, temperature `0`.
+- Stage C: `google/gemini-2.5-flash`, temperature `0.7`.
+- Gateway: OpenRouter non-streaming, strict JSON Schema và
+  `provider.require_parameters=true`.
+- Concurrency mặc định 10; tối đa 3 attempts cho 429, 5xx và timeout.
+- Tổng chi phí thực tế từ `usage.cost` không vượt `$30`; thiếu cost thì fail
+  closed.
+- Checkpoint theo source hash, prompt hash, stage và model; resume không gọi lại
+  record đã được chấp nhận và vẫn cộng chi phí lịch sử.
 
-- T3.2 — `synthetic-stage-a.jsonl` đã có ~1000 records.
-- Quyết định paraphrase model (xem T0/decision log).
+Prompt truyền GoogleSQL, `nl_seed`, canonical `slot_values` và entity context.
+Response phải lặp lại chính xác danh sách `name=value`; validator kiểm tra thêm
+date, numeric, token và entity/address anchors trước khi ghi checkpoint.
 
-## Đầu vào
+## Artifacts
 
-- `data/dataset/raw/synthetic-stage-a.jsonl`.
-- LLM API access:
-  - Stage B preferred: GPT-4o-mini hoặc Llama 3 70B qua OpenRouter (faithful translator).
-  - Stage C preferred: Claude 3.5 Haiku hoặc Mistral Large qua OpenRouter (diverse paraphraser).
-  - Lý do dùng 2 model khác: tránh single-model bias trong dataset.
+- `synthetic-stage-b.jsonl`: đúng 1.000 records, thêm `nl_formal` và metadata
+  generation Stage B.
+- `synthetic-stage-c.jsonl`: đúng 3.000 child records, có `parent_id`, `version`,
+  `nl`, `nl_normalized`, nguyên SQL/provenance và metadata Stage C.
+- `cost_log.csv`: một dòng cho mỗi generation ID, không chứa key hoặc prompt.
+- `paraphrase-config.json`: source/output hashes, pinned models, counts, quality,
+  actual cost và deterministic audit IDs (seed 42).
+- `.stage-b.checkpoint.jsonl` và `.stage-c.checkpoint.jsonl`: partial state để
+  resume; không phải final artifact.
 
-## Đầu ra
+Final JSONL chỉ được atomic replace sau khi toàn stage qua validation. Stage C
+yêu cầu 3.000 câu normalized khác nhau và dataset-wide mean normalized
+Levenshtein distance lớn hơn `0.30`.
 
-- File `data/dataset/raw/synthetic-stage-b.jsonl` — thêm field `nl_formal`.
-- File `data/dataset/raw/synthetic-stage-c.jsonl` — expand mỗi record thành 3 records với `nl_casual_v1/v2/v3`.
-- File `data/dataset/raw/cost_log.csv` — log chi phí API.
-- Notebook `notebooks/09_paraphrase.ipynb`.
+## Cách chạy
+
+Offline preflight không cần credential:
+
+```bash
+uv run python scripts/10_paraphrase_stage_a.py --mode validate-only
+```
+
+Live run sau khi cấu hình key:
+
+```bash
+export OPENROUTER_API_KEY='<configured outside the repository>'
+uv run python scripts/10_paraphrase_stage_a.py --mode all
+```
+
+Có thể dùng `--mode stage-b` hoặc `--mode stage-c` để resume riêng từng stage.
+Không commit API key. Notebook `notebooks/09_paraphrase.ipynb` dùng cho preflight,
+quality summary và audit IDs.
 
 ## Acceptance criteria
 
-- [ ] Stage B: 100% records có `nl_formal`, faithfulness check ≥95% (sample 50 manual).
-- [ ] Stage C: ~3000 records (1000 × 3 versions), không trùng lặp.
-- [ ] Edit-distance giữa 3 versions của cùng record: trung bình >30% (tức là thực sự khác nhau).
-- [ ] Cost API tổng ≤ $30 USD.
-- [ ] Quality sample 100 records: ≥90% đọc tự nhiên, ≥95% giữ nguyên ý nghĩa SPARQL.
+- [x] Source Stage A đúng 1.000 records và pinned SHA-256.
+- [x] Strict Stage B/C response, prompt, fact-anchor và diversity validators.
+- [x] Async runner có retry, concurrency bound, checkpoint/resume và actual-cost
+  hard cap.
+- [x] Final artifact writers atomic; manifest và audit sample IDs deterministic.
+- [x] Offline unit/integration tests và validate-only không khởi tạo API client.
+- [ ] Stage B live: 1.000/1.000 records; manual faithfulness audit 50 records đạt
+  ít nhất 95%.
+- [ ] Stage C live: 3.000 unique records; mean distance >30%; audit 100 parents
+  đạt ít nhất 90% natural và 95% faithful.
+- [ ] Tổng actual OpenRouter cost của Stage B + C không vượt `$30`.
 
-## Hướng dẫn triển khai
+## Trạng thái — external credential gate
 
-### Stage B — Formal translation
+Implementation và offline validation đã hoàn tất ngày 2026-08-09. Môi trường
+hiện không có `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, file
+`.env`, hoặc Ollama runtime. Vì vậy 2.000 live calls, final Stage B/C artifacts
+và manual audits chưa thể thực hiện trung thực. Task dừng ở checkpoint có thể
+resume; các acceptance live ở trên không được hạ thấp hoặc đánh dấu hoàn tất.
 
-```python
-SYSTEM_PROMPT_B = """You are a precise SPARQL-to-English translator.
-Given a SPARQL query and an entity context, write ONE clear, grammatically
-correct English question that the SPARQL would answer.
-Rules:
-- Preserve all filters, time ranges, top-N, and entities EXACTLY.
-- Use formal English (no slang).
-- Single sentence preferred. Max 30 words.
-- Do not add information not in SPARQL.
-- Use entity owner names ("Binance") instead of addresses when given.
-"""
+Chi tiết thiết kế và execution plan:
 
-USER_PROMPT_B_TEMPLATE = """SPARQL:
-{sparql}
-
-Entity context:
-{entity_dict}
-
-NL seed (for reference):
-{nl_seed}
-
-Write the English question:"""
-```
-
-Lưu output → `nl_formal`.
-
-### Stage C — Diverse paraphrase
-
-```python
-SYSTEM_PROMPT_C = """You are a paraphrasing assistant. Given a formal English
-question, write THREE different paraphrases:
-1. CASUAL: how a regular person might ask (informal, contractions OK).
-2. ABBREVIATED: shortened, telegram-style, may use abbreviations.
-3. ALTERNATIVE: different sentence structure but same meaning.
-
-Rules:
-- Preserve meaning EXACTLY (numbers, entities, time ranges).
-- Each paraphrase must be linguistically different (not just word swap).
-- Output as JSON: {"casual": "...", "abbreviated": "...", "alternative": "..."}
-"""
-```
-
-### Faithfulness verification
-
-Sample 50 records, manual check:
-- Có giữ nguyên entity names? (e.g. không bỏ "Binance")
-- Có giữ nguyên numeric thresholds?
-- Có giữ nguyên time ranges?
-- Reject record nếu có drift nghĩa.
-
-### Cost control
-
-- Stage B: ~1000 calls × ~500 tokens/call = ~500K tokens.
-- Stage C: ~1000 calls × ~800 tokens/call = ~800K tokens.
-- Llama 3 70B trên OpenRouter ~$0.5-0.9/M tokens → tổng ~$1-2.
-- Claude Haiku ~$0.25/M input + $1.25/M output → tổng ~$2-3.
-- Buffer cho retry → cap $30.
-
-### Output schema sau Stage C
-
-```json
-{
-  "id": "syn-000123-v1",
-  "parent_id": "syn-000123",
-  "version": "casual",
-  "sparql": "...",
-  "nl": "what's the top 10 biggest transfers from Jan 15 to Jan 20",
-  "nl_formal": "List the top 10 transactions by value between 2024-01-15 and 2024-01-20",
-  ...
-}
-```
-
-### Batching
-
-- Async parallel với `aiohttp` hoặc `asyncio` + semaphore (10 concurrent).
-- Retry với exponential backoff cho 429/5xx.
-- Save partial results mỗi 50 records (nếu crash không mất hết).
-
-## Rủi ro & note
-
-- **LLM hallucinate entity:** stage B có thể đổi "Binance" thành "Coinbase". Mitigation: prompt nhấn mạnh, check post-hoc bằng regex match entity names.
-- **Stage C "paraphrase" giống stage B:** prompt rõ ràng + check edit distance threshold.
-- **Cost overrun:** monitor cost mỗi 100 calls, hard stop tại $30.
-- **Rate limit:** OpenRouter free tier có thể rate limit, dùng paid tier nếu bị throttle.
-
-## Estimated effort
-
-2 ngày (1 ngày code + 1 ngày run + verify).
-
-## Trạng thái
-
-todo
+- `docs/superpowers/specs/2026-08-09-t3-3-sql-paraphrasing-design.md`
+- `docs/superpowers/plans/2026-08-09-t3-3-sql-paraphrasing.md`

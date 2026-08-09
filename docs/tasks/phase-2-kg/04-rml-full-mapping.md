@@ -31,11 +31,11 @@ Mở rộng RML mapping pilot để cover toàn bộ dữ liệu CSV; chạy Mor
 
 ## Acceptance criteria
 
-- [ ] Morph-KGC chạy hoàn tất, không crash.
-- [ ] Triple count ≥ 50M (5M tx × ~10 triple/tx).
+- [x] Morph-KGC chạy hoàn tất, không crash.
+- [x] Triple count ≥ 50M (5M tx × ~10 triple/tx).
 - [ ] Fuseki TDB2 có thể query, response time < 2s cho query đơn giản (count, simple filter).
-- [ ] 10 SPARQL competency queries từ T2.1 chạy được trên KG, trả kết quả hợp lý.
-- [ ] Memory footprint TDB2 ≤ 30GB (cho persistent indexes).
+- [x] 10 SPARQL competency queries từ T2.1 chạy được trên KG, trả kết quả hợp lý.
+- [x] Memory footprint TDB2 ≤ 30GB (cho persistent indexes).
 
 ## Local automation scaffold
 
@@ -231,9 +231,26 @@ SELECT ?owner (COUNT(?tx) AS ?n) WHERE {
 
 ## Trạng thái
 
-`scaffold done; live materialization pending`
+`live evaluated; aggregate count latency gate failed`
 
-Local scaffold đã hoàn tất để kiểm tra mapping bằng fixture nhỏ. Các acceptance criteria ở trên vẫn pending vì chưa chạy Morph-KGC trên `data/raw/full/`, chưa build Fuseki TDB2, chưa đo 50M+ triple count, và chưa benchmark competency queries trên KG thật.
+Live materialization, TDB2 load, and competency-query execution completed on
+2026-08-09. The only failed acceptance criterion is simple aggregate latency:
+selective queries completed in 29.76-1,077.50 ms, but full counts required
+15.12-69.68 seconds. See `docs/kg-benchmark.md`.
+
+## Evidence — 2026-08-09 Live Run
+
+- Morph-KGC output: 73,906,181 N-Triples (16,811,090,019 bytes).
+- TDB2 load: 73,907,909 tuples including EthOn and the extension; exit 0.
+- TDB2 footprint: 10,883,888,734 bytes.
+- Competency queries: 10/10 executed and returned rows.
+- Query latency: 9/10 representative selective queries under 2 seconds.
+- Failed gate: count-all-transactions was 69.68 seconds and 44.95 seconds on a
+  repeated warm run; count-all-triples was 15.12 seconds warm.
+- Runtime hardening: default chunk size reduced from 100,000 to 50,000 rows;
+  `--resume` now requires matching SHA-256 input/mapping manifest and committed
+  chunk markers.
+- Full evidence and commands: `docs/kg-benchmark.md`.
 
 ## Evidence — 2026-07-04 Scaffold
 
@@ -261,28 +278,13 @@ Local scaffold đã hoàn tất để kiểm tra mapping bằng fixture nhỏ. C
   ```
   Result: exit `0`.
 
-## Next live evidence step
-
-Run only when enough disk/time is available:
-
-```bash
-UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
-UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
-uv run python src/nl2sparql/kg/rml/run_morph_full.py --prepare-only
-
-UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
-UV_PYTHON_INSTALL_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-python \
-uv run python src/nl2sparql/kg/rml/run_morph_full.py --force --chunk-rows 100000
-```
-
-After live materialization, record output size, triple count, wall time, TDB2 load command, Fuseki query benchmark, and TDB2 disk footprint here.
-
 ## Evidence — 2026-07-04 Chunked runner update
 
 - Root cause: original `--force` path called `morph_kgc.materialize()` once for all full CSV files, keeping the full RDFLib graph in memory until final serialization.
 - Fix: `--force` now uses `materialize_full_chunked()` by default. Each chunk writes bounded temporary CSV slices, materializes one chunk, appends chunk N-Triples to `data/processed/full/output.nt`, and releases the chunk graph.
 - Controls:
-  - `--chunk-rows`: source rows per chunk, default `100000`.
+  - `--chunk-rows`: source rows per chunk, default ban đầu `100000`; live run
+    2026-08-09 đã giảm default xuống `50000` sau khi chunk 100k bị exit 137.
   - `--number-of-processes`: Morph-KGC process count per chunk, default `1`.
   - `--single-shot`: explicit opt-in to the old all-at-once materialization path.
 - Focused verification:

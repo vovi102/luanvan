@@ -44,10 +44,11 @@ Hệ thống cần:
 
 ## Plan A vs Plan B
 
-- **Plan A (chính):** NL2SPARQL trên KG Apache Jena Fuseki.
-- **Plan B (fallback):** NL2SQL trên BigQuery Ethereum public dataset.
+- **Plan A (đã thử, dừng 2026-08-09):** NL2SPARQL trên KG Apache Jena Fuseki.
+- **Plan B (đang active):** NL2SQL trên BigQuery Ethereum public dataset.
 - **Common ground (làm trước):** entity dictionary, dataset pipeline, test set, schema/entity linking logic, evaluation framework, literature review.
-- **Pivot Point #1 — cuối tháng 2:** quyết định A vs B sau Phase 1+2.
+- **Pivot Point #1 — đã quyết định:** pivot Plan B vì query đơn giản trên full KG
+  vượt NO-GO 5 giây; xem `docs/pivot-decision-1.md`.
 - **Pivot Point #2 — giữa tháng 4 (last resort):** scope down/pivot nếu B1 baseline F1 < 20%.
 
 ## Tài nguyên

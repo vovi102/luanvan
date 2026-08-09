@@ -141,8 +141,7 @@ def write_edge_case_report(summary: dict[str, int], output_path: Path) -> None:
         "",
         f"- Contract creation rows (`to_address` null): {summary.get('null_to_address', 0)}",
         f"- Zero-value transactions: {summary.get('zero_value', 0)}",
-        "- Values above the exact IEEE-754 integer range: "
-        f"{summary.get('large_integer_value', 0)}",
+        f"- Values above the exact IEEE-754 integer range: {summary.get('large_integer_value', 0)}",
         f"- Zero gas price rows: {summary.get('zero_gas_price', 0)}",
         "- Typed transactions (`transaction_type` not legacy `0`): "
         f"{summary.get('non_legacy_transaction_type', 0)}",

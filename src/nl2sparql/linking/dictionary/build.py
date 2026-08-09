@@ -9,7 +9,11 @@ from typing import Any
 from nl2sparql.linking.dictionary.schema import (
     normalize_address,
     normalize_alias,
+    validate_address_role,
+    validate_chain_id,
     validate_confidence,
+    validate_source_locator,
+    validate_source_revision,
 )
 
 
@@ -62,12 +66,16 @@ def build_dictionary(raw_path: Path, concepts_path: Path) -> dict[str, Any]:
                 "category": row["category"],
                 "concept_class": row["concept_class"],
                 "aliases": entry_aliases,
+                "chain_id": validate_chain_id(row["chain_id"]),
+                "address_role": validate_address_role(row["address_role"]),
                 "sources": [
                     {
                         "name": row["source_name"],
                         "url": row["source_url"],
+                        "revision": validate_source_revision(row["source_revision"]),
+                        "locator": validate_source_locator(row["source_locator"]),
                         "retrieved_date": row["retrieved_date"],
-                        "note": f"Raw snapshot label for {row['owner']}",
+                        "note": (f"{row['address_role'].title()} evidence for {row['owner']}"),
                     }
                 ],
                 "confidence": confidence,
