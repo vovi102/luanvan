@@ -24,6 +24,31 @@
 
 ## Entries
 
+### 2026-08-09 — Phase 3 dùng bounded full-fact SQL với explicit latency evidence
+
+- **Context:** T2-SQL-3 cần gate Plan B bằng live results. Run đầu phát hiện
+  counts T2.3 là dictionary+1% filtered KG subset, không phải full public facts.
+  Corrected full-month benchmark sau đó pass correctness nhưng labeled token
+  stress case mất 45,79s, vượt descriptive target 30s.
+- **Options considered:** Giữ filtered counts làm oracle; tự chấp nhận observed
+  values; independent raw count; retry/cache để latency đẹp hơn; materialize
+  full-month facts; hoặc giữ public facts và bắt buộc bounded windows.
+- **Decision:** Pin independent raw oracles 65.621.456 transactions, 222.310
+  blocks, 125.320.919 transfers. Giữ logical/TVF layer, không retry/cache hoặc
+  materialize từ một stress run. Phase 3+ phải sinh date-bounded query với
+  window hẹp nhất hợp lý và log dry-run bytes/latency.
+- **Rationale:** Independent source count tránh population mismatch; 6/6
+  correctness và 66,17 GB total chứng minh layer đúng/bounded. Một full-month
+  exact-distinct+precision audit là upper-bound workload, không đủ evidence để
+  đổi architecture nhưng latency miss phải còn visible.
+- **Consequences:** Phase 2 SQL đủ điều kiện mở Phase 3. Interactive/evaluation
+  token queries không được mặc định quét trọn 31 ngày; validator/cost display
+  là contract bắt buộc. Filtered KG counts vẫn dùng đúng scope cho Plan A.
+- **Revisit:** Sau Phase 5 execution evaluation; nếu typical bounded queries
+  vẫn >30s, cân nhắc materialized aggregates hoặc giảm maximum window.
+- **Linked:** `docs/tasks/phase-2-sql/03-smoke-benchmark.md`,
+  `docs/sql-benchmark.md`, `src/nl2sparql/sql/benchmark.py`.
+
 ### 2026-08-09 — T2-SQL-2 dùng immutable label snapshots và explicit Sandbox TTL
 
 - **Context:** Plan B cần stable entity labels và canonical BigQuery routines.

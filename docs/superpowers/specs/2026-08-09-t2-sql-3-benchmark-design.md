@@ -45,18 +45,25 @@ enough to gate Phase 3 while treating latency as descriptive evidence.
 ## Workload
 
 The label case proves exactly 5,135 unique addresses, role counts 14/5,091/30
-and one accepted digest. Transaction/block cases compare routine counts with
-the committed full-extraction evidence. Contract dimension proves a unique
-address output and no row at/after the end bound.
+and one accepted digest. Transaction/block cases compare routine counts with an
+independent raw-source query for the same half-open window. Contract dimension
+proves a unique address output and no row at/after the end bound.
 
 The labeled transaction case requires both total rows and distinct transaction
-hashes to remain 4,431,329. The labeled token-transfer case requires total and
-distinct `(transaction_hash, log_index)` events to remain 4,001,230. It also
+hashes to remain 65,621,456. The labeled token-transfer case requires total and
+distinct `(transaction_hash, log_index)` events to remain 125,320,919. It also
 counts violations where a non-null normalized amount lacks a valid cast, ERC-20
 status, non-ERC-721 status, or decimals in 0–38; violations must equal zero.
 
 Each query returns one scalar result row containing `passed`. Additional scalar
 diagnostics are serialized into the report.
+
+The initial design incorrectly treated T2.3 extraction counts as full-source
+oracles. The first live run failed fast and root-cause tracing showed those
+queries intentionally select dictionary-linked activity plus a 1% background
+sample. An independent bounded public-source count established 65,621,456
+transactions, 222,310 blocks and 125,320,919 transfers. The accepted benchmark
+uses these full-population oracles; filtered counts remain Plan A evidence only.
 
 ## Harness
 
@@ -92,4 +99,3 @@ budget refusal before execution, exact one-row/boolean handling, metrics and
 CLI modes. Live execution follows only after offline tests and a full dry-run
 pass. Task closure requires 6/6 correctness assertions, byte budgets, committed
 report, full suite, Ruff, formatting and whitespace checks.
-

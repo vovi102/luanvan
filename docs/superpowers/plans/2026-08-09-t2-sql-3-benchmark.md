@@ -33,11 +33,11 @@ Click 8, Ruff, `time.perf_counter_ns`.
 - Create `src/nl2sparql/sql/benchmark.py`
 - Modify `src/nl2sparql/sql/__init__.py`
 
-- [ ] Write failing tests for exact case IDs, bounded dates, fully qualified
+- [x] Write failing tests for exact case IDs, bounded dates, fully qualified
   managed objects, exact historical counts and token precision assertion.
-- [ ] Confirm RED from absent module.
-- [ ] Implement frozen case dataclass/catalog and static safety validation.
-- [ ] Run focused tests GREEN and commit.
+- [x] Confirm RED from absent module.
+- [x] Implement frozen case dataclass/catalog and static safety validation.
+- [x] Run focused tests GREEN and commit.
 
 ---
 
@@ -47,13 +47,13 @@ Click 8, Ruff, `time.perf_counter_ns`.
 - Modify `tests/unit/test_sql_benchmark.py`
 - Modify `src/nl2sparql/sql/benchmark.py`
 
-- [ ] Write fake-client tests for query configs/order, per-case overflow,
+- [x] Write fake-client tests for query configs/order, per-case overflow,
   aggregate overflow before execution, false/null/multi-row result and metric
   capture.
-- [ ] Confirm RED before harness code.
-- [ ] Implement preflight/result dataclasses, config builder, executor and JSON
+- [x] Confirm RED before harness code.
+- [x] Implement preflight/result dataclasses, config builder, executor and JSON
   serialization boundary.
-- [ ] Run focused tests GREEN and commit.
+- [x] Run focused tests GREEN and commit.
 
 ---
 
@@ -64,11 +64,11 @@ Click 8, Ruff, `time.perf_counter_ns`.
 - Modify `tests/unit/test_sql_benchmark.py`
 - Create `docs/sql-benchmark.md`
 
-- [ ] Write CLI tests proving default dry-run-only and explicit `--execute`.
-- [ ] Implement deterministic JSON output and clear nonzero failures.
-- [ ] Run all six live dry-runs; require per-case/aggregate budgets.
-- [ ] Execute once with cache disabled; require 6/6 `passed=true`.
-- [ ] Commit exact metrics and any latency-target miss without retrying it away.
+- [x] Write CLI tests proving default dry-run-only and explicit `--execute`.
+- [x] Implement deterministic JSON output and clear nonzero failures.
+- [x] Run all six live dry-runs; require per-case/aggregate budgets.
+- [x] Execute once with cache disabled; require 6/6 `passed=true`.
+- [x] Commit exact metrics and any latency-target miss without retrying it away.
 
 ---
 
@@ -78,10 +78,10 @@ Click 8, Ruff, `time.perf_counter_ns`.
 - Modify `docs/tasks/phase-2-sql/03-smoke-benchmark.md`
 - Modify `docs/memory/05-DECISION_LOG.md`
 
-- [ ] Run focused tests, full pytest, Ruff, format and `git diff --check`.
-- [ ] Record commands/counts/bytes/timings and close every truthful acceptance
+- [x] Run focused tests, full pytest, Ruff, format and `git diff --check`.
+- [x] Record commands/counts/bytes/timings and close every truthful acceptance
   item.
-- [ ] Commit closure with a clean worktree.
+- [x] Commit closure with a clean worktree.
 
 ## Completion checkpoint
 
