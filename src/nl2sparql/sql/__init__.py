@@ -6,6 +6,7 @@ from nl2sparql.sql.schema import (
     SchemaCatalogError,
     load_catalog,
     validate_catalog,
+    validate_date_window,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "SchemaCatalogError",
     "load_catalog",
     "validate_catalog",
+    "validate_date_window",
 ]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ from nl2sparql.sql.schema import (
     SchemaCatalogError,
     load_catalog,
     validate_catalog,
+    validate_date_window,
 )
 
 EXPECTED_SOURCE_IDS = {
@@ -165,3 +167,194 @@ def test_validate_catalog_requires_sequence_sections(
 
     with pytest.raises(SchemaCatalogError, match=section):
         validate_catalog(invalid)
+
+
+def test_committed_catalog_encodes_approved_source_and_relation_contract(
+    catalog: dict[str, object],
+) -> None:
+    summary = validate_catalog(catalog)
+    sources = catalog["physical_sources"]
+    relations = catalog["analytical_relations"]
+
+    assert sources["transactions"]["object"] == (
+        "bigquery-public-data.crypto_ethereum.transactions"
+    )
+    assert sources["transactions"]["partition_field"] == "block_timestamp"
+    assert sources["amended_tokens"]["object_kind"] == "logical_view"
+    assert sources["entity_labels_v1"]["deployment_status"] == "deferred"
+    assert relations["transaction_facts"]["kind"] == "parameterized_fact"
+    assert relations["contract_dimension"]["kind"] == "bounded_dimension"
+    assert relations["token_dimension"]["kind"] == "parameterless_dimension"
+    assert set(catalog["role_policies"]) == {"operational", "treasury", "token"}
+    assert summary.semantic_mapping_count >= 25
+
+
+@pytest.mark.parametrize(
+    ("start_date", "end_date"),
+    [
+        (date(2026, 5, 31), date(2026, 6, 1)),
+        (date(2026, 5, 31), date(2026, 7, 1)),
+    ],
+)
+def test_validate_date_window_accepts_half_open_windows_up_to_31_days(
+    start_date: date, end_date: date
+) -> None:
+    validate_date_window(start_date, end_date)
+
+
+@pytest.mark.parametrize(
+    ("start_date", "end_date", "message"),
+    [
+        (date(2026, 6, 1), date(2026, 6, 1), "before"),
+        (date(2026, 6, 2), date(2026, 6, 1), "before"),
+        (date(2026, 5, 31), date(2026, 7, 2), "31 days"),
+    ],
+)
+def test_validate_date_window_rejects_empty_reversed_or_overlong_windows(
+    start_date: date, end_date: date, message: str
+) -> None:
+    with pytest.raises(SchemaCatalogError, match=message):
+        validate_date_window(start_date, end_date)
+
+
+def test_validate_date_window_rejects_non_dates() -> None:
+    with pytest.raises(SchemaCatalogError, match="date instances"):
+        validate_date_window("2026-05-31", "2026-07-01")
+
+
+def test_validate_catalog_rejects_unknown_source_kind(catalog: dict[str, object]) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["physical_sources"]["transactions"]["object_kind"] = "external"
+
+    with pytest.raises(SchemaCatalogError, match="object_kind"):
+        validate_catalog(invalid)
+
+
+@pytest.mark.parametrize(
+    ("attribute", "value", "message"),
+    [
+        ("type", "DECIMAL", "BigQuery type"),
+        ("mode", "OPTIONAL", "BigQuery mode"),
+    ],
+)
+def test_validate_catalog_rejects_unknown_physical_field_contract(
+    catalog: dict[str, object], attribute: str, value: str, message: str
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["physical_sources"]["transactions"]["fields"]["hash"][attribute] = value
+
+    with pytest.raises(SchemaCatalogError, match=message):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_rejects_missing_partition_field(catalog: dict[str, object]) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["physical_sources"]["transactions"]["partition_field"] = "missing"
+
+    with pytest.raises(SchemaCatalogError, match="partition_field"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_rejects_unknown_relation_source(catalog: dict[str, object]) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["analytical_relations"]["transaction_facts"]["sources"] = ["missing"]
+
+    with pytest.raises(SchemaCatalogError, match="unknown source"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_rejects_unknown_lineage_field(catalog: dict[str, object]) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["analytical_relations"]["transaction_facts"]["fields"]["transaction_hash"]["lineage"][
+        0
+    ]["field"] = "missing"
+
+    with pytest.raises(SchemaCatalogError, match="lineage field"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_requires_partition_coverage_for_every_relation_source(
+    catalog: dict[str, object],
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    del invalid["analytical_relations"]["token_transfer_facts"]["source_time_filters"]["contracts"]
+
+    with pytest.raises(SchemaCatalogError, match="source_time_filters"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_rejects_unknown_join_field(catalog: dict[str, object]) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["join_paths"]["transaction_to_block"]["conditions"][0]["left_field"] = "missing"
+
+    with pytest.raises(SchemaCatalogError, match="join field"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_requires_join_date_coverage(catalog: dict[str, object]) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["join_paths"]["transaction_to_block"]["date_covered_relations"] = ["transaction_facts"]
+
+    with pytest.raises(SchemaCatalogError, match="date_covered_relations"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_rejects_unknown_join_role(catalog: dict[str, object]) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["join_paths"]["fact_address_to_entity"]["allowed_right_roles"].append("protocol")
+
+    with pytest.raises(SchemaCatalogError, match="role"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_rejects_unknown_semantic_target(catalog: dict[str, object]) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["semantic_mappings"][0]["targets"][0]["relation"] = "missing"
+
+    with pytest.raises(SchemaCatalogError, match="semantic target"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_requires_explicit_unsupported_semantic_reason(
+    catalog: dict[str, object],
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    mapping = next(item for item in invalid["semantic_mappings"] if item["status"] == "unsupported")
+    mapping["reason"] = ""
+
+    with pytest.raises(SchemaCatalogError, match="reason"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_requires_managed_label_provenance(
+    catalog: dict[str, object],
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    del invalid["physical_sources"]["entity_labels_v1"]["fields"]["sources"]
+
+    with pytest.raises(SchemaCatalogError, match="entity_labels_v1.*sources"):
+        validate_catalog(invalid)
+
+
+def test_contract_dimension_deduplicates_redeployments_by_latest_block(
+    catalog: dict[str, object],
+) -> None:
+    contract_dimension = catalog["analytical_relations"]["contract_dimension"]
+
+    assert contract_dimension["primary_key"] == ["address"]
+    assert "ROW_NUMBER() OVER (PARTITION BY LOWER(c.address)" in contract_dimension["deduplication"]
+    assert "c.block_number DESC" in contract_dimension["deduplication"]
+
+
+def test_token_value_precision_contract_preserves_raw_and_rejects_null_casts(
+    catalog: dict[str, object],
+) -> None:
+    fields = catalog["analytical_relations"]["token_transfer_facts"]["fields"]
+
+    assert fields["value_raw"]["type"] == "STRING"
+    assert fields["value_bignumeric"]["type"] == "BIGNUMERIC"
+    assert fields["normalized_amount"]["type"] == "BIGNUMERIC"
+    assert "FLOAT64" not in fields["normalized_amount"]["expression"]
+    assert fields["value_cast_valid"]["expression"] == (
+        "tt.value IS NOT NULL AND SAFE_CAST(tt.value AS BIGNUMERIC) IS NOT NULL"
+    )

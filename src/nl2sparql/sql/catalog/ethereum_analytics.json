@@ -13,29 +13,409 @@
     "maximum_bytes_billed": 53687091200
   },
   "physical_sources": {
-    "transactions": {},
-    "blocks": {},
-    "token_transfers": {},
-    "contracts": {},
-    "amended_tokens": {},
-    "entity_labels_v1": {}
+    "transactions": {
+      "object": "bigquery-public-data.crypto_ethereum.transactions",
+      "object_kind": "partitioned_table",
+      "deployment_status": "live",
+      "location": "US",
+      "partition_field": "block_timestamp",
+      "key_fields": ["hash"],
+      "fields": {
+        "hash": {"type": "STRING", "mode": "REQUIRED"},
+        "transaction_index": {"type": "INTEGER", "mode": "REQUIRED"},
+        "from_address": {"type": "STRING", "mode": "REQUIRED"},
+        "to_address": {"type": "STRING", "mode": "NULLABLE"},
+        "value": {"type": "NUMERIC", "mode": "NULLABLE"},
+        "gas": {"type": "INTEGER", "mode": "NULLABLE"},
+        "gas_price": {"type": "INTEGER", "mode": "NULLABLE"},
+        "input": {"type": "STRING", "mode": "NULLABLE"},
+        "receipt_gas_used": {"type": "INTEGER", "mode": "NULLABLE"},
+        "receipt_contract_address": {"type": "STRING", "mode": "NULLABLE"},
+        "receipt_status": {"type": "INTEGER", "mode": "NULLABLE"},
+        "block_timestamp": {"type": "TIMESTAMP", "mode": "REQUIRED"},
+        "block_number": {"type": "INTEGER", "mode": "REQUIRED"},
+        "block_hash": {"type": "STRING", "mode": "REQUIRED"},
+        "transaction_type": {"type": "INTEGER", "mode": "NULLABLE"}
+      }
+    },
+    "blocks": {
+      "object": "bigquery-public-data.crypto_ethereum.blocks",
+      "object_kind": "partitioned_table",
+      "deployment_status": "live",
+      "location": "US",
+      "partition_field": "timestamp",
+      "key_fields": ["number", "hash"],
+      "fields": {
+        "timestamp": {"type": "TIMESTAMP", "mode": "REQUIRED"},
+        "number": {"type": "INTEGER", "mode": "REQUIRED"},
+        "hash": {"type": "STRING", "mode": "REQUIRED"},
+        "miner": {"type": "STRING", "mode": "NULLABLE"},
+        "gas_used": {"type": "INTEGER", "mode": "NULLABLE"},
+        "transaction_count": {"type": "INTEGER", "mode": "NULLABLE"},
+        "base_fee_per_gas": {"type": "INTEGER", "mode": "NULLABLE"}
+      }
+    },
+    "token_transfers": {
+      "object": "bigquery-public-data.crypto_ethereum.token_transfers",
+      "object_kind": "partitioned_table",
+      "deployment_status": "live",
+      "location": "US",
+      "partition_field": "block_timestamp",
+      "key_fields": ["transaction_hash", "log_index"],
+      "fields": {
+        "token_address": {"type": "STRING", "mode": "REQUIRED"},
+        "from_address": {"type": "STRING", "mode": "NULLABLE"},
+        "to_address": {"type": "STRING", "mode": "NULLABLE"},
+        "value": {"type": "STRING", "mode": "NULLABLE"},
+        "transaction_hash": {"type": "STRING", "mode": "REQUIRED"},
+        "log_index": {"type": "INTEGER", "mode": "REQUIRED"},
+        "block_timestamp": {"type": "TIMESTAMP", "mode": "REQUIRED"},
+        "block_number": {"type": "INTEGER", "mode": "REQUIRED"},
+        "block_hash": {"type": "STRING", "mode": "REQUIRED"}
+      }
+    },
+    "contracts": {
+      "object": "bigquery-public-data.crypto_ethereum.contracts",
+      "object_kind": "partitioned_table",
+      "deployment_status": "live",
+      "location": "US",
+      "partition_field": "block_timestamp",
+      "key_fields": ["address", "block_number", "block_hash"],
+      "fields": {
+        "address": {"type": "STRING", "mode": "REQUIRED"},
+        "is_erc20": {"type": "BOOLEAN", "mode": "NULLABLE"},
+        "is_erc721": {"type": "BOOLEAN", "mode": "NULLABLE"},
+        "block_timestamp": {"type": "TIMESTAMP", "mode": "REQUIRED"},
+        "block_number": {"type": "INTEGER", "mode": "REQUIRED"},
+        "block_hash": {"type": "STRING", "mode": "REQUIRED"}
+      }
+    },
+    "amended_tokens": {
+      "object": "bigquery-public-data.crypto_ethereum.amended_tokens",
+      "object_kind": "logical_view",
+      "deployment_status": "live",
+      "location": "US",
+      "key_fields": ["address"],
+      "fields": {
+        "address": {"type": "STRING", "mode": "NULLABLE"},
+        "symbol": {"type": "STRING", "mode": "NULLABLE"},
+        "name": {"type": "STRING", "mode": "NULLABLE"},
+        "decimals": {"type": "STRING", "mode": "NULLABLE"}
+      }
+    },
+    "entity_labels_v1": {
+      "object_template": "{project}.nl2sparql_analytics.entity_labels_v1",
+      "object_kind": "managed_table",
+      "deployment_status": "deferred",
+      "location": "US",
+      "key_fields": ["address"],
+      "fields": {
+        "address": {"type": "STRING", "mode": "REQUIRED"},
+        "chain_id": {"type": "INTEGER", "mode": "REQUIRED"},
+        "primary_label": {"type": "STRING", "mode": "REQUIRED"},
+        "owner": {"type": "STRING", "mode": "REQUIRED"},
+        "category": {"type": "STRING", "mode": "REQUIRED"},
+        "concept_class": {"type": "STRING", "mode": "REQUIRED"},
+        "address_role": {"type": "STRING", "mode": "REQUIRED"},
+        "aliases": {"type": "STRING", "mode": "REPEATED"},
+        "confidence": {"type": "STRING", "mode": "REQUIRED"},
+        "verified_date": {"type": "DATE", "mode": "REQUIRED"},
+        "sources": {
+          "type": "RECORD",
+          "mode": "REPEATED",
+          "fields": {
+            "name": {"type": "STRING", "mode": "REQUIRED"},
+            "url": {"type": "STRING", "mode": "REQUIRED"},
+            "revision": {"type": "STRING", "mode": "REQUIRED"},
+            "locator": {"type": "STRING", "mode": "REQUIRED"},
+            "retrieved_date": {"type": "DATE", "mode": "REQUIRED"},
+            "note": {"type": "STRING", "mode": "NULLABLE"}
+          }
+        },
+        "dictionary_sha256": {"type": "STRING", "mode": "REQUIRED"}
+      }
+    }
   },
   "analytical_relations": {
-    "transaction_facts": {},
-    "block_facts": {},
-    "token_transfer_facts": {},
-    "contract_dimension": {},
-    "token_dimension": {},
-    "entity_labels_v1": {}
+    "transaction_facts": {
+      "kind": "parameterized_fact",
+      "sources": ["transactions"],
+      "parameters": {"start_date": "DATE", "end_date": "DATE"},
+      "primary_key": ["transaction_hash"],
+      "source_time_filters": {
+        "transactions": {
+          "field": "block_timestamp",
+          "interval": "half_open",
+          "predicate": "t.block_timestamp >= TIMESTAMP(start_date) AND t.block_timestamp < TIMESTAMP(end_date)"
+        }
+      },
+      "fields": {
+        "transaction_hash": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "transactions", "field": "hash"}], "expression": "LOWER(t.hash)"},
+        "transaction_index": {"type": "INTEGER", "mode": "REQUIRED", "lineage": [{"source": "transactions", "field": "transaction_index"}]},
+        "block_timestamp": {"type": "TIMESTAMP", "mode": "REQUIRED", "lineage": [{"source": "transactions", "field": "block_timestamp"}]},
+        "block_number": {"type": "INTEGER", "mode": "REQUIRED", "lineage": [{"source": "transactions", "field": "block_number"}]},
+        "block_hash": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "transactions", "field": "block_hash"}], "expression": "LOWER(t.block_hash)"},
+        "from_address": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "transactions", "field": "from_address"}], "expression": "LOWER(t.from_address)"},
+        "to_address": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "to_address"}], "expression": "LOWER(t.to_address)"},
+        "value_wei": {"type": "NUMERIC", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "value"}]},
+        "gas_limit": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "gas"}]},
+        "gas_price_wei": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "gas_price"}]},
+        "receipt_gas_used": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "receipt_gas_used"}]},
+        "receipt_status": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "receipt_status"}]},
+        "is_success": {"type": "BOOLEAN", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "receipt_status"}], "expression": "t.receipt_status = 1"},
+        "input": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "input"}]},
+        "receipt_contract_address": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "receipt_contract_address"}], "expression": "LOWER(t.receipt_contract_address)"},
+        "transaction_type": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "transactions", "field": "transaction_type"}]}
+      }
+    },
+    "block_facts": {
+      "kind": "parameterized_fact",
+      "sources": ["blocks"],
+      "parameters": {"start_date": "DATE", "end_date": "DATE"},
+      "primary_key": ["block_number", "block_hash"],
+      "source_time_filters": {
+        "blocks": {
+          "field": "timestamp",
+          "interval": "half_open",
+          "predicate": "b.timestamp >= TIMESTAMP(start_date) AND b.timestamp < TIMESTAMP(end_date)"
+        }
+      },
+      "fields": {
+        "block_number": {"type": "INTEGER", "mode": "REQUIRED", "lineage": [{"source": "blocks", "field": "number"}]},
+        "block_hash": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "blocks", "field": "hash"}], "expression": "LOWER(b.hash)"},
+        "block_timestamp": {"type": "TIMESTAMP", "mode": "REQUIRED", "lineage": [{"source": "blocks", "field": "timestamp"}]},
+        "beneficiary_address": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "blocks", "field": "miner"}], "expression": "LOWER(b.miner)"},
+        "gas_used": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "blocks", "field": "gas_used"}]},
+        "transaction_count": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "blocks", "field": "transaction_count"}]},
+        "base_fee_per_gas_wei": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "blocks", "field": "base_fee_per_gas"}]}
+      }
+    },
+    "token_transfer_facts": {
+      "kind": "parameterized_fact",
+      "sources": ["token_transfers", "contracts", "amended_tokens"],
+      "parameters": {"start_date": "DATE", "end_date": "DATE"},
+      "primary_key": ["transaction_hash", "log_index"],
+      "source_time_filters": {
+        "token_transfers": {
+          "field": "block_timestamp",
+          "interval": "half_open",
+          "predicate": "tt.block_timestamp >= TIMESTAMP(start_date) AND tt.block_timestamp < TIMESTAMP(end_date)"
+        },
+        "contracts": {
+          "field": "block_timestamp",
+          "interval": "before_end",
+          "predicate": "c.block_timestamp < TIMESTAMP(end_date)"
+        }
+      },
+      "fields": {
+        "transaction_hash": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "token_transfers", "field": "transaction_hash"}], "expression": "LOWER(tt.transaction_hash)"},
+        "log_index": {"type": "INTEGER", "mode": "REQUIRED", "lineage": [{"source": "token_transfers", "field": "log_index"}]},
+        "block_timestamp": {"type": "TIMESTAMP", "mode": "REQUIRED", "lineage": [{"source": "token_transfers", "field": "block_timestamp"}]},
+        "block_number": {"type": "INTEGER", "mode": "REQUIRED", "lineage": [{"source": "token_transfers", "field": "block_number"}]},
+        "block_hash": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "token_transfers", "field": "block_hash"}], "expression": "LOWER(tt.block_hash)"},
+        "token_address": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "token_transfers", "field": "token_address"}], "expression": "LOWER(tt.token_address)"},
+        "from_address": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "token_transfers", "field": "from_address"}], "expression": "LOWER(tt.from_address)"},
+        "to_address": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "token_transfers", "field": "to_address"}], "expression": "LOWER(tt.to_address)"},
+        "value_raw": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "token_transfers", "field": "value"}]},
+        "value_bignumeric": {"type": "BIGNUMERIC", "mode": "NULLABLE", "lineage": [{"source": "token_transfers", "field": "value"}], "expression": "SAFE_CAST(tt.value AS BIGNUMERIC)"},
+        "value_cast_valid": {"type": "BOOLEAN", "mode": "REQUIRED", "lineage": [{"source": "token_transfers", "field": "value"}], "expression": "tt.value IS NOT NULL AND SAFE_CAST(tt.value AS BIGNUMERIC) IS NOT NULL"},
+        "is_erc20": {"type": "BOOLEAN", "mode": "NULLABLE", "lineage": [{"source": "contracts", "field": "is_erc20"}]},
+        "is_erc721": {"type": "BOOLEAN", "mode": "NULLABLE", "lineage": [{"source": "contracts", "field": "is_erc721"}]},
+        "token_symbol": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "amended_tokens", "field": "symbol"}]},
+        "token_name": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "amended_tokens", "field": "name"}]},
+        "token_decimals": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "amended_tokens", "field": "decimals"}], "expression": "SAFE_CAST(tok.decimals AS INT64)"},
+        "normalized_amount": {"type": "BIGNUMERIC", "mode": "NULLABLE", "lineage": [{"source": "token_transfers", "field": "value"}, {"source": "contracts", "field": "is_erc20"}, {"source": "contracts", "field": "is_erc721"}, {"source": "amended_tokens", "field": "decimals"}], "expression": "CASE WHEN c.is_erc20 IS TRUE AND COALESCE(c.is_erc721, FALSE) IS FALSE AND SAFE_CAST(tok.decimals AS INT64) BETWEEN 0 AND 38 THEN SAFE_DIVIDE(SAFE_CAST(tt.value AS BIGNUMERIC), POW(BIGNUMERIC '10', SAFE_CAST(tok.decimals AS INT64))) END"}
+      }
+    },
+    "contract_dimension": {
+      "kind": "bounded_dimension",
+      "sources": ["contracts"],
+      "parameters": {"end_date": "DATE"},
+      "primary_key": ["address"],
+      "deduplication": "QUALIFY ROW_NUMBER() OVER (PARTITION BY LOWER(c.address) ORDER BY c.block_number DESC, LOWER(c.block_hash) DESC) = 1",
+      "source_time_filters": {
+        "contracts": {
+          "field": "block_timestamp",
+          "interval": "before_end",
+          "predicate": "c.block_timestamp < TIMESTAMP(end_date)"
+        }
+      },
+      "fields": {
+        "address": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "contracts", "field": "address"}], "expression": "LOWER(c.address)"},
+        "is_erc20": {"type": "BOOLEAN", "mode": "NULLABLE", "lineage": [{"source": "contracts", "field": "is_erc20"}]},
+        "is_erc721": {"type": "BOOLEAN", "mode": "NULLABLE", "lineage": [{"source": "contracts", "field": "is_erc721"}]},
+        "created_at": {"type": "TIMESTAMP", "mode": "REQUIRED", "lineage": [{"source": "contracts", "field": "block_timestamp"}]},
+        "block_number": {"type": "INTEGER", "mode": "REQUIRED", "lineage": [{"source": "contracts", "field": "block_number"}]},
+        "block_hash": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "contracts", "field": "block_hash"}], "expression": "LOWER(c.block_hash)"}
+      }
+    },
+    "token_dimension": {
+      "kind": "parameterless_dimension",
+      "sources": ["amended_tokens"],
+      "parameters": {},
+      "primary_key": ["address"],
+      "source_time_filters": {},
+      "fields": {
+        "address": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "amended_tokens", "field": "address"}], "expression": "LOWER(tok.address)"},
+        "symbol": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "amended_tokens", "field": "symbol"}]},
+        "name": {"type": "STRING", "mode": "NULLABLE", "lineage": [{"source": "amended_tokens", "field": "name"}]},
+        "decimals": {"type": "INTEGER", "mode": "NULLABLE", "lineage": [{"source": "amended_tokens", "field": "decimals"}], "expression": "SAFE_CAST(tok.decimals AS INT64)"}
+      }
+    },
+    "entity_labels_v1": {
+      "kind": "parameterless_dimension",
+      "sources": ["entity_labels_v1"],
+      "parameters": {},
+      "primary_key": ["address"],
+      "source_time_filters": {},
+      "fields": {
+        "address": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "address"}]},
+        "chain_id": {"type": "INTEGER", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "chain_id"}]},
+        "primary_label": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "primary_label"}]},
+        "owner": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "owner"}]},
+        "category": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "category"}]},
+        "concept_class": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "concept_class"}]},
+        "address_role": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "address_role"}]},
+        "aliases": {"type": "STRING", "mode": "REPEATED", "lineage": [{"source": "entity_labels_v1", "field": "aliases"}]},
+        "confidence": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "confidence"}]},
+        "verified_date": {"type": "DATE", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "verified_date"}]},
+        "sources": {
+          "type": "RECORD",
+          "mode": "REPEATED",
+          "fields": {
+            "name": {"type": "STRING", "mode": "REQUIRED"},
+            "url": {"type": "STRING", "mode": "REQUIRED"},
+            "revision": {"type": "STRING", "mode": "REQUIRED"},
+            "locator": {"type": "STRING", "mode": "REQUIRED"},
+            "retrieved_date": {"type": "DATE", "mode": "REQUIRED"},
+            "note": {"type": "STRING", "mode": "NULLABLE"}
+          },
+          "lineage": [{"source": "entity_labels_v1", "field": "sources"}]
+        },
+        "dictionary_sha256": {"type": "STRING", "mode": "REQUIRED", "lineage": [{"source": "entity_labels_v1", "field": "dictionary_sha256"}]}
+      }
+    }
   },
   "join_paths": {
-    "transaction_to_block": {},
-    "transfer_to_transaction": {},
-    "transfer_to_contract": {},
-    "transfer_to_token": {},
-    "fact_address_to_entity": {}
+    "transaction_to_block": {
+      "kind": "equi_join",
+      "left_relation": "transaction_facts",
+      "right_relation": "block_facts",
+      "conditions": [
+        {"left_field": "block_number", "right_field": "block_number"},
+        {"left_field": "block_hash", "right_field": "block_hash"}
+      ],
+      "join_type": "inner",
+      "cardinality": "many_to_one",
+      "date_covered_relations": ["transaction_facts", "block_facts"],
+      "allowed_right_roles": []
+    },
+    "transfer_to_transaction": {
+      "kind": "equi_join",
+      "left_relation": "token_transfer_facts",
+      "right_relation": "transaction_facts",
+      "conditions": [
+        {"left_field": "transaction_hash", "right_field": "transaction_hash"},
+        {"left_field": "block_number", "right_field": "block_number"},
+        {"left_field": "block_hash", "right_field": "block_hash"}
+      ],
+      "join_type": "inner",
+      "cardinality": "many_to_one",
+      "date_covered_relations": ["token_transfer_facts", "transaction_facts"],
+      "allowed_right_roles": []
+    },
+    "transfer_to_contract": {
+      "kind": "equi_join",
+      "left_relation": "token_transfer_facts",
+      "right_relation": "contract_dimension",
+      "conditions": [{"left_field": "token_address", "right_field": "address"}],
+      "join_type": "left",
+      "cardinality": "many_to_one",
+      "date_covered_relations": ["token_transfer_facts", "contract_dimension"],
+      "allowed_right_roles": []
+    },
+    "transfer_to_token": {
+      "kind": "equi_join",
+      "left_relation": "token_transfer_facts",
+      "right_relation": "token_dimension",
+      "conditions": [{"left_field": "token_address", "right_field": "address"}],
+      "join_type": "left",
+      "cardinality": "many_to_one",
+      "date_covered_relations": ["token_transfer_facts"],
+      "allowed_right_roles": []
+    },
+    "fact_address_to_entity": {
+      "kind": "address_lookup",
+      "left_relations": {
+        "transaction_facts": ["from_address", "to_address"],
+        "block_facts": ["beneficiary_address"],
+        "token_transfer_facts": ["from_address", "to_address", "token_address"],
+        "contract_dimension": ["address"]
+      },
+      "right_relation": "entity_labels_v1",
+      "right_field": "address",
+      "join_type": "left",
+      "cardinality": "many_to_one",
+      "date_covered_relations": ["transaction_facts", "block_facts", "token_transfer_facts", "contract_dimension"],
+      "allowed_right_roles": ["operational", "treasury", "token"]
+    }
   },
-  "role_policies": {},
-  "semantic_mappings": [],
+  "role_policies": {
+    "operational": {
+      "description": "Verified protocol contract or account used for execution and protocol endpoint analysis.",
+      "allowed_uses": ["protocol_endpoint", "flow_analysis", "attribution"]
+    },
+    "treasury": {
+      "description": "Verified centralized-exchange reserve, custody, or treasury account.",
+      "allowed_uses": ["exchange_attribution", "treasury_flow"]
+    },
+    "token": {
+      "description": "Verified token contract that is not assumed to be a protocol endpoint.",
+      "allowed_uses": ["token_metadata", "transfer_asset"]
+    }
+  },
+  "semantic_mappings": [
+    {"semantic_id": ":Transaction", "kind": "class", "status": "supported", "targets": [{"relation": "transaction_facts"}]},
+    {"semantic_id": ":Block", "kind": "class", "status": "supported", "targets": [{"relation": "block_facts"}]},
+    {"semantic_id": ":TokenTransfer", "kind": "class", "status": "supported", "targets": [{"relation": "token_transfer_facts"}]},
+    {"semantic_id": ":Account", "kind": "class", "status": "supported", "targets": [{"relation": "entity_labels_v1"}]},
+    {"semantic_id": ":ExchangeAccount", "kind": "class", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "address_role"}]},
+    {"semantic_id": ":ContractAccount", "kind": "class", "status": "supported", "targets": [{"relation": "contract_dimension"}]},
+    {"semantic_id": ":TokenContract", "kind": "class", "status": "supported", "targets": [{"relation": "token_dimension"}]},
+    {"semantic_id": ":DEXProtocol", "kind": "class", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "concept_class"}]},
+    {"semantic_id": ":LendingProtocol", "kind": "class", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "concept_class"}]},
+    {"semantic_id": ":BridgeProtocol", "kind": "class", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "concept_class"}]},
+    {"semantic_id": ":MixerAccount", "kind": "class", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "concept_class"}]},
+    {"semantic_id": ":NFTMarketplace", "kind": "class", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "concept_class"}]},
+    {"semantic_id": ":MEVActorAccount", "kind": "class", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "concept_class"}]},
+    {"semantic_id": ":ValidatorAccount", "kind": "class", "status": "semantic_adjustment", "targets": [{"relation": "entity_labels_v1", "field": "concept_class"}], "reason": "A label can attribute an account, but block miner alone does not prove validator identity."},
+    {"semantic_id": ":hasTimestamp", "kind": "property", "status": "supported", "targets": [{"relation": "transaction_facts", "field": "block_timestamp"}, {"relation": "block_facts", "field": "block_timestamp"}, {"relation": "token_transfer_facts", "field": "block_timestamp"}]},
+    {"semantic_id": ":hasValue", "kind": "property", "status": "supported", "targets": [{"relation": "transaction_facts", "field": "value_wei"}]},
+    {"semantic_id": ":hasReceiptStatus", "kind": "property", "status": "semantic_adjustment", "targets": [{"relation": "transaction_facts", "field": "is_success"}], "reason": "BigQuery stores receipt status as nullable INTEGER and the relation derives a nullable BOOLEAN."},
+    {"semantic_id": ":hasFrom", "kind": "property", "status": "supported", "targets": [{"relation": "transaction_facts", "field": "from_address"}]},
+    {"semantic_id": ":hasTo", "kind": "property", "status": "supported", "targets": [{"relation": "transaction_facts", "field": "to_address"}]},
+    {"semantic_id": ":hasBlockNumber", "kind": "property", "status": "supported", "targets": [{"relation": "transaction_facts", "field": "block_number"}, {"relation": "block_facts", "field": "block_number"}]},
+    {"semantic_id": ":hasLabel", "kind": "property", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "primary_label"}]},
+    {"semantic_id": ":hasOwner", "kind": "property", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "owner"}]},
+    {"semantic_id": ":hasCategory", "kind": "property", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "category"}]},
+    {"semantic_id": ":hasAlias", "kind": "property", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "aliases"}]},
+    {"semantic_id": ":hasSource", "kind": "property", "status": "supported", "targets": [{"relation": "entity_labels_v1", "field": "sources"}]},
+    {"semantic_id": ":hasConfidenceScore", "kind": "property", "status": "semantic_adjustment", "targets": [{"relation": "entity_labels_v1", "field": "confidence"}], "reason": "The accepted dictionary has categorical confidence; no numeric score is fabricated."},
+    {"semantic_id": ":hasTokenSymbol", "kind": "property", "status": "supported", "targets": [{"relation": "token_dimension", "field": "symbol"}, {"relation": "token_transfer_facts", "field": "token_symbol"}]},
+    {"semantic_id": ":hasTokenName", "kind": "property", "status": "supported", "targets": [{"relation": "token_dimension", "field": "name"}, {"relation": "token_transfer_facts", "field": "token_name"}]},
+    {"semantic_id": ":hasTokenDecimals", "kind": "property", "status": "supported", "targets": [{"relation": "token_dimension", "field": "decimals"}, {"relation": "token_transfer_facts", "field": "token_decimals"}]},
+    {"semantic_id": ":hasTxCount", "kind": "property", "status": "supported", "targets": [{"relation": "block_facts", "field": "transaction_count"}]},
+    {"semantic_id": ":hasGasUsed", "kind": "property", "status": "supported", "targets": [{"relation": "transaction_facts", "field": "receipt_gas_used"}, {"relation": "block_facts", "field": "gas_used"}]},
+    {"semantic_id": ":hasGasPrice", "kind": "property", "status": "supported", "targets": [{"relation": "transaction_facts", "field": "gas_price_wei"}]},
+    {"semantic_id": ":hasInputData", "kind": "property", "status": "supported", "targets": [{"relation": "transaction_facts", "field": "input"}]},
+    {"semantic_id": ":hasMiner", "kind": "property", "status": "semantic_adjustment", "targets": [{"relation": "block_facts", "field": "beneficiary_address"}], "reason": "The source miner field is exposed as beneficiary/fee recipient, not validator identity."},
+    {"semantic_id": ":tokenTransferFrom", "kind": "property", "status": "supported", "targets": [{"relation": "token_transfer_facts", "field": "from_address"}]},
+    {"semantic_id": ":tokenTransferTo", "kind": "property", "status": "supported", "targets": [{"relation": "token_transfer_facts", "field": "to_address"}]},
+    {"semantic_id": ":transferredAmount", "kind": "property", "status": "supported", "targets": [{"relation": "token_transfer_facts", "field": "normalized_amount"}, {"relation": "token_transfer_facts", "field": "value_raw"}]},
+    {"semantic_id": ":transferredToken", "kind": "property", "status": "supported", "targets": [{"relation": "token_transfer_facts", "field": "token_address"}]},
+    {"semantic_id": ":emittedInTransaction", "kind": "property", "status": "supported", "targets": [{"relation": "token_transfer_facts", "field": "transaction_hash"}]},
+    {"semantic_id": ":initiatedBy", "kind": "property", "status": "unsupported", "targets": [], "reason": "The scoped public sources do not decode meta-transaction initiator semantics."},
+    {"semantic_id": ":executedBy", "kind": "property", "status": "unsupported", "targets": [], "reason": "Transaction from_address is not sufficient proof of a distinct meta-transaction executor."}
+  ],
   "competency_questions": []
 }
