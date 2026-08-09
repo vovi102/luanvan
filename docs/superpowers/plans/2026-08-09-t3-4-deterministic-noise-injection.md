@@ -390,15 +390,15 @@ git diff --check
 
 Expected: full tests pass; Ruff, format, notebook JSON, and whitespace checks exit 0.
 
-- [ ] **Step 5: Commit and push the checkpoint**
+- [x] **Step 5: Commit and push the checkpoint**
 
 ```bash
-git add docs/tasks/phase-3-dataset/04-noise-injection.md docs/memory/05-DECISION_LOG.md docs/superpowers/plans/2026-08-09-t3-4-deterministic-noise-injection.md
-git commit -m "docs(dataset): record Stage D credential gate"
+git add <review-hardening-and-closure-files>
+git commit -m "fix(dataset): harden Stage D validation and publication"
 git push origin wip/continuous-backlog
 ```
 
-- [ ] **Step 6: Verify Git evidence**
+- [x] **Step 6: Verify Git evidence**
 
 Run:
 
@@ -409,3 +409,6 @@ git rev-parse '@{upstream}'
 ```
 
 Expected: worktree clean, no ahead/behind marker, and local/upstream hashes equal.
+
+Evidence before the plan-close commit: local and upstream both resolved to
+`e97c664b813382ddc638bf917639cdd6d041ddb7`.
