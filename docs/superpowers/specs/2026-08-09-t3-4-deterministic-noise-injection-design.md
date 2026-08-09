@@ -68,7 +68,8 @@ publishes a partial final artifact.
 ## Data contract
 
 An original Stage C row is copied without adding noise fields. A noisy row keeps
-every source field and replaces only `id` and `nl`, then adds:
+every source field and replaces `id` and `nl`, recomputes the derived
+`nl_normalized` field, then adds:
 
 ```json
 {
@@ -76,6 +77,7 @@ every source field and replaces only `id` and `nl`, then adds:
   "noise_parent_id": "<stage-c-id>",
   "nl_original": "<exact source nl>",
   "nl": "<transformed question>",
+  "nl_normalized": "<normalized transformed question>",
   "noise_type": "typo",
   "noise_seed": 42,
   "noise_distance": 0.0182
@@ -115,7 +117,9 @@ The final validator proves:
 - exactly 3,000 originals and 150 noisy rows, with exactly 3,150 unique IDs;
 - exact noise distribution 38/38/37/37 and one variant per source;
 - `nl_original` equals the source `nl`, while noisy `nl` differs in raw text;
-- all fields other than the explicit T3.4 fields and `id`/`nl` equal the source;
+- all fields other than the explicit T3.4 fields and
+  `id`/`nl`/`nl_normalized` equal the source, while `nl_normalized` must equal a
+  fresh normalization of noisy `nl`;
 - SQL and Stage A `record_sha256` remain unchanged;
 - numeric, date, token, and entity anchors still pass the T3.3 validator;
 - typo normalized edit distance is in `(0, 0.10]`, abbreviation in `(0, 0.35]`,

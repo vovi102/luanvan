@@ -15,7 +15,7 @@
 - Seed is 42; output must be byte-stable for identical source bytes and configuration.
 - Every source contributes at most one noisy variant.
 - Allowed `noise_type` values are exactly `typo`, `abbrev`, `fragment`, and `mixed_case`.
-- SQL, `record_sha256`, slot values, entity metadata, and Stage B/C metadata are immutable.
+- SQL, `record_sha256`, slot values, entity metadata, and Stage B/C metadata are immutable; noisy `nl_normalized` is recomputed from noisy `nl`.
 - T3.3 numeric/date/token/entity anchors must remain valid after transformation.
 - Final files are atomically replaced only after complete validation.
 - The 30-row manual audit is seed-42 deterministic and remains incomplete until a reviewer records at least 27 decipherable rows.
@@ -234,7 +234,7 @@ For each `NoiseType` in enum order, derive an integer RNG seed from SHA-256 of `
 
 - [ ] **Step 6: Implement complete Stage D validation and stats**
 
-`NoiseStats` contains source/output/noisy counts, per-type counts, unique raw count, unique normalized count, and mean/max nonzero distance. Compare each noisy row to the source after removing only `id`, `nl`, `noise_parent_id`, `nl_original`, `noise_type`, `noise_seed`, and `noise_distance`. Re-run anchor validation and recompute distance rather than trusting stored metadata.
+`NoiseStats` contains source/output/noisy counts, per-type counts, unique raw count, unique normalized count, and mean/max nonzero distance. Compare each noisy row to the source after removing only `id`, `nl`, `nl_normalized`, `noise_parent_id`, `nl_original`, `noise_type`, `noise_seed`, and `noise_distance`; require `nl_normalized` to equal a fresh normalization of noisy `nl`. Re-run anchor validation and recompute distance rather than trusting stored metadata.
 
 - [ ] **Step 7: Run Task 1+2 GREEN and static checks**
 

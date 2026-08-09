@@ -5,6 +5,11 @@ from nl2sparql.dataset.noise.contracts import (
     NoiseType,
     NoiseValidationError,
 )
+from nl2sparql.dataset.noise.pipeline import (
+    NoiseStats,
+    inject_noise,
+    validate_stage_d_records,
+)
 from nl2sparql.dataset.noise.transforms import (
     load_abbreviations,
     protected_terms,
@@ -13,9 +18,12 @@ from nl2sparql.dataset.noise.transforms import (
 
 __all__ = [
     "NoiseConfig",
+    "NoiseStats",
     "NoiseType",
     "NoiseValidationError",
     "load_abbreviations",
+    "inject_noise",
     "protected_terms",
     "transform_question",
+    "validate_stage_d_records",
 ]
