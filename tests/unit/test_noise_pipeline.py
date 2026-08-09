@@ -68,6 +68,17 @@ def _remove_start_date_anchor(rows: list[dict[str, object]]) -> None:
     )
 
 
+def _forge_non_typo_edit(rows: list[dict[str, object]]) -> None:
+    row = rows[3000]
+    changed = str(row["nl_original"]).replace("Show", "List", 1)
+    changed_normalized = normalize_question(changed)
+    row["nl"] = changed
+    row["nl_normalized"] = changed_normalized
+    row["noise_distance"] = normalized_levenshtein(
+        normalize_question(str(row["nl_original"])), changed_normalized
+    )
+
+
 def test_injection_has_exact_quota_and_is_input_order_independent(
     generated: tuple[list[dict[str, object]], list[dict[str, object]]],
 ) -> None:
@@ -122,6 +133,8 @@ def test_validator_proves_source_immutability_and_quality_stats(
         ),
         (_remove_start_date_anchor, "anchor"),
         (lambda rows: rows[3000].__setitem__("noise_distance", 0.99), "distance"),
+        (lambda rows: rows[3000].__setitem__("noise_distance", float("nan")), "finite"),
+        (_forge_non_typo_edit, "transform"),
     ],
 )
 def test_validator_rejects_tampered_variants(
@@ -145,4 +158,12 @@ def test_injection_fails_before_output_when_typo_quota_cannot_be_filled() -> Non
         record["nl_normalized"] = normalize_question(question)
 
     with pytest.raises(NoiseValidationError, match="insufficient valid typo"):
+        inject_noise(records, load_abbreviations(), {}, NoiseConfig())
+
+
+def test_injection_rejects_stale_stage_c_normalization() -> None:
+    records = stage_c_records()
+    records[0]["nl_normalized"] = "stale normalized question"
+
+    with pytest.raises(NoiseValidationError, match="Stage C.*nl_normalized"):
         inject_noise(records, load_abbreviations(), {}, NoiseConfig())

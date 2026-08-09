@@ -24,6 +24,31 @@
 
 ## Entries
 
+### 2026-08-09 — T3.4 dùng exact deterministic quotas và bảo vệ semantic anchors
+
+- **Context:** Task noise cũ dùng Bernoulli 5%, cho phép compound labels và gọi
+  gold query là SPARQL. Cách này không đảm bảo count/type distribution, khó tái
+  lập, và có thể làm hỏng entity/date/number anchors.
+- **Options considered:** Random 5% theo từng record; sinh nhiều candidates rồi
+  filter; hoặc deterministic single-operation allocation với exact quotas.
+- **Decision:** Giữ 3.000 Stage C originals và thêm đúng 150 variants bằng seed
+  42: 38 typo, 38 abbrev, 37 fragment, 37 mixed case. Mỗi source tối đa một
+  variant; chỉ structural phrases được abbreviation; mọi slot/entity anchor được
+  bảo vệ và validate lại. SQL, Stage A hash và generation metadata bất biến.
+- **Rationale:** Exact quotas và SHA-derived RNG làm dataset byte-stable và audit
+  được. Single-operation labels giúp ablation rõ nghĩa; protected spans giảm
+  semantic drift trong khi vẫn tạo lỗi surface realistic.
+- **Consequences:** Pipeline full-size fixture, exact validators, manifest,
+  process lock, unique staging và journaled recovery đã sẵn sàng. Vì POSIX không
+  thể atomic rename hai sibling paths như một unit, mỗi file atomic riêng và
+  manifest hash làm split pair fail closed. `nl_normalized` phải recompute vì nó
+  là derived field của noisy `nl`. Final artifact và audit 30 rows vẫn chờ T3.3
+  live output; automated gates không thay tiêu chí ít nhất 27/30 decipherable.
+- **Revisit:** Sau manual audit; nếu một type thường khó hiểu, chỉnh dictionary
+  hoặc transform nhưng giữ count/quota contract và tăng schema version.
+- **Linked:** `docs/tasks/phase-3-dataset/04-noise-injection.md`,
+  `src/nl2sparql/dataset/noise/`, `scripts/11_inject_noise.py`.
+
 ### 2026-08-09 — T3.3 dùng hai model OpenRouter với structured output và actual-cost gate
 
 - **Context:** Stage A đã pivot sang 1.000 GoogleSQL records có live witness,

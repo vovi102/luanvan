@@ -1,153 +1,127 @@
-# T3.4 — Noise Injection (Bước D)
+# T3.4 — Deterministic Noise Injection (Stage D)
 
 ## Mục tiêu
 
-Thêm noise tự nhiên (typo, viết tắt, câu không hoàn chỉnh) vào ~5% records để model robust với input thực tế.
-
-## Bối cảnh & lý do
-
-User thực không type câu hỏi hoàn hảo. Họ:
-- Sai chính tả ("Binnace" thay vì "Binance").
-- Viết tắt ("TC" thay "Tornado Cash", "txs" thay "transactions").
-- Câu không hoàn chỉnh / fragment ("biggest tx last week binance to mixer").
-- Chữ thường lẫn hoa lung tung ("binance to TORNADO").
-
-Inject noise quá nhiều → confuse model. Quá ít → không học robustness. Tỉ lệ 5-10% là sweet spot theo literature.
+Tăng độ robust của NL2SQL model bằng cách giữ nguyên 3.000 câu Stage C và thêm
+đúng 150 noisy variants có thể tái lập. Noise chỉ tác động câu tiếng Anh; gold
+GoogleSQL, slot facts, entity context, Stage A proof và metadata LLM bất biến.
 
 ## Phụ thuộc
 
-- T3.3 — `synthetic-stage-c.jsonl` đã có ~3000 records.
+- T3.3 phải tạo và audit thành công
+  `data/dataset/raw/synthetic-stage-c.jsonl` gồm đúng 3.000 records.
+- Entity dictionary T2.2 dùng để bảo vệ owner/primary labels trong câu hỏi.
 
-## Đầu vào
+T3.3 hiện bị chặn bởi `OPENROUTER_API_KEY`, nên implementation và full-size
+fixture verification của T3.4 đã hoàn tất nhưng final Stage D chưa thể sinh.
 
-- `data/dataset/raw/synthetic-stage-c.jsonl`.
-- Abbreviation dictionary (build manual).
+## Contract đã chốt
 
-## Đầu ra
+- Seed: `42`.
+- Source: đúng 3.000 Stage C records đã qua validator T3.3.
+- Output: đúng 3.150 records gồm 3.000 originals không đổi và 150 variants.
+- Exact quotas: `typo=38`, `abbrev=38`, `fragment=37`, `mixed_case=37`.
+- Mỗi Stage C record có nhiều nhất một noisy variant.
+- `noise_type` chỉ nhận một trong bốn giá trị trên; không dùng compound label.
+- Output byte-stable khi source bytes, dictionary và config không đổi.
+- Mỗi final file atomic replace dưới process lock. Unique staging, durable
+  backups và journal cho phép rollback lỗi bắt được và recovery sau interruption.
 
-- File `data/dataset/raw/synthetic-stage-d.jsonl` — bổ sung ~5-10% noisy records.
-- File `src/nl2sparql/dataset/abbreviations.json` — mapping {full_form: [abbrev_options]}.
-- Notebook `notebooks/10_noise_injection.ipynb` với sample 30 noisy examples để verify quality.
+Candidate selection bắt đầu từ source IDs đã sort, dùng RNG seed dẫn xuất từ
+SHA-256 của `42:<noise_type>`, rồi fill exact quota. Nếu một type không đủ valid
+candidates, pipeline fail trước publication thay vì giảm quota hoặc đổi tỷ lệ.
 
-## Acceptance criteria
+## Biến đổi
 
-- [ ] Tổng ~3000 records (3000 từ stage C + ~150-300 noisy variants).
-- [ ] Noisy records labeled `noise_type` ∈ {typo, abbrev, fragment, mixed_case}.
-- [ ] Manual review 30 noisy records: ≥90% vẫn "decipherable" (con người vẫn hiểu).
-- [ ] SPARQL gold KHÔNG đổi (chỉ NL đổi).
+- `typo`: swap đúng một cặp chữ cái kề nhau bên trong một từ dài ít nhất 5 ký tự.
+- `abbrev`: thay đúng một structural phrase dài nhất theo
+  `src/nl2sparql/dataset/noise/abbreviations.json`.
+- `fragment`: bỏ đúng một request scaffold, article hoặc dấu hỏi cuối.
+- `mixed_case`: đổi casing đúng một từ alphabetic.
 
-## Hướng dẫn triển khai
+Dictionary abbreviation cố ý không chứa Binance, Tornado Cash hoặc named entity
+khác. Slot literals, date, number, address, token symbol và pinned owner/label
+được chuyển thành protected spans; sau biến đổi, T3.3 anchor validator chạy lại.
 
-### Abbreviation dictionary
+## Schema noisy record
 
 ```json
 {
-  "transaction": ["tx", "txn", "txs"],
-  "transactions": ["txs", "txns"],
-  "address": ["addr", "addy"],
-  "Tornado Cash": ["TC", "tornado", "tornado.cash"],
-  "Binance": ["BN", "binance hot wallet", "binance hot"],
-  "Uniswap": ["UNI", "uni"],
-  "Ethereum": ["ETH", "eth"],
-  "between": ["btwn", "btw"],
-  "greater than": [">", "gt", "more than", "over"],
-  "less than": ["<", "lt", "under"],
-  "from": ["frm"],
-  "to": ["->", "to"],
-  ...
+  "id": "stage-c-0123-casual-noise-typo",
+  "noise_parent_id": "stage-c-0123-casual",
+  "nl_original": "Show transactions from Binance between 2026-06-01 and 2026-06-02?",
+  "nl": "Show transacitons from Binance between 2026-06-01 and 2026-06-02?",
+  "nl_normalized": "show transacitons from binance between 2026 06 01 and 2026 06 02",
+  "noise_type": "typo",
+  "noise_seed": 42,
+  "noise_distance": 0.0164,
+  "sql": "<exact source GoogleSQL>",
+  "record_sha256": "<exact Stage A record hash>"
 }
 ```
 
-### Noise functions
+Ngoài `id`, `nl`, derived `nl_normalized` và năm metadata fields T3.4, mọi field
+phải bằng source record. Validator recompute normalization/distance và không tin
+metadata lưu sẵn.
 
-```python
-def inject_typo(text: str, rate: float = 0.05) -> str:
-    """Random char swap, delete, double-press."""
-    chars = list(text)
-    for i in range(len(chars)):
-        if random.random() < rate and chars[i].isalpha():
-            op = random.choice(["swap", "delete", "double", "neighbor"])
-            if op == "swap" and i+1 < len(chars):
-                chars[i], chars[i+1] = chars[i+1], chars[i]
-            elif op == "delete":
-                chars[i] = ""
-            elif op == "double":
-                chars[i] = chars[i] * 2
-            elif op == "neighbor":
-                chars[i] = keyboard_neighbor(chars[i])
-    return "".join(chars)
+## Automated quality gates
 
-def inject_abbrev(text: str, abbrev_dict) -> str:
-    for full, abbrevs in abbrev_dict.items():
-        if full.lower() in text.lower() and random.random() < 0.4:
-            text = re.sub(full, random.choice(abbrevs), text, flags=re.I)
-    return text
+- 3.150 unique IDs và raw questions; đúng count/quota/single-source contract.
+- `nl_original` bằng source `nl`; SQL và `record_sha256` không đổi.
+- Tất cả numeric/date/token/entity anchors còn hợp lệ.
+- Typo distance trong `(0, 0.10]`, abbrev `(0, 0.35]`, fragment `(0, 0.45]`.
+- Mixed case phải khác raw text nhưng normalize đúng về source.
+- Non-mixed normalized questions không collision với toàn corpus.
+- Manifest lưu source/output/dictionary SHA-256, counts, quotas, stats, 150
+  selected source IDs và 30 audit IDs deterministic.
 
-def inject_fragment(text: str) -> str:
-    """Drop articles, contractions, modal verbs."""
-    drops = ["the ", "a ", "an ", "what is ", "what are ", "show me ", "could you "]
-    for d in drops:
-        text = text.replace(d, "")
-    return text.strip()
+Automated gates không thay manual decipherability review. Sau live generation,
+review đúng 30 IDs trong manifest và yêu cầu ít nhất 27/30 vẫn hiểu được.
 
-def inject_case(text: str) -> str:
-    """Random caps."""
-    return "".join(c.upper() if random.random() < 0.2 else c.lower() for c in text)
+## Artifacts và lệnh chạy
+
+- `data/dataset/raw/synthetic-stage-d.jsonl` — final 3.150 rows.
+- `data/dataset/raw/noise-config.json` — hashes, config, stats, selection và audit.
+- `notebooks/10_noise_injection.ipynb` — hiển thị summary và 30 audit rows.
+
+```bash
+# Generate + validate + locked, recoverable publication
+uv run python scripts/11_inject_noise.py --mode generate
+
+# Recompute all evidence against published files
+uv run python scripts/11_inject_noise.py --mode validate-output
 ```
 
-### Pipeline
+CLI hỗ trợ `--source`, `--output`, `--manifest`, `--abbreviations` để chạy trên
+explicit paths; defaults luôn trỏ tới artifact paths chuẩn của repository.
 
-```python
-def process_record(rec, noise_rate=0.05):
-    if random.random() > noise_rate:
-        return [rec]  # keep as-is
+## Acceptance criteria
 
-    # Pick noise type (or combine)
-    noise_type = random.choice([
-        "typo", "abbrev", "fragment", "mixed_case",
-        "typo+abbrev", "abbrev+fragment"
-    ])
+- [x] Pure transforms deterministic và không sửa protected spans.
+- [x] Full-size fixture tạo đúng 3.150 records và quotas 38/38/37/37.
+- [x] Tests chứng minh one-source-one-variant, SQL/hash immutability, fresh
+  normalization, distance/collision/anchor gates và insufficient-candidate fail.
+- [x] Manifest evidence, 30 audit IDs, process lock, unique staging, rollback và
+  interrupted-run recovery được test.
+- [x] CLI generate→validate-output chạy end-to-end trên fixture 3.000 rows.
+- [ ] Final Stage D có đúng 3.150 records từ accepted live Stage C artifact.
+- [ ] Final source/output/dictionary hashes và validator evidence được ghi nhận.
+- [ ] Manual review 30 noisy records đạt ít nhất 27/30 decipherable.
 
-    new_nl = rec["nl"]
-    if "typo" in noise_type:
-        new_nl = inject_typo(new_nl)
-    if "abbrev" in noise_type:
-        new_nl = inject_abbrev(new_nl, ABBREV_DICT)
-    if "fragment" in noise_type:
-        new_nl = inject_fragment(new_nl)
-    if "mixed_case" in noise_type:
-        new_nl = inject_case(new_nl)
+## Trạng thái — implementation complete, artifact credential-gated
 
-    noisy_rec = dict(rec)
-    noisy_rec["id"] = rec["id"] + f"-noise-{noise_type}"
-    noisy_rec["nl"] = new_nl
-    noisy_rec["nl_original"] = rec["nl"]
-    noisy_rec["noise_type"] = noise_type
+Implementation hoàn tất ngày 2026-08-09. Default live command hiện exit 1 vì
+`synthetic-stage-c.jsonl` chưa tồn tại; kiểm tra xác nhận không tạo
+`synthetic-stage-d.jsonl` hoặc `noise-config.json` khi fail. Đây là downstream
+gate trực tiếp từ T3.3, không phải lý do hạ acceptance hoặc sinh dữ liệu giả.
 
-    # Return BOTH original and noisy (data augmentation)
-    return [rec, noisy_rec]
-```
+## Evidence
 
-### Quality control
-
-- **Manual review 30 records:** đọc và confirm con người vẫn hiểu được câu hỏi.
-- Reject record nếu noise quá nặng đến mức không decipher được.
-- Chừa lại nl_original để analysis sau (ablation: train có/không noise).
-
-### Optional: realistic typo from corpus
-
-Có thể dùng GitHub's `wikipedia-common-misspellings` hoặc `holbrook-misspellings` thay vì random typo nếu muốn realistic hơn.
-
-## Rủi ro & note
-
-- **Inject quá rate hoặc quá thô:** đọc 30 examples để calibrate.
-- **Abbreviation phá entity:** "TC" có thể ambiguous. Track entity preservation: nếu record có abbrev mà entity dictionary không lookup được → log warning.
-- **SPARQL gold không đổi:** double check, đây là invariant.
-
-## Estimated effort
-
-0.5 ngày.
-
-## Trạng thái
-
-todo
+- Design:
+  `docs/superpowers/specs/2026-08-09-t3-4-deterministic-noise-injection-design.md`.
+- Plan:
+  `docs/superpowers/plans/2026-08-09-t3-4-deterministic-noise-injection.md`.
+- Focused verification: 35 tests pass cho transforms, allocator, artifacts và CLI.
+- Notebook đã execute; output ghi package versions, credential gate và logic
+  decipherability ratio khi audit hoàn tất.
+- Default CLI gate: missing Stage C, exit `1`, Stage D/manifest absent.

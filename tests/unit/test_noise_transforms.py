@@ -15,6 +15,7 @@ from nl2sparql.dataset.noise.contracts import (
 )
 from nl2sparql.dataset.noise.transforms import (
     load_abbreviations,
+    noise_candidates,
     protected_terms,
     transform_question,
 )
@@ -34,6 +35,8 @@ def test_default_config_enforces_exact_t3_4_quota() -> None:
 
     with pytest.raises(NoiseValidationError, match="quotas"):
         NoiseConfig(quotas={NoiseType.TYPO: 150})
+    with pytest.raises(NoiseValidationError, match="seed.*42"):
+        NoiseConfig(seed=7)
 
 
 def test_default_abbreviations_are_normalized_and_exclude_named_entities() -> None:
@@ -134,6 +137,13 @@ def test_typo_is_one_adjacent_swap_and_abbreviation_uses_longest_phrase() -> Non
     assert len(typo) == len("transactions")
     assert sum(left != right for left, right in zip(typo, "transactions", strict=True)) == 2
     assert abbreviation == "List token txfers now"
+
+
+def test_typo_candidates_never_change_first_or_last_letter() -> None:
+    assert noise_candidates("abcde", NoiseType.TYPO, {}, set()) == {
+        "acbde",
+        "abdce",
+    }
 
 
 def test_transform_returns_none_when_every_possible_edit_is_protected() -> None:

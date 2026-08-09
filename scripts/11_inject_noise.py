@@ -12,6 +12,7 @@ import click
 from nl2sparql.dataset.noise.artifacts import (
     build_noise_manifest,
     jsonl_bytes,
+    noise_artifact_lock,
     publish_noise_artifacts,
     validate_noise_manifest,
 )
@@ -69,7 +70,13 @@ def main(
         config = NoiseConfig()
         if mode == "generate":
             stage_d = inject_noise(stage_c, abbreviations, entity_index, config)
-            stats = validate_stage_d_records(stage_c, stage_d, entity_index, config)
+            stats = validate_stage_d_records(
+                stage_c,
+                stage_d,
+                entity_index,
+                config,
+                abbreviations=abbreviations,
+            )
             output_payload = jsonl_bytes(stage_d)
             manifest = build_noise_manifest(
                 source_path=source,
@@ -95,19 +102,26 @@ def main(
                 "output_sha256": manifest["output"]["sha256"],
             }
         else:
-            stage_d = _load_jsonl(output)
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            stats = validate_stage_d_records(stage_c, stage_d, entity_index, config)
-            validate_noise_manifest(
-                manifest,
-                source_path=source,
-                output_path=output,
-                abbreviations_path=abbreviations_path,
-                stage_c=stage_c,
-                stage_d=stage_d,
-                stats=stats,
-                config=config,
-            )
+            with noise_artifact_lock(output, manifest_path):
+                stage_d = _load_jsonl(output)
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                stats = validate_stage_d_records(
+                    stage_c,
+                    stage_d,
+                    entity_index,
+                    config,
+                    abbreviations=abbreviations,
+                )
+                validate_noise_manifest(
+                    manifest,
+                    source_path=source,
+                    output_path=output,
+                    abbreviations_path=abbreviations_path,
+                    stage_c=stage_c,
+                    stage_d=stage_d,
+                    stats=stats,
+                    config=config,
+                )
             payload = {
                 "status": "valid",
                 "source_records": len(stage_c),

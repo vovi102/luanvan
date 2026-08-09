@@ -62,8 +62,9 @@ allocation, appends variants after originals in stable order, validates the
 
 `scripts/11_inject_noise.py` is the orchestration boundary. It accepts explicit
 source/output/manifest paths for tests and defaults to the repository Stage C/D
-paths. It validates all input before writing sibling temporary files and never
-publishes a partial final artifact.
+paths. It validates all input before publication. Writers use an advisory
+process lock, unique staging files, durable backups, and a journal; repo readers
+acquire the same lock and recover an interrupted prior transaction before read.
 
 ## Data contract
 
@@ -97,9 +98,11 @@ faithfulness checks.
 
 ## Deterministic selection
 
-Input validation first reuses `validate_stage_c_records`, so the source must
-contain exactly 3,000 normalized-unique Stage C rows with mean pairwise distance
-above 0.30. Candidate order begins from source IDs sorted lexicographically.
+Input validation first reuses `validate_stage_c_records`, then recomputes every
+`nl_normalized` from `nl`; the source must contain exactly 3,000 genuinely
+normalized-unique Stage C rows with mean pairwise distance above 0.30. Candidate
+order begins from source IDs sorted lexicographically. The only accepted seed is
+42.
 Each noise type uses `random.Random("42:<noise_type>")` semantics implemented as
 an integer derived from SHA-256, avoiding Python hash randomization. A candidate
 is accepted only if its raw text changes, its protected anchors still validate,
@@ -122,6 +125,9 @@ The final validator proves:
   fresh normalization of noisy `nl`;
 - SQL and Stage A `record_sha256` remain unchanged;
 - numeric, date, token, and entity anchors still pass the T3.3 validator;
+- noisy text is one of the transformations enumerated for its declared type and
+  pinned abbreviation dictionary;
+- stored distance is finite and exactly matches fresh normalized distance;
 - typo normalized edit distance is in `(0, 0.10]`, abbreviation in `(0, 0.35]`,
   fragment in `(0, 0.45]`, and mixed-case normalized distance is exactly zero;
 - non-mixed-case noisy normalized questions do not collide with any other final
@@ -134,11 +140,18 @@ decipherability. The manifest deterministically samples 30 noisy IDs with seed
 
 ## Publication and manifest
 
-`synthetic-stage-d.jsonl` and `noise-config.json` are written atomically only
-after complete validation. The manifest records schema version, source Stage C
-SHA-256, output SHA-256, seed, exact quotas/counts, abbreviation dictionary
-SHA-256, raw/normalized uniqueness statistics, selected source IDs, 30 audit
-IDs, and manual-audit status. It contains no API credentials or prompts.
+Each of `synthetic-stage-d.jsonl` and `noise-config.json` is atomically replaced
+only after complete validation. Because POSIX cannot atomically rename two fixed
+sibling paths as one unit, publication is serialized by an advisory lock and
+guarded by durable backups plus a journal. A caught replace failure rolls back
+immediately; process interruption is recovered before the next repo read. The
+manifest hash makes any reader that bypasses the lock fail closed on a split
+pair. Unique staging names prevent concurrent-run collisions.
+
+The manifest records schema version, source Stage C SHA-256, output SHA-256,
+seed, exact quotas/counts, abbreviation dictionary SHA-256, raw/normalized
+uniqueness statistics, selected source IDs, 30 audit IDs, and manual-audit
+status. It contains no API credentials or prompts.
 
 The CLI supports `--mode generate` and `--mode validate-output`. Generate mode
 requires the full Stage C artifact. Validate-output revalidates existing Stage C
@@ -149,9 +162,11 @@ and Stage D artifacts plus their manifest without regenerating them.
 Unit tests cover each pure transform, anchor protection, dictionary parsing,
 deterministic allocation independent of input order, exact quotas/counts,
 single-variant-per-source, SQL/provenance immutability, distance/collision
-rejection, atomic failure, manifest hashes/audit IDs, and CLI failure without a
-Stage C source. A generated 3,000-row fixture exercises the whole pipeline
-without LLM or BigQuery access.
+rejection, declared-transform semantics, non-finite metadata, stale source
+normalization, replace rollback, interruption recovery, process locking, unique
+staging, manifest hashes/audit IDs, and CLI failure without a Stage C source. A
+generated 3,000-row fixture exercises the whole pipeline without LLM or
+BigQuery access.
 
 Implementation is complete when focused and full tests, Ruff, format, notebook
 JSON, and whitespace checks pass. Dataset acceptance remains credential-gated

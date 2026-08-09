@@ -37,8 +37,8 @@ class NoiseConfig:
     quotas: Mapping[NoiseType, int] = field(default_factory=lambda: dict(DEFAULT_QUOTAS))
 
     def __post_init__(self) -> None:
-        if not isinstance(self.seed, int) or isinstance(self.seed, bool) or self.seed < 0:
-            raise NoiseValidationError("noise seed must be a non-negative integer")
+        if self.seed != 42 or isinstance(self.seed, bool):
+            raise NoiseValidationError("noise seed must equal the pinned value 42")
         if dict(self.quotas) != DEFAULT_QUOTAS:
             raise NoiseValidationError("noise quotas must equal the T3.4 contract")
         object.__setattr__(self, "quotas", MappingProxyType(dict(self.quotas)))

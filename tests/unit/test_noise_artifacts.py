@@ -10,10 +10,12 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
+import nl2sparql.dataset.noise.artifacts as noise_artifacts
 from nl2sparql.dataset.noise.artifacts import (
     build_noise_manifest,
     file_sha256,
     jsonl_bytes,
+    noise_artifact_lock,
     publish_noise_artifacts,
     validate_noise_manifest,
 )
@@ -182,6 +184,143 @@ def test_pair_publication_restores_both_existing_files_when_second_replace_fails
     assert output_path.read_bytes() == b"old-output\n"
     assert manifest_path.read_bytes() == b"old-manifest\n"
     assert not list(tmp_path.glob(".*.tmp"))
+
+
+def test_publication_lock_rejects_a_concurrent_nonblocking_writer(tmp_path: Path) -> None:
+    output_path = tmp_path / "stage-d.jsonl"
+    manifest_path = tmp_path / "noise.json"
+
+    with noise_artifact_lock(output_path, manifest_path):
+        with pytest.raises(BlockingIOError):
+            with noise_artifact_lock(output_path, manifest_path, blocking=False):
+                raise AssertionError("concurrent writer unexpectedly acquired lock")
+
+
+def test_interrupted_pair_publication_is_recovered_before_next_read(
+    tmp_path: Path,
+) -> None:
+    output_path = tmp_path / "stage-d.jsonl"
+    manifest_path = tmp_path / "noise.json"
+    output_path.write_bytes(b"old-output\n")
+    manifest_path.write_bytes(b"old-manifest\n")
+    calls = 0
+
+    def interrupt_second_replace(source: Path, target: Path) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise KeyboardInterrupt
+        source.replace(target)
+
+    with pytest.raises(KeyboardInterrupt):
+        publish_noise_artifacts(
+            b"new-output\n",
+            {"status": "new"},
+            output_path=output_path,
+            manifest_path=manifest_path,
+            replace=interrupt_second_replace,
+        )
+
+    with noise_artifact_lock(output_path, manifest_path):
+        assert output_path.read_bytes() == b"old-output\n"
+        assert manifest_path.read_bytes() == b"old-manifest\n"
+
+
+def test_publication_uses_unique_staging_names(tmp_path: Path) -> None:
+    output_path = tmp_path / "stage-d.jsonl"
+    manifest_path = tmp_path / "noise.json"
+    staging_names: list[str] = []
+
+    def record_staging_name(source: Path, target: Path) -> None:
+        staging_names.append(source.name)
+        source.replace(target)
+
+    for index in range(2):
+        publish_noise_artifacts(
+            f"output-{index}\n".encode(),
+            {"generation": index},
+            output_path=output_path,
+            manifest_path=manifest_path,
+            replace=record_staging_name,
+        )
+
+    assert len(staging_names) == 4
+    assert len(set(staging_names)) == 4
+
+
+def test_publication_rejects_relative_absolute_aliases_of_same_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    target = Path("artifact.jsonl")
+
+    with pytest.raises(NoiseValidationError, match="must differ"):
+        publish_noise_artifacts(
+            b"output\n",
+            {"status": "new"},
+            output_path=target,
+            manifest_path=target.resolve(),
+        )
+
+    assert not target.exists()
+
+
+def test_recovery_durably_writes_restore_temporaries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output_path = tmp_path / "stage-d.jsonl"
+    manifest_path = tmp_path / "noise.json"
+    output_path.write_bytes(b"old-output\n")
+    manifest_path.write_bytes(b"old-manifest\n")
+    calls = 0
+
+    def interrupt_second_replace(source: Path, target: Path) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise KeyboardInterrupt
+        source.replace(target)
+
+    with pytest.raises(KeyboardInterrupt):
+        publish_noise_artifacts(
+            b"new-output\n",
+            {"status": "new"},
+            output_path=output_path,
+            manifest_path=manifest_path,
+            replace=interrupt_second_replace,
+        )
+
+    durable_writes: list[Path] = []
+    original_write = noise_artifacts._write_bytes_durable
+
+    def record_durable_write(path: Path, payload: bytes) -> None:
+        durable_writes.append(path)
+        original_write(path, payload)
+
+    monkeypatch.setattr(noise_artifacts, "_write_bytes_durable", record_durable_write)
+    with noise_artifact_lock(output_path, manifest_path):
+        pass
+
+    assert len([path for path in durable_writes if ".restore." in path.name]) == 2
+    assert output_path.read_bytes() == b"old-output\n"
+    assert manifest_path.read_bytes() == b"old-manifest\n"
+
+
+def test_notebook_reads_and_hash_checks_artifact_pair_under_shared_lock() -> None:
+    notebook = json.loads(Path("notebooks/10_noise_injection.ipynb").read_text())
+    source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in notebook["cells"]
+        if cell.get("cell_type") == "code"
+    )
+
+    assert "noise_artifact_lock" in source
+    assert "with noise_artifact_lock(STAGE_D, MANIFEST):" in source
+    assert source.index("with noise_artifact_lock(STAGE_D, MANIFEST):") < source.index(
+        "if not MANIFEST.exists() or not STAGE_D.exists():"
+    )
+    assert "hashlib.sha256(stage_d_bytes).hexdigest()" in source
+    assert 'manifest["output"]["sha256"]' in source
 
 
 def load_script():

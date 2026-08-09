@@ -1,11 +1,16 @@
-"""Manifest evidence and coordinated atomic publication for Stage D."""
+"""Manifest evidence and recoverable publication for Stage D."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import os
-from collections.abc import Callable, Sequence
+import shutil
+import tempfile
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
+from dataclasses import dataclass
+from fcntl import LOCK_EX, LOCK_NB, LOCK_UN, flock
 from pathlib import Path
 from typing import Any
 
@@ -166,13 +171,149 @@ def validate_noise_manifest(
     _validate_manual_audit(manifest.get("manual_audit"), expected["manual_audit"]["record_ids"])
 
 
-def _restore(path: Path, previous: bytes | None) -> None:
-    if previous is None:
+@dataclass(frozen=True)
+class _TransactionPaths:
+    lock: Path
+    journal: Path
+    output_backup: Path
+    manifest_backup: Path
+
+
+def _transaction_paths(output_path: Path, manifest_path: Path) -> _TransactionPaths:
+    output_parent = output_path.parent.resolve()
+    manifest_parent = manifest_path.parent.resolve()
+    if output_parent != manifest_parent:
+        raise NoiseValidationError("output and manifest must share one directory")
+    digest = hashlib.sha256(f"{output_path.name}\0{manifest_path.name}".encode()).hexdigest()[:12]
+    prefix = f".noise-publish-{digest}"
+    return _TransactionPaths(
+        lock=output_path.parent / f"{prefix}.lock",
+        journal=output_path.parent / f"{prefix}.journal.json",
+        output_backup=output_path.parent / f"{prefix}.output.backup",
+        manifest_backup=output_path.parent / f"{prefix}.manifest.backup",
+    )
+
+
+def _unique_temp(path: Path, purpose: str) -> Path:
+    descriptor, name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=f".{path.name}.{purpose}.",
+        suffix=".tmp",
+    )
+    os.close(descriptor)
+    return Path(name)
+
+
+def _write_bytes_durable(path: Path, payload: bytes) -> None:
+    with path.open("wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _backup(path: Path, backup_path: Path) -> bool:
+    backup_path.unlink(missing_ok=True)
+    if not path.exists():
+        return False
+    temporary = _unique_temp(backup_path, "backup")
+    try:
+        shutil.copyfile(path, temporary)
+        with temporary.open("rb") as handle:
+            os.fsync(handle.fileno())
+        os.replace(temporary, backup_path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return True
+
+
+def _write_journal(
+    transaction: _TransactionPaths,
+    *,
+    output_path: Path,
+    manifest_path: Path,
+    output_existed: bool,
+    manifest_existed: bool,
+) -> None:
+    payload = {
+        "schema_version": 1,
+        "output_name": output_path.name,
+        "manifest_name": manifest_path.name,
+        "output_existed": output_existed,
+        "manifest_existed": manifest_existed,
+    }
+    temporary = _unique_temp(transaction.journal, "journal")
+    try:
+        _write_bytes_durable(temporary, (json.dumps(payload, sort_keys=True) + "\n").encode())
+        os.replace(temporary, transaction.journal)
+        _fsync_directory(output_path.parent)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _restore_target(path: Path, backup_path: Path, existed: bool) -> None:
+    if not existed:
         path.unlink(missing_ok=True)
         return
-    restore_path = path.with_name(f".{path.name}.restore.tmp")
-    restore_path.write_bytes(previous)
-    restore_path.replace(path)
+    if not backup_path.exists():
+        raise NoiseValidationError(f"cannot recover missing backup for {path.name}")
+    temporary = _unique_temp(path, "restore")
+    try:
+        _write_bytes_durable(temporary, backup_path.read_bytes())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _recover_unlocked(
+    output_path: Path, manifest_path: Path, transaction: _TransactionPaths
+) -> None:
+    if not transaction.journal.exists():
+        return
+    try:
+        journal = json.loads(transaction.journal.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise NoiseValidationError("noise publication journal is corrupt") from exc
+    if (
+        journal.get("schema_version") != 1
+        or journal.get("output_name") != output_path.name
+        or journal.get("manifest_name") != manifest_path.name
+        or not isinstance(journal.get("output_existed"), bool)
+        or not isinstance(journal.get("manifest_existed"), bool)
+    ):
+        raise NoiseValidationError("noise publication journal does not match targets")
+    _restore_target(output_path, transaction.output_backup, journal["output_existed"])
+    _restore_target(manifest_path, transaction.manifest_backup, journal["manifest_existed"])
+    _fsync_directory(output_path.parent)
+    transaction.journal.unlink()
+    _fsync_directory(output_path.parent)
+    transaction.output_backup.unlink(missing_ok=True)
+    transaction.manifest_backup.unlink(missing_ok=True)
+
+
+@contextmanager
+def noise_artifact_lock(
+    output_path: Path, manifest_path: Path, *, blocking: bool = True
+) -> Iterator[None]:
+    """Lock the artifact pair and recover any interrupted prior publication."""
+    transaction = _transaction_paths(output_path, manifest_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    transaction.lock.touch(exist_ok=True)
+    with transaction.lock.open("rb") as handle:
+        operation = LOCK_EX if blocking else LOCK_EX | LOCK_NB
+        flock(handle.fileno(), operation)
+        try:
+            _recover_unlocked(output_path, manifest_path, transaction)
+            yield
+        finally:
+            flock(handle.fileno(), LOCK_UN)
 
 
 def publish_noise_artifacts(
@@ -183,34 +324,52 @@ def publish_noise_artifacts(
     manifest_path: Path,
     replace: Callable[[Path, Path], None] = os.replace,
 ) -> None:
-    """Publish output and manifest together, rolling both back on replace failure."""
-    if output_path == manifest_path:
+    """Publish a recoverable, concurrency-locked output/manifest transaction."""
+    resolved_output = output_path.resolve()
+    resolved_manifest = manifest_path.resolve()
+    same_existing_file = False
+    if output_path.exists() and manifest_path.exists():
+        try:
+            same_existing_file = output_path.samefile(manifest_path)
+        except OSError:
+            same_existing_file = False
+    if resolved_output == resolved_manifest or same_existing_file:
         raise NoiseValidationError("output and manifest paths must differ")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    output_temp = output_path.with_name(f".{output_path.name}.tmp")
-    manifest_temp = manifest_path.with_name(f".{manifest_path.name}.tmp")
-    output_restore = output_path.with_name(f".{output_path.name}.restore.tmp")
-    manifest_restore = manifest_path.with_name(f".{manifest_path.name}.restore.tmp")
-    previous_output = output_path.read_bytes() if output_path.exists() else None
-    previous_manifest = manifest_path.read_bytes() if manifest_path.exists() else None
-    output_replaced = False
-    manifest_replaced = False
-    try:
-        output_temp.write_bytes(output_bytes)
-        manifest_temp.write_text(
-            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
-        replace(output_temp, output_path)
-        output_replaced = True
-        replace(manifest_temp, manifest_path)
-        manifest_replaced = True
-    except Exception:
-        if output_replaced:
-            _restore(output_path, previous_output)
-        if manifest_replaced:
-            _restore(manifest_path, previous_manifest)
-        raise
-    finally:
-        for path in (output_temp, manifest_temp, output_restore, manifest_restore):
-            path.unlink(missing_ok=True)
+    transaction = _transaction_paths(output_path, manifest_path)
+    with noise_artifact_lock(output_path, manifest_path):
+        output_temp = _unique_temp(output_path, "output")
+        manifest_temp = _unique_temp(manifest_path, "manifest")
+        try:
+            _write_bytes_durable(output_temp, output_bytes)
+            _write_bytes_durable(
+                manifest_temp,
+                (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode(),
+            )
+            output_existed = _backup(output_path, transaction.output_backup)
+            manifest_existed = _backup(manifest_path, transaction.manifest_backup)
+            _write_journal(
+                transaction,
+                output_path=output_path,
+                manifest_path=manifest_path,
+                output_existed=output_existed,
+                manifest_existed=manifest_existed,
+            )
+            try:
+                replace(output_temp, output_path)
+                replace(manifest_temp, manifest_path)
+                _fsync_directory(output_path.parent)
+            except Exception:
+                _recover_unlocked(output_path, manifest_path, transaction)
+                raise
+            transaction.journal.unlink()
+            _fsync_directory(output_path.parent)
+            transaction.output_backup.unlink(missing_ok=True)
+            transaction.manifest_backup.unlink(missing_ok=True)
+        finally:
+            output_temp.unlink(missing_ok=True)
+            manifest_temp.unlink(missing_ok=True)
+            if not transaction.journal.exists():
+                transaction.output_backup.unlink(missing_ok=True)
+                transaction.manifest_backup.unlink(missing_ok=True)

@@ -86,29 +86,25 @@ def _replace_span(question: str, start: int, end: int, replacement: str) -> str:
     return question[:start] + replacement + question[end:]
 
 
-def _inject_typo(question: str, spans: tuple[tuple[int, int], ...], rng: Random) -> str | None:
-    candidates: list[tuple[re.Match[str], int]] = []
+def _typo_candidates(question: str, spans: tuple[tuple[int, int], ...]) -> set[str]:
+    candidates: set[str] = set()
     for match in TYPO_WORD_RE.finditer(question):
         if _overlaps(match.start(), match.end(), spans):
             continue
         word = match.group()
-        candidates.extend(
-            (match, index) for index in range(1, len(word) - 1) if word[index] != word[index + 1]
-        )
-    if not candidates:
-        return None
-    match, index = rng.choice(candidates)
-    word = match.group()
-    replacement = word[:index] + word[index + 1] + word[index] + word[index + 2 :]
-    return _replace_span(question, match.start(), match.end(), replacement)
+        for index in range(1, len(word) - 2):
+            if word[index] == word[index + 1]:
+                continue
+            replacement = word[:index] + word[index + 1] + word[index] + word[index + 2 :]
+            candidates.add(_replace_span(question, match.start(), match.end(), replacement))
+    return candidates
 
 
-def _inject_abbreviation(
+def _abbreviation_candidates(
     question: str,
     abbreviations: dict[str, tuple[str, ...]],
     spans: tuple[tuple[int, int], ...],
-    rng: Random,
-) -> str | None:
+) -> set[str]:
     candidates: list[tuple[int, int, str, tuple[str, ...]]] = []
     for phrase, options in abbreviations.items():
         pattern = re.compile(rf"(?<!\w){re.escape(phrase)}(?!\w)", re.IGNORECASE)
@@ -116,15 +112,17 @@ def _inject_abbreviation(
             if not _overlaps(match.start(), match.end(), spans):
                 candidates.append((match.start(), match.end(), phrase, options))
     if not candidates:
-        return None
+        return set()
     longest = max(len(phrase) for _, _, phrase, _ in candidates)
-    start, end, _, options = rng.choice(
-        [candidate for candidate in candidates if len(candidate[2]) == longest]
-    )
-    return _replace_span(question, start, end, rng.choice(options))
+    return {
+        _replace_span(question, start, end, option)
+        for start, end, phrase, options in candidates
+        if len(phrase) == longest
+        for option in options
+    }
 
 
-def _inject_fragment(question: str, spans: tuple[tuple[int, int], ...], rng: Random) -> str | None:
+def _fragment_candidates(question: str, spans: tuple[tuple[int, int], ...]) -> set[str]:
     candidates: list[tuple[int, int]] = []
     for pattern in FRAGMENT_PATTERNS:
         candidates.extend(
@@ -132,33 +130,46 @@ def _inject_fragment(question: str, spans: tuple[tuple[int, int], ...], rng: Ran
             for match in pattern.finditer(question)
             if not _overlaps(match.start(), match.end(), spans)
         )
-    if not candidates:
-        return None
-    start, end = rng.choice(candidates)
-    return _replace_span(question, start, end, "").strip()
+    return {_replace_span(question, start, end, "").strip() for start, end in candidates}
 
 
-def _inject_mixed_case(
-    question: str, spans: tuple[tuple[int, int], ...], rng: Random
-) -> str | None:
+def _mixed_case_candidates(question: str, spans: tuple[tuple[int, int], ...]) -> set[str]:
     candidates = [
         match
         for match in WORD_RE.finditer(question)
         if not _overlaps(match.start(), match.end(), spans)
     ]
-    if not candidates:
-        return None
-    match = rng.choice(candidates)
-    word = match.group()
-    replacement = word.upper()
-    if replacement == word:
-        replacement = "".join(
-            character.upper() if index % 2 == 0 else character.lower()
-            for index, character in enumerate(word)
-        )
-    if replacement == word:
-        return None
-    return _replace_span(question, match.start(), match.end(), replacement)
+    outputs: set[str] = set()
+    for match in candidates:
+        word = match.group()
+        replacement = word.upper()
+        if replacement == word:
+            replacement = "".join(
+                character.upper() if index % 2 == 0 else character.lower()
+                for index, character in enumerate(word)
+            )
+        if replacement != word:
+            outputs.add(_replace_span(question, match.start(), match.end(), replacement))
+    return outputs
+
+
+def noise_candidates(
+    question: str,
+    noise_type: NoiseType,
+    abbreviations: dict[str, tuple[str, ...]],
+    protected: set[str],
+) -> set[str]:
+    """Enumerate every text allowed by one declared noise operation."""
+    spans = _protected_spans(question, protected)
+    if noise_type is NoiseType.TYPO:
+        return _typo_candidates(question, spans)
+    if noise_type is NoiseType.ABBREV:
+        return _abbreviation_candidates(question, abbreviations, spans)
+    if noise_type is NoiseType.FRAGMENT:
+        return _fragment_candidates(question, spans)
+    if noise_type is NoiseType.MIXED_CASE:
+        return _mixed_case_candidates(question, spans)
+    raise NoiseValidationError(f"unsupported noise type: {noise_type}")
 
 
 def transform_question(
@@ -169,13 +180,5 @@ def transform_question(
     rng: Random,
 ) -> str | None:
     """Apply one eligible noise operation while leaving protected spans untouched."""
-    spans = _protected_spans(question, protected)
-    if noise_type is NoiseType.TYPO:
-        return _inject_typo(question, spans, rng)
-    if noise_type is NoiseType.ABBREV:
-        return _inject_abbreviation(question, abbreviations, spans, rng)
-    if noise_type is NoiseType.FRAGMENT:
-        return _inject_fragment(question, spans, rng)
-    if noise_type is NoiseType.MIXED_CASE:
-        return _inject_mixed_case(question, spans, rng)
-    raise NoiseValidationError(f"unsupported noise type: {noise_type}")
+    candidates = sorted(noise_candidates(question, noise_type, abbreviations, protected))
+    return rng.choice(candidates) if candidates else None

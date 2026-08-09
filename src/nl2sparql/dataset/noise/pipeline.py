@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -15,7 +16,12 @@ from nl2sparql.dataset.noise.contracts import (
     NoiseType,
     NoiseValidationError,
 )
-from nl2sparql.dataset.noise.transforms import protected_terms, transform_question
+from nl2sparql.dataset.noise.transforms import (
+    load_abbreviations,
+    noise_candidates,
+    protected_terms,
+    transform_question,
+)
 from nl2sparql.dataset.paraphrase.artifacts import (
     ParaphraseArtifactError,
     validate_stage_c_records,
@@ -66,6 +72,17 @@ def _validate_source(records: Sequence[dict[str, Any]]) -> None:
         validate_stage_c_records(records)
     except ParaphraseArtifactError as exc:
         raise NoiseValidationError(f"invalid Stage C source: {exc}") from exc
+    for record in records:
+        question = record.get("nl")
+        normalized = record.get("nl_normalized")
+        if (
+            not isinstance(question, str)
+            or not isinstance(normalized, str)
+            or normalized != normalize_question(question)
+        ):
+            raise NoiseValidationError(
+                f"Stage C record {record.get('id')} has stale nl_normalized data"
+            )
     ids = [record.get("id") for record in records]
     if any(not isinstance(value, str) or not value for value in ids):
         raise NoiseValidationError("every Stage C source requires a non-empty string ID")
@@ -179,7 +196,7 @@ def inject_noise(
         noisy_rows.extend(sorted(accepted, key=lambda row: str(row["noise_parent_id"])))
 
     output = [*records, *noisy_rows]
-    validate_stage_d_records(records, output, entity_index, config)
+    validate_stage_d_records(records, output, entity_index, config, abbreviations=abbreviations)
     return output
 
 
@@ -197,9 +214,12 @@ def validate_stage_d_records(
     stage_d: Sequence[dict[str, Any]],
     entity_index: dict[str, dict[str, str]],
     config: NoiseConfig | None = None,
+    *,
+    abbreviations: dict[str, tuple[str, ...]] | None = None,
 ) -> NoiseStats:
     """Validate the complete Stage D corpus and recompute all quality statistics."""
     config = config or NoiseConfig()
+    abbreviations = load_abbreviations() if abbreviations is None else abbreviations
     _validate_source(stage_c)
     if len(stage_d) != 3150:
         raise NoiseValidationError(f"Stage D requires 3150 records, received {len(stage_d)}")
@@ -242,6 +262,22 @@ def validate_stage_d_records(
         if noisy.get("nl") == parent.get("nl"):
             raise NoiseValidationError("noisy record must change the raw question")
         _assert_immutable(parent, noisy)
+        try:
+            validate_question_anchors(str(noisy["nl"]), parent, entity_index)
+        except ParaphraseValidationError as exc:
+            raise NoiseValidationError(
+                f"noisy record {noisy['id']} failed anchor validation: {exc}"
+            ) from exc
+        allowed_questions = noise_candidates(
+            str(parent["nl"]),
+            noise_type,
+            abbreviations,
+            protected_terms(parent, entity_index),
+        )
+        if noisy.get("nl") not in allowed_questions:
+            raise NoiseValidationError(
+                f"noisy record {noisy['id']} does not match its declared transform"
+            )
 
         normalized = normalize_question(str(noisy.get("nl", "")))
         if noisy.get("nl_normalized") != normalized:
@@ -252,6 +288,8 @@ def validate_stage_d_records(
             stored_distance = float(noisy.get("noise_distance"))
         except (TypeError, ValueError) as exc:
             raise NoiseValidationError("noisy record has invalid distance metadata") from exc
+        if not math.isfinite(stored_distance):
+            raise NoiseValidationError("noisy record distance metadata must be finite")
         if abs(stored_distance - distance) > 1e-12:
             raise NoiseValidationError("noisy record distance metadata does not match text")
         if not _distance_is_valid(noise_type, distance):
@@ -266,13 +304,6 @@ def validate_stage_d_records(
                 raise NoiseValidationError("non-mixed noisy normalized question collides")
             normalized_seen.add(normalized)
             distances.append(distance)
-        try:
-            validate_question_anchors(str(noisy["nl"]), parent, entity_index)
-        except ParaphraseValidationError as exc:
-            raise NoiseValidationError(
-                f"noisy record {noisy['id']} failed anchor validation: {exc}"
-            ) from exc
-
     expected_counts = {noise_type.value: count for noise_type, count in config.quotas.items()}
     if dict(type_counts) != expected_counts:
         raise NoiseValidationError(f"noise type quotas do not match contract: {dict(type_counts)}")
