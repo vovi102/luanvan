@@ -27,9 +27,9 @@ Quy tắc: "Cuối tháng 2 nếu còn argue về pivot — câu trả lời là
 
 ## Acceptance criteria
 
-- [ ] Mọi GO criteria đã được đánh giá khách quan (đo, không cảm tính).
-- [ ] Mọi NO-GO trigger đã được kiểm tra.
-- [ ] Quyết định cuối được ghi rõ với rationale.
+- [x] Mọi GO criteria đã được đánh giá khách quan (đo, không cảm tính).
+- [x] Mọi NO-GO trigger đã được kiểm tra.
+- [x] Quyết định cuối được ghi rõ với rationale.
 
 ## Hướng dẫn triển khai
 
@@ -179,4 +179,14 @@ Tạo `docs/plan-b-adjustments.md`:
 
 ## Trạng thái
 
-`todo`
+`done — Pivot Plan B (NL2SQL)`
+
+## Evidence — 2026-08-09
+
+- Decision: `docs/pivot-decision-1.md`.
+- Backlog migration: `docs/plan-b-adjustments.md`.
+- Full live benchmark: `docs/kg-benchmark.md`.
+- GO criteria: 2 pass; dictionary manual sample và stack self-assessment không
+  đủ evidence để pass strict gate.
+- NO-GO #3 xảy ra: Q1 = 34,554 giây, Q2 = 38,015 giây; cả hai vượt 5 giây.
+- Kết luận tuân theo rule có sẵn: bất kỳ một NO-GO trigger nào cũng phải pivot.

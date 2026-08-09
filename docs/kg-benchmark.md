@@ -85,3 +85,18 @@ Các query lookup, filter và bounded join đạt mục tiêu hai giây. Full ag
 count không đạt mục tiêu và vượt ngưỡng NO-GO năm giây của T2.6. Vì vậy T2.4 đã
 được đánh giá live nhưng không pass toàn bộ acceptance criteria; Pivot Point #1
 phải ghi nhận aggregate latency là negative evidence đã đo được.
+
+## Benchmark chính thức cho Pivot #1
+
+Năm query trong T2.6 được chạy tuần tự, không có tải song song:
+
+| Query | Thời gian (ms) | Rows | Gate | Kết quả |
+|---|---:|---:|---:|---|
+| Q1 count toàn KG | 34.554,46 | 1 | <2.000 | Fail |
+| Q2 Transaction value >1 ETH, không LIMIT | 38.014,55 | 88.264 | <5.000 | Fail |
+| Q3 Transaction join label, LIMIT 100 | 27,56 | 100 | <5.000 | Pass |
+| Q4 top exchange aggregation, LIMIT 10 | 967,20 | 10 | <10.000 | Pass |
+| Q5 DEX → Mixer multi-hop | 70,33 | 0 | <10.000 | Pass (execution) |
+
+Q1 và Q2 kích hoạt NO-GO trigger #3. Q5 trả 0 rows trong slice hiện tại nên chỉ
+chứng minh query parse/execute thành công, không chứng minh data coverage.

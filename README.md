@@ -1,12 +1,18 @@
 # NL2SPARQL Blockchain KG
 
-> **De tai:** NL2SPARQL cho Blockchain Knowledge Graph Analytics  
+> **Trang thai:** Pivot #1 da chuyen target active sang NL2SQL tren BigQuery (2026-08-09).
+>
+> **De tai ban dau:** NL2SPARQL cho Blockchain Knowledge Graph Analytics
+>
 > **Thoi luong:** 6.5 thang  
-> **Dau ra:** luan van thac si, dataset NL-SPARQL, source code pipeline, demo Gradio/HF Spaces
+> **Dau ra active:** luan van thac si, dataset NL-SQL, source code pipeline, demo Gradio/HF Spaces
 
 ## Muc tieu
 
-Nguoi dung hoi bang tieng Anh ve du lieu Ethereum, he thong thuc hien schema/entity linking, sinh SPARQL, validate query, chay tren Knowledge Graph va tra ket qua co provenance.
+Nguoi dung hoi bang tieng Anh ve du lieu Ethereum; he thong thuc hien
+schema/entity linking, sinh Standard SQL co guard chi phi, chay tren BigQuery va
+tra ket qua co provenance. Full KG/Fuseki duoc giu nhu artifact va negative
+finding cua Plan A.
 
 ## Setup nhanh
 
@@ -98,5 +104,7 @@ Sau khi hoan thanh task:
 
 ## Pivot points
 
-- **Pivot #1:** sau Phase 1 + Phase 2, quyet dinh tiep tuc Plan A NL2SPARQL hay chuyen Plan B NL2SQL. Xem `docs/tasks/phase-2-kg/06-pivot-decision.md`.
+- **Pivot #1 (2026-08-09):** da chuyen sang Plan B NL2SQL sau khi full-KG
+  benchmark kich hoat NO-GO latency. Xem `docs/pivot-decision-1.md` va
+  `docs/plan-b-adjustments.md`.
 - **Pivot #2:** sau Phase 5, scope down neu baseline qua yeu hoac timeline khong con an toan. Xem `docs/tasks/phase-5-baselines/05-pivot-decision.md`.

@@ -24,6 +24,26 @@
 
 ## Entries
 
+### 2026-08-09 — Pivot từ NL2SPARQL sang NL2SQL tại Pivot Point #1
+
+- **Context:** Full KG 73,9M triples load được vào TDB2 nhưng benchmark chính
+  thức cho Q1 count và Q2 filter không LIMIT mất lần lượt 34,55s và 38,01s.
+  Dictionary có 4.520 entries nhưng sample 50 chưa được verify thủ công.
+- **Options considered:** Tiếp tục Plan A và tối ưu/cache Fuseki; thu nhỏ KG;
+  hoặc tuân thủ NO-GO gate và pivot Plan B trên BigQuery.
+- **Decision:** Pivot sang NL2SQL. Giữ full KG như negative-result artifact,
+  dừng T2.5 full validation và không đầu tư thêm vào optimization Plan A.
+- **Rationale:** T2.6 quy định bất kỳ một NO-GO trigger nào cũng buộc pivot;
+  query đơn giản >5s đã kích hoạt trigger #3. Cache/pre-aggregation hoặc thu nhỏ
+  KG sẽ thay đổi workload thay vì làm evidence hiện tại pass.
+- **Consequences:** Bổ sung Phase 2 SQL schema/views/smoke tasks; migrate target
+  của Phase 3–7 từ SPARQL sang Standard SQL. Dictionary, extraction, dataset
+  protocol, linker/evaluation methodology và model training vẫn tái sử dụng.
+- **Revisit:** Không đảo lại Plan A trong implementation; chỉ thảo luận KG như
+  negative finding/limitation khi viết luận văn.
+- **Linked:** `docs/pivot-decision-1.md`, `docs/plan-b-adjustments.md`,
+  `docs/tasks/phase-2-kg/06-pivot-decision.md`, `docs/kg-benchmark.md`.
+
 ### 2026-08-09 — Materialize full KG bằng chunk 50k có checkpoint xác thực
 
 - **Context:** Live Morph-KGC với chunk 100k tạo 2.43M triples rồi bị kernel kill
@@ -180,7 +200,7 @@
 - [ ] Phase 2: Chốt namespace ontology cuối cùng.
 - [ ] Phase 2: Chốt mức độ extension EthOn (số class/property thêm).
 - [ ] Phase 2: Chốt kích thước slice BigQuery (1 tháng → bao nhiêu transactions thực tế).
-- [ ] Phase 2: **Pivot Point #1** — Plan A tiếp tục hay Plan B.
+- [x] Phase 2: **Pivot Point #1** — pivot Plan B (2026-08-09).
 - [ ] Phase 3: Chốt số templates cuối cùng (mục tiêu 25-30).
 - [ ] Phase 3: Chốt LLM dùng cho paraphrase (Llama 3 70B qua OpenRouter? Mistral Large?).
 - [ ] Phase 3: Chốt mức noise injection (% items, loại noise nào).
