@@ -1,0 +1,19 @@
+{
+  "address": ["addr", "addy"],
+  "addresses": ["addrs"],
+  "average": ["avg"],
+  "between": ["btwn"],
+  "block": ["blk"],
+  "blocks": ["blks"],
+  "contract": ["ctrct"],
+  "contracts": ["ctrcts"],
+  "greater than": [">", "gt"],
+  "less than": ["<", "lt"],
+  "maximum": ["max"],
+  "minimum": ["min"],
+  "number of": ["no. of"],
+  "token transfer": ["token txfer"],
+  "token transfers": ["token txfers"],
+  "transaction": ["tx", "txn"],
+  "transactions": ["txs", "txns"]
+}
