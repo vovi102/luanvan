@@ -170,6 +170,29 @@ def test_coingecko_compiler_rejects_address_prefix_embedded_in_long_identifier(
         )
 
 
+def test_coingecko_compiler_excludes_addresses_claimed_by_reviewed_rows(fetcher):
+    address = "0x" + "3" * 40
+    snapshot = {
+        "tokens": [
+            {
+                "chainId": 1,
+                "address": address,
+                "name": "Protocol Token",
+                "symbol": "PT",
+            }
+        ]
+    }
+
+    rows = fetcher.rows_from_coingecko(
+        snapshot,
+        revision="sha256:" + "b" * 64,
+        retrieved_date="2026-08-09",
+        excluded_addresses={address.lower()},
+    )
+
+    assert rows == []
+
+
 def test_compile_rows_rejects_duplicate_address_across_sources(fetcher):
     row = valid_chain_aware_row(address="0x" + "4" * 40)
 
@@ -254,6 +277,7 @@ def test_compiler_cli_writes_deterministic_offline_snapshot(tmp_path):
     assert [entry["owner"] for entry in rows] == ["Reviewed Owner", "Delta Token"]
     assert rows[0]["address_role"] == "operational"
     assert rows[1]["source_revision"].startswith("sha256:")
+    assert b"\r\n" not in output.read_bytes()
 
 
 def test_build_dictionary_merges_real_source_rows_and_sorts_outputs(tmp_path):
@@ -263,15 +287,18 @@ def test_build_dictionary_merges_real_source_rows_and_sorts_outputs(tmp_path):
         "\n".join(
             [
                 "address,primary_label,owner,category,concept_class,aliases,"
-                "source_name,source_url,retrieved_date,confidence",
+                "chain_id,address_role,source_name,source_url,source_revision,"
+                "source_locator,retrieved_date,confidence",
                 "0x28C6c06298d514Db089934071355E5743bf21d60,"
                 "Binance: Hot Wallet 14,Binance,exchange,ExchangeAccount,"
-                "binance|binance hot wallet,etherscan,"
+                "binance|binance hot wallet,1,treasury,etherscan,"
                 "https://etherscan.io/address/"
-                "0x28C6c06298d514Db089934071355E5743bf21d60,2026-06-28,high",
+                "0x28C6c06298d514Db089934071355E5743bf21d60,"
+                f"{'a' * 40},accounts/binance:L14,2026-06-28,high",
                 "0x0000000000000000000000000000000000000000,"
                 "Curve: Registry,Curve,dex,DEXProtocol,curve|curve protocol,"
-                "curated_seed,https://curve.fi,2026-06-28,medium",
+                f"1,operational,curated_seed,https://curve.fi,{'b' * 40},"
+                "deployments/ethereum.json:/registry,2026-06-28,medium",
             ]
         )
         + "\n",
@@ -301,6 +328,10 @@ def test_build_dictionary_merges_real_source_rows_and_sorts_outputs(tmp_path):
     assert built["entities"][0]["address_lower"] == "0x0000000000000000000000000000000000000000"
     assert built["aliases"]["binance hot wallet"] == "Binance"
     assert built["concepts"]["exchange"]["instances"] == ["Binance"]
+    assert built["entities"][0]["chain_id"] == 1
+    assert built["entities"][0]["address_role"] == "operational"
+    assert built["entities"][0]["sources"][0]["revision"] == "b" * 40
+    assert built["entities"][0]["sources"][0]["locator"] == "deployments/ethereum.json:/registry"
 
 
 def test_build_dictionary_drops_ambiguous_aliases_without_dropping_entities(tmp_path):
@@ -310,15 +341,18 @@ def test_build_dictionary_drops_ambiguous_aliases_without_dropping_entities(tmp_
         "\n".join(
             [
                 "address,primary_label,owner,category,concept_class,aliases,"
-                "source_name,source_url,retrieved_date,confidence",
+                "chain_id,address_role,source_name,source_url,source_revision,"
+                "source_locator,retrieved_date,confidence",
                 "0x1111111111111111111111111111111111111111,Spurdo token,Spurdo,"
                 "token_contract,TokenContract,spurdo|spurdo token,"
-                "coingecko_token_list,https://tokens.coingecko.com/uniswap/all.json,"
-                "2026-06-28,medium",
+                "1,token,coingecko_token_list,"
+                "https://tokens.coingecko.com/uniswap/all.json,"
+                f"sha256:{'c' * 64},/tokens/0,2026-06-28,medium",
                 "0x2222222222222222222222222222222222222222,SPURDO token,SPURDO,"
                 "token_contract,TokenContract,spurdo|spurdo token,"
-                "coingecko_token_list,https://tokens.coingecko.com/uniswap/all.json,"
-                "2026-06-28,medium",
+                "1,token,coingecko_token_list,"
+                "https://tokens.coingecko.com/uniswap/all.json,"
+                f"sha256:{'c' * 64},/tokens/1,2026-06-28,medium",
             ]
         )
         + "\n",

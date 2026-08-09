@@ -42,6 +42,7 @@ def rows_from_coingecko(
     *,
     revision: str,
     retrieved_date: str,
+    excluded_addresses: set[str] | None = None,
 ) -> list[dict[str, str]]:
     """Convert an immutable CoinGecko snapshot to Ethereum token rows."""
 
@@ -50,6 +51,7 @@ def rows_from_coingecko(
     if not isinstance(tokens, list):
         raise DictionaryValidationError("CoinGecko snapshot must contain a tokens list")
 
+    excluded_addresses = excluded_addresses or set()
     rows: list[dict[str, str]] = []
     for index, token in enumerate(tokens):
         if not isinstance(token, dict):
@@ -57,7 +59,9 @@ def rows_from_coingecko(
         if token.get("chainId") != 1:
             continue
         address = token.get("address")
-        normalize_address(address)
+        address_lower = normalize_address(address)
+        if address_lower in excluded_addresses:
+            continue
         name = token.get("name")
         symbol = token.get("symbol")
         if not isinstance(name, str) or not name.strip():
@@ -130,7 +134,12 @@ def write_rows(rows: list[dict[str, str]], output: Path) -> None:
 
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=FIELDS, extrasaction="raise")
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=FIELDS,
+            extrasaction="raise",
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -163,12 +172,14 @@ def main() -> None:
     snapshot_bytes = args.coingecko_snapshot.read_bytes()
     snapshot = json.loads(snapshot_bytes)
     revision = f"sha256:{hashlib.sha256(snapshot_bytes).hexdigest()}"
+    reviewed_rows = read_reviewed_rows(args.reviewed_rows)
+    reviewed_addresses = {normalize_address(row["address"]) for row in reviewed_rows}
     token_rows = rows_from_coingecko(
         snapshot,
         revision=revision,
         retrieved_date=args.retrieved_date,
+        excluded_addresses=reviewed_addresses,
     )
-    reviewed_rows = read_reviewed_rows(args.reviewed_rows)
     write_rows(compile_rows(token_rows, reviewed_rows), args.output)
 
 

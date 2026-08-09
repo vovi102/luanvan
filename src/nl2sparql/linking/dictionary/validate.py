@@ -15,7 +15,11 @@ from nl2sparql.linking.dictionary.schema import (
     DictionaryValidationError,
     normalize_address,
     normalize_alias,
+    validate_address_role,
+    validate_chain_id,
     validate_confidence,
+    validate_source_locator,
+    validate_source_revision,
 )
 
 
@@ -34,18 +38,18 @@ def _load_json(path: Path) -> Any:
 
 
 def validate_artifacts(
-    artifacts: DictionaryArtifacts = DictionaryArtifacts(),
+    artifacts: DictionaryArtifacts | None = None,
     *,
     min_entities: int = 3000,
     min_aliases: int = 1000,
 ) -> dict[str, int]:
+    if artifacts is None:
+        artifacts = DictionaryArtifacts()
     entities = _load_json(artifacts.entities_path)
     concepts = _load_json(artifacts.concepts_path)
     aliases = _load_json(artifacts.aliases_path)
     if not artifacts.sources_path.exists():
-        raise DictionaryValidationError(
-            f"Missing dictionary artifact: {artifacts.sources_path}"
-        )
+        raise DictionaryValidationError(f"Missing dictionary artifact: {artifacts.sources_path}")
     if not isinstance(entities, list):
         raise DictionaryValidationError("entities.json must contain a list")
     if not isinstance(concepts, dict):
@@ -54,8 +58,7 @@ def validate_artifacts(
         raise DictionaryValidationError("aliases.json must contain an object")
     if len(entities) < min_entities:
         raise DictionaryValidationError(
-            f"entities.json has {len(entities)} entries; "
-            f"expected at least {min_entities}"
+            f"entities.json has {len(entities)} entries; expected at least {min_entities}"
         )
     if not 8 <= len(concepts) <= 12:
         raise DictionaryValidationError(
@@ -82,14 +85,10 @@ def validate_artifacts(
 
     for concept_key, concept in concepts.items():
         if normalize_alias(concept_key) != concept_key:
-            raise DictionaryValidationError(
-                f"Concept key is not normalized: {concept_key!r}"
-            )
+            raise DictionaryValidationError(f"Concept key is not normalized: {concept_key!r}")
         for field in ("ontology_class", "aliases", "instances", "description"):
             if field not in concept:
-                raise DictionaryValidationError(
-                    f"Concept {concept_key!r} missing field {field!r}"
-                )
+                raise DictionaryValidationError(f"Concept {concept_key!r} missing field {field!r}")
         owners.update(concept["instances"])
 
     required = {
@@ -100,38 +99,49 @@ def validate_artifacts(
         "category",
         "concept_class",
         "aliases",
+        "chain_id",
+        "address_role",
         "sources",
         "confidence",
         "verified_date",
     }
+    operational_entity_count = 0
     for entry in entities:
         missing = required - set(entry)
         if missing:
             raise DictionaryValidationError(f"Entity missing fields: {sorted(missing)}")
         address_lower = normalize_address(entry["address"])
         if entry["address_lower"] != address_lower:
-            raise DictionaryValidationError(
-                f"address_lower mismatch for {entry['address']}"
-            )
+            raise DictionaryValidationError(f"address_lower mismatch for {entry['address']}")
         if address_lower in seen_addresses:
             raise DictionaryValidationError(f"Duplicate address_lower: {address_lower}")
         seen_addresses.add(address_lower)
         if entry["category"] not in concept_keys:
             raise DictionaryValidationError(f"Unknown category: {entry['category']}")
+        validate_chain_id(entry["chain_id"])
+        role = validate_address_role(entry["address_role"])
+        operational_entity_count += role == "operational"
         validate_confidence(entry["confidence"])
         if not entry["sources"]:
-            raise DictionaryValidationError(
-                f"Entity has no sources: {entry['address']}"
-            )
+            raise DictionaryValidationError(f"Entity has no sources: {entry['address']}")
         owners.add(entry["owner"])
         for alias in entry["aliases"]:
             normalize_alias(alias)
         for source in entry["sources"]:
-            for field in ("name", "url", "retrieved_date", "note"):
+            for field in (
+                "name",
+                "url",
+                "revision",
+                "locator",
+                "retrieved_date",
+                "note",
+            ):
                 if field not in source:
                     raise DictionaryValidationError(
                         f"Source missing field {field!r} for {entry['address']}"
                     )
+            validate_source_revision(source["revision"])
+            validate_source_locator(source["locator"])
 
     for alias, target in aliases.items():
         if normalize_alias(alias) != alias:
@@ -152,4 +162,5 @@ def validate_artifacts(
         "entity_count": len(entities),
         "concept_count": len(concepts),
         "alias_count": len(aliases),
+        "operational_entity_count": operational_entity_count,
     }

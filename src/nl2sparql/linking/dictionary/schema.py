@@ -34,9 +34,7 @@ def validate_confidence(value: str) -> str:
 
 def validate_chain_id(value: str | int) -> int:
     if value not in (1, "1"):
-        raise DictionaryValidationError(
-            f"Expected Ethereum chain_id 1, received: {value!r}"
-        )
+        raise DictionaryValidationError(f"Expected Ethereum chain_id 1, received: {value!r}")
     return 1
 
 
