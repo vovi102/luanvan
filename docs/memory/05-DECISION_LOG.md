@@ -24,6 +24,29 @@
 
 ## Entries
 
+### 2026-08-09 — T3.3 dùng hai model OpenRouter với structured output và actual-cost gate
+
+- **Context:** Stage A đã pivot sang 1.000 GoogleSQL records có live witness,
+  nhưng task paraphrase cũ vẫn mô tả SPARQL, model gợi ý chưa pin và cost estimate
+  theo bảng giá hard-code. Môi trường hiện không có LLM credential/runtime.
+- **Options considered:** Một model free-form; rewrite rules offline; hoặc hai model
+  pinned qua OpenRouter với strict schema, checkpoint và deterministic validators.
+- **Decision:** Stage B dùng `openai/gpt-4.1-mini` temperature 0; Stage C dùng
+  `google/gemini-2.5-flash` temperature 0.7. Bắt buộc structured output,
+  `require_parameters=true`, canonical fact/anchor checks, 3.000 normalized unique
+  questions, mean distance >0.30 và tổng `usage.cost` không quá $30.
+- **Rationale:** Hai model giảm single-model bias; strict schema và validators ngăn
+  semantic drift; actual API accounting bền hơn bảng giá tĩnh. Checkpoint cho phép
+  dừng/resume mà không trả tiền lại và vẫn cộng chi phí lịch sử vào cap.
+- **Consequences:** Implementation, tests, atomic writers, manifest và offline
+  preflight đã sẵn sàng. Live 2.000 calls, artifacts và manual audits phải chờ
+  `OPENROUTER_API_KEY`; không hạ acceptance hoặc sinh dữ liệu giả.
+- **Revisit:** Khi credential được cấu hình hoặc model ID mất structured-output
+  support; sau live run cập nhật audit evidence và output hashes.
+- **Linked:** `docs/tasks/phase-3-dataset/03-paraphrasing.md`,
+  `scripts/10_paraphrase_stage_a.py`,
+  `docs/superpowers/specs/2026-08-09-t3-3-sql-paraphrasing-design.md`.
+
 ### 2026-08-09 — T3.2 dùng limit-monotonic live witnesses thay vì 1.000 scans
 
 - **Context:** T3.2 cũ sinh SPARQL offline. Nếu execute độc lập 1.000 GoogleSQL
@@ -376,7 +399,7 @@
 - [ ] Phase 2: Chốt kích thước slice BigQuery (1 tháng → bao nhiêu transactions thực tế).
 - [x] Phase 2: **Pivot Point #1** — pivot Plan B (2026-08-09).
 - [ ] Phase 3: Chốt số templates cuối cùng (mục tiêu 25-30).
-- [ ] Phase 3: Chốt LLM dùng cho paraphrase (Llama 3 70B qua OpenRouter? Mistral Large?).
+- [x] Phase 3: Chốt LLM dùng cho paraphrase (GPT-4.1 Mini + Gemini 2.5 Flash qua OpenRouter).
 - [ ] Phase 3: Chốt mức noise injection (% items, loại noise nào).
 - [ ] Phase 4: Chốt embedding model cuối (MiniLM-L6 hay multilingual?).
 - [ ] Phase 4: Chốt fuzzy threshold sau hyperparam search.

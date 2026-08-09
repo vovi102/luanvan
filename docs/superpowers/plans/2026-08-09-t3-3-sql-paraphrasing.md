@@ -34,13 +34,13 @@
   `validate_question_anchors(question, record, entity_index)`, and
   `normalized_levenshtein(left, right)`.
 
-- [ ] Write failing tests for strict response fields, canonical fact order,
+- [x] Write failing tests for strict response fields, canonical fact order,
   SQL-specific prompts, prompt SHA-256, entity aliases, numeric/date/token
   anchors, duplicate variants, code fences, and known edit-distance values.
-- [ ] Confirm RED on the missing paraphrase package.
-- [ ] Implement Pydantic schemas, immutable prompt dataclasses, dictionary-aware
+- [x] Confirm RED on the missing paraphrase package.
+- [x] Implement Pydantic schemas, immutable prompt dataclasses, dictionary-aware
   context, anchor normalization, and dynamic-programming Levenshtein distance.
-- [ ] Run focused tests, Ruff, format, and whitespace checks; commit.
+- [x] Run focused tests, Ruff, format, and whitespace checks.
 
 ### Task 2: Resumable bounded runner
 
@@ -53,14 +53,14 @@
 - Produces `run_stage_b(...)`, `run_stage_c(...)`, `load_checkpoint(path)`,
   `CostLedger`, `StageRunReport`, and canonical checkpoint rows.
 
-- [ ] Write async fake-client tests for stable output ordering, resume skips,
+- [x] Write async fake-client tests for stable output ordering, resume skips,
   checkpoint conflicts, 429/5xx retry with injected sleeper, non-retryable
   schema failures, three-attempt limit, actual token/cost capture, missing-cost
   rejection, and $30 reservation/actual gates.
-- [ ] Confirm RED before runner implementation.
-- [ ] Implement bounded asyncio scheduling, retry classification, append-only
+- [x] Confirm RED before runner implementation.
+- [x] Implement bounded asyncio scheduling, retry classification, append-only
   canonical checkpoints, prompt/source/model keys, and cost ledger.
-- [ ] Run contract/runner tests GREEN and commit.
+- [x] Run contract/runner tests GREEN.
 
 ### Task 3: OpenRouter adapter and atomic artifacts
 
@@ -76,14 +76,14 @@
 - Artifact writer emits Stage B/C JSONL, cost CSV, config JSON, and quality stats
   only after full validation.
 
-- [ ] Write fake-SDK tests for strict `response_format`, pinned models,
+- [x] Write fake-SDK tests for strict `response_format`, pinned models,
   `require_parameters`, usage cost extraction, and credential failure without
   leaking key material.
-- [ ] Write CLI/artifact tests for validate-only no-client behavior, exact
+- [x] Write CLI/artifact tests for validate-only no-client behavior, exact
   1,000/3,000 schemas, normalized uniqueness/distance gates, atomic failure,
   and deterministic audit sample IDs.
-- [ ] Implement the adapter, artifact builders/writers, and Click CLI.
-- [ ] Run focused tests and commit.
+- [x] Implement the adapter, artifact builders/writers, and Click CLI.
+- [x] Run focused tests.
 
 ### Task 4: Documentation, live run, and closure
 
@@ -96,15 +96,15 @@
 - Generate: `data/dataset/raw/paraphrase-config.json`
 - Modify: `docs/memory/05-DECISION_LOG.md`
 
-- [ ] Migrate all active wording/schema examples from SPARQL to GoogleSQL and
+- [x] Migrate all active wording/schema examples from SPARQL to GoogleSQL and
   document the two-model, structured-output, resume, and cost contracts.
-- [ ] Run validate-only against the accepted Stage A artifact and record source
+- [x] Run validate-only against the accepted Stage A artifact and record source
   hash/count/caps.
-- [ ] If `OPENROUTER_API_KEY` is present, run Stage B then Stage C with resume;
+- [x] If `OPENROUTER_API_KEY` is present, run Stage B then Stage C with resume;
   otherwise record the external credential gate without weakening acceptance.
 - [ ] Validate output counts, actual cost, anchors, unique normalized text, mean
   edit distance, and deterministic manual sample manifests.
-- [ ] Run the 50/100 manual audits, full pytest, Ruff, format, and diff checks;
+- [x] Run full pytest, Ruff, format, and diff checks; because live artifacts do
+  not exist, record the 50/100 manual audits as credential-gated and
   commit completed evidence or an honest credential-gated implementation
   checkpoint with a clean worktree.
-
