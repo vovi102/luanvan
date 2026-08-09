@@ -62,9 +62,7 @@ def test_write_jsonl_and_stats(tmp_path: Path) -> None:
     stats_path = write_stats(records, tmp_path / "stats.md")
 
     rows = [
-        json.loads(line)
-        for line in jsonl_path.read_text(encoding="utf-8").splitlines()
-        if line
+        json.loads(line) for line in jsonl_path.read_text(encoding="utf-8").splitlines() if line
     ]
     stats = stats_path.read_text(encoding="utf-8")
 

@@ -27,9 +27,7 @@ def _variant_fill(template: dict[str, Any], variant: int) -> dict[str, Any]:
     if "n" in template["slots"]:
         fill["n"] = [5, 10, 20, 50, 100][variant % 5]
     if "value_wei" in template["slots"]:
-        fill["value_wei"] = ["1000000000000000000", "10000000000000000000"][
-            variant % 2
-        ]
+        fill["value_wei"] = ["1000000000000000000", "10000000000000000000"][variant % 2]
     if "start_date" in template["slots"]:
         fill["start_date"] = ["2024-01-01", "2024-01-15", "2024-02-01"][variant % 3]
         fill["end_date"] = ["2024-02-01", "2024-02-15", "2024-03-01"][variant % 3]
@@ -96,9 +94,7 @@ def generate_stage_a_records(
             if len(records) >= target_count:
                 break
         if not progressed:
-            raise ValueError(
-                f"Cannot generate {target_count} unique records with 10% template cap"
-            )
+            raise ValueError(f"Cannot generate {target_count} unique records with 10% template cap")
     return records
 
 
