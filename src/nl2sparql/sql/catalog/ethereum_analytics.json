@@ -1,0 +1,41 @@
+{
+  "catalog_version": "1.0.0",
+  "dialect": "google_standard_sql",
+  "location": "US",
+  "evaluation_window": {
+    "interval": "half_open",
+    "start_date": "2026-05-31",
+    "end_date": "2026-07-01",
+    "max_days": 31
+  },
+  "cost_policy": {
+    "dry_run_required": true,
+    "maximum_bytes_billed": 53687091200
+  },
+  "physical_sources": {
+    "transactions": {},
+    "blocks": {},
+    "token_transfers": {},
+    "contracts": {},
+    "amended_tokens": {},
+    "entity_labels_v1": {}
+  },
+  "analytical_relations": {
+    "transaction_facts": {},
+    "block_facts": {},
+    "token_transfer_facts": {},
+    "contract_dimension": {},
+    "token_dimension": {},
+    "entity_labels_v1": {}
+  },
+  "join_paths": {
+    "transaction_to_block": {},
+    "transfer_to_transaction": {},
+    "transfer_to_contract": {},
+    "transfer_to_token": {},
+    "fact_address_to_entity": {}
+  },
+  "role_policies": {},
+  "semantic_mappings": [],
+  "competency_questions": []
+}
