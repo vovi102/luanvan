@@ -104,7 +104,7 @@ FROM stats""",
     ),
     BenchmarkCase(
         case_id="transaction_count",
-        description="Canonical transaction facts match the pinned extraction count.",
+        description="Canonical transaction facts match the independent raw-source count.",
         difficulty="simple",
         requires_window=True,
         sql="""WITH stats AS (
@@ -113,13 +113,13 @@ FROM stats""",
     DATE '2026-05-31', DATE '2026-07-01'
   )
 )
-SELECT observed_count, 4431329 AS expected_count,
-  observed_count = 4431329 AS passed
+SELECT observed_count, 65621456 AS expected_count,
+  observed_count = 65621456 AS passed
 FROM stats""",
     ),
     BenchmarkCase(
         case_id="block_count",
-        description="Canonical block facts match the pinned extraction count.",
+        description="Canonical block facts match the independent raw-source count.",
         difficulty="simple",
         requires_window=True,
         sql="""WITH stats AS (
@@ -128,8 +128,8 @@ FROM stats""",
     DATE '2026-05-31', DATE '2026-07-01'
   )
 )
-SELECT observed_count, 221548 AS expected_count,
-  observed_count = 221548 AS passed
+SELECT observed_count, 222310 AS expected_count,
+  observed_count = 222310 AS passed
 FROM stats""",
     ),
     BenchmarkCase(
@@ -165,9 +165,9 @@ FROM stats""",
     DATE '2026-05-31', DATE '2026-07-01'
   )
 )
-SELECT stats.*, 4431329 AS expected_count,
-  observed_count = 4431329
-    AND unique_transaction_count = 4431329 AS passed
+SELECT stats.*, 65621456 AS expected_count,
+  observed_count = 65621456
+    AND unique_transaction_count = 65621456 AS passed
 FROM stats""",
     ),
     BenchmarkCase(
@@ -193,9 +193,9 @@ FROM stats""",
     DATE '2026-05-31', DATE '2026-07-01'
   )
 )
-SELECT stats.*, 4001230 AS expected_count,
-  observed_count = 4001230
-    AND unique_event_count = 4001230
+SELECT stats.*, 125320919 AS expected_count,
+  observed_count = 125320919
+    AND unique_event_count = 125320919
     AND precision_violations = 0 AS passed
 FROM stats""",
     ),

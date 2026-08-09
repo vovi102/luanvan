@@ -86,12 +86,12 @@ def test_cases_encode_historical_counts_and_precision_invariants() -> None:
     assert "14" in cases["label_contract"]
     assert "5091" in cases["label_contract"]
     assert "30" in cases["label_contract"]
-    assert "4431329" in cases["transaction_count"]
-    assert "221548" in cases["block_count"]
+    assert "65621456" in cases["transaction_count"]
+    assert "222310" in cases["block_count"]
     assert "COUNT(DISTINCT address)" in cases["contract_dimension_contract"]
-    assert "4431329" in cases["labeled_transaction_cardinality"]
+    assert "65621456" in cases["labeled_transaction_cardinality"]
     token_sql = cases["labeled_token_transfer_contract"]
-    assert "4001230" in token_sql
+    assert "125320919" in token_sql
     assert "value_cast_valid IS NOT TRUE" in token_sql
     assert "is_erc20 IS NOT TRUE" in token_sql
     assert "COALESCE(is_erc721, FALSE) IS NOT FALSE" in token_sql
