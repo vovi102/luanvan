@@ -1,5 +1,12 @@
 """GoogleSQL analytical schema contracts for Plan B."""
 
+from nl2sparql.sql.benchmark import (
+    BENCHMARK_CASES,
+    TOTAL_BENCHMARK_BYTES_CAP,
+    BenchmarkCase,
+    BenchmarkError,
+    validate_benchmark_cases,
+)
 from nl2sparql.sql.label_layer import (
     DEFAULT_DATASET,
     DEFAULT_LOCATION,
@@ -31,12 +38,15 @@ from nl2sparql.sql.schema import (
 )
 
 __all__ = [
+    "BENCHMARK_CASES",
     "CATALOG_PATH",
     "DEFAULT_DATASET",
     "DEFAULT_LOCATION",
     "DEFAULT_MAXIMUM_BYTES_BILLED",
     "LABEL_TABLE_SCHEMA",
     "CatalogSummary",
+    "BenchmarkCase",
+    "BenchmarkError",
     "DeploymentPlan",
     "DeploymentResult",
     "LabelLayerError",
@@ -45,6 +55,7 @@ __all__ = [
     "LiveSchemaSummary",
     "SchemaCatalogError",
     "SqlObject",
+    "TOTAL_BENCHMARK_BYTES_CAP",
     "apply_deployment",
     "apply_rollback",
     "build_deployment_plan",
@@ -54,6 +65,7 @@ __all__ = [
     "render_label_layer_ddl",
     "render_rollback_ddl",
     "validate_catalog",
+    "validate_benchmark_cases",
     "validate_date_window",
     "validate_live_schemas",
 ]
