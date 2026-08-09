@@ -178,7 +178,13 @@ def _witness_group_id(template_id: str, slot_values: Mapping[str, Any]) -> str:
 
 
 def _record_hash(record: Mapping[str, Any]) -> str:
-    return _sha256({key: value for key, value in record.items() if key != "record_sha256"})
+    return _sha256(
+        {
+            key: value
+            for key, value in record.items()
+            if key not in {"record_sha256", "verification"}
+        }
+    )
 
 
 def generate_stage_a_records(

@@ -7,7 +7,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from nl2sparql.dataset.generate import generate_stage_a_records, load_value_pools
+from nl2sparql.dataset.generate import (
+    generate_stage_a_records,
+    load_value_pools,
+    validate_stage_a_records,
+)
 from nl2sparql.dataset.stage_a.verify import (
     TOTAL_WITNESS_BYTES_CAP,
     StageAVerificationError,
@@ -206,6 +210,7 @@ def test_verification_preflights_all_then_redries_and_propagates_proofs(
     assert first.server_latency_ms == 50.0
     assert first.slot_millis == 75
     assert first.cache_hit is False
+    validate_stage_a_records(report.records, templates)
 
 
 @pytest.mark.parametrize("failure", ["empty", "schema", "count", "cache"])
