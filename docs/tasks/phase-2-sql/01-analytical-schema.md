@@ -132,21 +132,47 @@ không đủ.
 
 ## Acceptance criteria
 
-- [ ] Task spec, approved design và implementation plan được commit trước code.
-- [ ] Catalog map đầy đủ physical sources, canonical relations, fields, joins,
+- [x] Task spec, approved design và implementation plan được commit trước code.
+- [x] Catalog map đầy đủ physical sources, canonical relations, fields, joins,
   roles, safety policy và CQ01-CQ30.
-- [ ] Structural validator fail closed cho invalid references và unsafe date
+- [x] Structural validator fail closed cho invalid references và unsafe date
   contracts.
-- [ ] Date-window validator enforce half-open interval và tối đa 31 ngày.
-- [ ] Live-schema validator phát hiện missing/type-changed required columns và
+- [x] Date-window validator enforce half-open interval và tối đa 31 ngày.
+- [x] Live-schema validator phát hiện missing/type-changed required columns và
   bỏ qua harmless extra columns.
-- [ ] Offline CLI chạy không cần credentials; live mode chỉ đọc metadata.
-- [ ] BigQuery metadata validation pass cho năm public sources hiện có.
-- [ ] Representative SQL dry-runs pass và mỗi query dưới 50 GiB.
-- [ ] Focused tests, full pytest, Ruff và `git diff --check` pass.
-- [ ] Task status/evidence và decision log được cập nhật, không claim coverage
+- [x] Offline CLI chạy không cần credentials; live mode chỉ đọc metadata.
+- [x] BigQuery metadata validation pass cho năm public sources hiện có.
+- [x] Representative SQL dry-runs pass và mỗi query dưới 50 GiB.
+- [x] Focused tests, full pytest, Ruff và `git diff --check` pass.
+- [x] Task status/evidence và decision log được cập nhật, không claim coverage
   vượt quá dữ liệu.
 
 ## Trạng thái
 
-`approved design; implementation pending`
+`done — analytical schema contract validated`
+
+## Evidence — 2026-08-09
+
+- Task spec/design/plan checkpoint: `431bb9b`.
+- Implementation checkpoints:
+  - `68bf460` — catalog loader và fail-closed structural boundary.
+  - `d59391d` — live sources, analytical relations, joins và semantic mappings.
+  - `0374e9d` — CQ coverage và live schema-drift validation.
+- Catalog summary: 6 physical sources, 6 analytical relations, 6 canonical
+  joins, 41 semantic mappings và đủ CQ01-CQ30.
+- Competency status: 25 `supported`, 4 `coverage_gap` (CQ21, CQ23, CQ27,
+  CQ28), 1 `unsupported` (CQ24).
+- Focused verification: `70 passed`.
+- Offline CLI output: 6 sources, 6 relations, 6 joins, 41 mappings, 30 CQs.
+- Live metadata-only validation: 5 public sources và 41 required fields pass;
+  `entity_labels_v1` được báo đúng là 1 deferred source.
+- Pinned-window dry-runs `[2026-05-31, 2026-07-01)`:
+  - transaction → block: `16,824,296,156` bytes.
+  - transfer → deduplicated contract + amended token:
+    `30,855,462,205` bytes.
+  - Cả hai dưới cap `53,687,091,200` bytes và không execute query tính phí.
+- Full verification: `252 passed`, 342 upstream deprecation/user warnings.
+- `ruff check .`, `ruff format --check .` (58 files) và `git diff --check`
+  đều pass.
+- T2-SQL-1 không tạo/sửa remote BigQuery object. Upload label dimension và
+  routine DDL được giữ đúng scope cho T2-SQL-2.

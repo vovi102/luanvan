@@ -24,6 +24,32 @@
 
 ## Entries
 
+### 2026-08-09 — Plan B dùng hybrid GoogleSQL catalog và date-bounded TVFs
+
+- **Context:** Pivot #1 chuyển execution target sang BigQuery, nhưng raw public
+  tables không tự cung cấp canonical joins, role-aware entity semantics hoặc
+  bắt buộc date/cost guards. Logical views cũng không nhận query parameters.
+- **Options considered:** Prompt query trực tiếp public tables; materialize full
+  monthly snapshot; hoặc hybrid layer dùng public facts, managed label
+  dimension và parameterized TVFs.
+- **Decision:** Chọn hybrid. T2-SQL-1 commit machine-readable catalog gồm 6
+  sources, 6 relations, 6 joins, 41 semantic mappings và CQ01-CQ30. Fact
+  windows dùng half-open `[start_date, end_date)`, tối đa 31 ngày, dry-run và
+  cap 50 GiB/query. T2-SQL-2 sẽ tạo `entity_labels_v1` và TVFs.
+- **Rationale:** Cách này giữ partition pruning và dữ liệu public cập nhật mà
+  vẫn cho downstream một interface nhỏ, testable và fail closed. CQ mapping
+  buộc gaps/unsupported semantics phải hiện rõ thay vì model tự suy diễn.
+- **Consequences:** 25 CQs supported; CQ21/CQ23/CQ27/CQ28 thiếu operational
+  label coverage; CQ24 không hỗ trợ vì public substrate không decode distinct
+  meta-transaction initiator/executor. CQ17 chỉ dùng block beneficiary, không
+  claim validator identity. CQ18 bổ sung canonical transaction→contract join.
+- **Revisit:** Sau T2-SQL-3 nếu representative query vượt 50 GiB hoặc latency
+  gate yêu cầu materialized intermediate; không nới role/semantic safety để
+  làm benchmark pass.
+- **Linked:** `docs/tasks/phase-2-sql/01-analytical-schema.md`,
+  `src/nl2sparql/sql/catalog/ethereum_analytics.json`,
+  `docs/research/bigquery-analytical-layer-options-2026-08-09.md`.
+
 ### 2026-08-09 — T2.2 dùng role-aware hybrid snapshots và fail closed
 
 - **Context:** Seed-42 audit chứng minh extraction theo chuỗi giống EVM address

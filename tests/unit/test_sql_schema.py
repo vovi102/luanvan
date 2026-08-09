@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import copy
+import importlib.util
 import json
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from click.testing import CliRunner
 
 from nl2sparql.sql.schema import (
     CATALOG_PATH,
@@ -564,3 +566,112 @@ def test_validate_live_schemas_does_not_require_deferred_managed_source(
 
     assert "entity_labels_v1" not in schemas
     assert validate_live_schemas(catalog, schemas).deferred_source_count == 1
+
+
+def load_validate_sql_schema_script():
+    script_path = Path("scripts/05_validate_sql_schema.py").resolve()
+    spec = importlib.util.spec_from_file_location("validate_sql_schema_script", script_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def simple_field_from_live(field: LiveField) -> SimpleNamespace:
+    return SimpleNamespace(
+        name=field.name,
+        field_type=field.field_type,
+        mode=field.mode,
+        fields=tuple(simple_field_from_live(child) for child in field.fields),
+    )
+
+
+class FakeMetadataClient:
+    def __init__(
+        self,
+        catalog: dict[str, object],
+        *,
+        mutate_transactions: bool = False,
+    ) -> None:
+        self.project = "nl2sparql-thesis"
+        self.requested_objects: list[str] = []
+        self.tables: dict[str, SimpleNamespace] = {}
+        for source in catalog["physical_sources"].values():
+            if source["deployment_status"] != "live":
+                continue
+            fields = [
+                simple_field_from_live(live_field_from_catalog(name, definition))
+                for name, definition in source["fields"].items()
+            ]
+            if mutate_transactions and source["object"].endswith(".transactions"):
+                fields = [field for field in fields if field.name != "hash"]
+            self.tables[source["object"]] = SimpleNamespace(schema=fields, location="US")
+
+    def get_table(self, object_name: str) -> SimpleNamespace:
+        self.requested_objects.append(object_name)
+        return self.tables[object_name]
+
+
+def test_schema_cli_validates_catalog_offline_without_creating_client() -> None:
+    script = load_validate_sql_schema_script()
+
+    class ForbiddenClient:
+        def __init__(self, *args, **kwargs) -> None:
+            raise AssertionError("offline mode must not create a BigQuery client")
+
+    script.bigquery.Client = ForbiddenClient
+    result = CliRunner().invoke(script.main)
+
+    assert result.exit_code == 0, result.output
+    assert "sources=6" in result.output
+    assert "relations=6" in result.output
+    assert "joins=6" in result.output
+    assert "competency_questions=30" in result.output
+    assert "live_checked_sources" not in result.output
+
+
+def test_schema_cli_fails_closed_for_invalid_catalog(tmp_path: Path) -> None:
+    script = load_validate_sql_schema_script()
+    invalid_path = tmp_path / "invalid.json"
+    invalid_path.write_text("{}", encoding="utf-8")
+
+    result = CliRunner().invoke(script.main, ["--catalog", str(invalid_path)])
+
+    assert result.exit_code != 0
+    assert "catalog_version" in result.output
+
+
+def test_schema_cli_live_mode_reads_only_current_public_metadata(
+    catalog: dict[str, object], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = load_validate_sql_schema_script()
+    client = FakeMetadataClient(catalog)
+    projects: list[str | None] = []
+
+    def client_factory(*, project=None):
+        projects.append(project)
+        return client
+
+    monkeypatch.setattr(script.bigquery, "Client", client_factory)
+    result = CliRunner().invoke(script.main, ["--live", "--project", "nl2sparql-thesis"])
+
+    assert result.exit_code == 0, result.output
+    assert projects == ["nl2sparql-thesis"]
+    assert len(client.requested_objects) == 5
+    assert all("entity_labels_v1" not in name for name in client.requested_objects)
+    assert "live_checked_sources=5" in result.output
+    assert "live_deferred_sources=1" in result.output
+
+
+def test_schema_cli_live_mode_exits_nonzero_on_schema_drift(
+    catalog: dict[str, object], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = load_validate_sql_schema_script()
+    client = FakeMetadataClient(catalog, mutate_transactions=True)
+    monkeypatch.setattr(script.bigquery, "Client", lambda **_: client)
+
+    result = CliRunner().invoke(script.main, ["--live"])
+
+    assert result.exit_code != 0
+    assert "missing required field: transactions.hash" in result.output
