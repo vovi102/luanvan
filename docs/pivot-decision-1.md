@@ -13,7 +13,7 @@ fail/unproven.
 |---|---|---|---|
 | 1 | KG load thành công vào Fuseki | Pass | TDB2 load exit 0 với 73.907.909 triples; endpoint trả kết quả. T2.4 tổng thể vẫn fail latency. |
 | 2 | Ontology cover ≥80% câu hỏi mẫu | Pass | T2.1 cover 30/30 competency questions. |
-| 3 | Dictionary ≥3.000 entries và sample 50 đúng | Fail | Có 4.520 entries nhưng 50 source checks vẫn chưa được verify thủ công. |
+| 3 | Dictionary ≥3.000 entries và sample 50 đúng | Fail | Có 4.520 entries nhưng manual audit chỉ pass 43/50; 7 rows sai chain provenance. |
 | 4 | Tự tin với stack, không stuck >1 tuần | Unproven/Fail | Stack vận hành được, nhưng không có self-assessment đã ký nhận; strict gate không coi evidence thiếu là pass. |
 
 ## NO-GO triggers

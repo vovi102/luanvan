@@ -24,11 +24,32 @@
 
 ## Entries
 
+### 2026-08-09 — T2.2 phải rebuild DefiLlama rows theo chain context
+
+- **Context:** Manual audit seed 42 trên 50 dictionary rows chỉ pass 43. Hai CEX
+  addresses thuộc BSC/Arbitrum; bốn protocol addresses thuộc Base, Polygon,
+  Arbitrum, Mantle hoặc zkSync; một row là prefix bị cắt từ Aptos resource.
+- **Options considered:** Tick acceptance dựa trên 86% sample pass; xóa riêng 7
+  rows; hoặc rebuild toàn bộ DefiLlama-derived rows bằng parser chain-aware.
+- **Decision:** Không tick T2.2 manual acceptance và không vá riêng sample.
+  Rebuild toàn bộ DefiLlama rows, chỉ nhận explicit Ethereum chain context và
+  pin row-level provenance trước khi audit lại.
+- **Rationale:** Lỗi đến từ acquisition method nên 7 sampled rows không phải
+  outlier độc lập. Vá sample sẽ che population risk và làm entity linker học
+  attribution sai chain.
+- **Consequences:** Dictionary hiện tại vẫn dùng được để phát triển structural
+  tests nhưng không được coi là production-quality Ethereum dictionary. T2-SQL
+  label views và Phase 3 entity sampling phải chờ artifact remediated.
+- **Revisit:** Sau khi regenerate artifacts và independent sample 50 pass.
+- **Linked:** `docs/tasks/phase-2-kg/02-entity-dictionary.md`,
+  `docs/research/entity-dictionary-manual-sample-2026-08-09.md`,
+  `src/nl2sparql/linking/dictionary/sources.md`.
+
 ### 2026-08-09 — Pivot từ NL2SPARQL sang NL2SQL tại Pivot Point #1
 
 - **Context:** Full KG 73,9M triples load được vào TDB2 nhưng benchmark chính
   thức cho Q1 count và Q2 filter không LIMIT mất lần lượt 34,55s và 38,01s.
-  Dictionary có 4.520 entries nhưng sample 50 chưa được verify thủ công.
+  Dictionary có 4.520 entries nhưng manual sample sau đó fail 7/50.
 - **Options considered:** Tiếp tục Plan A và tối ưu/cache Fuseki; thu nhỏ KG;
   hoặc tuân thủ NO-GO gate và pivot Plan B trên BigQuery.
 - **Decision:** Pivot sang NL2SQL. Giữ full KG như negative-result artifact,

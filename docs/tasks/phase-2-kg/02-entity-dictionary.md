@@ -144,9 +144,26 @@ Xây hierarchical entity dictionary 2 tầng (concept-level + instance-level) ch
 
 ## Trạng thái
 
-`done-local-auto-pending-manual`
+`manual audit failed; chain-aware remediation required`
 
-Automated acceptance đã pass locally. Manual sample 50 entries vẫn chưa tick vì cần human check từng mẫu ngẫu nhiên với source page/API tương ứng.
+Automated structural acceptance đã pass locally, nhưng manual source audit seed
+42 ngày 2026-08-09 chỉ có 43/50 pass. Bảy records lấy address từ non-Ethereum
+chain hoặc cắt prefix của Aptos resource address. Checkbox manual sample giữ
+unchecked cho tới khi rebuild chain-aware và audit một sample mới.
+
+## Evidence — 2026-08-09 Manual Audit
+
+- Report: `docs/research/entity-dictionary-manual-sample-2026-08-09.md`.
+- Sample: 50/4.520 records, `random.Random(42)`, không thay thế.
+- Kết quả: 43 pass, 7 fail; error rate 14%.
+- CoinGecko: 30/30 pass với exact name/address và `chainId=1`.
+- DefiLlama CEX: 13/15 pass; 2 wrong-chain records.
+- DefiLlama protocols: 0/5 pass; 4 wrong-chain records và 1 truncated Aptos
+  resource address.
+- Root cause: acquisition không giữ chain context khi nhận diện chuỗi giống EVM
+  address; source URLs CEX không đủ row-level và đã stale.
+- Required fix: rebuild DefiLlama rows chỉ từ explicit Ethereum sections, pin
+  provenance, regenerate artifacts và audit sample mới.
 
 ## Evidence — 2026-06-28
 

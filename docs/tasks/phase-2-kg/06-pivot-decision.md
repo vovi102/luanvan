@@ -186,7 +186,7 @@ Tạo `docs/plan-b-adjustments.md`:
 - Decision: `docs/pivot-decision-1.md`.
 - Backlog migration: `docs/plan-b-adjustments.md`.
 - Full live benchmark: `docs/kg-benchmark.md`.
-- GO criteria: 2 pass; dictionary manual sample và stack self-assessment không
-  đủ evidence để pass strict gate.
+- GO criteria: 2 pass; dictionary manual sample fail 7/50 và stack
+  self-assessment không đủ evidence để pass strict gate.
 - NO-GO #3 xảy ra: Q1 = 34,554 giây, Q2 = 38,015 giây; cả hai vượt 5 giây.
 - Kết luận tuân theo rule có sẵn: bất kỳ một NO-GO trigger nào cũng phải pivot.

@@ -2,7 +2,11 @@
 
 Retrieved date: 2026-06-28
 
-Manual verification: pending. This snapshot has automated structural and coverage checks, but the T2.2 manual sample of 50 rows still needs a human pass before marking the task fully done.
+Manual verification: failed on 2026-08-09. A seed-42 sample found 7 provenance
+errors in 50 rows (14%); see
+`docs/research/entity-dictionary-manual-sample-2026-08-09.md`. This snapshot must
+not be treated as Ethereum-only until its DefiLlama rows are rebuilt
+chain-aware.
 
 ## Snapshot inputs
 
@@ -22,11 +26,14 @@ Manual verification: pending. This snapshot has automated structural and coverag
 - `aliases.json` contains at least 1,000 normalized aliases.
 - `concepts.json` contains 8-12 concept categories.
 - The committed coverage list includes top-30 exchange owners and top-50 DeFi protocol owners.
-- Artifacts are validated offline; live scraping is not required for CI.
-  Live scraping is not required for CI.
+- Artifacts are structurally validated offline; live scraping is not required
+  for CI. Chain provenance still requires pinned upstream evidence.
 
 ## Boundaries
 
 - No fake, synthetic, or generated Ethereum addresses are accepted in committed artifacts.
 - Ambiguous aliases that normalize to multiple owners are excluded from the global alias map while the underlying real-source entity rows remain in `entities.json`.
 - Etherscan HTML label pages were not used as an automated source because the environment received a Cloudflare challenge during acquisition.
+- Current DefiLlama rows were extracted without preserving adapter chain
+  context. They may contain non-Ethereum addresses and must be remediated before
+  downstream use.
