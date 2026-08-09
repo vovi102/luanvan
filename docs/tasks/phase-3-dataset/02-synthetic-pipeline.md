@@ -79,14 +79,14 @@ record nào claim exact result count từ propagated proof.
 - [x] Fake-client tests cover witness planning, full preflight, caps, schema,
   non-empty/count/cache và proof propagation.
 - [x] CLI offline không tạo BigQuery client; live outputs chỉ ghi sau success.
-- [ ] Live preflight pass trong 20/96 GiB gates.
-- [ ] 100% final records có non-empty witness; zero cache hits.
-- [ ] Final artifacts/stats/config được tạo và hash-verified.
-- [ ] Full pytest, Ruff, format, `git diff --check` pass; worktree clean.
+- [x] Live preflight pass trong 20/96 GiB gates.
+- [x] 100% final records có non-empty witness; zero cache hits.
+- [x] Final artifacts/stats/config được tạo và hash-verified.
+- [x] Full pytest, Ruff, format, `git diff --check` pass; worktree clean.
 
 ## Trạng thái
 
-`implementation green locally — live witness run pending`
+`done — 2026-08-09; 1.000 GoogleSQL records live-witness verified`
 
 ## Chạy lại
 
@@ -101,6 +101,24 @@ Live witness verification:
 ```bash
 uv run python scripts/09_generate_stage_a.py --live
 ```
+
+## Live evidence — 2026-08-09
+
+- Full preflight: 81 witness groups, estimate 61.855.311.688 bytes (57,61
+  GiB), dưới total cap 96 GiB; max individual 14.368.179.853 bytes, dưới cap 20
+  GiB.
+- Execution: 81/81 witnesses pass, cache hit 0; processed 61.855.311.688 bytes,
+  billed 61.918.412.800 bytes, total wall 196.993,36 ms. Max wall 20.107,53 ms
+  tại witness `syn-000800` của `T_TOKEN_AFTER_NATIVE_FUNDING`.
+- Proof propagation: 81 `live_exact` + 919 `live_limit_monotonic` = 1.000
+  records có `non_empty=true`.
+- Artifact audit: 1.000 unique IDs/SQL/record hashes; difficulty 350/450/200;
+  max template 100; max entity 30; 16 included và 9 excluded templates.
+- Final JSONL size 1.559.692 bytes; SHA-256
+  `a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709`,
+  khớp `generation-config.json`.
+- Repository verification sau migration: 336 passed, 342 upstream warnings;
+  Ruff check/format và `git diff --check` pass.
 
 ## Historical scaffold
 

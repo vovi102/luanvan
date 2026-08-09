@@ -30,15 +30,15 @@
 - Consumes: `load_templates()` and `render_template(template, values)` from T3.1.
 - Produces: `load_value_pools(path)`, `generate_stage_a_records(templates, pools, target_count=1000, seed=42)`, and `validate_stage_a_records(records, templates)`.
 
-- [ ] Write failing tests requiring SQL-only fields, exact 350/450/200 counts,
+- [x] Write failing tests requiring SQL-only fields, exact 350/450/200 counts,
   100-record template cap, 50-record entity cap, unique SQL/IDs/hashes, stable
   seed-42 output, typed entity extraction, and rejection of invalid targets.
-- [ ] Run `uv run pytest tests/unit/test_synthetic_generate.py -q` and confirm
+- [x] Run `uv run pytest tests/unit/test_synthetic_generate.py -q` and confirm
   failures reference the legacy `sparql` contract.
-- [ ] Implement immutable allocation constants, pool loading/validation,
+- [x] Implement immutable allocation constants, pool loading/validation,
   slot-driven candidate generation, canonical SHA-256 helpers, and record
   validation. Do not add timestamps or live results during generation.
-- [ ] Run the focused tests, Ruff, format, and `git diff --check`; commit the
+- [x] Run the focused tests, Ruff, format, and `git diff --check`; commit the
   candidate boundary.
 
 ### Task 2: Witness planner and fake-client verifier
@@ -54,14 +54,14 @@
   `verify_stage_a(client, records, templates, verified_at, ...)`,
   `WitnessPreflight`, and `StageAVerificationReport`.
 
-- [ ] Write fake-job tests proving singleton exact groups, `n`-only monotonic
+- [x] Write fake-job tests proving singleton exact groups, `n`-only monotonic
   groups, smallest-limit witness selection, 20/96 GiB gates, complete preflight
   before execution, immediate re-dry-run, cache-off configs, exact schema,
   positive count semantics, and empty/schema/cache failure paths.
-- [ ] Run the focused verifier tests and confirm RED on the missing module.
-- [ ] Implement the planner, dataclasses, dry-run orchestration, execution
+- [x] Run the focused verifier tests and confirm RED on the missing module.
+- [x] Implement the planner, dataclasses, dry-run orchestration, execution
   checks, metrics, and proof propagation without mutating input candidates.
-- [ ] Run both Stage A test files GREEN, Ruff, format, and whitespace checks;
+- [x] Run both Stage A test files GREEN, Ruff, format, and whitespace checks;
   commit the live-verification boundary.
 
 ### Task 3: CLI, artifacts, and migrated documentation
@@ -79,14 +79,14 @@
 - `--live` constructs BigQuery only after local validation and writes verified
   JSONL, generation config, and stats atomically after all witnesses pass.
 
-- [ ] Write CLI tests for offline no-client behavior, explicit live mode,
+- [x] Write CLI tests for offline no-client behavior, explicit live mode,
   deterministic JSON/config/stats output, and no partial final artifact on a
   verifier failure.
-- [ ] Implement the Click CLI and artifact writers using temporary sibling
+- [x] Implement the Click CLI and artifact writers using temporary sibling
   files followed by replacement only after validation.
-- [ ] Migrate the notebook/task wording from SPARQL/Fuseki to GoogleSQL/BigQuery
+- [x] Migrate the notebook/task wording from SPARQL/Fuseki to GoogleSQL/BigQuery
   and mark the July scaffold documents superseded.
-- [ ] Run focused tests and commit the runnable pipeline.
+- [x] Run focused tests and commit the runnable pipeline.
 
 ### Task 4: Live generation and closure
 
@@ -98,12 +98,11 @@
 - Modify: `docs/tasks/phase-3-dataset/02-synthetic-pipeline.md`
 - Modify: `docs/memory/05-DECISION_LOG.md`
 
-- [ ] Run offline generation twice and require identical candidate hashes.
-- [ ] Run live preflight; if a pool member is empty, replace it only with a
+- [x] Run offline generation twice and require identical candidate hashes.
+- [x] Run live preflight; if a pool member is empty, replace it only with a
   live-derived value and record the evidence rather than weakening policy.
-- [ ] Execute all witness groups once and write the final 1,000 verified records.
-- [ ] Validate exact counts, caps, unique SQL/hashes, 100% non-empty proofs,
+- [x] Execute all witness groups once and write the final 1,000 verified records.
+- [x] Validate exact counts, caps, unique SQL/hashes, 100% non-empty proofs,
   zero cache hits, artifact digest, and recorded cost/latency metrics.
-- [ ] Run full pytest, Ruff, format, and `git diff --check`; close T3.1 and T3.2,
+- [x] Run full pytest, Ruff, format, and `git diff --check`; close T3.1 and T3.2,
   commit with a clean worktree, compact, then migrate T3.3.
-

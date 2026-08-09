@@ -1,0 +1,53 @@
+{
+  "artifact_sha256": "a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709",
+  "cache_hit_count": 0,
+  "difficulty_allocation": {
+    "easy": 350,
+    "hard": 200,
+    "medium": 450
+  },
+  "excluded_template_ids": [
+    "T_BLOCKS_BY_VALIDATOR",
+    "T_BLOCK_BY_NUMBER",
+    "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE",
+    "T_CROSS_EXCHANGE_FLOW",
+    "T_EXCHANGE_TO_DEX_FLOW",
+    "T_LARGE_TX_TO_CLASS",
+    "T_MIXER_TO_DEX_LARGE_FLOW",
+    "T_TX_BETWEEN_ACCOUNTS",
+    "T_TX_BY_HASH"
+  ],
+  "generation_seed": 42,
+  "per_witness_bytes_cap": 21474836480,
+  "record_count": 1000,
+  "template_allocation": {
+    "T_ACCOUNTS_BY_CATEGORY": 56,
+    "T_COUNT_TX_IN_RANGE": 59,
+    "T_FAILED_HIGH_GAS_TX": 56,
+    "T_FILTER_TX_BY_VALUE": 58,
+    "T_LIST_FAILED_TX": 58,
+    "T_LIST_KNOWN_EXCHANGES": 58,
+    "T_LIST_TX_FROM_ACCOUNT": 59,
+    "T_LIST_TX_TO_ACCOUNT": 58,
+    "T_REPEATED_PAIR_FLOW": 100,
+    "T_TOKEN_AFTER_NATIVE_FUNDING": 100,
+    "T_TOKEN_TRANSFERS_OF_TOKEN": 56,
+    "T_TOKEN_VOLUME_BY_SYMBOL": 56,
+    "T_TOP_RECIPIENTS_BY_COUNT": 57,
+    "T_TOP_SENDERS_BY_VALUE": 57,
+    "T_TX_BY_HOUR": 56,
+    "T_TX_GROUPED_BY_OWNER": 56
+  },
+  "template_library_sha256": "2fddc5aaf5c209bde118fbdff27c9e4e35b97a8bd381177817e92d0f69342539",
+  "total_billed_bytes": 61918412800,
+  "total_estimated_bytes": 61855311688,
+  "total_processed_bytes": 61855311688,
+  "total_wall_latency_ms": 196993.36259100004,
+  "total_witness_bytes_cap": 103079215104,
+  "value_pools_sha256": "9e8238537db330cac375ab11e979e1aece8f671e1f42dd3a65314326f5a97463",
+  "verification_mode": "live_witness",
+  "verified_at": "2026-08-09T08:02:23+00:00",
+  "verified_record_count": 1000,
+  "version": 1,
+  "witness_count": 81
+}

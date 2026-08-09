@@ -81,14 +81,13 @@ slots. Address/string slots nằm trong quoted literals; integer/decimal slots
 - [x] 25/25 examples dry-run thành công, per/total cost caps pass.
 - [x] 25/25 examples execute thành công; non-empty policy pass.
 - [x] README/notebook/script đều mô tả GoogleSQL workflow.
-- [ ] Full pytest pass. Hiện 313 pass; 3 legacy T3.2 generator tests còn đọc
-  `sparql_template` và đang được migrate ngay ở task kế tiếp.
+- [x] Full pytest pass sau coupled T3.2 consumer migration: 336 passed.
 - [x] Focused pytest, Ruff, format và `git diff --check` pass.
 - [x] Task/decision evidence cập nhật.
 
 ## Trạng thái
 
-`live contract accepted — closure pending the coupled T3.2 consumer migration`
+`done — 2026-08-09; live contract and T3.2 consumer accepted`
 
 ## Live evidence — 2026-08-09
 

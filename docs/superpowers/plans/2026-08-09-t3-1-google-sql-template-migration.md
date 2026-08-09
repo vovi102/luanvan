@@ -73,6 +73,6 @@ Ruff, GoogleSQL.
 - [x] Dry-run all 25 examples and require cost gates.
 - [x] Execute all examples once; fix semantic/result failures test-first.
 - [x] Record zero-row allowed cases, bytes and latency without hiding misses.
-- [ ] Run full pytest, Ruff, format and `git diff --check` (313 pass; three
-  expected legacy T3.2 consumer failures remain).
-- [ ] Commit closure with a clean worktree, then compact and migrate T3.2.
+- [x] Run full pytest, Ruff, format and `git diff --check` after the coupled
+  T3.2 consumer migration (336 passed).
+- [x] Commit closure with a clean worktree, then compact and migrate T3.2.

@@ -24,6 +24,34 @@
 
 ## Entries
 
+### 2026-08-09 — T3.2 dùng limit-monotonic live witnesses thay vì 1.000 scans
+
+- **Context:** T3.2 cũ sinh SPARQL offline. Nếu execute độc lập 1.000 GoogleSQL
+  records, enriched token templates sẽ lặp nhiều scan 13–14 GB và có thể vượt
+  BigQuery Sandbox quota. Đồng thời live month probes chỉ tìm thấy hai hard
+  templates non-empty, nên target hard 25% xung đột cap 10%/template.
+- **Options considered:** Execute đủ 1.000 queries; giữ offline-only; chấp nhận
+  zero rows; hoặc group các query chỉ khác `LIMIT n` và execute witness nhỏ
+  nhất để dùng tính đơn điệu non-empty.
+- **Decision:** Sinh deterministic 1.000 SQL records với allocation 350 easy /
+  450 medium / 200 hard. Chỉ dùng 16 live templates. Execute 81 witnesses;
+  singleton dùng `live_exact`, còn cùng semantics với `n` lớn hơn dùng
+  `live_limit_monotonic`. Gate 20 GiB/witness, 96 GiB tổng, cache off.
+- **Rationale:** Nếu query `LIMIT 1` trả row thì cùng query với limit lớn hơn
+  chắc chắn non-empty; proof không claim exact cardinality. 20% hard là maximum
+  honest share từ hai live hard templates dưới cap 100 records/template.
+- **Consequences:** 1.000/1.000 records có proof, 81 exact + 919 monotonic, 0
+  cache hits. Run xử lý 61.855.311.688 và billed 61.918.412.800 bytes. Artifact
+  1.559.692 bytes có SHA-256
+  `a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709`.
+  T3.3 phải consume field `sql` và giữ record hash/proof metadata.
+- **Revisit:** Khi operational/mixer/bridge coverage tăng đủ ít nhất ba hard
+  templates non-empty; khi đó có thể khôi phục hard share 25% mà không phá cap.
+- **Linked:** `docs/tasks/phase-3-dataset/02-synthetic-pipeline.md`,
+  `src/nl2sparql/dataset/generate.py`,
+  `src/nl2sparql/dataset/stage_a/verify.py`,
+  `data/dataset/raw/generation-config.json`.
+
 ### 2026-08-09 — T3.1 dùng contract-v2 GoogleSQL và live cap 20/64 GiB
 
 - **Context:** Phase 3 vẫn có 25 SPARQL/Fuseki templates từ trước Pivot #1.
