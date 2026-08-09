@@ -2,16 +2,22 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any
 
+from google.cloud import bigquery
+
+from nl2sparql.sql.label_layer import DEFAULT_LOCATION
 from nl2sparql.sql.schema import load_catalog, validate_catalog, validate_date_window
 
 TEMPLATES_PATH = Path(__file__).with_name("templates.json")
+PER_TEMPLATE_BYTES_CAP = 5_368_709_120
+TOTAL_TEMPLATE_BYTES_CAP = 32_212_254_720
 SUPPORTED_DIFFICULTIES = {"easy", "medium", "hard"}
 SUPPORTED_CATEGORIES = {
     "simple_filter",
@@ -74,6 +80,42 @@ class TemplateSummary:
     difficulty_counts: dict[str, int]
     schema_element_count: int
     cq_count: int
+
+
+@dataclass(frozen=True)
+class TemplateDryRun:
+    template_id: str
+    estimated_bytes: int
+
+
+@dataclass(frozen=True)
+class TemplatePreflight:
+    templates: tuple[TemplateDryRun, ...]
+    total_estimated_bytes: int
+
+
+@dataclass(frozen=True)
+class TemplateExecutionResult:
+    template_id: str
+    row_count: int
+    columns: tuple[str, ...]
+    estimated_bytes: int
+    processed_bytes: int
+    billed_bytes: int
+    wall_latency_ms: float
+    server_latency_ms: float | None
+    slot_millis: int
+    cache_hit: bool
+
+
+@dataclass(frozen=True)
+class TemplateExecutionReport:
+    preflight: TemplatePreflight
+    results: tuple[TemplateExecutionResult, ...]
+
+    @property
+    def all_passed(self) -> bool:
+        return len(self.results) == len(self.preflight.templates)
 
 
 def load_templates(path: Path = TEMPLATES_PATH) -> list[dict[str, Any]]:
@@ -288,3 +330,174 @@ def validate_template_library(
         schema_element_count=len(used_elements),
         cq_count=len(used_cqs),
     )
+
+
+def _query_config(*, dry_run: bool, maximum_bytes_billed: int) -> bigquery.QueryJobConfig:
+    return bigquery.QueryJobConfig(
+        dry_run=dry_run,
+        use_query_cache=False,
+        use_legacy_sql=False,
+        maximum_bytes_billed=maximum_bytes_billed,
+    )
+
+
+def _dry_run_template(
+    client: Any,
+    template: Mapping[str, Any],
+    *,
+    location: str,
+    per_template_bytes_cap: int,
+) -> int:
+    job = client.query(
+        render_template(template),
+        job_config=_query_config(
+            dry_run=True,
+            maximum_bytes_billed=per_template_bytes_cap,
+        ),
+        location=location,
+    )
+    return int(getattr(job, "total_bytes_processed", 0) or 0)
+
+
+def _validate_budget(
+    template_id: str,
+    estimated_bytes: int,
+    per_template_bytes_cap: int,
+) -> None:
+    if estimated_bytes > per_template_bytes_cap:
+        raise TemplateValidationError(
+            f"{template_id} exceeds the 5 GiB per-template cap: {estimated_bytes} bytes"
+        )
+
+
+def dry_run_templates(
+    client: Any,
+    *,
+    templates: list[dict[str, Any]] | None = None,
+    location: str = DEFAULT_LOCATION,
+    per_template_bytes_cap: int = PER_TEMPLATE_BYTES_CAP,
+    total_bytes_cap: int = TOTAL_TEMPLATE_BYTES_CAP,
+) -> TemplatePreflight:
+    """Compile all rendered templates and fail before execution on a budget breach."""
+    values = load_templates() if templates is None else templates
+    validate_template_library(values)
+    results: list[TemplateDryRun] = []
+    for template in values:
+        template_id = template["id"]
+        estimated_bytes = _dry_run_template(
+            client,
+            template,
+            location=location,
+            per_template_bytes_cap=per_template_bytes_cap,
+        )
+        _validate_budget(template_id, estimated_bytes, per_template_bytes_cap)
+        results.append(
+            TemplateDryRun(
+                template_id=template_id,
+                estimated_bytes=estimated_bytes,
+            )
+        )
+    total_estimated_bytes = sum(result.estimated_bytes for result in results)
+    if total_estimated_bytes > total_bytes_cap:
+        raise TemplateValidationError(
+            f"Template aggregate estimate exceeds the 30 GiB cap: {total_estimated_bytes} bytes"
+        )
+    return TemplatePreflight(
+        templates=tuple(results),
+        total_estimated_bytes=total_estimated_bytes,
+    )
+
+
+def _server_latency_ms(job: Any) -> float | None:
+    started = getattr(job, "started", None)
+    ended = getattr(job, "ended", None)
+    if started is None or ended is None:
+        return None
+    return (ended - started).total_seconds() * 1000
+
+
+def _execute_template(
+    client: Any,
+    template: Mapping[str, Any],
+    *,
+    estimated_bytes: int,
+    location: str,
+    per_template_bytes_cap: int,
+    clock_ns: Callable[[], int],
+) -> TemplateExecutionResult:
+    template_id = template["id"]
+    start_ns = clock_ns()
+    job = client.query(
+        render_template(template),
+        job_config=_query_config(
+            dry_run=False,
+            maximum_bytes_billed=per_template_bytes_cap,
+        ),
+        location=location,
+    )
+    row_iterator = job.result()
+    rows = list(row_iterator)
+    end_ns = clock_ns()
+    schema = getattr(row_iterator, "schema", None)
+    if schema is None:
+        raise TemplateValidationError(f"{template_id} result does not expose a schema")
+    columns = tuple(field.name for field in schema)
+    expected_columns = tuple(template["expected_columns"])
+    if columns != expected_columns:
+        raise TemplateValidationError(
+            f"{template_id} returned columns {columns}; expected {expected_columns}"
+        )
+    if template["validation"]["expect_non_empty"] and not rows:
+        raise TemplateValidationError(f"{template_id} requires a non-empty result")
+    return TemplateExecutionResult(
+        template_id=template_id,
+        row_count=len(rows),
+        columns=columns,
+        estimated_bytes=estimated_bytes,
+        processed_bytes=int(getattr(job, "total_bytes_processed", 0) or 0),
+        billed_bytes=int(getattr(job, "total_bytes_billed", 0) or 0),
+        wall_latency_ms=(end_ns - start_ns) / 1_000_000,
+        server_latency_ms=_server_latency_ms(job),
+        slot_millis=int(getattr(job, "slot_millis", 0) or 0),
+        cache_hit=bool(getattr(job, "cache_hit", False)),
+    )
+
+
+def execute_templates(
+    client: Any,
+    *,
+    templates: list[dict[str, Any]] | None = None,
+    location: str = DEFAULT_LOCATION,
+    per_template_bytes_cap: int = PER_TEMPLATE_BYTES_CAP,
+    total_bytes_cap: int = TOTAL_TEMPLATE_BYTES_CAP,
+    clock_ns: Callable[[], int] = time.perf_counter_ns,
+) -> TemplateExecutionReport:
+    """Preflight the library, then re-check and execute each rendered template once."""
+    values = load_templates() if templates is None else templates
+    preflight = dry_run_templates(
+        client,
+        templates=values,
+        location=location,
+        per_template_bytes_cap=per_template_bytes_cap,
+        total_bytes_cap=total_bytes_cap,
+    )
+    results: list[TemplateExecutionResult] = []
+    for template in values:
+        estimated_bytes = _dry_run_template(
+            client,
+            template,
+            location=location,
+            per_template_bytes_cap=per_template_bytes_cap,
+        )
+        _validate_budget(template["id"], estimated_bytes, per_template_bytes_cap)
+        results.append(
+            _execute_template(
+                client,
+                template,
+                estimated_bytes=estimated_bytes,
+                location=location,
+                per_template_bytes_cap=per_template_bytes_cap,
+                clock_ns=clock_ns,
+            )
+        )
+    return TemplateExecutionReport(preflight=preflight, results=tuple(results))
