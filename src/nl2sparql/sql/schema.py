@@ -35,6 +35,7 @@ JOIN_TYPES = {"inner", "left"}
 CARDINALITIES = {"many_to_one", "one_to_one"}
 ADDRESS_ROLES = {"operational", "treasury", "token"}
 SEMANTIC_STATUSES = {"supported", "semantic_adjustment", "unsupported"}
+COMPETENCY_STATUSES = {"supported", "coverage_gap", "unsupported"}
 
 
 class SchemaCatalogError(ValueError):
@@ -50,6 +51,25 @@ class CatalogSummary:
     join_count: int
     semantic_mapping_count: int
     competency_question_count: int
+
+
+@dataclass(frozen=True)
+class LiveField:
+    """Normalized BigQuery field metadata used by the drift boundary."""
+
+    name: str
+    field_type: str
+    mode: str
+    fields: tuple[LiveField, ...] = ()
+
+
+@dataclass(frozen=True)
+class LiveSchemaSummary:
+    """Counts emitted after successful read-only live schema validation."""
+
+    checked_source_count: int
+    deferred_source_count: int
+    checked_field_count: int
 
 
 def load_catalog(path: Path = CATALOG_PATH) -> dict[str, object]:
@@ -499,6 +519,193 @@ def _validate_semantic_mappings(
                 )
 
 
+def _validate_competency_questions(
+    competency_questions: Sequence[Any],
+    analytical_relations: Mapping[str, Any],
+    join_paths: Mapping[str, Any],
+    semantic_mappings: Sequence[Any],
+    role_policies: Mapping[str, Any],
+) -> None:
+    expected_ids = {f"CQ{index:02d}" for index in range(1, 31)}
+    semantic_ids = {mapping["semantic_id"] for mapping in semantic_mappings}
+    seen: set[str] = set()
+    questions: dict[str, Mapping[str, Any]] = {}
+
+    for index, raw_question in enumerate(competency_questions):
+        question = _as_mapping(raw_question, f"competency_questions[{index}]")
+        question_id = _require_string(question.get("id"), f"competency_questions[{index}].id")
+        if question_id in seen:
+            raise SchemaCatalogError(f"Duplicate competency question: {question_id}")
+        seen.add(question_id)
+        questions[question_id] = question
+
+        status = question.get("status")
+        if status not in COMPETENCY_STATUSES:
+            raise SchemaCatalogError(f"Invalid competency status for {question_id}: {status!r}")
+        if status != "supported":
+            _require_string(question.get("reason"), f"competency_questions[{index}].reason")
+
+        relations = _require_string_list(
+            question.get("relations"),
+            f"competency_questions[{index}].relations",
+            allow_empty=status == "unsupported",
+        )
+        joins = _require_string_list(
+            question.get("join_paths"),
+            f"competency_questions[{index}].join_paths",
+            allow_empty=True,
+        )
+        semantics = _require_string_list(
+            question.get("semantic_ids"),
+            f"competency_questions[{index}].semantic_ids",
+        )
+        if set(relations) - set(analytical_relations):
+            raise SchemaCatalogError(f"Unknown competency reference in {question_id}.relations")
+        if set(joins) - set(join_paths):
+            raise SchemaCatalogError(f"Unknown competency reference in {question_id}.join_paths")
+        if set(semantics) - semantic_ids:
+            raise SchemaCatalogError(f"Unknown competency reference in {question_id}.semantic_ids")
+
+        role_requirements = _as_mapping(
+            question.get("role_requirements", {}),
+            f"competency_questions[{index}].role_requirements",
+        )
+        unknown_roles = sorted(set(role_requirements.values()) - set(role_policies))
+        if unknown_roles:
+            raise SchemaCatalogError(
+                f"Unknown competency role reference in {question_id}: {unknown_roles}"
+            )
+
+        if question.get("semantic_adjustment", False) is True:
+            _require_string(question.get("notes"), f"competency_questions[{index}].notes")
+
+    if seen != expected_ids:
+        missing = sorted(expected_ids - seen)
+        unexpected = sorted(seen - expected_ids)
+        raise SchemaCatalogError(
+            f"competency_questions must contain exactly CQ01-CQ30; "
+            f"missing={missing}, unexpected={unexpected}"
+        )
+
+    cq24 = questions["CQ24"]
+    if cq24.get("status") != "unsupported":
+        raise SchemaCatalogError("CQ24 must remain unsupported without meta-transaction decoding")
+    cq17 = questions["CQ17"]
+    if cq17.get("semantic_adjustment") is not True:
+        raise SchemaCatalogError("CQ17 must document the beneficiary semantic adjustment")
+
+
+def _normalize_live_field(raw_field: Any) -> LiveField:
+    try:
+        name = raw_field.name
+        field_type = raw_field.field_type
+        mode = raw_field.mode
+        nested = raw_field.fields
+    except AttributeError as exc:
+        raise SchemaCatalogError("Invalid BigQuery live field metadata") from exc
+    _require_string(name, "live field name")
+    _require_string(field_type, f"live field {name} type")
+    _require_string(mode, f"live field {name} mode")
+    return LiveField(
+        name=name,
+        field_type=field_type,
+        mode=mode,
+        fields=tuple(_normalize_live_field(field) for field in nested or ()),
+    )
+
+
+def normalize_live_schema(table: object) -> dict[str, LiveField]:
+    """Normalize a BigQuery table/view schema without coupling tests to its SDK."""
+
+    try:
+        raw_schema = table.schema
+    except AttributeError as exc:
+        raise SchemaCatalogError("BigQuery table metadata has no schema") from exc
+    normalized: dict[str, LiveField] = {}
+    for raw_field in raw_schema:
+        field = _normalize_live_field(raw_field)
+        if field.name in normalized:
+            raise SchemaCatalogError(f"Duplicate live schema field: {field.name}")
+        normalized[field.name] = field
+    return normalized
+
+
+def _validate_live_field(
+    source_id: str,
+    path: str,
+    expected: Mapping[str, Any],
+    actual: LiveField,
+) -> int:
+    if actual.field_type != expected.get("type"):
+        raise SchemaCatalogError(
+            f"Live schema type mismatch for {source_id}.{path}: "
+            f"expected {expected.get('type')}, received {actual.field_type}"
+        )
+    if actual.mode != expected.get("mode"):
+        raise SchemaCatalogError(
+            f"Live schema mode mismatch for {source_id}.{path}: "
+            f"expected {expected.get('mode')}, received {actual.mode}"
+        )
+    checked = 1
+    expected_nested = expected.get("fields", {})
+    actual_nested = {field.name: field for field in actual.fields}
+    for nested_name, raw_nested_definition in expected_nested.items():
+        if nested_name not in actual_nested:
+            raise SchemaCatalogError(
+                f"Live schema missing required field: {source_id}.{path}.{nested_name}"
+            )
+        nested_definition = _as_mapping(
+            raw_nested_definition, f"expected field {source_id}.{path}.{nested_name}"
+        )
+        checked += _validate_live_field(
+            source_id,
+            f"{path}.{nested_name}",
+            nested_definition,
+            actual_nested[nested_name],
+        )
+    return checked
+
+
+def validate_live_schemas(
+    catalog: Mapping[str, Any], schemas: Mapping[str, Mapping[str, LiveField]]
+) -> LiveSchemaSummary:
+    """Compare required catalog fields with read-only BigQuery metadata."""
+
+    validate_catalog(catalog)
+    physical_sources = _as_mapping(catalog["physical_sources"], "physical_sources")
+    checked_sources = 0
+    deferred_sources = 0
+    checked_fields = 0
+
+    for source_id, raw_source in physical_sources.items():
+        source = _as_mapping(raw_source, f"physical_sources.{source_id}")
+        if source.get("deployment_status") == "deferred":
+            deferred_sources += 1
+            continue
+        if source_id not in schemas:
+            raise SchemaCatalogError(f"Missing live schema for source: {source_id}")
+        actual_fields = schemas[source_id]
+        expected_fields = _as_mapping(source.get("fields"), f"physical_sources.{source_id}.fields")
+        for field_name, raw_definition in expected_fields.items():
+            if field_name not in actual_fields:
+                raise SchemaCatalogError(
+                    f"Live schema missing required field: {source_id}.{field_name}"
+                )
+            definition = _as_mapping(
+                raw_definition, f"physical_sources.{source_id}.fields.{field_name}"
+            )
+            checked_fields += _validate_live_field(
+                source_id, field_name, definition, actual_fields[field_name]
+            )
+        checked_sources += 1
+
+    return LiveSchemaSummary(
+        checked_source_count=checked_sources,
+        deferred_source_count=deferred_sources,
+        checked_field_count=checked_fields,
+    )
+
+
 def validate_catalog(catalog: Mapping[str, Any]) -> CatalogSummary:
     """Validate the catalog's global contract and return stable counts."""
 
@@ -545,6 +752,13 @@ def validate_catalog(catalog: Mapping[str, Any]) -> CatalogSummary:
     _validate_relations(analytical_relations, physical_sources)
     _validate_joins(join_paths, analytical_relations, role_policies)
     _validate_semantic_mappings(semantic_mappings, analytical_relations)
+    _validate_competency_questions(
+        competency_questions,
+        analytical_relations,
+        join_paths,
+        semantic_mappings,
+        role_policies,
+    )
 
     return CatalogSummary(
         source_count=len(physical_sources),

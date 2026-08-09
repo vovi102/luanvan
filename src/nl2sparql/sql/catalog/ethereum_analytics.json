@@ -310,6 +310,16 @@
       "date_covered_relations": ["transaction_facts", "block_facts"],
       "allowed_right_roles": []
     },
+    "transaction_to_contract": {
+      "kind": "equi_join",
+      "left_relation": "transaction_facts",
+      "right_relation": "contract_dimension",
+      "conditions": [{"left_field": "to_address", "right_field": "address"}],
+      "join_type": "inner",
+      "cardinality": "many_to_one",
+      "date_covered_relations": ["transaction_facts", "contract_dimension"],
+      "allowed_right_roles": []
+    },
     "transfer_to_transaction": {
       "kind": "equi_join",
       "left_relation": "token_transfer_facts",
@@ -417,5 +427,36 @@
     {"semantic_id": ":initiatedBy", "kind": "property", "status": "unsupported", "targets": [], "reason": "The scoped public sources do not decode meta-transaction initiator semantics."},
     {"semantic_id": ":executedBy", "kind": "property", "status": "unsupported", "targets": [], "reason": "Transaction from_address is not sufficient proof of a distinct meta-transaction executor."}
   ],
-  "competency_questions": []
+  "competency_questions": [
+    {"id": "CQ01", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":hasTimestamp"], "role_requirements": {}},
+    {"id": "CQ02", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":hasValue"], "role_requirements": {}},
+    {"id": "CQ03", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":hasReceiptStatus"], "role_requirements": {}},
+    {"id": "CQ04", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":Account", ":hasFrom"], "role_requirements": {}},
+    {"id": "CQ05", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":Account", ":hasTo"], "role_requirements": {}},
+    {"id": "CQ06", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":hasBlockNumber"], "role_requirements": {}},
+    {"id": "CQ07", "status": "supported", "relations": ["entity_labels_v1"], "join_paths": [], "semantic_ids": [":ExchangeAccount", ":hasLabel", ":hasOwner"], "role_requirements": {"entity": "treasury"}},
+    {"id": "CQ08", "status": "supported", "relations": ["token_dimension"], "join_paths": [], "semantic_ids": [":TokenContract", ":hasTokenSymbol", ":hasTokenName"], "role_requirements": {"token": "token"}},
+    {"id": "CQ09", "status": "supported", "relations": ["block_facts"], "join_paths": [], "semantic_ids": [":Block", ":hasBlockNumber", ":hasTxCount"], "role_requirements": {}},
+    {"id": "CQ10", "status": "supported", "semantic_adjustment": true, "notes": "Filter the accepted categorical confidence field; do not fabricate a numeric confidence score.", "relations": ["entity_labels_v1"], "join_paths": [], "semantic_ids": [":Account", ":hasConfidenceScore", ":hasSource"], "role_requirements": {}},
+    {"id": "CQ11", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":Account", ":hasFrom", ":hasValue"], "role_requirements": {}},
+    {"id": "CQ12", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":Account", ":hasTo"], "role_requirements": {}},
+    {"id": "CQ13", "status": "supported", "relations": ["transaction_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":Transaction", ":ExchangeAccount", ":DEXProtocol", ":hasFrom", ":hasTo", ":hasValue"], "role_requirements": {"exchange": "treasury", "dex": "operational"}},
+    {"id": "CQ14", "status": "supported", "relations": ["token_transfer_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":TokenTransfer", ":ExchangeAccount", ":tokenTransferFrom", ":tokenTransferTo", ":transferredAmount"], "role_requirements": {"exchange": "treasury"}},
+    {"id": "CQ15", "status": "supported", "relations": ["token_transfer_facts", "token_dimension"], "join_paths": ["transfer_to_token"], "semantic_ids": [":TokenTransfer", ":TokenContract", ":transferredToken", ":transferredAmount", ":hasTokenSymbol"], "role_requirements": {"token": "token"}},
+    {"id": "CQ16", "status": "supported", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":hasReceiptStatus", ":hasGasUsed", ":hasGasPrice"], "role_requirements": {}},
+    {"id": "CQ17", "status": "supported", "semantic_adjustment": true, "notes": "Expose the block beneficiary/fee recipient from blocks.miner; this is not validator identity.", "relations": ["block_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":Block", ":ValidatorAccount", ":hasMiner", ":hasBlockNumber", ":hasTimestamp"], "role_requirements": {}},
+    {"id": "CQ18", "status": "supported", "relations": ["transaction_facts", "contract_dimension"], "join_paths": ["transaction_to_contract"], "semantic_ids": [":Transaction", ":ContractAccount", ":hasTo", ":hasInputData"], "role_requirements": {}},
+    {"id": "CQ19", "status": "supported", "relations": ["token_transfer_facts", "transaction_facts"], "join_paths": ["transfer_to_transaction"], "semantic_ids": [":TokenTransfer", ":Transaction", ":emittedInTransaction", ":hasValue", ":transferredAmount"], "role_requirements": {}},
+    {"id": "CQ20", "status": "supported", "relations": ["entity_labels_v1"], "join_paths": [], "semantic_ids": [":Account", ":hasOwner", ":hasCategory"], "role_requirements": {}},
+    {"id": "CQ21", "status": "coverage_gap", "reason": "The catalog supports the flow shape, but the accepted dictionary has no verified operational mixer endpoint.", "relations": ["transaction_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":Transaction", ":MixerAccount", ":DEXProtocol", ":hasFrom", ":hasTo", ":hasValue"], "role_requirements": {"mixer": "operational", "dex": "operational"}},
+    {"id": "CQ22", "status": "supported", "relations": ["transaction_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":Transaction", ":ExchangeAccount", ":LendingProtocol", ":hasFrom", ":hasTo", ":hasValue", ":hasOwner"], "role_requirements": {"exchange": "treasury", "lending": "operational"}},
+    {"id": "CQ23", "status": "coverage_gap", "reason": "The temporal account-flow shape is representable, but the accepted dictionary has no verified operational mixer endpoint.", "relations": ["transaction_facts", "token_transfer_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":Transaction", ":TokenTransfer", ":MixerAccount", ":ExchangeAccount", ":hasFrom", ":hasTo", ":tokenTransferFrom", ":tokenTransferTo", ":hasTimestamp"], "role_requirements": {"mixer": "operational", "exchange": "treasury"}},
+    {"id": "CQ24", "status": "unsupported", "reason": "The scoped public sources do not decode distinct meta-transaction initiator and executor semantics; from_address cannot substitute for both.", "relations": ["transaction_facts"], "join_paths": [], "semantic_ids": [":Transaction", ":Account", ":initiatedBy", ":executedBy"], "role_requirements": {}},
+    {"id": "CQ25", "status": "supported", "relations": ["token_transfer_facts", "token_dimension", "entity_labels_v1"], "join_paths": ["transfer_to_token", "fact_address_to_entity"], "semantic_ids": [":TokenTransfer", ":TokenContract", ":DEXProtocol", ":tokenTransferTo", ":transferredToken", ":transferredAmount", ":hasTokenSymbol"], "role_requirements": {"dex": "operational", "token": "token"}},
+    {"id": "CQ26", "status": "supported", "relations": ["transaction_facts", "token_transfer_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":Transaction", ":TokenTransfer", ":ExchangeAccount", ":BridgeProtocol", ":hasFrom", ":hasTo", ":tokenTransferFrom", ":hasTimestamp"], "role_requirements": {"exchange": "treasury", "bridge": "operational"}},
+    {"id": "CQ27", "status": "coverage_gap", "reason": "The transaction/contract shape is supported, but the accepted dictionary has no verified operational NFT marketplace endpoint.", "relations": ["transaction_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":Transaction", ":NFTMarketplace", ":hasTo", ":hasValue", ":hasInputData"], "role_requirements": {"marketplace": "operational"}},
+    {"id": "CQ28", "status": "coverage_gap", "reason": "The aggregation shape is supported, but current MEV labels are not verified operational flow endpoints.", "relations": ["transaction_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":Transaction", ":MEVActorAccount", ":DEXProtocol", ":hasFrom", ":hasTo"], "role_requirements": {"mev_actor": "operational", "dex": "operational"}},
+    {"id": "CQ29", "status": "supported", "relations": ["token_transfer_facts", "transaction_facts", "entity_labels_v1"], "join_paths": ["fact_address_to_entity"], "semantic_ids": [":TokenTransfer", ":Transaction", ":ExchangeAccount", ":tokenTransferTo", ":hasFrom", ":hasTo", ":hasTimestamp"], "role_requirements": {"exchange": "treasury"}},
+    {"id": "CQ30", "status": "supported", "relations": ["entity_labels_v1"], "join_paths": [], "semantic_ids": [":Account", ":hasOwner", ":hasCategory", ":hasAlias"], "role_requirements": {}}
+  ]
 }

@@ -135,6 +135,8 @@ created by T2-SQL-2.
 ## Join contract
 
 - `transaction_to_block`: match both number and hash; filter both sources.
+- `transaction_to_contract`: match normalized recipient and contract address;
+  deduplicate redeployments by latest block before the requested end bound.
 - `transfer_to_transaction`: match transaction hash and block identity; filter
   both sources.
 - `transfer_to_contract`: normalized token address to contract address;

@@ -86,6 +86,8 @@ fact relations. Logical views chỉ được dùng cho parameterless projections
 
 - Transaction → block: `block_number = number` và `block_hash = hash`, với date
   bounds trên cả hai partitioned sources.
+- Transaction → contract: normalized `to_address = address`, với contract
+  deployment trước `end_date`; path này chứng minh CQ18 thay vì suy từ calldata.
 - Token transfer → transaction: `transaction_hash = hash` và matching block
   identity, với date bounds trên cả hai fact sources.
 - Token transfer → contract/token metadata: normalized token address.

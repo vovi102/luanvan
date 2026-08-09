@@ -4,15 +4,19 @@ import copy
 import json
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from nl2sparql.sql.schema import (
     CATALOG_PATH,
+    LiveField,
     SchemaCatalogError,
     load_catalog,
+    normalize_live_schema,
     validate_catalog,
     validate_date_window,
+    validate_live_schemas,
 )
 
 EXPECTED_SOURCE_IDS = {
@@ -33,6 +37,7 @@ EXPECTED_RELATION_IDS = {
 }
 EXPECTED_JOIN_IDS = {
     "transaction_to_block",
+    "transaction_to_contract",
     "transfer_to_transaction",
     "transfer_to_contract",
     "transfer_to_token",
@@ -61,7 +66,7 @@ def test_committed_catalog_declares_approved_top_level_contract(
     assert set(catalog["join_paths"]) == EXPECTED_JOIN_IDS
     assert summary.source_count == 6
     assert summary.relation_count == 6
-    assert summary.join_count == 5
+    assert summary.join_count == 6
 
 
 def test_load_catalog_fails_closed_for_missing_file(tmp_path: Path) -> None:
@@ -358,3 +363,204 @@ def test_token_value_precision_contract_preserves_raw_and_rejects_null_casts(
     assert fields["value_cast_valid"]["expression"] == (
         "tt.value IS NOT NULL AND SAFE_CAST(tt.value AS BIGNUMERIC) IS NOT NULL"
     )
+
+
+def live_field_from_catalog(name: str, definition: dict[str, object]) -> LiveField:
+    nested = tuple(
+        live_field_from_catalog(child_name, child_definition)
+        for child_name, child_definition in definition.get("fields", {}).items()
+    )
+    return LiveField(
+        name=name,
+        field_type=definition["type"],
+        mode=definition["mode"],
+        fields=nested,
+    )
+
+
+def live_schemas_from_catalog(
+    catalog: dict[str, object],
+) -> dict[str, dict[str, LiveField]]:
+    return {
+        source_id: {
+            field_name: live_field_from_catalog(field_name, definition)
+            for field_name, definition in source["fields"].items()
+        }
+        for source_id, source in catalog["physical_sources"].items()
+        if source["deployment_status"] == "live"
+    }
+
+
+def test_committed_catalog_maps_exactly_cq01_through_cq30(
+    catalog: dict[str, object],
+) -> None:
+    summary = validate_catalog(catalog)
+    questions = {item["id"]: item for item in catalog["competency_questions"]}
+
+    assert set(questions) == {f"CQ{index:02d}" for index in range(1, 31)}
+    assert summary.competency_question_count == 30
+    assert sum(item["status"] == "supported" for item in questions.values()) == 25
+    assert sum(item["status"] == "coverage_gap" for item in questions.values()) == 4
+    assert sum(item["status"] == "unsupported" for item in questions.values()) == 1
+
+
+def test_cq24_is_explicitly_unsupported_without_meta_transaction_decoding(
+    catalog: dict[str, object],
+) -> None:
+    question = next(item for item in catalog["competency_questions"] if item["id"] == "CQ24")
+
+    assert question["status"] == "unsupported"
+    assert "initiator" in question["reason"]
+    assert "executor" in question["reason"]
+
+
+def test_cq17_uses_block_beneficiary_without_claiming_validator_identity(
+    catalog: dict[str, object],
+) -> None:
+    question = next(item for item in catalog["competency_questions"] if item["id"] == "CQ17")
+
+    assert question["status"] == "supported"
+    assert question["semantic_adjustment"] is True
+    assert "beneficiary" in question["notes"]
+    assert "not validator identity" in question["notes"]
+
+
+def test_cq18_proves_contract_recipient_via_canonical_join(
+    catalog: dict[str, object],
+) -> None:
+    question = next(item for item in catalog["competency_questions"] if item["id"] == "CQ18")
+
+    assert question["join_paths"] == ["transaction_to_contract"]
+    assert question["relations"] == ["transaction_facts", "contract_dimension"]
+
+
+def test_validate_catalog_rejects_missing_competency_question(
+    catalog: dict[str, object],
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["competency_questions"].pop()
+
+    with pytest.raises(SchemaCatalogError, match="CQ01-CQ30"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_rejects_duplicate_competency_question(
+    catalog: dict[str, object],
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["competency_questions"][-1]["id"] = "CQ01"
+
+    with pytest.raises(SchemaCatalogError, match="Duplicate competency question"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_rejects_unknown_competency_status(
+    catalog: dict[str, object],
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["competency_questions"][0]["status"] = "partial"
+
+    with pytest.raises(SchemaCatalogError, match="competency status"):
+        validate_catalog(invalid)
+
+
+@pytest.mark.parametrize("field", ["relations", "join_paths", "semantic_ids"])
+def test_validate_catalog_rejects_unknown_competency_references(
+    catalog: dict[str, object], field: str
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    invalid["competency_questions"][0][field] = ["missing"]
+
+    with pytest.raises(SchemaCatalogError, match="competency reference"):
+        validate_catalog(invalid)
+
+
+def test_validate_catalog_requires_reason_for_non_supported_competency(
+    catalog: dict[str, object],
+) -> None:
+    invalid = copy.deepcopy(catalog)
+    question = next(
+        item for item in invalid["competency_questions"] if item["status"] == "coverage_gap"
+    )
+    question["reason"] = ""
+
+    with pytest.raises(SchemaCatalogError, match="reason"):
+        validate_catalog(invalid)
+
+
+def test_normalize_live_schema_converts_nested_bigquery_fields() -> None:
+    table = SimpleNamespace(
+        schema=[
+            SimpleNamespace(name="address", field_type="STRING", mode="REQUIRED", fields=()),
+            SimpleNamespace(
+                name="sources",
+                field_type="RECORD",
+                mode="REPEATED",
+                fields=(
+                    SimpleNamespace(
+                        name="revision", field_type="STRING", mode="REQUIRED", fields=()
+                    ),
+                ),
+            ),
+        ]
+    )
+
+    schema = normalize_live_schema(table)
+
+    assert schema["address"] == LiveField("address", "STRING", "REQUIRED")
+    assert schema["sources"].fields == (LiveField("revision", "STRING", "REQUIRED"),)
+
+
+def test_validate_live_schemas_accepts_expected_and_extra_upstream_fields(
+    catalog: dict[str, object],
+) -> None:
+    schemas = live_schemas_from_catalog(catalog)
+    schemas["transactions"]["future_field"] = LiveField("future_field", "STRING", "NULLABLE")
+
+    summary = validate_live_schemas(catalog, schemas)
+
+    assert summary.checked_source_count == 5
+    assert summary.deferred_source_count == 1
+    assert summary.checked_field_count > 40
+
+
+def test_validate_live_schemas_rejects_missing_live_source(
+    catalog: dict[str, object],
+) -> None:
+    schemas = live_schemas_from_catalog(catalog)
+    del schemas["transactions"]
+
+    with pytest.raises(SchemaCatalogError, match="Missing live schema.*transactions"):
+        validate_live_schemas(catalog, schemas)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("missing", "missing required field"),
+        ("type", "type mismatch"),
+        ("mode", "mode mismatch"),
+    ],
+)
+def test_validate_live_schemas_rejects_required_field_drift(
+    catalog: dict[str, object], mutation: str, message: str
+) -> None:
+    schemas = live_schemas_from_catalog(catalog)
+    if mutation == "missing":
+        del schemas["transactions"]["hash"]
+    elif mutation == "type":
+        schemas["transactions"]["hash"] = LiveField("hash", "BYTES", "REQUIRED")
+    else:
+        schemas["transactions"]["hash"] = LiveField("hash", "STRING", "NULLABLE")
+
+    with pytest.raises(SchemaCatalogError, match=message):
+        validate_live_schemas(catalog, schemas)
+
+
+def test_validate_live_schemas_does_not_require_deferred_managed_source(
+    catalog: dict[str, object],
+) -> None:
+    schemas = live_schemas_from_catalog(catalog)
+
+    assert "entity_labels_v1" not in schemas
+    assert validate_live_schemas(catalog, schemas).deferred_source_count == 1

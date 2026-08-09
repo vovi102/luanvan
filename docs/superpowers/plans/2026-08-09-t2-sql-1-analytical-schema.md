@@ -123,7 +123,7 @@ free.
 
 - [ ] **Step 4: Fill the approved analytical catalog**
 
-Encode live BigQuery types/modes, canonical relation fields, five named joins,
+Encode live BigQuery types/modes, canonical relation fields, six named joins,
 half-open predicates, token precision rules, and ontology concept/property
 mappings. Store the planned label table as `deployment_status: deferred`.
 
