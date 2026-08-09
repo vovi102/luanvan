@@ -37,12 +37,18 @@ from nl2sparql.sql.label_layer import (
     is_flag=True,
     help="Create or replace the planned BigQuery objects.",
 )
+@click.option(
+    "--allow-sandbox-expiration",
+    is_flag=True,
+    help="Explicitly accept BigQuery Sandbox's enforced 60-day object expiration.",
+)
 def main(
     project: str,
     dataset: str,
     location: str,
     entities_path: Path,
     apply_changes: bool,
+    allow_sandbox_expiration: bool,
 ) -> None:
     """Print a deterministic plan by default; --apply enables mutations."""
     try:
@@ -51,6 +57,7 @@ def main(
             dataset=dataset,
             location=location,
             entities_path=entities_path,
+            allow_expiring_objects=allow_sandbox_expiration,
         )
         click.echo(f"mode={'apply' if apply_changes else 'plan'}")
         click.echo(f"dataset={plan.project}.{plan.dataset}")
@@ -59,6 +66,9 @@ def main(
         click.echo(f"dictionary_sha256={plan.snapshot.digest}")
         click.echo(f"entities={plan.snapshot.entity_count}")
         click.echo(f"objects={len(plan.sql_objects)}")
+        click.echo(
+            f"expiration_policy={'sandbox-60-day' if plan.allow_expiring_objects else 'durable'}"
+        )
         for sql_object in plan.sql_objects:
             click.echo(f"object={sql_object.kind}:{sql_object.name}")
 
@@ -69,6 +79,11 @@ def main(
         result = apply_deployment(plan, client)
         click.echo(f"created_dataset={str(result.created_dataset).lower()}")
         click.echo(f"snapshot_action={result.snapshot_action}")
+        click.echo(f"dataset_default_expiration_ms={result.dataset_default_expiration_ms}")
+        click.echo(
+            "snapshot_expires="
+            f"{result.snapshot_expires.date() if result.snapshot_expires else 'never'}"
+        )
         click.echo(f"deployed_objects={len(result.deployed_objects)}")
     except (
         DefaultCredentialsError,

@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -322,6 +323,8 @@ class FakeBigQueryClient:
         dataset_location: str = "US",
         default_table_expiration_ms: int | None = None,
         default_partition_expiration_ms: int | None = None,
+        server_default_after_create_ms: int | None = None,
+        snapshot_expires: datetime | None = None,
     ) -> None:
         from google.api_core.exceptions import NotFound
 
@@ -337,6 +340,8 @@ class FakeBigQueryClient:
             else None
         )
         self.snapshot_exists = snapshot_exists
+        self.server_default_after_create_ms = server_default_after_create_ms
+        self.snapshot_expires = snapshot_expires
         self.validation_overrides = validation_overrides or {}
         self.loaded_rows: list[dict[str, object]] = []
         self.load_config = None
@@ -349,20 +354,30 @@ class FakeBigQueryClient:
 
     def create_dataset(self, dataset, *, exists_ok: bool = False):
         self.calls.append(("create_dataset", dataset.full_dataset_id))
-        self.dataset = dataset
-        return dataset
+        self.dataset = SimpleNamespace(
+            location=dataset.location,
+            default_table_expiration_ms=self.server_default_after_create_ms,
+            default_partition_expiration_ms=self.server_default_after_create_ms,
+        )
+        return self.dataset
 
     def get_table(self, table_ref: str):
         self.calls.append(("get_table", table_ref))
         if not self.snapshot_exists:
             raise self.NotFound("table missing")
-        return SimpleNamespace(schema=LABEL_TABLE_SCHEMA, location="US")
+        return SimpleNamespace(
+            schema=LABEL_TABLE_SCHEMA,
+            location="US",
+            expires=self.snapshot_expires,
+        )
 
     def load_table_from_json(self, rows, destination: str, *, job_config, location: str):
         self.calls.append(("load_table_from_json", destination))
         self.loaded_rows = list(rows)
         self.load_config = job_config
         self.snapshot_exists = True
+        if self.dataset.default_table_expiration_ms is not None:
+            self.snapshot_expires = datetime(2026, 10, 8, tzinfo=UTC)
         return FakeJob()
 
     def query(self, sql: str, *, job_config, location: str):
@@ -391,6 +406,7 @@ def test_build_deployment_plan_is_deterministic_and_side_effect_free() -> None:
     assert plan.dataset == "nl2sparql_analytics"
     assert plan.location == "US"
     assert plan.maximum_bytes_billed == DEFAULT_MAXIMUM_BYTES_BILLED
+    assert plan.allow_expiring_objects is False
     assert plan.snapshot.table_name == "entity_labels_snapshot_190f73a91b7a"
     assert len(plan.sql_objects) == 8
 
@@ -402,9 +418,10 @@ def test_apply_deployment_creates_durable_dataset_then_validates_before_view_swa
     result = apply_deployment(plan, client)
 
     operation_names = [call[0] for call in client.calls]
-    assert operation_names[:4] == [
+    assert operation_names[:5] == [
         "get_dataset",
         "create_dataset",
+        "get_dataset",
         "get_table",
         "load_table_from_json",
     ]
@@ -425,6 +442,7 @@ def test_apply_deployment_creates_durable_dataset_then_validates_before_view_swa
     assert len(client.loaded_rows) == 5135
     assert result.created_dataset is True
     assert result.snapshot_action == "loaded"
+    assert result.snapshot_expires is None
     assert result.deployed_objects == tuple(obj.name for obj in plan.sql_objects)
 
 
@@ -465,6 +483,50 @@ def test_same_digest_deployment_reuses_existing_snapshot_idempotently() -> None:
     assert result.created_dataset is False
     assert result.snapshot_action == "reused"
     assert all(call[0] != "load_table_from_json" for call in client.calls)
+
+
+def test_server_applied_sandbox_expiration_fails_closed_after_dataset_create() -> None:
+    plan = build_deployment_plan(project="nl2sparql-thesis")
+    client = FakeBigQueryClient(server_default_after_create_ms=5_184_000_000)
+
+    with pytest.raises(LabelLayerError, match="default table expiration"):
+        apply_deployment(plan, client)
+
+    assert [call[0] for call in client.calls][:3] == [
+        "get_dataset",
+        "create_dataset",
+        "get_dataset",
+    ]
+    assert all(call[0] != "load_table_from_json" for call in client.calls)
+
+
+def test_explicit_sandbox_mode_accepts_only_known_60_day_policy_and_records_expiry() -> None:
+    plan = build_deployment_plan(project="nl2sparql-thesis", allow_expiring_objects=True)
+    expiry = datetime(2026, 10, 8, tzinfo=UTC)
+    client = FakeBigQueryClient(
+        dataset_exists=True,
+        snapshot_exists=True,
+        default_table_expiration_ms=5_184_000_000,
+        default_partition_expiration_ms=5_184_000_000,
+        snapshot_expires=expiry,
+    )
+
+    result = apply_deployment(plan, client)
+
+    assert result.dataset_default_expiration_ms == 5_184_000_000
+    assert result.snapshot_expires == expiry
+
+
+def test_sandbox_mode_rejects_an_unexpected_expiration_policy() -> None:
+    plan = build_deployment_plan(project="nl2sparql-thesis", allow_expiring_objects=True)
+    client = FakeBigQueryClient(
+        dataset_exists=True,
+        default_table_expiration_ms=86_400_000,
+        default_partition_expiration_ms=86_400_000,
+    )
+
+    with pytest.raises(LabelLayerError, match="60-day sandbox"):
+        apply_deployment(plan, client)
 
 
 def test_snapshot_validation_mismatch_fails_before_stable_view_swap() -> None:
@@ -542,3 +604,34 @@ def test_deploy_cli_requires_explicit_apply_before_remote_calls(
     assert "mode=apply" in result.output
     assert "snapshot_action=loaded" in result.output
     assert "deployed_objects=8" in result.output
+
+
+def test_deploy_cli_exposes_expiring_sandbox_mode_explicitly(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from click.testing import CliRunner
+
+    script = load_deploy_script()
+    client = FakeBigQueryClient(
+        dataset_exists=True,
+        snapshot_exists=True,
+        default_table_expiration_ms=5_184_000_000,
+        default_partition_expiration_ms=5_184_000_000,
+        snapshot_expires=datetime(2026, 10, 8, tzinfo=UTC),
+    )
+    monkeypatch.setattr(script.bigquery, "Client", lambda **_: client)
+
+    result = CliRunner().invoke(
+        script.main,
+        [
+            "--project",
+            "nl2sparql-thesis",
+            "--apply",
+            "--allow-sandbox-expiration",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "expiration_policy=sandbox-60-day" in result.output
+    assert "dataset_default_expiration_ms=5184000000" in result.output
+    assert "snapshot_expires=2026-10-08" in result.output

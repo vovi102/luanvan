@@ -5,7 +5,7 @@ import json
 import re
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +30,7 @@ LABEL_ROLES = ("operational", "token", "treasury")
 DEFAULT_DATASET = "nl2sparql_analytics"
 DEFAULT_LOCATION = "US"
 DEFAULT_MAXIMUM_BYTES_BILLED = 53_687_091_200
+SANDBOX_DEFAULT_EXPIRATION_MS = 5_184_000_000
 
 SOURCE_SCHEMA = (
     bigquery.SchemaField("name", "STRING", mode="REQUIRED"),
@@ -84,6 +85,7 @@ class DeploymentPlan:
     dataset: str
     location: str
     maximum_bytes_billed: int
+    allow_expiring_objects: bool
     snapshot: LabelSnapshot
     sql_objects: tuple[SqlObject, ...]
 
@@ -92,6 +94,8 @@ class DeploymentPlan:
 class DeploymentResult:
     created_dataset: bool
     snapshot_action: str
+    dataset_default_expiration_ms: int | None
+    snapshot_expires: datetime | None
     deployed_objects: tuple[str, ...]
 
 
@@ -437,6 +441,7 @@ def build_deployment_plan(
     location: str = DEFAULT_LOCATION,
     entities_path: Path = ENTITIES_PATH,
     maximum_bytes_billed: int = DEFAULT_MAXIMUM_BYTES_BILLED,
+    allow_expiring_objects: bool = False,
 ) -> DeploymentPlan:
     """Build and validate a deployment plan without making remote calls."""
     _validate_identifiers(project, dataset, "entity_labels_v1")
@@ -452,12 +457,37 @@ def build_deployment_plan(
         dataset=dataset,
         location=location,
         maximum_bytes_billed=maximum_bytes_billed,
+        allow_expiring_objects=allow_expiring_objects,
         snapshot=snapshot,
         sql_objects=render_label_layer_ddl(project, dataset, snapshot.table_name),
     )
 
 
-def _ensure_dataset(plan: DeploymentPlan, client: Any) -> bool:
+def _validate_dataset_policy(plan: DeploymentPlan, dataset: Any) -> int | None:
+    if dataset.location != plan.location:
+        raise LabelLayerError(
+            f"Dataset location mismatch: expected {plan.location}, received {dataset.location}"
+        )
+    table_expiration = dataset.default_table_expiration_ms
+    partition_expiration = dataset.default_partition_expiration_ms
+    if plan.allow_expiring_objects:
+        if (
+            table_expiration != SANDBOX_DEFAULT_EXPIRATION_MS
+            or partition_expiration != SANDBOX_DEFAULT_EXPIRATION_MS
+        ):
+            raise LabelLayerError(
+                "Explicit expiring mode only accepts the known 60-day sandbox "
+                "default expiration policy"
+            )
+        return table_expiration
+    if table_expiration is not None:
+        raise LabelLayerError("Dataset must not have a default table expiration")
+    if partition_expiration is not None:
+        raise LabelLayerError("Dataset must not have a default partition expiration")
+    return None
+
+
+def _ensure_dataset(plan: DeploymentPlan, client: Any) -> tuple[bool, int | None]:
     dataset_ref = f"{plan.project}.{plan.dataset}"
     try:
         dataset = client.get_dataset(dataset_ref)
@@ -469,17 +499,10 @@ def _ensure_dataset(plan: DeploymentPlan, client: Any) -> bool:
         dataset.description = "Durable Plan B NL2SQL analytical layer."
         dataset.labels = {"system": "nl2sparql", "layer": "analytics"}
         client.create_dataset(dataset, exists_ok=False)
-        return True
+        dataset = client.get_dataset(dataset_ref)
+        return True, _validate_dataset_policy(plan, dataset)
 
-    if dataset.location != plan.location:
-        raise LabelLayerError(
-            f"Dataset location mismatch: expected {plan.location}, received {dataset.location}"
-        )
-    if dataset.default_table_expiration_ms is not None:
-        raise LabelLayerError("Dataset must not have a default table expiration")
-    if dataset.default_partition_expiration_ms is not None:
-        raise LabelLayerError("Dataset must not have a default partition expiration")
-    return False
+    return False, _validate_dataset_policy(plan, dataset)
 
 
 def _schema_signature(fields: Any) -> tuple[tuple[object, ...], ...]:
@@ -498,7 +521,25 @@ def _snapshot_ref(plan: DeploymentPlan) -> str:
     return f"{plan.project}.{plan.dataset}.{plan.snapshot.table_name}"
 
 
-def _ensure_snapshot(plan: DeploymentPlan, client: Any) -> str:
+def _validate_snapshot_metadata(
+    plan: DeploymentPlan, table: Any, table_ref: str
+) -> datetime | None:
+    if getattr(table, "location", plan.location) != plan.location:
+        raise LabelLayerError(f"Snapshot location mismatch for {table_ref}: {table.location}")
+    if _schema_signature(table.schema) != _schema_signature(LABEL_TABLE_SCHEMA):
+        raise LabelLayerError(f"Snapshot schema mismatch for {table_ref}")
+    expires = getattr(table, "expires", None)
+    if plan.allow_expiring_objects:
+        if expires is None:
+            raise LabelLayerError(
+                f"Sandbox snapshot is expected to expose an expiration: {table_ref}"
+            )
+    elif expires is not None:
+        raise LabelLayerError(f"Durable snapshot must not expire: {table_ref} expires at {expires}")
+    return expires
+
+
+def _ensure_snapshot(plan: DeploymentPlan, client: Any) -> tuple[str, datetime | None]:
     table_ref = _snapshot_ref(plan)
     try:
         table = client.get_table(table_ref)
@@ -514,13 +555,10 @@ def _ensure_snapshot(plan: DeploymentPlan, client: Any) -> str:
             job_config=load_config,
             location=plan.location,
         ).result()
-        return "loaded"
+        table = client.get_table(table_ref)
+        return "loaded", _validate_snapshot_metadata(plan, table, table_ref)
 
-    if getattr(table, "location", plan.location) != plan.location:
-        raise LabelLayerError(f"Snapshot location mismatch for {table_ref}: {table.location}")
-    if _schema_signature(table.schema) != _schema_signature(LABEL_TABLE_SCHEMA):
-        raise LabelLayerError(f"Snapshot schema mismatch for {table_ref}")
-    return "reused"
+    return "reused", _validate_snapshot_metadata(plan, table, table_ref)
 
 
 def _query_config(maximum_bytes_billed: int) -> bigquery.QueryJobConfig:
@@ -600,8 +638,8 @@ def _execute_ddl(
 
 def apply_deployment(plan: DeploymentPlan, client: Any) -> DeploymentResult:
     """Apply a validated plan in dependency order without deleting old state."""
-    created_dataset = _ensure_dataset(plan, client)
-    snapshot_action = _ensure_snapshot(plan, client)
+    created_dataset, dataset_expiration = _ensure_dataset(plan, client)
+    snapshot_action, snapshot_expires = _ensure_snapshot(plan, client)
     validate_deployed_snapshot(
         plan.snapshot,
         client,
@@ -620,6 +658,8 @@ def apply_deployment(plan: DeploymentPlan, client: Any) -> DeploymentResult:
     return DeploymentResult(
         created_dataset=created_dataset,
         snapshot_action=snapshot_action,
+        dataset_default_expiration_ms=dataset_expiration,
+        snapshot_expires=snapshot_expires,
         deployed_objects=tuple(obj.name for obj in plan.sql_objects),
     )
 
@@ -632,6 +672,7 @@ def apply_rollback(
     client: Any,
     location: str = DEFAULT_LOCATION,
     maximum_bytes_billed: int = DEFAULT_MAXIMUM_BYTES_BILLED,
+    allow_expiring_objects: bool = False,
 ) -> None:
     """Validate a known snapshot and repoint only the stable label view."""
     plan = DeploymentPlan(
@@ -639,6 +680,7 @@ def apply_rollback(
         dataset=dataset,
         location=location,
         maximum_bytes_billed=maximum_bytes_billed,
+        allow_expiring_objects=allow_expiring_objects,
         snapshot=snapshot,
         sql_objects=(),
     )
@@ -649,8 +691,7 @@ def apply_rollback(
         table = client.get_table(table_ref)
     except NotFound as exc:
         raise LabelLayerError(f"Rollback snapshot does not exist: {table_ref}") from exc
-    if _schema_signature(table.schema) != _schema_signature(LABEL_TABLE_SCHEMA):
-        raise LabelLayerError(f"Snapshot schema mismatch for {table_ref}")
+    _validate_snapshot_metadata(plan, table, table_ref)
     validate_deployed_snapshot(
         snapshot,
         client,
