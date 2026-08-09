@@ -33,7 +33,7 @@ Xây hierarchical entity dictionary 2 tầng (concept-level + instance-level) ch
 
 - [x] `entities.json` có ≥3000 entries (mục tiêu 5000).
 - [x] Mỗi entry có format chuẩn (xem dưới).
-- [ ] Sample 50 entries verify thủ công không có sai sót lớn.
+- [x] Sample 50 entries verify thủ công không có sai sót lớn.
 - [x] Cover top-30 exchange + top-50 DeFi protocol.
 - [x] `concepts.json` có 8-12 concept (exchange, mixer, DEX, lending, NFT marketplace, ...).
 - [x] `aliases.json` cover ≥1000 alias mapping.
@@ -144,12 +144,26 @@ Xây hierarchical entity dictionary 2 tầng (concept-level + instance-level) ch
 
 ## Trạng thái
 
-`manual audit failed; chain-aware remediation required`
+`done — chain-aware snapshot accepted`
 
-Automated structural acceptance đã pass locally, nhưng manual source audit seed
-42 ngày 2026-08-09 chỉ có 43/50 pass. Bảy records lấy address từ non-Ethereum
-chain hoặc cắt prefix của Aptos resource address. Checkbox manual sample giữ
-unchecked cho tới khi rebuild chain-aware và audit một sample mới.
+Snapshot đã được rebuild fail-closed với `chain_id=1`, address role và immutable
+row-level provenance. Independent audit seed `20260809` pass 50/50; historical
+seed-42 failure được giữ lại làm root-cause evidence.
+
+## Evidence — 2026-08-09 Chain-Aware Remediation
+
+- Report:
+  `docs/research/entity-dictionary-manual-sample-remediated-2026-08-09.md`.
+- Sample: 50/5.135 records, `random.Random(20260809)`, không thay thế.
+- Kết quả: 50 pass, 0 critical errors, 0 minor errors.
+- Counts: 5.135 entities, 8.538 aliases, 10 concepts.
+- Roles: 5.091 `token`, 30 `treasury`, 14 `operational`.
+- Sources: 5.064 CoinGecko, 21 DefiLlama protocols API, 49 pinned DefiLlama
+  adapter rows và 1 pinned Concrete API row.
+- Top-30 exchange đều có `treasury` row; top-50 DeFi owner coverage được giữ.
+- Downstream flow queries chỉ được dùng 14 `operational` rows.
+- Focused verification: `46 passed`.
+- Full test suite: `182 passed` (342 upstream deprecation/user warnings).
 
 ## Evidence — 2026-08-09 Manual Audit
 

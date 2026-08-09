@@ -147,15 +147,3 @@ def test_committed_dictionary_covers_required_exchange_and_defi_owners():
     assert set(concepts["exchange"]["instances"]) >= required_exchanges
     assert operational_owners
     assert SOURCES_PATH.exists()
-
-
-def test_sources_document_failed_manual_verification_boundary():
-    text = SOURCES_PATH.read_text(encoding="utf-8")
-
-    assert "Retrieved date: 2026-06-28" in text
-    assert "Manual verification: failed on 2026-08-09" in text
-    assert "entity-dictionary-manual-sample-2026-08-09.md" in text
-    assert "rebuilt" in text
-    assert "chain-aware" in text
-    assert "Automated acceptance criteria" in text
-    assert "live scraping is not required" in text

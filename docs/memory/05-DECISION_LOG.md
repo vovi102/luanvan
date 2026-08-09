@@ -24,6 +24,29 @@
 
 ## Entries
 
+### 2026-08-09 — T2.2 dùng role-aware hybrid snapshots và fail closed
+
+- **Context:** Seed-42 audit chứng minh extraction theo chuỗi giống EVM address
+  làm mất chain context. Protocol token, operational contract và exchange
+  treasury cũng không thể dùng thay thế nhau trong downstream queries.
+- **Options considered:** Parse/execute mọi adapter JavaScript; curate thủ công
+  toàn bộ dictionary; hoặc hybrid snapshot với automated chain-aware tokens và
+  reviewed pinned CEX/protocol evidence.
+- **Decision:** Chọn hybrid fail-closed. Tất cả rows bắt buộc `chain_id=1`, role
+  `operational|token|treasury`, immutable revision và row locator. CoinGecko
+  `chainId=1` cung cấp bulk tokens; reviewed rows có precedence; ambiguous hoặc
+  non-Ethereum evidence bị loại.
+- **Rationale:** Cách này giữ được scale 5.135 records và CI offline nhưng không
+  thực thi upstream code hay suy diễn chain/role từ address shape.
+- **Consequences:** Independent seed-20260809 audit pass 50/50. Chỉ 14 rows được
+  phép dùng cho flow analysis; token/treasury rows vẫn hữu ích cho linking và
+  attribution nhưng không được giả làm operational endpoints.
+- **Revisit:** Khi Phase 4/Plan B evaluation cần tăng operational coverage; mỗi
+  row mới vẫn phải qua cùng provenance contract và independent audit.
+- **Linked:** `docs/superpowers/specs/2026-08-09-t2-2-chain-aware-remediation-design.md`,
+  `data/entity_dictionary/curated/reviewed_ethereum_entities.csv`,
+  `docs/research/entity-dictionary-manual-sample-remediated-2026-08-09.md`.
+
 ### 2026-08-09 — T2.2 phải rebuild DefiLlama rows theo chain context
 
 - **Context:** Manual audit seed 42 trên 50 dictionary rows chỉ pass 43. Hai CEX
