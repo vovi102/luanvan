@@ -265,26 +265,26 @@ def test_directional_terms_rank_correct_address_fields(linker):
 - Consumes: completed CLI and, when available, cached MiniLM plus independently reviewed `data/eval/schema_link_groundtruth.jsonl`.
 - Produces: honest implementation status, optional real index/evaluation report, and repository-wide verification evidence.
 
-- [ ] **Step 1: Attempt explicit real index build without weakening behavior**
+- [x] **Step 1: Attempt explicit real index build without weakening behavior**
 
   Run `build-index` with the production model ID. If the model is unavailable,
   preserve the structured blocked report and do not commit fake vectors. If it
   succeeds, run a second load and measure validated cache load time.
 
-- [ ] **Step 2: Run real evaluation only with accepted ground truth**
+- [x] **Step 2: Run real evaluation only with accepted ground truth**
 
   If and only if the exact reviewed 50-row file exists, run `evaluate`, inspect
   Recall@10 and warm p50/p95, and commit the hash-bound report. Otherwise leave
   the scientific recall/latency boxes unchecked and record the external gate.
 
-- [ ] **Step 3: Migrate the T4.1 task and decision log**
+- [x] **Step 3: Migrate the T4.1 task and decision log**
 
   Replace ontology-property/Fuseki acceptance with the Plan B relation/field
   contract, list implementation artifacts and verification counts, mark only
   evidenced implementation boxes complete, and record manual/model blockers
   without calling template-derived fixtures independent annotation.
 
-- [ ] **Step 4: Run fresh repository verification**
+- [x] **Step 4: Run fresh repository verification**
 
   Run:
 

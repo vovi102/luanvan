@@ -24,6 +24,40 @@
 
 ## Entries
 
+### 2026-08-15 — T4.1 rank GoogleSQL relation/field bằng hybrid linker fail-closed
+
+- **Context:** Task T4.1 cũ rank ontology property/class để inject SPARQL, trái với
+  Pivot #1 và analytical catalog GoogleSQL đang active. Đồng thời chưa có file 50
+  câu manual ground truth được review độc lập, nên template fixtures không thể
+  đóng acceptance khoa học.
+- **Options considered:** Giữ linker SPARQL legacy; embedding-only trên tên field;
+  fine-tune bi-encoder trước evaluation; hoặc hybrid lexical + MiniLM trên catalog
+  documents có cache fingerprinted.
+- **Decision:** Rank riêng 6 analytical relations và 62 `relation.field` elements
+  bằng `0.65 * semantic + 0.35 * lexical`, stable tie-break, typed immutable
+  results và explicit `sentence-transformers/all-MiniLM-L6-v2` encoder. Cache dùng
+  JSON/NPZ `allow_pickle=False`, bind catalog/model/document/weights/order/digest
+  và không implicit rebuild/fake vector.
+- **Rationale:** Lexical evidence giữ directional blockchain roles; MiniLM xử lý
+  paraphrase. Separate pools tránh so score relation với field, còn explicit
+  cache lifecycle làm CI deterministic với fake encoder nhưng production evidence
+  vẫn fail closed khi thiếu model/network.
+- **Consequences:** Real model build ngày 2026-08-15 đã tạo index 384-d cho 6
+  relations/62 fields; strict second load mất 2.806 ms. Manifest file SHA-256 là
+  `d3168a6d25830dea1dd2696281a816cae693a08c87fa6903b60bb8b2b8a9a8a0`, NPZ
+  SHA-256 là
+  `17b123ba8a2baf42d2c5235e7a63019d29b682dea7366affecb63b6cba987324`.
+  Model snapshot nằm trong Hugging Face cache ngoài repo. File
+  `data/eval/schema_link_groundtruth.jsonl` chưa tồn tại, nên Recall@10, warm
+  p50/p95 và hash-bound evaluation report vẫn pending; template fixtures không
+  được gọi là independent annotation.
+- **Revisit:** Khi có đúng 50 rows được independently reviewed; chạy real
+  `evaluate`, kiểm tra field Recall@10 ≥0.80 và warm p50 <100 ms, rồi ghi report
+  hashes/metrics vào task và decision log.
+- **Linked:** `docs/tasks/phase-4-linking/01-schema-linker.md`,
+  `docs/superpowers/specs/2026-08-15-t4-1-google-sql-schema-linker-design.md`,
+  `src/nl2sparql/linking/schema/`, `scripts/13_schema_linker.py`.
+
 ### 2026-08-15 — T3.5 migrate three-pool benchmark sang GoogleSQL và fail closed khi thiếu evidence
 
 - **Context:** T3.5 cũ yêu cầu NL–SPARQL, Fuseki và chỉ mô tả một Pool C reviewer,

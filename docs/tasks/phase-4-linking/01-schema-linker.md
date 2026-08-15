@@ -1,143 +1,161 @@
-# T4.1 — Schema Linker (Property + Class Ranking)
+# T4.1 — GoogleSQL Schema Linker (Relation + Field Ranking)
 
 ## Mục tiêu
 
-Xây dựng module `SchemaLinker` nhận câu hỏi NL → trả về top-K properties và classes liên quan (ranked by similarity), để inject vào prompt LLM.
+Xây dựng `SchemaLinker` nhận một câu hỏi NL tiếng Anh và trả về hai ranking độc
+lập cho các analytical relation và `relation.field` trong catalog GoogleSQL Plan
+B. Kết quả này là schema context cho SQL generator và là treatment để đo đóng
+góp của schema linking trong RQ2.
 
-## Bối cảnh & lý do
+Task này không còn rank ontology class/property hoặc inject SPARQL/Fuseki
+context. Plan A đã dừng tại Pivot Point #1; ontology chỉ còn là semantic source
+đã được map vào catalog Plan B.
 
-LLM nhỏ (8B) thường không biết được tên chính xác property `:hasFrom` vs `:initiatedBy`. Schema linker giúp:
-- Filter ontology xuống ~10 properties relevant thay vì cấp full ontology cho LLM (nhiều noise).
-- Rank theo similarity → cấp top-K vào prompt.
-- Là **đóng góp khoa học định lượng** (RQ2): so sánh có/không schema linker.
+## Phụ thuộc và input canonical
 
-Method: sentence-transformers MiniLM-L6-v2 embed (a) câu NL; (b) property documentation đầy đủ (label + comment + synonyms + exampleUsage). Cosine similarity rank.
+- Catalog: `src/nl2sparql/sql/catalog/ethereum_analytics.json`.
+- Loader/validator: `nl2sparql.sql.schema.load_catalog`.
+- Synonym lexicon được review và version-control:
+  `src/nl2sparql/linking/schema/synonyms.json`.
+- Production encoder: `sentence-transformers/all-MiniLM-L6-v2`.
+- Ground truth khoa học, khi có:
+  `data/eval/schema_link_groundtruth.jsonl`, đúng 50 rows được review độc lập.
 
-## Phụ thuộc
+Committed Stage A/template provenance chỉ được dùng làm fixture/diagnostic. Nó
+không thay thế manual ground truth và không được dùng để đóng acceptance recall.
 
-- T2.1 — Ontology với rich documentation (label, comment, synonyms, exampleUsage trên mọi property).
+## Contract triển khai
 
-## Đầu vào
+Public API:
 
-- `src/nl2sparql/kg/ontology/eth-kg-extension-v0.1.0.ttl`.
-- Câu hỏi NL.
+```python
+SchemaLinker.link(question: str, top_k: int = 10) -> LinkResult
 
-## Đầu ra
+LinkResult.relations: tuple[SchemaMatch, ...]
+LinkResult.fields: tuple[SchemaMatch, ...]
+```
 
-- Module `src/nl2sparql/linking/schema_linker.py`.
-- File index `src/nl2sparql/linking/cache/schema_index.pkl` (precomputed embeddings).
-- Tests `tests/test_schema_linker.py`.
-- Notebook `notebooks/11_schema_linker_eval.ipynb`.
+Mỗi `SchemaMatch` chứa `element_id`, `kind`, total score, lexical score, semantic
+score và document fingerprint. Hai pool relation/field được rank riêng, score
+giảm dần và tie-break ổn định theo element ID.
+
+Retrieval mặc định:
+
+```text
+0.65 * semantic_score + 0.35 * lexical_score
+```
+
+- Documents chỉ dùng evidence đã commit từ catalog và synonym lexicon.
+- Vector document/câu hỏi được L2-normalize; semantic score là cosine similarity.
+- Input rỗng, control character, sai type hoặc `top_k` ngoài range fail closed.
+- Unit tests inject fake encoder deterministic, không tải model/network.
+- Production CLI không fallback sang vector giả khi model/cache không sẵn sàng.
+
+## Cache và workflow
+
+Cache production không dùng pickle:
+
+- `src/nl2sparql/linking/cache/schema-index.json`: manifest canonical, bind model,
+  catalog SHA-256, document version, weights, element order/dimension và NPZ hash.
+- `src/nl2sparql/linking/cache/schema-index.npz`: relation/field matrices float32,
+  load bằng `allow_pickle=False`.
+- `src/nl2sparql/linking/cache/schema-index.lock`: process-lock sidecar do explicit
+  build tạo; không chứa model/vector data.
+
+`scripts/13_schema_linker.py` cung cấp:
+
+- `build-index`: explicit model load và atomic cache publication.
+- `query`: strict-load cache rồi rank relation/field.
+- `evaluate`: chỉ chạy với đúng ground truth 50 rows, warm-up trước đo, xuất report
+  aggregate có hashes/model/git provenance.
+
+Missing model/network/ground truth trả structured `blocked`; invalid
+catalog/cache/ground truth trả `failed`. Không command nào tự sinh manual labels
+hoặc silently rebuild cache stale.
+
+## Artifacts triển khai
+
+- `src/nl2sparql/linking/schema/contracts.py`
+- `src/nl2sparql/linking/schema/documents.py`
+- `src/nl2sparql/linking/schema/index.py`
+- `src/nl2sparql/linking/schema/linker.py`
+- `src/nl2sparql/linking/schema/evaluate.py`
+- `src/nl2sparql/linking/schema/synonyms.json`
+- `src/nl2sparql/linking/schema_linker.py`
+- `scripts/schema_linker_workflow.py`
+- `scripts/13_schema_linker.py`
+- `tests/unit/test_schema_documents.py`
+- `tests/unit/test_schema_index.py`
+- `tests/unit/test_schema_linker.py`
+- `tests/unit/test_schema_linker_evaluate.py`
+- `notebooks/11_schema_linker_eval.ipynb`
 
 ## Acceptance criteria
 
-- [ ] Module có API: `link(nl_question: str, top_k: int = 10) -> List[(uri, score)]`.
-- [ ] Precompute embeddings index, load <1s.
-- [ ] Inference latency <100ms cho 1 query.
-- [ ] Recall@10 ≥80% trên test set 50 câu (manual annotation: câu nào dùng property nào).
-- [ ] Test bao gồm edge cases: ambiguous (`:hasFrom` vs `:initiatedBy`), synonym (`:hasValue` vs `:hasAmount`).
+### Implementation evidence
 
-## Hướng dẫn triển khai
+- [x] API typed trả hai ranking độc lập cho relation và field Plan B.
+- [x] Catalog documents deterministic cho 6 relations và 62 fields; unknown
+  references, duplicate IDs và synonym malformed fail closed.
+- [x] Hybrid lexical/MiniLM retrieval dùng weights `0.35/0.65`, stable tie-break và
+  directional role terms như sender/from so với recipient/to.
+- [x] Cache JSON/NPZ fingerprinted, atomic, không pickle; loader validate catalog,
+  model, document version, element order/count, dimensions, normalization và
+  payload digest.
+- [x] Real production index đã build bằng
+  `sentence-transformers/all-MiniLM-L6-v2`, không fake vector.
+- [x] Validated cache load lần hai dưới 1 giây: 2.806 ms ngày 2026-08-15, 384
+  dimensions, 6 relation rows và 62 field rows.
+- [x] Tests cover invalid input, stale/tampered cache, atomic replacement, role
+  ambiguity, synonym ranking, metric math, exact-50 ground-truth validation và
+  CLI structured status.
+- [x] Notebook là thin consumer của production evaluator và là JSON hợp lệ.
 
-### Build property documents
+### Scientific/external acceptance còn pending
 
-Với mỗi property, concat tất cả annotation thành 1 document:
+- [ ] Có đúng 50 câu manual ground truth được independently reviewed tại
+  `data/eval/schema_link_groundtruth.jsonl`.
+- [ ] Field Recall@10 ≥ 0.80 trên file 50 câu đã accept.
+- [ ] Warm inference p50 < 100 ms trên cùng evaluation run; ghi kèm p95.
+- [ ] Commit hash-bound evaluation report với ground-truth/cache/model/git hashes.
 
-```python
-def build_property_doc(prop_uri, ontology_graph):
-    label = get_label(prop_uri)
-    comment = get_comment(prop_uri)
-    synonyms = get_synonyms(prop_uri)
-    example = get_example_usage(prop_uri)
-    domain = get_domain_label(prop_uri)
-    range_ = get_range_label(prop_uri)
+Không tick bốn box trên từ template-derived fixtures hoặc unit fake encoder.
+Ngày 2026-08-15 file ground truth accepted chưa tồn tại, vì vậy `evaluate` không
+được chạy và không có scientific metrics/report để công bố.
 
-    doc = f"""
-Property: {label}
-Description: {comment}
-Synonyms: {', '.join(synonyms)}
-Example: {example}
-Used on: {domain} → {range_}
-""".strip()
-    return doc
-```
+## Evidence production index (2026-08-15)
 
-### Embedding + index
+- Model snapshot được tải vào cache ngoài repo:
+  `/home/khoavd/.cache/huggingface/hub/models--sentence-transformers--all-MiniLM-L6-v2/`
+  (khoảng 88 MiB; snapshot `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`).
+- Catalog SHA-256:
+  `db8393aa7258d1331387eff9825e22ca729daf93234419f00d7dd538196cb3dd`.
+- Manifest file SHA-256:
+  `d3168a6d25830dea1dd2696281a816cae693a08c87fa6903b60bb8b2b8a9a8a0`.
+- Manifest body SHA-256:
+  `0aa2a44211f1268ee329b52918540445d1d63c3d9615e24814c8394e22f375f7`.
+- NPZ SHA-256:
+  `17b123ba8a2baf42d2c5235e7a63019d29b682dea7366affecb63b6cba987324`.
 
-```python
-from sentence_transformers import SentenceTransformer
+## Verification
 
-class SchemaLinker:
-    def __init__(self, ontology_path, model_name="sentence-transformers/all-MiniLM-L6-v2"):
-        self.model = SentenceTransformer(model_name)
-        self.props = self._load_props(ontology_path)
-        self.classes = self._load_classes(ontology_path)
-        self.prop_embeddings = self.model.encode(
-            [p["doc"] for p in self.props],
-            normalize_embeddings=True
-        )
-        self.class_embeddings = self.model.encode(
-            [c["doc"] for c in self.classes],
-            normalize_embeddings=True
-        )
+Fresh repository verification ngày 2026-08-15:
 
-    def link(self, nl_question, top_k=10):
-        q_emb = self.model.encode(nl_question, normalize_embeddings=True)
-        prop_scores = self.prop_embeddings @ q_emb  # cosine since normalized
-        class_scores = self.class_embeddings @ q_emb
+- `UV_CACHE_DIR=.uv-cache uv run pytest -q`: exit 0, 502 passed, 342 warnings.
+- `UV_CACHE_DIR=.uv-cache uv run ruff check .`: exit 0, all checks passed.
+- `UV_CACHE_DIR=.uv-cache uv run ruff format --check .`: exit 0, 120 files đã
+  formatted.
+- `UV_CACHE_DIR=.uv-cache uv run python -m json.tool
+  notebooks/11_schema_linker_eval.ipynb`: exit 0.
+- `git diff --check`: exit 0, không có output.
+- `git status --short --branch`: exit 0; chỉ có Task 5 docs/evidence/cache artifact
+  trước commit, branch ahead 8.
 
-        top_props = topk(prop_scores, top_k)
-        top_classes = topk(class_scores, top_k // 2)
-        return {"properties": top_props, "classes": top_classes}
+Không dùng kết quả của unit fixture để suy ra scientific Recall@10 hoặc
+production query latency.
 
-    def save(self, path): ...
-    def load(self, path): ...
-```
+## Trạng thái — implementation complete, manual evaluation gate pending
 
-### Caching
-
-- Pickle embeddings + URI list để load nhanh, không recompute.
-- Invalidate cache khi ontology version thay đổi (check ontology hash).
-
-### Evaluation
-
-Tạo `data/eval/schema_link_groundtruth.jsonl`:
-```json
-{"nl": "transactions from Binance to Tornado Cash", "gold_props": [":hasFrom", ":hasTo"]}
-```
-
-50 câu manual annotation. Compute:
-- **Recall@K** (gold ∈ top-K): chính.
-- **MRR** (Mean Reciprocal Rank).
-- **Precision@K** (less important: K cao thì precision tự nhiên thấp).
-
-### Variants để thử
-
-| Variant | Embedding input | Mục đích |
-|---|---|---|
-| V1 | label only | Baseline |
-| V2 | label + comment | + context |
-| V3 | label + comment + synonyms | + linguistic variation |
-| V4 (default) | full doc với example | Full context |
-
-Report cả 4 trong ablation chap.
-
-### Hard cases để document
-
-- "transactions from X" → `:hasFrom` (đúng) vs `:initiatedBy` (sai).
-- "amount sent" → `:hasValue` (cho ETH) vs token-specific property.
-- "mixer addresses" → cần class-level (`:MixerAccount`) chứ không property.
-
-## Rủi ro & note
-
-- **MiniLM nhỏ, có thể không đủ context blockchain:** thử fallback `all-mpnet-base-v2` nếu recall thấp. Trade-off: 4x slower nhưng quality cao hơn.
-- **Domain-specific vocabulary:** "rug pull", "sandwich attack" model không biết. Có thể fine-tune embedding nhưng tốn thời gian — defer.
-- **Property tên gần giống:** dependency trên rich documentation (T2.1) — nếu doc nghèo, accuracy thấp.
-
-## Estimated effort
-
-1.5 ngày.
-
-## Trạng thái
-
-todo
+Implementation và real production index đã sẵn sàng. Scientific acceptance vẫn
+pending cho đến khi có independent 50-row manual ground truth và real evaluation
+đạt recall/latency gates.
