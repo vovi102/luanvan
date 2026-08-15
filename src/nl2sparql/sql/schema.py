@@ -72,17 +72,17 @@ class LiveSchemaSummary:
     checked_field_count: int
 
 
-def load_catalog(path: Path = CATALOG_PATH) -> dict[str, object]:
+def load_catalog(path: Path = CATALOG_PATH, *, snapshot: bytes | None = None) -> dict[str, object]:
     """Load a JSON schema catalog and fail closed on I/O or parse errors."""
+    if snapshot is None:
+        try:
+            snapshot = path.read_bytes()
+        except OSError as exc:
+            raise SchemaCatalogError(f"Unable to read schema catalog {path}: {exc}") from exc
 
     try:
-        raw = path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise SchemaCatalogError(f"Unable to read schema catalog {path}: {exc}") from exc
-
-    try:
-        catalog = json.loads(raw)
-    except json.JSONDecodeError as exc:
+        catalog = json.loads(snapshot)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise SchemaCatalogError(f"Invalid schema catalog JSON in {path}: {exc}") from exc
 
     if not isinstance(catalog, dict):

@@ -86,6 +86,15 @@ def load_ground_truth(
     expected_count: int = 50,
 ) -> tuple[GroundTruthCase, ...]:
     """Load an exact, explicit JSONL ground truth against catalog element IDs."""
+    return parse_ground_truth(path.read_bytes(), valid_elements, expected_count=expected_count)
+
+
+def parse_ground_truth(
+    snapshot: bytes,
+    valid_elements: Sequence[SchemaElement],
+    expected_count: int = 50,
+) -> tuple[GroundTruthCase, ...]:
+    """Parse ground truth from the exact bytes bound into evaluation provenance."""
     if (
         not isinstance(expected_count, int)
         or isinstance(expected_count, bool)
@@ -101,45 +110,46 @@ def load_ground_truth(
     cases: list[GroundTruthCase] = []
     seen_ids: set[str] = set()
     seen_nl: set[str] = set()
-    with path.open(encoding="utf-8") as handle:
-        for line_number, raw_line in enumerate(handle, start=1):
-            try:
-                raw = json.loads(raw_line)
-            except json.JSONDecodeError as exc:
-                raise SchemaLinkerError(
-                    f"ground truth line {line_number}: invalid JSON: {exc.msg}"
-                ) from exc
-            if not isinstance(raw, dict) or set(raw) != GROUND_TRUTH_KEYS:
-                raise SchemaLinkerError(
-                    f"ground truth line {line_number}: record must contain exact keys "
-                    "id, nl, gold_relations, gold_fields"
-                )
-            case_id = _required_text(raw["id"], "id", line_number)
-            nl = _required_text(raw["nl"], "nl", line_number)
-            normalized_nl = _normalized_identity(nl)
-            if case_id in seen_ids:
-                raise SchemaLinkerError(
-                    f"ground truth line {line_number}: duplicate ID {case_id!r}"
-                )
-            if normalized_nl in seen_nl:
-                raise SchemaLinkerError(f"ground truth line {line_number}: duplicate NL {nl!r}")
-            gold_relations = _gold_ids(raw["gold_relations"], "gold_relations", line_number)
-            gold_fields = _gold_ids(raw["gold_fields"], "gold_fields", line_number)
-            unknown = (set(gold_relations) - relation_ids) | (set(gold_fields) - field_ids)
-            if unknown:
-                raise SchemaLinkerError(
-                    f"ground truth line {line_number}: unknown schema elements: "
-                    f"{', '.join(sorted(unknown))}"
-                )
-            field_relations = {field_id.split(".", 1)[0] for field_id in gold_fields}
-            if not field_relations <= set(gold_relations):
-                raise SchemaLinkerError(
-                    f"ground truth line {line_number}: gold fields must be consistent with "
-                    "gold relations"
-                )
-            seen_ids.add(case_id)
-            seen_nl.add(normalized_nl)
-            cases.append(GroundTruthCase(case_id, nl, gold_relations, gold_fields))
+    try:
+        lines = snapshot.decode("utf-8").splitlines()
+    except UnicodeDecodeError as exc:
+        raise SchemaLinkerError("ground truth line 1: invalid UTF-8") from exc
+    for line_number, raw_line in enumerate(lines, start=1):
+        try:
+            raw = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise SchemaLinkerError(
+                f"ground truth line {line_number}: invalid JSON: {exc.msg}"
+            ) from exc
+        if not isinstance(raw, dict) or set(raw) != GROUND_TRUTH_KEYS:
+            raise SchemaLinkerError(
+                f"ground truth line {line_number}: record must contain exact keys "
+                "id, nl, gold_relations, gold_fields"
+            )
+        case_id = _required_text(raw["id"], "id", line_number)
+        nl = _required_text(raw["nl"], "nl", line_number)
+        normalized_nl = _normalized_identity(nl)
+        if case_id in seen_ids:
+            raise SchemaLinkerError(f"ground truth line {line_number}: duplicate ID {case_id!r}")
+        if normalized_nl in seen_nl:
+            raise SchemaLinkerError(f"ground truth line {line_number}: duplicate NL {nl!r}")
+        gold_relations = _gold_ids(raw["gold_relations"], "gold_relations", line_number)
+        gold_fields = _gold_ids(raw["gold_fields"], "gold_fields", line_number)
+        unknown = (set(gold_relations) - relation_ids) | (set(gold_fields) - field_ids)
+        if unknown:
+            raise SchemaLinkerError(
+                f"ground truth line {line_number}: unknown schema elements: "
+                f"{', '.join(sorted(unknown))}"
+            )
+        field_relations = {field_id.split(".", 1)[0] for field_id in gold_fields}
+        if not field_relations <= set(gold_relations):
+            raise SchemaLinkerError(
+                f"ground truth line {line_number}: gold fields must be consistent with "
+                "gold relations"
+            )
+        seen_ids.add(case_id)
+        seen_nl.add(normalized_nl)
+        cases.append(GroundTruthCase(case_id, nl, gold_relations, gold_fields))
     if len(cases) != expected_count:
         line_number = min(len(cases) + 1, expected_count)
         raise SchemaLinkerError(

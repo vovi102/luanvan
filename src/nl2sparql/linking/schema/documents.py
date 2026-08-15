@@ -29,11 +29,18 @@ def _words(value: str) -> tuple[str, ...]:
     return tuple(re.findall(r"[a-z0-9]+", _normalize(expanded)))
 
 
-def load_synonyms(path: Path = SYNONYMS_PATH) -> dict[str, tuple[str, ...]]:
+def load_synonyms(
+    path: Path = SYNONYMS_PATH, *, snapshot: bytes | None = None
+) -> dict[str, tuple[str, ...]]:
     """Load reviewed synonym groups with global alias ownership."""
+    if snapshot is None:
+        try:
+            snapshot = path.read_bytes()
+        except OSError as exc:
+            raise SchemaDocumentError(f"unable to read schema synonyms {path}: {exc}") from exc
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        raw = json.loads(snapshot)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise SchemaDocumentError(f"unable to read schema synonyms {path}: {exc}") from exc
     if not isinstance(raw, dict) or not raw:
         raise SchemaDocumentError("schema synonyms must be a non-empty JSON object")

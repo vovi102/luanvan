@@ -19,6 +19,7 @@ from nl2sparql.linking.schema import (
     SchemaElement,
     SchemaLinkerError,
     SchemaMatch,
+    load_index,
 )
 from nl2sparql.linking.schema import evaluate as evaluate_module
 from nl2sparql.linking.schema.evaluate import (
@@ -245,6 +246,60 @@ def _cli(factory_calls: list[str]):
     )
 
 
+def _workflow_inputs(tmp_path: Path, factory_calls: list[str]):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    catalog = tmp_path / "catalog.json"
+    synonyms = tmp_path / "synonyms.json"
+    cache = tmp_path / "cache"
+    ground_truth = tmp_path / "ground-truth.jsonl"
+    report = tmp_path / "evaluation.json"
+    catalog.write_bytes(CATALOG_PATH.read_bytes())
+    synonyms.write_bytes(workflow_module.DEFAULT_SYNONYMS_PATH.read_bytes())
+    rows = _ground_truth_rows()
+    for row in rows:
+        row["gold_relations"] = ["transaction_facts"]
+        row["gold_fields"] = ["transaction_facts.value_wei"]
+    _write_jsonl(ground_truth, rows)
+    cli = _cli(factory_calls)
+    built = CliRunner().invoke(
+        cli,
+        [
+            "build-index",
+            "--catalog",
+            str(catalog),
+            "--synonyms",
+            str(synonyms),
+            "--cache-dir",
+            str(cache),
+        ],
+    )
+    assert built.exit_code == 0, built.output
+    factory_calls.clear()
+    return cli, catalog, synonyms, cache, ground_truth, report
+
+
+def _evaluate_arguments(
+    catalog: Path,
+    synonyms: Path,
+    cache: Path,
+    ground_truth: Path,
+    report: Path,
+) -> list[str]:
+    return [
+        "evaluate",
+        "--catalog",
+        str(catalog),
+        "--synonyms",
+        str(synonyms),
+        "--cache-dir",
+        str(cache),
+        "--ground-truth",
+        str(ground_truth),
+        "--report",
+        str(report),
+    ]
+
+
 def test_cli_help_never_initializes_encoder() -> None:
     calls: list[str] = []
     runner = CliRunner()
@@ -451,3 +506,211 @@ def test_cli_never_overwrites_ground_truth_with_report(tmp_path: Path) -> None:
     assert json.loads(result.output)["status"] == "failed"
     assert ground_truth.read_bytes() == original
     assert calls == []
+
+
+def test_evaluate_rejects_all_input_and_cache_report_aliases_before_model(
+    tmp_path: Path,
+) -> None:
+    protected_names = (
+        "ground_truth",
+        "catalog",
+        "synonyms",
+        "manifest",
+        "matrices",
+        "lock",
+        "manifest_symlink",
+    )
+    for protected_name in protected_names:
+        calls: list[str] = []
+        case_root = tmp_path / protected_name
+        cli, catalog, synonyms, cache, ground_truth, _ = _workflow_inputs(case_root, calls)
+        paths = SchemaCachePaths.from_directory(cache)
+        targets = {
+            "ground_truth": ground_truth,
+            "catalog": catalog,
+            "synonyms": synonyms,
+            "manifest": paths.manifest,
+            "matrices": paths.matrices,
+            "lock": paths.lock,
+        }
+        report = targets.get(protected_name)
+        if protected_name == "manifest_symlink":
+            report = case_root / "manifest-alias.json"
+            report.symlink_to(paths.manifest)
+        assert report is not None
+        protected = {path: path.read_bytes() for path in targets.values()}
+
+        result = CliRunner().invoke(
+            cli,
+            _evaluate_arguments(catalog, synonyms, cache, ground_truth, report),
+        )
+
+        assert result.exit_code != 0
+        payload = json.loads(result.output)
+        assert payload["status"] == "failed"
+        assert "overwrite" in payload["reason"]
+        assert calls == []
+        assert {path: path.read_bytes() for path in targets.values()} == protected
+
+
+def test_evaluate_parses_the_same_catalog_snapshot_it_hashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[str] = []
+    cli, catalog, synonyms, cache, ground_truth, report = _workflow_inputs(tmp_path, calls)
+    accepted_catalog = catalog.read_bytes()
+    raced_catalog = json.loads(accepted_catalog)
+    fields = raced_catalog["analytical_relations"]["transaction_facts"]["fields"]
+    fields["value_wei_raced"] = fields.pop("value_wei")
+    for mapping in raced_catalog["semantic_mappings"]:
+        for target in mapping["targets"]:
+            if target.get("relation") == "transaction_facts" and target.get("field") == "value_wei":
+                target["field"] = "value_wei_raced"
+    real_load_catalog = workflow_module.load_catalog
+
+    def replace_before_second_read(path: Path, *, snapshot: bytes | None = None):
+        if snapshot is None:
+            path.write_text(json.dumps(raced_catalog), encoding="utf-8")
+        return real_load_catalog(path, **({"snapshot": snapshot} if snapshot is not None else {}))
+
+    monkeypatch.setattr(workflow_module, "load_catalog", replace_before_second_read)
+
+    result = CliRunner().invoke(
+        cli,
+        _evaluate_arguments(catalog, synonyms, cache, ground_truth, report),
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(report.read_bytes())
+    assert payload["catalog_sha256"] == hashlib.sha256(accepted_catalog).hexdigest()
+
+
+def test_evaluate_provenance_survives_deterministic_ground_truth_and_cache_race(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[str] = []
+    cli, catalog, synonyms, cache, ground_truth, report = _workflow_inputs(tmp_path, calls)
+    accepted_ground_truth = ground_truth.read_bytes()
+    accepted_synonyms = synonyms.read_bytes()
+    paths = SchemaCachePaths.from_directory(cache)
+    loaded = load_index(
+        paths,
+        hashlib.sha256(catalog.read_bytes()).hexdigest(),
+        workflow_module.DEFAULT_MODEL_ID,
+        workflow_module.DOCUMENT_VERSION,
+    )
+    cache_identity = {
+        "manifest_sha256": hashlib.sha256(paths.manifest.read_bytes()).hexdigest(),
+        "matrices_sha256": loaded.metadata.matrices_sha256,
+    }
+    expected_cache_sha256 = hashlib.sha256(
+        (json.dumps(cache_identity, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    ).hexdigest()
+    real_evaluate = workflow_module.evaluate_linker
+
+    def mutate_inputs_after_evaluation(*args, **kwargs):
+        evaluation = real_evaluate(*args, **kwargs)
+        ground_truth.write_bytes(b"raced ground truth\n")
+        paths.manifest.write_bytes(b"raced manifest\n")
+        paths.matrices.write_bytes(b"raced matrices\n")
+        return evaluation
+
+    monkeypatch.setattr(workflow_module, "evaluate_linker", mutate_inputs_after_evaluation)
+
+    result = CliRunner().invoke(
+        cli,
+        _evaluate_arguments(catalog, synonyms, cache, ground_truth, report),
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(report.read_bytes())
+    assert payload["ground_truth_sha256"] == hashlib.sha256(accepted_ground_truth).hexdigest()
+    assert payload["synonyms_sha256"] == hashlib.sha256(accepted_synonyms).hexdigest()
+    assert payload["cache_manifest_sha256"] == cache_identity["manifest_sha256"]
+    assert payload["cache_matrices_sha256"] == cache_identity["matrices_sha256"]
+    assert payload["cache_sha256"] == expected_cache_sha256
+
+
+@pytest.mark.parametrize(
+    "git_sha_factory",
+    (
+        lambda: "unknown",
+        lambda: (_ for _ in ()).throw(OSError("git unavailable")),
+    ),
+)
+def test_evaluate_invalid_git_sha_fails_closed_before_model_and_publication(
+    tmp_path: Path, git_sha_factory
+) -> None:
+    calls: list[str] = []
+    _, catalog, synonyms, cache, ground_truth, report = _workflow_inputs(tmp_path, calls)
+    report.write_bytes(b"accepted report\n")
+    cli = create_cli(
+        encoder_factory=lambda model_id: calls.append(model_id) or FakeEncoder(),
+        clock=lambda: datetime(2026, 8, 15, 12, 0, tzinfo=UTC),
+        git_sha_factory=git_sha_factory,
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        _evaluate_arguments(catalog, synonyms, cache, ground_truth, report),
+    )
+
+    assert result.exit_code != 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "failed"
+    assert "git SHA" in payload["reason"]
+    assert calls == []
+    assert report.read_bytes() == b"accepted report\n"
+
+
+def test_cli_rejects_malformed_model_id_as_failed_before_factory(tmp_path: Path) -> None:
+    calls: list[str] = []
+
+    result = CliRunner().invoke(
+        _cli(calls),
+        ["query", "--model-id", " ", "--question", "transaction value"],
+    )
+
+    assert result.exit_code != 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "failed"
+    assert "model_id" in payload["reason"]
+    assert calls == []
+
+
+def test_cli_programming_factory_error_is_failed_not_blocked(tmp_path: Path) -> None:
+    calls: list[str] = []
+    _, catalog, synonyms, cache, _, _ = _workflow_inputs(tmp_path, calls)
+
+    def broken_factory(model_id: str):
+        raise RuntimeError("programming bug")
+
+    cli = create_cli(encoder_factory=broken_factory)
+    result = CliRunner().invoke(
+        cli,
+        [
+            "query",
+            "--catalog",
+            str(catalog),
+            "--synonyms",
+            str(synonyms),
+            "--cache-dir",
+            str(cache),
+            "--question",
+            "transaction value",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert json.loads(result.output) == {
+        "status": "failed",
+        "command": "query",
+        "reason": "programming bug",
+    }
+
+
+def test_cli_uses_canonical_ground_truth_default_path() -> None:
+    result = CliRunner().invoke(_cli([]), ["evaluate", "--help"])
+
+    assert result.exit_code == 0
+    assert "data/eval/schema_link_groundtruth.jsonl" in result.output

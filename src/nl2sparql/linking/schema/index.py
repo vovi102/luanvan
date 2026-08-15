@@ -43,6 +43,7 @@ class SchemaIndexMetadata:
     relation_elements: tuple[SchemaElement, ...]
     field_elements: tuple[SchemaElement, ...]
     manifest_sha256: str
+    manifest_file_sha256: str = ""
 
 
 @dataclass(frozen=True)
@@ -417,5 +418,6 @@ def load_index(
         relation_elements=relations,
         field_elements=fields,
         manifest_sha256=manifest_sha256,
+        manifest_file_sha256=_sha256(manifest_bytes),
     )
     return SchemaIndex(metadata, relation_embeddings, field_embeddings)

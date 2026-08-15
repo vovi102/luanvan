@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import tempfile
 from collections.abc import Callable, Mapping
@@ -30,11 +31,11 @@ from nl2sparql.linking.schema import (
     load_index,
     load_synonyms,
 )
-from nl2sparql.linking.schema.evaluate import evaluate_linker, load_ground_truth
+from nl2sparql.linking.schema.evaluate import evaluate_linker, parse_ground_truth
 from nl2sparql.sql.schema import CATALOG_PATH, SchemaCatalogError, load_catalog
 
 DEFAULT_CACHE_DIRECTORY = Path("src/nl2sparql/linking/cache")
-DEFAULT_GROUND_TRUTH_PATH = Path("data/dataset/test/schema_linker_ground_truth.jsonl")
+DEFAULT_GROUND_TRUTH_PATH = Path("data/eval/schema_link_groundtruth.jsonl")
 DEFAULT_REPORT_PATH = Path("reports/schema_linker_evaluation.json")
 DEFAULT_SYNONYMS_PATH = Path(__file__).parents[1] / "src/nl2sparql/linking/schema/synonyms.json"
 
@@ -45,12 +46,18 @@ class ExternalDependencyError(RuntimeError):
     """A missing model, package, or network resource blocks a model command."""
 
 
+class ProvenanceError(SchemaLinkerError):
+    """Required provenance could not be resolved or validated."""
+
+
 def _default_encoder_factory(model_id: str) -> Encoder:
     try:
         from sentence_transformers import SentenceTransformer
-
+    except ImportError as exc:
+        raise ExternalDependencyError(f"unable to initialize model {model_id!r}: {exc}") from exc
+    try:
         return SentenceTransformer(model_id)
-    except Exception as exc:
+    except (ImportError, OSError) as exc:
         raise ExternalDependencyError(f"unable to initialize model {model_id!r}: {exc}") from exc
 
 
@@ -63,9 +70,9 @@ def _git_sha() -> str:
             text=True,
             cwd=Path(__file__).resolve().parents[1],
         )
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ProvenanceError(f"unable to resolve git SHA: {exc}") from exc
+    return completed.stdout.strip()
 
 
 def _sha256(payload: bytes) -> str:
@@ -101,10 +108,11 @@ def _catalog_inputs(catalog_path: Path, synonyms_path: Path):
     _required_file(catalog_path)
     _required_file(synonyms_path)
     catalog_bytes = catalog_path.read_bytes()
-    catalog = load_catalog(catalog_path)
-    synonyms = load_synonyms(synonyms_path)
+    synonyms_bytes = synonyms_path.read_bytes()
+    catalog = load_catalog(catalog_path, snapshot=catalog_bytes)
+    synonyms = load_synonyms(synonyms_path, snapshot=synonyms_bytes)
     elements = build_schema_elements(catalog, synonyms)
-    return catalog_bytes, synonyms, elements
+    return catalog_bytes, synonyms_bytes, synonyms, elements
 
 
 def _load_cached_index(
@@ -124,6 +132,46 @@ def _validate_cutoffs(field_k: int, relation_k: int) -> None:
     for label, value in (("field_k", field_k), ("relation_k", relation_k)):
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise SchemaLinkerError(f"{label} must be a positive integer")
+
+
+def _validated_model_id(model_id: object) -> str:
+    if (
+        not isinstance(model_id, str)
+        or not model_id.strip()
+        or model_id != model_id.strip()
+        or len(model_id) > 512
+        or any(ord(character) < 32 or ord(character) == 127 for character in model_id)
+    ):
+        raise SchemaLinkerError("model_id must be non-empty, trimmed, and control-free")
+    return model_id
+
+
+def _paths_alias(left: Path, right: Path) -> bool:
+    try:
+        if left.resolve(strict=False) == right.resolve(strict=False):
+            return True
+        return left.exists() and right.exists() and os.path.samefile(left, right)
+    except (OSError, RuntimeError) as exc:
+        raise SchemaLinkerError(f"unable to resolve report path identity: {exc}") from exc
+
+
+def _protect_report_path(report_path: Path, protected: Mapping[str, Path]) -> None:
+    for label, input_path in protected.items():
+        if _paths_alias(report_path, input_path):
+            raise SchemaLinkerError(f"report path must not overwrite {label}")
+
+
+_GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _resolved_git_sha(factory: Callable[[], str]) -> str:
+    try:
+        git_sha = factory()
+    except Exception as exc:
+        raise ProvenanceError(f"unable to resolve git SHA: {exc}") from exc
+    if not isinstance(git_sha, str) or not _GIT_SHA_RE.fullmatch(git_sha):
+        raise ProvenanceError("git SHA must be a full 40-character lowercase hexadecimal commit")
+    return git_sha
 
 
 def _emit_failure(command: str, status: str, error: Exception) -> None:
@@ -147,7 +195,14 @@ def _is_external_failure(error: BaseException) -> bool:
 
 
 def _emit_contract_failure(command: str, error: Exception) -> None:
-    _emit_failure(command, "blocked" if _is_external_failure(error) else "failed", error)
+    status = (
+        "failed"
+        if isinstance(error, ProvenanceError)
+        else "blocked"
+        if _is_external_failure(error)
+        else "failed"
+    )
+    _emit_failure(command, status, error)
 
 
 def _utc_timestamp(clock: Callable[[], datetime]) -> str:
@@ -161,23 +216,29 @@ def _evaluation_payload(
     *,
     report,
     index: SchemaIndex,
-    paths: SchemaCachePaths,
     catalog_bytes: bytes,
     ground_truth_bytes: bytes,
+    synonyms_bytes: bytes,
     generated_at: str,
     git_sha: str,
 ) -> bytes:
     metrics = asdict(report)
     results = metrics.pop("results")
-    cache_bytes = paths.manifest.read_bytes() + paths.matrices.read_bytes()
+    cache_identity = {
+        "manifest_sha256": index.metadata.manifest_file_sha256,
+        "matrices_sha256": index.metadata.matrices_sha256,
+    }
     body = {
         "schema_version": 1,
         "status": "ready",
         "generated_at": generated_at,
         "git_sha": git_sha,
         "catalog_sha256": _sha256(catalog_bytes),
-        "cache_sha256": _sha256(cache_bytes),
+        "cache_sha256": _sha256(_canonical_json(cache_identity)),
+        "cache_manifest_sha256": index.metadata.manifest_file_sha256,
+        "cache_matrices_sha256": index.metadata.matrices_sha256,
         "ground_truth_sha256": _sha256(ground_truth_bytes),
+        "synonyms_sha256": _sha256(synonyms_bytes),
         "model_id": index.metadata.model_id,
         "weights": asdict(index.metadata.weights),
         "metrics": metrics,
@@ -226,7 +287,8 @@ def create_cli(
     ) -> None:
         """Build and atomically publish the embedding index."""
         try:
-            catalog_bytes, _, elements = _catalog_inputs(catalog_path, synonyms_path)
+            model_id = _validated_model_id(model_id)
+            catalog_bytes, _, _, elements = _catalog_inputs(catalog_path, synonyms_path)
             encoder = encoder_factory(model_id)
             index = build_index(
                 elements,
@@ -250,6 +312,9 @@ def create_cli(
             raise click.exceptions.Exit(1) from exc
         except (SchemaCatalogError, SchemaLinkerError, ValueError) as exc:
             _emit_contract_failure("build-index", exc)
+            raise click.exceptions.Exit(1) from exc
+        except Exception as exc:
+            _emit_failure("build-index", "failed", exc)
             raise click.exceptions.Exit(1) from exc
 
     @cli.command("query")
@@ -288,8 +353,9 @@ def create_cli(
     ) -> None:
         """Rank cached schema relations and fields for one question."""
         try:
+            model_id = _validated_model_id(model_id)
             _validate_cutoffs(field_k, relation_k)
-            catalog_bytes, synonyms, _ = _catalog_inputs(catalog_path, synonyms_path)
+            catalog_bytes, _, synonyms, _ = _catalog_inputs(catalog_path, synonyms_path)
             _, index = _load_cached_index(cache_dir, catalog_bytes, model_id)
             encoder = encoder_factory(model_id)
             linked = SchemaLinker(index, encoder, synonyms).link(
@@ -310,6 +376,9 @@ def create_cli(
             raise click.exceptions.Exit(1) from exc
         except (SchemaCatalogError, SchemaIndexError, SchemaLinkerError, ValueError) as exc:
             _emit_contract_failure("query", exc)
+            raise click.exceptions.Exit(1) from exc
+        except Exception as exc:
+            _emit_failure("query", "failed", exc)
             raise click.exceptions.Exit(1) from exc
 
     @cli.command("evaluate")
@@ -361,13 +430,28 @@ def create_cli(
     ) -> None:
         """Evaluate a cached index against exactly 50 reviewed questions."""
         try:
+            model_id = _validated_model_id(model_id)
             _validate_cutoffs(field_k, relation_k)
+            paths = SchemaCachePaths.from_directory(cache_dir)
+            _protect_report_path(
+                report_path,
+                {
+                    "ground truth": ground_truth,
+                    "catalog": catalog_path,
+                    "synonyms": synonyms_path,
+                    "cache manifest": paths.manifest,
+                    "cache matrices": paths.matrices,
+                    "cache lock": paths.lock,
+                },
+            )
             _required_file(ground_truth)
-            if ground_truth.resolve() == report_path.resolve():
-                raise SchemaLinkerError("report path must not overwrite ground truth")
-            catalog_bytes, synonyms, elements = _catalog_inputs(catalog_path, synonyms_path)
-            cases = load_ground_truth(ground_truth, elements)
-            paths, index = _load_cached_index(cache_dir, catalog_bytes, model_id)
+            catalog_bytes, synonyms_bytes, synonyms, elements = _catalog_inputs(
+                catalog_path, synonyms_path
+            )
+            ground_truth_bytes = ground_truth.read_bytes()
+            cases = parse_ground_truth(ground_truth_bytes, elements)
+            _, index = _load_cached_index(cache_dir, catalog_bytes, model_id)
+            git_sha = _resolved_git_sha(git_sha_factory)
             encoder = encoder_factory(model_id)
             evaluation = evaluate_linker(
                 SchemaLinker(index, encoder, synonyms),
@@ -378,11 +462,11 @@ def create_cli(
             payload = _evaluation_payload(
                 report=evaluation,
                 index=index,
-                paths=paths,
                 catalog_bytes=catalog_bytes,
-                ground_truth_bytes=ground_truth.read_bytes(),
+                ground_truth_bytes=ground_truth_bytes,
+                synonyms_bytes=synonyms_bytes,
                 generated_at=_utc_timestamp(clock),
-                git_sha=git_sha_factory(),
+                git_sha=git_sha,
             )
             _atomic_write(report_path, payload)
             click.echo(
@@ -396,6 +480,9 @@ def create_cli(
             raise click.exceptions.Exit(1) from exc
         except (SchemaCatalogError, SchemaIndexError, SchemaLinkerError, ValueError) as exc:
             _emit_contract_failure("evaluate", exc)
+            raise click.exceptions.Exit(1) from exc
+        except Exception as exc:
+            _emit_failure("evaluate", "failed", exc)
             raise click.exceptions.Exit(1) from exc
 
     return cli
