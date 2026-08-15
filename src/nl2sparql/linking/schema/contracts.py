@@ -25,6 +25,10 @@ class SchemaDocumentError(SchemaLinkerError):
     """Raised when catalog documents or synonyms are invalid."""
 
 
+class SchemaIndexError(SchemaLinkerError):
+    """Raised when a schema index is stale, corrupt, or unsafe."""
+
+
 class Encoder(Protocol):
     """Minimal sentence-encoder boundary used by index and query code."""
 

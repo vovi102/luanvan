@@ -107,7 +107,7 @@ UV_CACHE_DIR=.uv-cache uv run ruff format --check src/nl2sparql/linking/schema t
 - Consumes: `SchemaElement`, `SchemaCachePaths`, `ScoreWeights`, and injected `Encoder` from Task 1.
 - Produces: `SchemaIndex(metadata, relation_embeddings, field_embeddings)`, `build_index(elements, encoder, model_id, catalog_bytes, paths, weights) -> SchemaIndex`, and `load_index(paths, expected_catalog_sha256, expected_model_id, expected_document_version) -> SchemaIndex`.
 
-- [ ] **Step 1: Write failing index tests with a deterministic encoder**
+- [x] **Step 1: Write failing index tests with a deterministic encoder**
 
 ```python
 class FakeEncoder:
@@ -122,12 +122,12 @@ class FakeEncoder:
   unique temporary siblings, and lock-protected atomic replacement. Assert that
   a failed rebuild leaves the previously accepted pair readable.
 
-- [ ] **Step 2: Run the index test and verify RED**
+- [x] **Step 2: Run the index test and verify RED**
 
   Run `UV_CACHE_DIR=.uv-cache uv run pytest -q tests/unit/test_schema_index.py`.
   Expected: import failure for the absent `index` module.
 
-- [ ] **Step 3: Implement build/publication/load validation**
+- [x] **Step 3: Implement build/publication/load validation**
 
   Encode relation and field document lists separately, require one 2-D finite
   unit-normalized vector per element with a shared positive dimension, and cast
@@ -137,12 +137,12 @@ class FakeEncoder:
   lock, verifies its self-hash and expected fingerprints, verifies NPZ bytes,
   loads with `allow_pickle=False`, and validates shapes/order/norms.
 
-- [ ] **Step 4: Run focused index gates**
+- [x] **Step 4: Run focused index gates**
 
   Run the index test, document test, Ruff, format, and `git diff --check` for the
   new package. Expected: every gate exits zero.
 
-- [ ] **Step 5: Commit index lifecycle**
+- [x] **Step 5: Commit index lifecycle**
 
   Commit `feat(linking): add fingerprinted schema index` with the module and its
   tests only.
