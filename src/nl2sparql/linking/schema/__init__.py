@@ -13,6 +13,13 @@ from nl2sparql.linking.schema.contracts import (
     ScoreWeights,
 )
 from nl2sparql.linking.schema.documents import build_schema_elements, load_synonyms
+from nl2sparql.linking.schema.evaluate import (
+    CaseEvaluation,
+    EvaluationReport,
+    GroundTruthCase,
+    evaluate_linker,
+    load_ground_truth,
+)
 from nl2sparql.linking.schema.index import (
     SchemaIndex,
     SchemaIndexMetadata,
@@ -26,7 +33,10 @@ __all__ = [
     "DOCUMENT_VERSION",
     "INDEX_SCHEMA_VERSION",
     "LinkResult",
+    "CaseEvaluation",
     "Encoder",
+    "EvaluationReport",
+    "GroundTruthCase",
     "SchemaCachePaths",
     "SchemaDocumentError",
     "SchemaElement",
@@ -39,6 +49,8 @@ __all__ = [
     "ScoreWeights",
     "build_schema_elements",
     "build_index",
+    "evaluate_linker",
     "load_index",
+    "load_ground_truth",
     "load_synonyms",
 ]

@@ -211,7 +211,7 @@ def test_directional_terms_rank_correct_address_fields(linker):
 - Consumes: `SchemaLinker`, catalog elements, explicit ground-truth JSONL, cache paths, and an encoder factory.
 - Produces: `GroundTruthCase`, `EvaluationReport`, `load_ground_truth(path, valid_elements, expected_count=50)`, `evaluate_linker(linker, cases, field_k=10, relation_k=5)`, and Click commands `build-index`, `query`, `evaluate`.
 
-- [ ] **Step 1: Write failing evaluator and CLI tests**
+- [x] **Step 1: Write failing evaluator and CLI tests**
 
   Test exact 50 rows, unique IDs/NL, unknown/empty gold fields, relation/field
   consistency, known Recall@K/MRR vectors, warm-up exclusion, p50/p95 calculation,
@@ -219,12 +219,12 @@ def test_directional_terms_rank_correct_address_fields(linker):
   returning structured `blocked`, invalid cache returning `failed`, and encoder
   factory invoked only by model-requiring commands.
 
-- [ ] **Step 2: Run evaluator tests and verify RED**
+- [x] **Step 2: Run evaluator tests and verify RED**
 
   Run `UV_CACHE_DIR=.uv-cache uv run pytest -q tests/unit/test_schema_linker_evaluate.py`.
   Expected: missing evaluator and CLI modules.
 
-- [ ] **Step 3: Implement validation, metrics, reports, and commands**
+- [x] **Step 3: Implement validation, metrics, reports, and commands**
 
   Parse JSONL with line-aware errors and exact keys. Compute micro recall from
   set intersections, reciprocal rank from the first relevant field, and latency
@@ -235,19 +235,19 @@ def test_directional_terms_rank_correct_address_fields(linker):
   `blocked`; contract/index/evaluation failures as `failed`; always exit nonzero
   on either status.
 
-- [ ] **Step 4: Create and validate the thin notebook**
+- [x] **Step 4: Create and validate the thin notebook**
 
   Add environment/version, artifact-status, metric table, top-error inspection,
   and manual-gate Markdown cells. Code cells import the production evaluator and
   do not build a second linker. Validate JSON with
   `UV_CACHE_DIR=.uv-cache uv run python -m json.tool notebooks/11_schema_linker_eval.ipynb`.
 
-- [ ] **Step 5: Run focused workflow gates**
+- [x] **Step 5: Run focused workflow gates**
 
   Run all four `test_schema_*.py` modules, CLI `--help`, Ruff, format, notebook
   JSON validation, and `git diff --check`. Confirm no model download occurs.
 
-- [ ] **Step 6: Commit evaluation workflow**
+- [x] **Step 6: Commit evaluation workflow**
 
   Commit `feat(linking): evaluate Plan B schema linker`.
 
