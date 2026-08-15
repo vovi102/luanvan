@@ -51,7 +51,7 @@
 - Consumes: `load_catalog(path: Path) -> dict[str, object]` from `nl2sparql.sql.schema`.
 - Produces: `SchemaElement(element_id, kind, document, document_sha256)`, `ScoreWeights`, `SchemaCachePaths.from_directory(path)`, `Encoder.encode(texts, normalize_embeddings=True)`, `build_schema_elements(catalog, synonyms) -> tuple[SchemaElement, ...]`, and `load_synonyms(path) -> dict[str, tuple[str, ...]]`.
 
-- [ ] **Step 1: Write failing contract/document tests**
+- [x] **Step 1: Write failing contract/document tests**
 
   Cover the six accepted relation IDs, every `relation.field` ID, deterministic
   byte-identical documents, semantic mapping inclusion, `hasFrom`/sender and
@@ -66,12 +66,12 @@ def test_documents_keep_directional_role_terms(catalog, synonyms):
     assert elements["transaction_facts.from_address"].kind == "field"
 ```
 
-- [ ] **Step 2: Run the document test and verify RED**
+- [x] **Step 2: Run the document test and verify RED**
 
   Run `UV_CACHE_DIR=.uv-cache uv run pytest -q tests/unit/test_schema_documents.py`.
   Expected: collection fails because `nl2sparql.linking.schema` does not exist.
 
-- [ ] **Step 3: Implement strict types, synonyms, and document builder**
+- [x] **Step 3: Implement strict types, synonyms, and document builder**
 
   Validate non-empty/control-free IDs and documents in frozen dataclasses. Parse
   the synonym file as `dict[str, list[str]]`, normalize with Unicode NFKC and
@@ -80,7 +80,7 @@ def test_documents_keep_directional_role_terms(catalog, synonyms):
   and `competency_questions`; resolve semantic IDs to targeted relation/field
   documents and reject unknown targets before producing sorted elements.
 
-- [ ] **Step 4: Run focused tests, Ruff, and format**
+- [x] **Step 4: Run focused tests, Ruff, and format**
 
   Run:
 
@@ -92,7 +92,7 @@ UV_CACHE_DIR=.uv-cache uv run ruff format --check src/nl2sparql/linking/schema t
 
   Expected: all commands exit zero without model/network access.
 
-- [ ] **Step 5: Commit the document seam**
+- [x] **Step 5: Commit the document seam**
 
   Stage the four package files and document tests, then commit
   `feat(linking): build Plan B schema documents`.

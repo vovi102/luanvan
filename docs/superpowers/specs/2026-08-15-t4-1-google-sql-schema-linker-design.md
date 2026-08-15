@@ -48,7 +48,7 @@ Documents contain only committed catalog evidence:
 - relation kind, parameters, primary key, and physical sources;
 - field type, mode, lineage, and expression when present;
 - semantic IDs whose targets reference the element;
-- competency-question text/status that references the element;
+- competency-question ID/status that references the element;
 - a versioned, reviewed synonym lexicon for role and measure terms such as
   sender/from, recipient/to, value/amount, failed/status, gas/fee, token, block,
   contract, label, exchange, and protocol.
