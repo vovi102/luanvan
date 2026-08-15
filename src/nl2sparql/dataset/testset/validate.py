@@ -205,8 +205,23 @@ def load_bundle(paths: TestSetPaths) -> Bundle:
     )
     pool_b_rows = load_csv(
         paths.sql_pool_b,
-        ("question_id", "writer_id", "sql", "expected_empty", "ambiguity_flag", "notes"),
-        required_values=("question_id", "writer_id", "sql", "expected_empty", "ambiguity_flag"),
+        (
+            "question_id",
+            "writer_id",
+            "sql",
+            "expected_columns",
+            "expected_empty",
+            "ambiguity_flag",
+            "notes",
+        ),
+        required_values=(
+            "question_id",
+            "writer_id",
+            "sql",
+            "expected_columns",
+            "expected_empty",
+            "ambiguity_flag",
+        ),
     )
     review_rows = load_csv(
         paths.review_pool_c,
@@ -240,6 +255,7 @@ def load_bundle(paths: TestSetPaths) -> Bundle:
                 question_id=row["question_id"],
                 writer_id=row["writer_id"],
                 sql=row["sql"],
+                expected_columns=tuple(filter(None, row["expected_columns"].split("|"))),
                 expected_empty=parse_bool(row["expected_empty"]),
                 ambiguity_flag=parse_bool(row["ambiguity_flag"]),
                 notes=row["notes"],

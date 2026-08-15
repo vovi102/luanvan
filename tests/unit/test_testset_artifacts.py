@@ -48,7 +48,15 @@ def _final_bundle(tmp_path: Path) -> tuple[Bundle, LiveEvidence, Path]:
         for index in range(100)
     )
     pool_b = tuple(
-        PoolBRecord(row.question_id, "writer_01", SAFE_SQL, False, False) for row in pool_a
+        PoolBRecord(
+            row.question_id,
+            "writer_01",
+            SAFE_SQL,
+            ("transaction_hash",),
+            False,
+            False,
+        )
+        for row in pool_a
     )
     reviews = tuple(
         ReviewRecord(row.question_id, "reviewer_01", 4, 4, "easy", "ACCEPT") for row in pool_a
@@ -204,6 +212,16 @@ def test_finalize_bundle_publishes_only_exact_policy_compliant_evidence(tmp_path
     )
     with pytest.raises(TestSetError, match="execution policy"):
         finalize_bundle(bundle, cache_tampered, selection_path, output)
+
+    columns_tampered = replace(
+        evidence,
+        records=(
+            replace(evidence.records[0], columns=("wrong_column",)),
+            *evidence.records[1:],
+        ),
+    )
+    with pytest.raises(TestSetError, match="columns"):
+        finalize_bundle(bundle, columns_tampered, selection_path, output)
 
 
 def test_cli_help_is_available_without_credentials() -> None:

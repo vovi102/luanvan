@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -134,6 +134,10 @@ def test_validate_sql_text_rejects_mutation_comments_wildcards_and_unmanaged_obj
         "SELECT * FROM `nl2sparql-thesis.nl2sparql_analytics.transactions`",
         "SELECT DISTINCT * FROM `nl2sparql-thesis.nl2sparql_analytics.transactions`",
         "SELECT t.* FROM `nl2sparql-thesis.nl2sparql_analytics.transactions` AS t",
+        (
+            "SELECT project.dataset.transactions.* "
+            "FROM `nl2sparql-thesis.nl2sparql_analytics.transactions`"
+        ),
         "SELECT 1 -- hidden mutation",
         "SELECT 1 # hidden mutation",
         "SELECT 1; SELECT 2",
@@ -153,6 +157,15 @@ def test_verify_sql_preflights_twice_and_disables_query_cache() -> None:
     assert all(call[1].maximum_bytes_billed == 20 * 2**30 for call in client.calls)
     assert evidence.records[0].row_count == 1
     assert evidence.records[0].sql_sha256
+
+
+def test_verify_sql_requires_expected_columns_for_every_case() -> None:
+    client = FakeClient()
+
+    with pytest.raises(TestSetError, match="expected columns"):
+        verify_sql(client, (replace(_case(), expected_columns=()),), SqlPolicy())
+
+    assert client.calls == []
 
 
 def test_verify_sql_rejects_aggregate_budget_before_execution() -> None:
@@ -211,7 +224,7 @@ def test_cli_case_builder_preserves_pool_b_expected_empty_policy() -> None:
     spec.loader.exec_module(module)
     bundle = Bundle(
         pool_a=(PoolARecord("q-001", "author_01", "Find no transaction", "researcher", "batch-1"),),
-        pool_b=(PoolBRecord("q-001", "writer_01", SAFE_SQL, True, False),),
+        pool_b=(PoolBRecord("q-001", "writer_01", SAFE_SQL, ("transaction_hash",), True, False),),
         reviews=(ReviewRecord("q-001", "reviewer_01", 4, 4, "easy", "ACCEPT"),),
         selections=(
             SelectionRecord("q-001", "easy", ("simple_filter",), "accepted", ("named_entity",)),
@@ -221,3 +234,4 @@ def test_cli_case_builder_preserves_pool_b_expected_empty_policy() -> None:
     case = module._cases_from_bundle(bundle)[0]
 
     assert case.expected_result_size is None
+    assert case.expected_columns == ("transaction_hash",)

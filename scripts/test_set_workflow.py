@@ -84,7 +84,7 @@ def _cases_from_bundle(bundle: Bundle) -> tuple[FinalCase, ...]:
             schema_elements=(),
             cq_ids=(),
             expected_result_size=(None if pool_b[selection.question_id].expected_empty else 1),
-            expected_columns=(),
+            expected_columns=pool_b[selection.question_id].expected_columns,
             ambiguity_flag=pool_b[selection.question_id].ambiguity_flag,
             pool_b_writer=pool_b[selection.question_id].writer_id,
             pool_c_reviewers=reviewers[selection.question_id],

@@ -37,10 +37,11 @@
 - **Rationale:** Một interface tập trung giữ schema/review/cost rules nhất quán,
   test được không cần credentials, và không biến dữ liệu giả thành benchmark. Hai
   reviewer trên 30 IDs là điều kiện cần để đo kappa thay vì percent agreement.
-- **Consequences:** Offline implementation đã sẵn sàng với 30 focused tests và
-  423 tests toàn repository. Result preview bị giới hạn, hai vòng preflight đều
-  chặn aggregate trước execution, report có provenance/hash, và finalizer kiểm
-  tra selection/evidence/policy fail closed. Raw collaborator files, consent,
+- **Consequences:** Offline implementation đã sẵn sàng với 33 focused tests và
+  426 tests toàn repository. Result preview bị giới hạn, hai vòng preflight đều
+  chặn aggregate trước execution, ordered expected columns được kiểm tra live,
+  report có provenance/hash, và finalizer kiểm tra selection/evidence/policy
+  fail closed. Raw collaborator files, consent,
   BigQuery execution, 100 final rows và kappa thật vẫn pending. Thiếu credential/
   submission trả structured `blocked` và không publish artifact.
 - **Revisit:** Khi có đủ Pool A/B/C và BigQuery credentials; sau đó ghi evidence

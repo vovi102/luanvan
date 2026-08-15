@@ -8,6 +8,7 @@ import pytest
 
 from nl2sparql.dataset.testset.contracts import (
     PoolARecord,
+    PoolBRecord,
     TestSetError,
     TestSetPaths,
     load_csv,
@@ -70,6 +71,13 @@ def test_pool_a_record_rejects_email_like_identifiers() -> None:
             persona="journalist",
             source_batch="batch-1",
         )
+
+
+def test_pool_b_record_requires_explicit_unique_result_columns() -> None:
+    with pytest.raises(TestSetError, match="expected_columns"):
+        PoolBRecord("q-001", "writer_01", "SELECT 1", (), False, False)
+    with pytest.raises(TestSetError, match="expected_columns"):
+        PoolBRecord("q-001", "writer_01", "SELECT 1", ("value", "value"), False, False)
 
 
 def test_parse_bool_accepts_only_explicit_boolean_tokens() -> None:

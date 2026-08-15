@@ -42,7 +42,9 @@ class FinalizationReport:
 
 _HEADERS: dict[str, str] = {
     "raw_pool_a.csv": "question_id,author_id,nl,persona,source_batch\n",
-    "sql_pool_b.csv": "question_id,writer_id,sql,expected_empty,ambiguity_flag,notes\n",
+    "sql_pool_b.csv": (
+        "question_id,writer_id,sql,expected_columns,expected_empty,ambiguity_flag,notes\n"
+    ),
     "review_pool_c.csv": (
         "question_id,reviewer_id,nl_quality,faithfulness,difficulty,decision,notes\n"
     ),
@@ -51,9 +53,10 @@ _HEADERS: dict[str, str] = {
 _PROCESS = """# T3.5 three-pool collection process
 
 Pool A authors write natural English questions without seeing the schema. Pool B
-authors independently write read-only GoogleSQL and record ambiguity. Pool C
-reviewers score quality, faithfulness, difficulty, and decision. Use pseudonyms
-only; keep consent records separate from benchmark rows.
+authors independently write read-only GoogleSQL, list ordered result aliases in
+`expected_columns` using `|`, and record ambiguity. Pool C reviewers score
+quality, faithfulness, difficulty, and decision. Use pseudonyms only; keep
+consent records separate from benchmark rows.
 
 Run `python scripts/12_test_set_workflow.py validate` before sharing a bundle.
 Live verification requires configured BigQuery credentials and the approved
@@ -269,6 +272,8 @@ def finalize_bundle(
         expected_sha = hashlib.sha256(gold.sql.encode()).hexdigest()
         if live.sql_sha256 != expected_sha:
             raise TestSetError(f"live evidence SQL hash mismatch for {question_id}")
+        if tuple(live.columns) != gold.expected_columns:
+            raise TestSetError(f"live evidence columns mismatch for {question_id}")
         if gold.expected_empty and live.row_count != 0:
             raise TestSetError(f"live evidence row policy mismatch for {question_id}")
         if not gold.expected_empty and live.row_count <= 0:

@@ -29,7 +29,7 @@ Tooling nằm ở `src/nl2sparql/dataset/testset/` và CLI
 `scripts/12_test_set_workflow.py`:
 
 - `raw_pool_a.csv`: `question_id,author_id,nl,persona,source_batch`.
-- `sql_pool_b.csv`: `question_id,writer_id,sql,expected_empty,ambiguity_flag,notes`.
+- `sql_pool_b.csv`: `question_id,writer_id,sql,expected_columns,expected_empty,ambiguity_flag,notes`.
 - `review_pool_c.csv`: `question_id,reviewer_id,nl_quality,faithfulness,difficulty,decision,notes`.
 - `final_selection.csv`: `question_id,final_difficulty,categories,entity_kinds,selection_note`.
 - `test-100.jsonl`: SQL-native final records with NL, SQL, difficulty, categories,
@@ -61,11 +61,12 @@ finalize      chỉ publish test-100 khi bundle + live evidence + selection pass
   hard=20`, ≥6 category và ≥3 entity kinds.
 - [x] SQL adapter enforce read-only/managed-object policy, 20 GiB/query, 64 GiB
   aggregate, cache-off, complete dry-run preflight, batch-wide re-preflight và
-  bounded result preview.
+  bounded result preview; Pool B bắt buộc khai báo ordered `expected_columns`
+  và live result phải khớp chính xác.
 - [x] Scaffold/report/finalizer/CLI có atomic publication, hash evidence và
   metadata provenance, structured blocked behavior và fail-closed evidence
   validation; offline mode không khởi tạo BigQuery client.
-- [x] Focused verification: 30 tests pass; full repository: 423 tests pass;
+- [x] Focused verification: 33 tests pass; full repository: 426 tests pass;
   Ruff và format pass; scaffold/CLI help chạy không cần credentials; empty
   scaffold validate fail closed.
 
@@ -89,7 +90,8 @@ compliance officer hoặc researcher; không xem schema/catalog; dùng tên enti
 ### Pool B
 
 Với mỗi câu Pool A, viết một GoogleSQL read-only đúng nhất trên catalog kèm theo;
-ghi `expected_empty`, `ambiguity_flag`, notes và chạy thử khi credentials sẵn.
+ghi thứ tự `expected_columns` phân cách bằng `|`, `expected_empty`,
+`ambiguity_flag`, notes và chạy thử khi credentials sẵn.
 Nếu intent mơ hồ, flag để Pool C quyết định; không âm thầm chọn một diễn giải.
 
 ### Pool C

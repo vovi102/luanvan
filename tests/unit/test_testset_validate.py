@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from pathlib import Path
 
 import pytest
 
@@ -12,13 +13,42 @@ from nl2sparql.dataset.testset.contracts import (
     ReviewRecord,
     SelectionRecord,
     TestSetError,
+    TestSetPaths,
 )
 from nl2sparql.dataset.testset.validate import (
     Bundle,
     cohen_kappa,
+    load_bundle,
     validate_bundle,
     validate_selection,
 )
+
+
+def test_load_bundle_preserves_ordered_pool_b_expected_columns(tmp_path: Path) -> None:
+    paths = TestSetPaths.from_root(tmp_path)
+    paths.raw_pool_a.write_text(
+        "question_id,author_id,nl,persona,source_batch\n"
+        "q-001,author_01,Find a transaction,researcher,batch-1\n",
+        encoding="utf-8",
+    )
+    paths.sql_pool_b.write_text(
+        "question_id,writer_id,sql,expected_columns,expected_empty,ambiguity_flag,notes\n"
+        "q-001,writer_01,SELECT 1,transaction_hash|block_timestamp,false,false,\n",
+        encoding="utf-8",
+    )
+    paths.review_pool_c.write_text(
+        "question_id,reviewer_id,nl_quality,faithfulness,difficulty,decision,notes\n"
+        "q-001,reviewer_01,4,4,easy,ACCEPT,\n",
+        encoding="utf-8",
+    )
+    paths.final_selection.write_text(
+        "question_id,final_difficulty,categories,entity_kinds,selection_note\n",
+        encoding="utf-8",
+    )
+
+    bundle = load_bundle(paths)
+
+    assert bundle.pool_b[0].expected_columns == ("transaction_hash", "block_timestamp")
 
 
 def _bundle(count: int = 60, *, reject_count: int = 0) -> Bundle:
@@ -40,6 +70,7 @@ def _bundle(count: int = 60, *, reject_count: int = 0) -> Bundle:
                 "SELECT transaction_hash FROM "
                 "`nl2sparql-thesis.nl2sparql_analytics.transactions` LIMIT 1"
             ),
+            expected_columns=("transaction_hash",),
             expected_empty=False,
             ambiguity_flag=False,
         )

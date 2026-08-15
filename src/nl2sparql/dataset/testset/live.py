@@ -72,7 +72,10 @@ def validate_sql_text(sql: str) -> None:
     if MUTATION_RE.search(stripped):
         raise TestSetError("SQL contains a mutation keyword")
     if re.search(
-        r"(?:\bSELECT|,)\s+(?:(?:DISTINCT|ALL)\s+)?(?:[A-Za-z_]\w*\.)?\*",
+        (
+            r"(?:\bSELECT|,)\s+(?:(?:DISTINCT|ALL)\s+)?"
+            r"(?:(?:`[^`]+`|[A-Za-z_]\w*(?:\s*\.\s*[A-Za-z_]\w*)*)\s*\.\s*)?\*"
+        ),
         stripped,
         re.IGNORECASE,
     ):
@@ -140,6 +143,8 @@ def verify_sql(
         raise TestSetError("at least one SQL case is required")
     for case in cases:
         validate_sql_text(case.sql)
+        if not case.expected_columns:
+            raise TestSetError(f"{case.id} must declare expected columns")
     case_ids = [case.id for case in cases]
     if len(case_ids) != len(set(case_ids)):
         raise TestSetError("SQL case IDs must be unique")

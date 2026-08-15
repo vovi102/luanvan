@@ -16,6 +16,7 @@ class TestSetError(ValueError):
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{1,63}$")
+_COLUMN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
@@ -132,6 +133,7 @@ class PoolBRecord:
     question_id: str
     writer_id: str
     sql: str
+    expected_columns: tuple[str, ...]
     expected_empty: bool
     ambiguity_flag: bool
     notes: str = ""
@@ -140,6 +142,15 @@ class PoolBRecord:
         object.__setattr__(self, "question_id", _identifier(self.question_id, "question_id"))
         object.__setattr__(self, "writer_id", _identifier(self.writer_id, "writer_id"))
         object.__setattr__(self, "sql", _text(self.sql, "sql"))
+        if (
+            not isinstance(self.expected_columns, tuple)
+            or not self.expected_columns
+            or len(self.expected_columns) != len(set(self.expected_columns))
+            or any(not _COLUMN_RE.fullmatch(column) for column in self.expected_columns)
+        ):
+            raise TestSetError(
+                "expected_columns must contain unique explicit GoogleSQL column names"
+            )
         object.__setattr__(self, "notes", self.notes.strip())
 
 

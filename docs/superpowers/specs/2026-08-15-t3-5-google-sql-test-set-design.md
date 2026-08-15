@@ -92,11 +92,13 @@ does not require or trust their optional difficulty/category hints.
 `sql_pool_b.csv`:
 
 ```text
-question_id,writer_id,sql,expected_empty,ambiguity_flag,notes
+question_id,writer_id,sql,expected_columns,expected_empty,ambiguity_flag,notes
 ```
 
 Each question has exactly one canonical Pool B row after ambiguity resolution.
-`expected_empty` is explicit rather than inferred from a zero result.
+`expected_columns` is a non-empty `|`-delimited ordered list checked against the
+live BigQuery result; `expected_empty` is explicit rather than inferred from a
+zero result.
 
 `review_pool_c.csv`:
 
