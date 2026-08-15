@@ -150,6 +150,10 @@ Fresh repository verification ngày 2026-08-15:
 - `git diff --check`: exit 0, không có output.
 - `git status --short --branch`: exit 0; chỉ có Task 5 docs/evidence/cache artifact
   trước commit, branch ahead 8.
+- Formal focused review: **Approved**, không có Critical/Important/Minor finding.
+  Reviewer independently xác nhận NPZ có đúng hai float32 matrices shapes
+  `(6, 384)` và `(62, 384)`, unit-normalized, khớp manifest/catalog hashes,
+  element order, model ID, document version và score weights.
 
 Không dùng kết quả của unit fixture để suy ra scientific Recall@10 hoặc
 production query latency.

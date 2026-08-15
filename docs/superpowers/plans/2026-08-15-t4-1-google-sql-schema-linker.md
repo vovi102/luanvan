@@ -299,13 +299,18 @@ git status --short --branch
 
   Read every exit code and test count before updating evidence.
 
-- [ ] **Step 5: Request focused code review and fix all Critical/Important findings**
+- [x] **Step 5: Request focused code review and fix all Critical/Important findings**
 
   Review the complete diff against the approved design and task acceptance.
   Re-run affected focused tests after each correction and repeat review until
   merge-ready.
 
-- [ ] **Step 6: Commit and push the T4.1 checkpoint**
+  Focused review result: **Approved**, with 0 Critical, 0 Important, and 0 Minor
+  findings. Reviewer independently inspected the committed NPZ matrices and
+  confirmed shapes, float32 dtype, unit norms, manifest/catalog hashes, element
+  order, model ID, document version, and score weights.
+
+- [x] **Step 6: Commit and push the T4.1 checkpoint**
 
   Commit `docs(linking): complete T4.1 implementation checkpoint`, push
   `wip/continuous-backlog`, and verify the remote branch SHA with `git ls-remote`.
