@@ -160,7 +160,7 @@ class FakeEncoder:
 - Consumes: validated `SchemaIndex`, `Encoder`, synonyms, and `ScoreWeights`.
 - Produces: `SchemaMatch`, `LinkResult`, `SchemaLinker(index, encoder, synonyms)`, and `SchemaLinker.link(question: str, top_k: int = 10) -> LinkResult`.
 
-- [ ] **Step 1: Write failing retrieval tests**
+- [x] **Step 1: Write failing retrieval tests**
 
   Use a hand-sized fake index and encoder to prove exact output types, descending
   scores, stable ID tie-breaks, relation/field pool separation, top-k bounds,
@@ -175,12 +175,12 @@ def test_directional_terms_rank_correct_address_fields(linker):
     assert received.fields[0].element_id == "transaction_facts.to_address"
 ```
 
-- [ ] **Step 2: Run retrieval tests and verify RED**
+- [x] **Step 2: Run retrieval tests and verify RED**
 
   Run `UV_CACHE_DIR=.uv-cache uv run pytest -q tests/unit/test_schema_linker.py`.
   Expected: missing linker API.
 
-- [ ] **Step 3: Implement lexical and semantic fusion**
+- [x] **Step 3: Implement lexical and semantic fusion**
 
   Normalize the question once, expand reviewed synonym groups without substring
   matching, and compute bounded lexical overlap for every document. Encode one
@@ -189,12 +189,12 @@ def test_directional_terms_rank_correct_address_fields(linker):
   stable ordering key. Return immutable tuples and expose only stable symbols
   through both package and facade.
 
-- [ ] **Step 4: Run focused retrieval gates**
+- [x] **Step 4: Run focused retrieval gates**
 
   Run document/index/linker tests plus Ruff and format checks. Expected: all pass
   using only fake encoders.
 
-- [ ] **Step 5: Commit retrieval API**
+- [x] **Step 5: Commit retrieval API**
 
   Commit `feat(linking): rank analytical schema elements`.
 
