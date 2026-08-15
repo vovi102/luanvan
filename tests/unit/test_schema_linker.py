@@ -43,6 +43,16 @@ def _index() -> SchemaIndex:
             "transaction receipt gas used execution fee transaction cost",
         ),
         _element(
+            "transaction_facts.gas_price_wei",
+            "field",
+            "transaction gas price wei fee execution fee transaction cost",
+        ),
+        _element(
+            "transaction_facts.gas_limit",
+            "field",
+            "transaction gas limit maximum allowed gas units",
+        ),
+        _element(
             "transaction_facts.to_address",
             "field",
             "transaction to address recipient received incoming destination wallet account",
@@ -54,7 +64,7 @@ def _index() -> SchemaIndex:
         ),
     )
     relation_embeddings = np.asarray([[1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
-    field_embeddings = np.asarray([[1.0, 0.0]] * 4, dtype=np.float32)
+    field_embeddings = np.asarray([[1.0, 0.0]] * len(fields), dtype=np.float32)
     relation_embeddings.setflags(write=False)
     field_embeddings.setflags(write=False)
     metadata = SchemaIndexMetadata(
@@ -141,7 +151,14 @@ def test_directional_and_measure_synonyms_rank_the_correct_fields() -> None:
         .element_id.endswith(".to_address")
     )
     assert linker.link("largest transaction amount", 3).fields[0].element_id.endswith(".value_wei")
-    assert linker.link("gas fee used", 3).fields[0].element_id.endswith(".receipt_gas_used")
+    gas_matches = linker.link("gas fee used", 6).fields
+
+    assert [row.element_id for row in gas_matches if "gas" in row.element_id] == [
+        "transaction_facts.receipt_gas_used",
+        "transaction_facts.gas_price_wei",
+        "transaction_facts.gas_limit",
+    ]
+    assert gas_matches[0].element_id == "transaction_facts.receipt_gas_used"
 
 
 def test_link_uses_stable_element_id_ties_and_does_not_mutate_index() -> None:
@@ -175,7 +192,7 @@ def test_link_rejects_invalid_questions_before_encoding(question: object) -> Non
         linker.link(question, top_k=2)
 
 
-@pytest.mark.parametrize("top_k", (0, -1, True, "2", 5))
+@pytest.mark.parametrize("top_k", (0, -1, True, "2", 7))
 def test_link_rejects_invalid_top_k(top_k: object) -> None:
     linker = SchemaLinker(_index(), ExplodingEncoder(), {})
 
