@@ -7,10 +7,13 @@ import json
 from pathlib import Path
 
 import click
+from google.api_core.exceptions import GoogleAPIError
+from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import bigquery
 
 from nl2sparql.dataset.testset.artifacts import (
     finalize_bundle,
+    read_report,
     write_report,
     write_scaffold,
 )
@@ -24,6 +27,40 @@ from nl2sparql.dataset.testset.validate import (
 )
 
 DEFAULT_ROOT = Path("data/dataset/test")
+
+
+def _input_paths(paths: TestSetPaths) -> tuple[Path, ...]:
+    return (
+        paths.raw_pool_a,
+        paths.sql_pool_b,
+        paths.review_pool_c,
+        paths.final_selection,
+    )
+
+
+def _require_inputs(paths: TestSetPaths) -> None:
+    missing = [path for path in _input_paths(paths) if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(f"missing required input files: {', '.join(map(str, missing))}")
+
+
+def _failure_report(
+    path: Path,
+    *,
+    command: str,
+    status: str,
+    error: Exception,
+    input_paths: tuple[Path, ...],
+) -> None:
+    write_report(
+        {
+            "status": status,
+            "command": command,
+            "reason": str(error),
+        },
+        path,
+        input_paths=input_paths,
+    )
 
 
 def _cases_from_bundle(bundle: Bundle) -> tuple[FinalCase, ...]:
@@ -80,14 +117,31 @@ def scaffold(root: Path, force: bool) -> None:
 @click.option("--root", type=click.Path(path_type=Path), default=DEFAULT_ROOT, show_default=True)
 def validate(root: Path) -> None:
     """Run all credential-free bundle and review checks."""
+    paths = TestSetPaths.from_root(root)
     try:
-        paths = TestSetPaths.from_root(root)
+        _require_inputs(paths)
         bundle = load_bundle(paths)
         report = validate_bundle(bundle)
         validate_selection(bundle)
-        write_report(report, paths.report_json)
+        write_report(report, paths.report_json, input_paths=_input_paths(paths))
         click.echo(json.dumps({"status": "ready", "report": str(paths.report_json)}))
-    except (OSError, ValueError, TestSetError) as exc:
+    except OSError as exc:
+        _failure_report(
+            paths.report_json,
+            command="validate",
+            status="blocked",
+            error=exc,
+            input_paths=_input_paths(paths),
+        )
+        raise click.ClickException(str(exc)) from exc
+    except (ValueError, TestSetError) as exc:
+        _failure_report(
+            paths.report_json,
+            command="validate",
+            status="failed",
+            error=exc,
+            input_paths=_input_paths(paths),
+        )
         raise click.ClickException(str(exc)) from exc
 
 
@@ -96,17 +150,34 @@ def validate(root: Path) -> None:
 @click.option("--project", default="nl2sparql-thesis", show_default=True)
 def verify_live(root: Path, project: str) -> None:
     """Verify accepted SQL with BigQuery dry-run and execution evidence."""
+    paths = TestSetPaths.from_root(root)
     try:
-        paths = TestSetPaths.from_root(root)
+        _require_inputs(paths)
         bundle = load_bundle(paths)
         validate_bundle(bundle)
         validate_selection(bundle)
         client = bigquery.Client(project=project)
         cases = _cases_from_bundle(bundle)
         evidence = verify_sql(client, cases)
-        write_report(evidence, paths.live_evidence)
+        write_report(evidence, paths.live_evidence, input_paths=_input_paths(paths))
         click.echo(json.dumps({"status": "ready", "evidence": str(paths.live_evidence)}))
-    except (OSError, ValueError, TestSetError) as exc:
+    except (OSError, DefaultCredentialsError, GoogleAPIError) as exc:
+        _failure_report(
+            paths.live_evidence,
+            command="verify-live",
+            status="blocked",
+            error=exc,
+            input_paths=_input_paths(paths),
+        )
+        raise click.ClickException(str(exc)) from exc
+    except (ValueError, TestSetError) as exc:
+        _failure_report(
+            paths.live_evidence,
+            command="verify-live",
+            status="failed",
+            error=exc,
+            input_paths=_input_paths(paths),
+        )
         raise click.ClickException(str(exc)) from exc
 
 
@@ -114,21 +185,46 @@ def verify_live(root: Path, project: str) -> None:
 @click.option("--root", type=click.Path(path_type=Path), default=DEFAULT_ROOT, show_default=True)
 def finalize(root: Path) -> None:
     """Publish the final JSONL only from validated bundle and live evidence."""
+    paths = TestSetPaths.from_root(root)
     try:
-        paths = TestSetPaths.from_root(root)
+        _require_inputs(paths)
         bundle = load_bundle(paths)
-        raw = json.loads(paths.live_evidence.read_text(encoding="utf-8"))
+        raw = read_report(paths.live_evidence)
         evidence = LiveEvidence(
             status=raw["status"],
             generated_at=raw["generated_at"],
-            records=tuple(LiveEvidenceRecord(**record) for record in raw["records"]),
+            records=tuple(
+                LiveEvidenceRecord(**{**record, "columns": tuple(record["columns"])})
+                for record in raw["records"]
+            ),
             total_processed_bytes=int(raw["total_processed_bytes"]),
             total_billed_bytes=int(raw["total_billed_bytes"]),
             input_sha256=raw["input_sha256"],
         )
         report = finalize_bundle(bundle, evidence, paths.final_selection, paths.final_jsonl)
+        write_report(
+            report,
+            paths.report_json,
+            input_paths=(*_input_paths(paths), paths.live_evidence, paths.final_jsonl),
+        )
         click.echo(json.dumps({"status": report.status, "records": report.record_count}))
-    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError, TestSetError) as exc:
+    except OSError as exc:
+        _failure_report(
+            paths.report_json,
+            command="finalize",
+            status="blocked",
+            error=exc,
+            input_paths=(*_input_paths(paths), paths.live_evidence),
+        )
+        raise click.ClickException(str(exc)) from exc
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, TestSetError) as exc:
+        _failure_report(
+            paths.report_json,
+            command="finalize",
+            status="failed",
+            error=exc,
+            input_paths=(*_input_paths(paths), paths.live_evidence),
+        )
         raise click.ClickException(str(exc)) from exc
 
 

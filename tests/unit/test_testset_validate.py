@@ -150,6 +150,29 @@ def test_validate_bundle_rejects_pool_b_duplicate_and_review_reject_rate() -> No
         validate_bundle(bundle)
 
 
+def test_validate_bundle_requires_reviewer_independence_per_question() -> None:
+    bundle = _bundle()
+    reviews = list(bundle.reviews)
+    reviews[0] = ReviewRecord(
+        question_id=reviews[0].question_id,
+        reviewer_id=bundle.pool_a[0].author_id,
+        nl_quality=4,
+        faithfulness=4,
+        difficulty="easy",
+        decision="ACCEPT",
+    )
+
+    with pytest.raises(TestSetError, match="independent"):
+        validate_bundle(
+            Bundle(
+                pool_a=bundle.pool_a,
+                pool_b=bundle.pool_b,
+                reviews=tuple(reviews),
+                selections=(),
+            )
+        )
+
+
 def test_validate_selection_requires_exact_easy_medium_hard_quotas() -> None:
     bundle = _bundle(100)
     valid = _selection_rows(("easy",) * 30 + ("medium",) * 50 + ("hard",) * 20)

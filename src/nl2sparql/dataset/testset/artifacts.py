@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
+import subprocess
 import tempfile
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, is_dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from nl2sparql.dataset.testset.contracts import TestSetError
-from nl2sparql.dataset.testset.live import LiveEvidence
+from nl2sparql.dataset.testset.contracts import SelectionRecord, TestSetError, load_csv
+from nl2sparql.dataset.testset.live import (
+    LiveEvidence,
+    SqlPolicy,
+    evidence_input_sha256,
+)
 from nl2sparql.dataset.testset.validate import Bundle, validate_bundle, validate_selection
 
 
@@ -82,21 +89,76 @@ def write_scaffold(root: Path, force: bool = False) -> ScaffoldReport:
     return ScaffoldReport(created_count=len(created), paths=tuple(created))
 
 
-def write_report(report: Mapping[str, Any] | object, path: Path) -> None:
-    """Write canonical report data with a self-contained SHA-256 digest."""
+def _git_commit() -> str:
+    repository = Path(__file__).resolve().parents[4]
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
+    return completed.stdout.strip() or "unknown"
+
+
+def _input_digests(paths: tuple[Path, ...]) -> dict[str, str | None]:
+    return {
+        str(path): hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+        for path in paths
+    }
+
+
+def write_report(
+    report: Mapping[str, Any] | object,
+    path: Path,
+    *,
+    input_paths: tuple[Path, ...] = (),
+    policy: SqlPolicy | None = None,
+) -> None:
+    """Atomically write canonical report data and provenance metadata."""
     if is_dataclass(report):
         payload = asdict(report)
     elif isinstance(report, Mapping):
         payload = dict(report)
     else:
         raise TestSetError("report must be a dataclass or mapping")
-    digest = hashlib.sha256(_canonical_json(payload)).hexdigest()
-    output = {**payload, "report_sha256": digest}
+    policy = SqlPolicy() if policy is None else policy
+    payload.setdefault("status", "ready")
+    payload.setdefault("generated_at", datetime.now(UTC).isoformat().replace("+00:00", "Z"))
+    body = {
+        **payload,
+        "schema_version": 1,
+        "git_commit": _git_commit(),
+        "input_digests": _input_digests(input_paths),
+        "policy_caps": asdict(policy),
+    }
+    digest = hashlib.sha256(_canonical_json(body)).hexdigest()
+    output = {**body, "report_sha256": digest}
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(_canonical_json(output))
+    _atomic_write(path, _canonical_json(output))
+
+
+def read_report(path: Path) -> dict[str, Any]:
+    """Read a canonical report only when its embedded digest is intact."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise TestSetError(f"unable to read report {path}: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise TestSetError(f"report {path} must contain a JSON object")
+    payload = dict(raw)
+    supplied = payload.pop("report_sha256", None)
+    expected = hashlib.sha256(_canonical_json(payload)).hexdigest()
+    if not isinstance(supplied, str) or not hmac.compare_digest(supplied, expected):
+        raise TestSetError(f"report digest mismatch for {path}")
+    return payload
 
 
 def _atomic_write(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
         dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
     )
@@ -111,6 +173,24 @@ def _atomic_write(path: Path, payload: bytes) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _selection_rows(path: Path) -> tuple[SelectionRecord, ...]:
+    rows = load_csv(
+        path,
+        ("question_id", "final_difficulty", "categories", "entity_kinds", "selection_note"),
+        required_values=("question_id", "final_difficulty", "categories", "entity_kinds"),
+    )
+    return tuple(
+        SelectionRecord(
+            question_id=row["question_id"],
+            final_difficulty=row["final_difficulty"],
+            categories=tuple(filter(None, row["categories"].split("|"))),
+            entity_kinds=tuple(filter(None, row["entity_kinds"].split("|"))),
+            selection_note=row["selection_note"],
+        )
+        for row in rows
+    )
+
+
 def finalize_bundle(
     bundle: Bundle,
     evidence: LiveEvidence | None,
@@ -120,8 +200,18 @@ def finalize_bundle(
     """Publish exactly 100 SQL-native cases only after every gate passes."""
     if evidence is None:
         raise TestSetError("live evidence is required before finalization")
+    if evidence.status != "ready":
+        raise TestSetError("live evidence must have ready status before finalization")
+    try:
+        generated_at = datetime.fromisoformat(evidence.generated_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise TestSetError("live evidence generated_at must be a valid UTC timestamp") from exc
+    if not evidence.generated_at.endswith("Z") or generated_at.utcoffset() != timedelta(0):
+        raise TestSetError("live evidence generated_at must be a valid UTC timestamp")
     if not selection_path.exists():
         raise TestSetError("final selection evidence is missing")
+    if _selection_rows(selection_path) != bundle.selections:
+        raise TestSetError("final selection file does not match the validated bundle")
     validate_bundle(bundle)
     validate_selection(bundle)
     pool_a = {record.question_id: record for record in bundle.pool_a}
@@ -132,6 +222,41 @@ def finalize_bundle(
         )
         for question_id in pool_a
     }
+    evidence_ids = tuple(record.question_id for record in evidence.records)
+    selected_ids = tuple(selection.question_id for selection in bundle.selections)
+    if len(evidence_ids) != len(set(evidence_ids)):
+        raise TestSetError("live evidence contains duplicate question IDs")
+    if set(evidence_ids) != set(selected_ids):
+        raise TestSetError("live evidence IDs must exactly match the final selection")
+    policy = SqlPolicy()
+    if evidence.total_processed_bytes != sum(row.processed_bytes for row in evidence.records):
+        raise TestSetError("live evidence processed-byte total is inconsistent")
+    if evidence.total_billed_bytes != sum(row.billed_bytes for row in evidence.records):
+        raise TestSetError("live evidence billed-byte total is inconsistent")
+    if (
+        evidence.total_processed_bytes < 0
+        or evidence.total_billed_bytes < 0
+        or evidence.total_processed_bytes > policy.total_bytes
+        or evidence.total_billed_bytes > policy.total_bytes
+    ):
+        raise TestSetError("live evidence exceeds the aggregate byte policy")
+    if any(
+        record.cache_hit
+        or record.row_count < 0
+        or record.processed_bytes < 0
+        or record.billed_bytes < 0
+        or record.wall_latency_ms < 0
+        or record.processed_bytes > policy.per_query_bytes
+        or record.billed_bytes > policy.per_query_bytes
+        or not record.job_id
+        for record in evidence.records
+    ):
+        raise TestSetError("live evidence violates the per-query execution policy")
+    expected_input_sha256 = evidence_input_sha256(
+        (record.question_id, record.sql_sha256) for record in evidence.records
+    )
+    if evidence.input_sha256 != expected_input_sha256:
+        raise TestSetError("live evidence input hash mismatch")
     live_by_id = {record.question_id: record for record in evidence.records}
     final_rows: list[dict[str, Any]] = []
     for selection in bundle.selections:
@@ -144,6 +269,10 @@ def finalize_bundle(
         expected_sha = hashlib.sha256(gold.sql.encode()).hexdigest()
         if live.sql_sha256 != expected_sha:
             raise TestSetError(f"live evidence SQL hash mismatch for {question_id}")
+        if gold.expected_empty and live.row_count != 0:
+            raise TestSetError(f"live evidence row policy mismatch for {question_id}")
+        if not gold.expected_empty and live.row_count <= 0:
+            raise TestSetError(f"live evidence row policy mismatch for {question_id}")
         final_rows.append(
             {
                 "ambiguity_flag": gold.ambiguity_flag,
@@ -167,7 +296,7 @@ def finalize_bundle(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     _atomic_write(output_path, payload)
     return FinalizationReport(
-        status="generated",
+        status="ready",
         record_count=len(final_rows),
         output_sha256=hashlib.sha256(payload).hexdigest(),
     )

@@ -17,6 +17,7 @@ from nl2sparql.dataset.testset.contracts import (
     TestSetError,
 )
 from nl2sparql.dataset.testset.live import (
+    MAX_RESULT_PREVIEW_ROWS,
     SqlPolicy,
     validate_sql_text,
     verify_sql,
@@ -28,9 +29,14 @@ SAFE_SQL = (
 )
 
 
-def _case(sql: str = SAFE_SQL, *, expected_empty: bool = False) -> FinalCase:
+def _case(
+    sql: str = SAFE_SQL,
+    *,
+    expected_empty: bool = False,
+    question_id: str = "q-001",
+) -> FinalCase:
     return FinalCase(
-        id="q-001",
+        id=question_id,
         source="author_01",
         nl="Find one transaction",
         sql=sql,
@@ -59,14 +65,25 @@ class FakeRows(list):
 
 
 class FakeJob:
-    def __init__(self, *, dry_run: bool, bytes_processed: int = 100, rows: list | None = None):
+    def __init__(
+        self,
+        *,
+        dry_run: bool,
+        bytes_processed: int = 100,
+        rows: list | object | None = None,
+    ):
         self.total_bytes_processed = bytes_processed
         self.total_bytes_billed = bytes_processed
         self.cache_hit = False
         self.job_id = f"job-{dry_run}"
-        self._rows = FakeRows([{"transaction_hash": "0xabc"}] if rows is None else rows)
+        if rows is None:
+            self._rows = FakeRows([{"transaction_hash": "0xabc"}])
+        elif isinstance(rows, list):
+            self._rows = FakeRows(rows)
+        else:
+            self._rows = rows
 
-    def result(self) -> FakeRows:
+    def result(self) -> object:
         return self._rows
 
 
@@ -85,11 +102,40 @@ class FakeClient:
         )
 
 
+class SequencedClient:
+    def __init__(self, estimates: list[int]):
+        self.estimates = iter(estimates)
+        self.calls: list[bool] = []
+
+    def query(self, sql: str, *, job_config: object, location: str) -> FakeJob:
+        dry_run = bool(getattr(job_config, "dry_run", False))
+        self.calls.append(dry_run)
+        return FakeJob(dry_run=dry_run, bytes_processed=next(self.estimates))
+
+
+class CountingRows:
+    schema = [FakeField("transaction_hash")]
+    total_rows = 10_000
+
+    def __init__(self) -> None:
+        self.consumed = 0
+
+    def __iter__(self):
+        while True:
+            self.consumed += 1
+            if self.consumed > MAX_RESULT_PREVIEW_ROWS:
+                raise AssertionError("result preview was not bounded")
+            yield {"transaction_hash": f"0x{self.consumed:x}"}
+
+
 def test_validate_sql_text_rejects_mutation_comments_wildcards_and_unmanaged_objects() -> None:
     for sql in (
         "DROP TABLE `nl2sparql-thesis.nl2sparql_analytics.transactions`",
         "SELECT * FROM `nl2sparql-thesis.nl2sparql_analytics.transactions`",
+        "SELECT DISTINCT * FROM `nl2sparql-thesis.nl2sparql_analytics.transactions`",
+        "SELECT t.* FROM `nl2sparql-thesis.nl2sparql_analytics.transactions` AS t",
         "SELECT 1 -- hidden mutation",
+        "SELECT 1 # hidden mutation",
         "SELECT 1; SELECT 2",
         "SELECT transaction_hash FROM `other-project.dataset.transactions`",
     ):
@@ -116,6 +162,30 @@ def test_verify_sql_rejects_aggregate_budget_before_execution() -> None:
     with pytest.raises(TestSetError, match="aggregate"):
         verify_sql(client, (_case(),), policy)
     assert len(client.calls) == 1
+
+
+def test_verify_sql_rechecks_whole_batch_budget_before_any_execution() -> None:
+    client = SequencedClient([20, 20, 35, 35])
+    policy = SqlPolicy(per_query_bytes=50, total_bytes=60)
+
+    with pytest.raises(TestSetError, match="immediate aggregate"):
+        verify_sql(
+            client,
+            (_case(question_id="q-001"), _case(question_id="q-002")),
+            policy,
+        )
+
+    assert client.calls == [True, True, True, True]
+
+
+def test_verify_sql_uses_bounded_preview_and_authoritative_total_rows() -> None:
+    rows = CountingRows()
+    client = FakeClient(rows=rows)
+
+    evidence = verify_sql(client, (_case(),), SqlPolicy())
+
+    assert rows.consumed == MAX_RESULT_PREVIEW_ROWS
+    assert evidence.records[0].row_count == 10_000
 
 
 def test_verify_sql_rejects_empty_result_when_not_explicitly_expected() -> None:

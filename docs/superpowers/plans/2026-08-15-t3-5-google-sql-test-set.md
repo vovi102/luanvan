@@ -66,7 +66,7 @@
   Run the same command; all contract tests must pass and offline import must not
   touch Google credentials.
 
-- [ ] **Step 5: Commit the contract seam**
+- [x] **Step 5: Commit the contract seam**
 
   Run `git add src/nl2sparql/dataset/testset tests/unit/test_testset_contracts.py`
   and commit `feat(dataset): define three-pool test-set contracts`.
@@ -108,7 +108,7 @@
   Run `uv run pytest -q tests/unit/test_testset_validate.py`; no cloud client may
   be imported or instantiated by these tests.
 
-- [ ] **Step 5: Commit validation and metrics**
+- [x] **Step 5: Commit validation and metrics**
 
   Commit `feat(dataset): validate three-pool review evidence` after staging the
   validator and tests.
@@ -147,7 +147,7 @@
 
   Run the focused live suite; verify no test accesses the network or credentials.
 
-- [ ] **Step 5: Commit the live adapter**
+- [x] **Step 5: Commit the live adapter**
 
   Commit `feat(dataset): add bounded GoogleSQL test-set verification`.
 
@@ -185,7 +185,7 @@
 
   Run `uv run pytest -q tests/unit/test_testset_*.py` and `uv run python scripts/12_test_set_workflow.py --help`.
 
-- [ ] **Step 5: Commit the tooling checkpoint**
+- [x] **Step 5: Commit the tooling checkpoint**
 
   Commit `feat(dataset): add three-pool test-set workflow CLI`.
 
@@ -215,7 +215,7 @@
   confirm no generated personal data or large raw artifact was added, and verify
   all pending external acceptance boxes remain explicit.
 
-- [ ] **Step 4: Commit documentation and verification evidence**
+- [x] **Step 4: Commit documentation and verification evidence**
 
   Commit `docs(dataset): migrate T3.5 to GoogleSQL test-set contract` after all
   checks pass. If Git metadata remains read-only, preserve the complete diff and

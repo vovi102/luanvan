@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 import re
 import time
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -20,6 +21,7 @@ MUTATION_RE = re.compile(
     r"\b(CREATE|DROP|ALTER|INSERT|UPDATE|DELETE|MERGE|TRUNCATE|EXPORT|CALL)\b",
     re.IGNORECASE,
 )
+MAX_RESULT_PREVIEW_ROWS = 1_000
 
 
 @dataclass(frozen=True)
@@ -63,13 +65,17 @@ def validate_sql_text(sql: str) -> None:
     if not isinstance(sql, str) or not sql.strip():
         raise TestSetError("SQL must not be empty")
     stripped = sql.strip()
-    if ";" in stripped or "--" in stripped or "/*" in stripped or "*/" in stripped:
+    if any(token in stripped for token in (";", "--", "#", "/*", "*/")):
         raise TestSetError("SQL must be one statement without comments")
     if not re.match(r"^(SELECT|WITH)\b", stripped, re.IGNORECASE):
         raise TestSetError("SQL must start with SELECT or WITH")
     if MUTATION_RE.search(stripped):
         raise TestSetError("SQL contains a mutation keyword")
-    if re.search(r"\bSELECT\s+\*|,\s*\*\b", stripped, re.IGNORECASE):
+    if re.search(
+        r"(?:\bSELECT|,)\s+(?:(?:DISTINCT|ALL)\s+)?(?:[A-Za-z_]\w*\.)?\*",
+        stripped,
+        re.IGNORECASE,
+    ):
         raise TestSetError("SQL must project explicit columns")
     tables = re.findall(r"`([^`]+)`", stripped)
     if not tables or any(not table.startswith(MANAGED_PREFIX) for table in tables):
@@ -100,6 +106,29 @@ def _columns(row_iterator: Any) -> tuple[str, ...]:
     return tuple(field.name for field in schema)
 
 
+def _bounded_result_count(row_iterator: Any) -> int:
+    """Inspect at most a bounded preview while preserving BigQuery's total count."""
+    total_rows = getattr(row_iterator, "total_rows", None)
+    limit = MAX_RESULT_PREVIEW_ROWS if total_rows is not None else MAX_RESULT_PREVIEW_ROWS + 1
+    preview = list(itertools.islice(iter(row_iterator), limit))
+    if total_rows is None:
+        if len(preview) > MAX_RESULT_PREVIEW_ROWS:
+            raise TestSetError("result count unavailable beyond bounded preview")
+        return len(preview)
+    count = int(total_rows)
+    if count < len(preview):
+        raise TestSetError("BigQuery result count is inconsistent with its preview")
+    return count
+
+
+def evidence_input_sha256(rows: Iterable[tuple[str, str]]) -> str:
+    """Hash a case-ID/SQL-hash set independently of caller ordering."""
+    payload = [
+        {"id": question_id, "sql_sha256": sql_sha256} for question_id, sql_sha256 in sorted(rows)
+    ]
+    return hashlib.sha256(jsonl_bytes(payload)).hexdigest()
+
+
 def verify_sql(
     client: Any,
     cases: Sequence[FinalCase],
@@ -111,6 +140,9 @@ def verify_sql(
         raise TestSetError("at least one SQL case is required")
     for case in cases:
         validate_sql_text(case.sql)
+    case_ids = [case.id for case in cases]
+    if len(case_ids) != len(set(case_ids)):
+        raise TestSetError("SQL case IDs must be unique")
 
     dry_runs: list[tuple[FinalCase, Any, int]] = []
     total_estimate = 0
@@ -124,26 +156,34 @@ def verify_sql(
     if total_estimate > policy.total_bytes:
         raise TestSetError("aggregate dry-run estimate exceeds budget")
 
-    evidence_rows: list[LiveEvidenceRecord] = []
-    total_processed = 0
-    total_billed = 0
-    input_hash_rows: list[dict[str, object]] = []
+    immediate_runs: list[tuple[FinalCase, int]] = []
+    immediate_total = 0
     for case, _initial_dry_run, _estimate in dry_runs:
         immediate_dry_run = _query(client, case, policy, dry_run=True)
         immediate_estimate = int(getattr(immediate_dry_run, "total_bytes_processed", 0) or 0)
         if immediate_estimate > policy.per_query_bytes:
             raise TestSetError(f"{case.id} exceeds per-query budget on immediate preflight")
+        immediate_total += immediate_estimate
+        immediate_runs.append((case, immediate_estimate))
+    if immediate_total > policy.total_bytes:
+        raise TestSetError("immediate aggregate dry-run estimate exceeds budget")
+
+    evidence_rows: list[LiveEvidenceRecord] = []
+    total_processed = 0
+    total_billed = 0
+    input_hash_rows: list[tuple[str, str]] = []
+    for case, _immediate_estimate in immediate_runs:
         started = time.perf_counter()
         job = _query(client, case, policy, dry_run=False)
         row_iterator = job.result()
-        rows = list(row_iterator)
         columns = _columns(row_iterator)
+        row_count = _bounded_result_count(row_iterator)
         if case.expected_columns and columns != case.expected_columns:
             raise TestSetError(f"{case.id} returned unexpected columns {columns}")
         expected_empty = case.expected_result_size is None
-        if not expected_empty and not rows:
+        if not expected_empty and row_count == 0:
             raise TestSetError(f"{case.id} requires a non-empty result")
-        if expected_empty and rows:
+        if expected_empty and row_count != 0:
             raise TestSetError(f"{case.id} was marked expected-empty but returned rows")
         cache_hit = bool(getattr(job, "cache_hit", False))
         if cache_hit:
@@ -154,12 +194,14 @@ def verify_sql(
             raise TestSetError(f"{case.id} exceeded execution budget")
         total_processed += processed
         total_billed += billed
+        if total_processed > policy.total_bytes or total_billed > policy.total_bytes:
+            raise TestSetError("aggregate execution bytes exceed budget")
         sql_sha256 = hashlib.sha256(case.sql.encode()).hexdigest()
         evidence_rows.append(
             LiveEvidenceRecord(
                 question_id=case.id,
                 sql_sha256=sql_sha256,
-                row_count=len(rows),
+                row_count=row_count,
                 columns=columns,
                 processed_bytes=processed,
                 billed_bytes=billed,
@@ -168,10 +210,8 @@ def verify_sql(
                 wall_latency_ms=(time.perf_counter() - started) * 1000,
             )
         )
-        input_hash_rows.append({"id": case.id, "sql_sha256": sql_sha256})
-    if total_processed > policy.total_bytes or total_billed > policy.total_bytes:
-        raise TestSetError("aggregate execution bytes exceed budget")
-    input_sha256 = hashlib.sha256(jsonl_bytes(input_hash_rows)).hexdigest()
+        input_hash_rows.append((case.id, sql_sha256))
+    input_sha256 = evidence_input_sha256(input_hash_rows)
     return LiveEvidence(
         status="ready",
         generated_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),

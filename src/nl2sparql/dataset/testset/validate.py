@@ -110,6 +110,15 @@ def validate_bundle(bundle: Bundle) -> BundleReport:
         len({review.reviewer_id for review in rows}) != len(rows) for rows in reviews_by_id.values()
     ):
         raise TestSetError("a question cannot have duplicate reviews from one reviewer")
+    authors_by_id = {record.question_id: record.author_id for record in bundle.pool_a}
+    writers_by_id = {question_id: rows[0].writer_id for question_id, rows in pool_b_by_id.items()}
+    if any(
+        review.reviewer_id in {authors_by_id[review.question_id], writers_by_id[review.question_id]}
+        for review in bundle.reviews
+    ):
+        raise TestSetError(
+            "Pool C reviewers must be independent from the question author and SQL writer"
+        )
 
     reject_rate = sum(review.decision == "REJECT" for review in bundle.reviews) / len(
         bundle.reviews

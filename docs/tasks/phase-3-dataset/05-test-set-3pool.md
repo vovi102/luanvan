@@ -60,11 +60,14 @@ finalize      chỉ publish test-100 khi bundle + live evidence + selection pass
 - [x] Selection validator yêu cầu đúng 100 dòng, quota `easy=30, medium=50,
   hard=20`, ≥6 category và ≥3 entity kinds.
 - [x] SQL adapter enforce read-only/managed-object policy, 20 GiB/query, 64 GiB
-  aggregate, cache-off, complete dry-run preflight và immediate re-preflight.
+  aggregate, cache-off, complete dry-run preflight, batch-wide re-preflight và
+  bounded result preview.
 - [x] Scaffold/report/finalizer/CLI có atomic publication, hash evidence và
-  blocked behavior; offline mode không khởi tạo BigQuery client.
-- [x] Focused verification: 21 tests pass; Ruff và format pass; scaffold/CLI
-  help chạy không cần credentials; empty scaffold validate fail closed.
+  metadata provenance, structured blocked behavior và fail-closed evidence
+  validation; offline mode không khởi tạo BigQuery client.
+- [x] Focused verification: 30 tests pass; full repository: 423 tests pass;
+  Ruff và format pass; scaffold/CLI help chạy không cần credentials; empty
+  scaffold validate fail closed.
 
 ### Còn pending — external acceptance
 
