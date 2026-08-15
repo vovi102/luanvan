@@ -24,6 +24,28 @@
 
 ## Entries
 
+### 2026-08-15 — T3.5 migrate three-pool benchmark sang GoogleSQL và fail closed khi thiếu evidence
+
+- **Context:** T3.5 cũ yêu cầu NL–SPARQL, Fuseki và chỉ mô tả một Pool C reviewer,
+  trái với Plan B NL2SQL và không đủ để tính Cohen's kappa trên subset double-review.
+- **Options considered:** Giữ SPARQL/Fuseki; chỉ commit CSV/brief tĩnh; dựng survey
+  platform; hoặc tạo module/CLI GoogleSQL có validator offline và BigQuery adapter.
+- **Decision:** Dùng module sâu `src/nl2sparql/dataset/testset/` với contracts,
+  bundle/review/kappa/quota validation, SQL safety, hash-bound live evidence và
+  explicit lead selection. CLI có scaffold/validate/verify-live/finalize; chỉ
+  `verify-live` được tạo evidence và finalizer không tự chọn record.
+- **Rationale:** Một interface tập trung giữ schema/review/cost rules nhất quán,
+  test được không cần credentials, và không biến dữ liệu giả thành benchmark. Hai
+  reviewer trên 30 IDs là điều kiện cần để đo kappa thay vì percent agreement.
+- **Consequences:** Offline implementation đã sẵn sàng với 21 tests; raw
+  collaborator files, consent, BigQuery execution, 100 final rows và kappa thật
+  vẫn pending. Thiếu credential/submission trả blocked và không publish artifact.
+- **Revisit:** Khi có đủ Pool A/B/C và BigQuery credentials; sau đó ghi evidence
+  hashes, reject rate, kappa và final selection vào task.
+- **Linked:** `docs/tasks/phase-3-dataset/05-test-set-3pool.md`,
+  `docs/superpowers/specs/2026-08-15-t3-5-google-sql-test-set-design.md`,
+  `src/nl2sparql/dataset/testset/`.
+
 ### 2026-08-09 — T3.4 dùng exact deterministic quotas và bảo vệ semantic anchors
 
 - **Context:** Task noise cũ dùng Bernoulli 5%, cho phép compound labels và gọi
