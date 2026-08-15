@@ -16,9 +16,47 @@ from nl2sparql.dataset.testset.artifacts import (
 )
 from nl2sparql.dataset.testset.contracts import FinalCase, TestSetError, TestSetPaths
 from nl2sparql.dataset.testset.live import LiveEvidence, LiveEvidenceRecord, verify_sql
-from nl2sparql.dataset.testset.validate import load_bundle, validate_bundle, validate_selection
+from nl2sparql.dataset.testset.validate import (
+    Bundle,
+    load_bundle,
+    validate_bundle,
+    validate_selection,
+)
 
 DEFAULT_ROOT = Path("data/dataset/test")
+
+
+def _cases_from_bundle(bundle: Bundle) -> tuple[FinalCase, ...]:
+    """Build live cases while preserving Pool B's explicit-empty policy."""
+    pool_a = {row.question_id: row for row in bundle.pool_a}
+    pool_b = {row.question_id: row for row in bundle.pool_b}
+    reviewers = {
+        question_id: tuple(
+            review.reviewer_id for review in bundle.reviews if review.question_id == question_id
+        )
+        for question_id in pool_a
+    }
+    return tuple(
+        FinalCase(
+            id=selection.question_id,
+            source=pool_a[selection.question_id].author_id,
+            nl=pool_a[selection.question_id].nl,
+            sql=pool_b[selection.question_id].sql,
+            difficulty=selection.final_difficulty,
+            categories=selection.categories,
+            schema_elements=(),
+            cq_ids=(),
+            expected_result_size=(None if pool_b[selection.question_id].expected_empty else 1),
+            expected_columns=(),
+            ambiguity_flag=pool_b[selection.question_id].ambiguity_flag,
+            pool_b_writer=pool_b[selection.question_id].writer_id,
+            pool_c_reviewers=reviewers[selection.question_id],
+            verified_executable=False,
+            verified_at=None,
+            evidence_sha256=None,
+        )
+        for selection in bundle.selections
+    )
 
 
 @click.group()
@@ -64,37 +102,7 @@ def verify_live(root: Path, project: str) -> None:
         validate_bundle(bundle)
         validate_selection(bundle)
         client = bigquery.Client(project=project)
-        cases = tuple(
-            # Live verification only needs the fields populated by Pool B and
-            # the final selection; finalization enriches the remaining fields.
-            FinalCase(
-                id=selection.question_id,
-                source=next(
-                    row.author_id
-                    for row in bundle.pool_a
-                    if row.question_id == selection.question_id
-                ),
-                nl=next(
-                    row.nl for row in bundle.pool_a if row.question_id == selection.question_id
-                ),
-                sql=next(
-                    row.sql for row in bundle.pool_b if row.question_id == selection.question_id
-                ),
-                difficulty=selection.final_difficulty,
-                categories=selection.categories,
-                schema_elements=(),
-                cq_ids=(),
-                expected_result_size=1,
-                expected_columns=(),
-                ambiguity_flag=False,
-                pool_b_writer="unknown",
-                pool_c_reviewers=(),
-                verified_executable=False,
-                verified_at=None,
-                evidence_sha256=None,
-            )
-            for selection in bundle.selections
-        )
+        cases = _cases_from_bundle(bundle)
         evidence = verify_sql(client, cases)
         write_report(evidence, paths.live_evidence)
         click.echo(json.dumps({"status": "ready", "evidence": str(paths.live_evidence)}))

@@ -2,16 +2,26 @@
 
 from __future__ import annotations
 
+import importlib.util
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 
-from nl2sparql.dataset.testset.contracts import FinalCase, TestSetError
+from nl2sparql.dataset.testset.contracts import (
+    FinalCase,
+    PoolARecord,
+    PoolBRecord,
+    ReviewRecord,
+    SelectionRecord,
+    TestSetError,
+)
 from nl2sparql.dataset.testset.live import (
     SqlPolicy,
     validate_sql_text,
     verify_sql,
 )
+from nl2sparql.dataset.testset.validate import Bundle
 
 SAFE_SQL = (
     "SELECT transaction_hash FROM `nl2sparql-thesis.nl2sparql_analytics.transactions` LIMIT 1"
@@ -113,3 +123,31 @@ def test_verify_sql_rejects_empty_result_when_not_explicitly_expected() -> None:
 
     with pytest.raises(TestSetError, match="non-empty"):
         verify_sql(client, (_case(),), SqlPolicy())
+
+
+def test_verify_sql_accepts_empty_result_when_explicitly_expected() -> None:
+    client = FakeClient(rows=[])
+
+    evidence = verify_sql(client, (_case(expected_empty=True),), SqlPolicy())
+
+    assert evidence.records[0].row_count == 0
+
+
+def test_cli_case_builder_preserves_pool_b_expected_empty_policy() -> None:
+    path = Path("scripts/test_set_workflow.py").resolve()
+    spec = importlib.util.spec_from_file_location("test_set_workflow", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    bundle = Bundle(
+        pool_a=(PoolARecord("q-001", "author_01", "Find no transaction", "researcher", "batch-1"),),
+        pool_b=(PoolBRecord("q-001", "writer_01", SAFE_SQL, True, False),),
+        reviews=(ReviewRecord("q-001", "reviewer_01", 4, 4, "easy", "ACCEPT"),),
+        selections=(
+            SelectionRecord("q-001", "easy", ("simple_filter",), "accepted", ("named_entity",)),
+        ),
+    )
+
+    case = module._cases_from_bundle(bundle)[0]
+
+    assert case.expected_result_size is None
