@@ -1,0 +1,22 @@
+{
+  "address": ["account", "wallet"],
+  "alias": ["alternate name", "nickname"],
+  "block": ["blocks", "ledger block"],
+  "category": ["class", "kind"],
+  "confidence": ["certainty", "verification confidence"],
+  "contract": ["smart contract", "deployed code"],
+  "count": ["how many", "number of"],
+  "from": ["originating", "outgoing", "sender", "sent"],
+  "gas": ["execution fee", "fee", "transaction cost"],
+  "hash": ["identifier", "transaction id"],
+  "label": ["attribution", "identity", "name"],
+  "owner": ["exchange", "organization", "protocol operator"],
+  "status": ["failed", "failure", "successful"],
+  "symbol": ["ticker", "token ticker"],
+  "timestamp": ["date", "time", "when"],
+  "to": ["destination", "incoming", "received", "recipient"],
+  "token": ["asset", "erc20", "erc721"],
+  "transaction": ["payment", "transactions", "tx"],
+  "transfer": ["movement", "token transfer"],
+  "value": ["amount", "volume", "worth"]
+}

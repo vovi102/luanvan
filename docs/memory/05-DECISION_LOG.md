@@ -24,6 +24,74 @@
 
 ## Entries
 
+### 2026-08-15 — T4.1 rank GoogleSQL relation/field bằng hybrid linker fail-closed
+
+- **Context:** Task T4.1 cũ rank ontology property/class để inject SPARQL, trái với
+  Pivot #1 và analytical catalog GoogleSQL đang active. Đồng thời chưa có file 50
+  câu manual ground truth được review độc lập, nên template fixtures không thể
+  đóng acceptance khoa học.
+- **Options considered:** Giữ linker SPARQL legacy; embedding-only trên tên field;
+  fine-tune bi-encoder trước evaluation; hoặc hybrid lexical + MiniLM trên catalog
+  documents có cache fingerprinted.
+- **Decision:** Rank riêng 6 analytical relations và 62 `relation.field` elements
+  bằng `0.65 * semantic + 0.35 * lexical`, stable tie-break, typed immutable
+  results và explicit `sentence-transformers/all-MiniLM-L6-v2` encoder. Cache dùng
+  manifest JSON + immutable content-addressed NPZ `allow_pickle=False`, bind
+  catalog/model/exact current document hashes/weights/order/digest, switch
+  manifest cuối, giữ prior generations và không implicit rebuild/fake vector.
+- **Rationale:** Lexical evidence giữ directional blockchain roles; MiniLM xử lý
+  paraphrase. Separate pools tránh so score relation với field, còn explicit
+  cache lifecycle làm CI deterministic với fake encoder nhưng production evidence
+  vẫn fail closed khi thiếu model/network.
+- **Consequences:** Real model rebuild schema v2 ngày 2026-08-15 đã tạo index
+  384-d cho 6 relations/62 fields; strict second load mất 2.686 ms. Manifest file
+  SHA-256 là
+  `7105c53158c8cd553ace796d5c84d7cdb93d2618a60fb5ca08291943de402c3b`, NPZ
+  SHA-256 là
+  `17b123ba8a2baf42d2c5235e7a63019d29b682dea7366affecb63b6cba987324`.
+  và manifest body SHA-256 là
+  `962f74fd498bc5eb8a45a0111aefa479135a3c153eb3b125c05ad653471cfda9`.
+  Model snapshot nằm trong Hugging Face cache ngoài repo. Evaluator nay emit
+  fixed field Recall@5/@10 và full-pool field MRR. File
+  `data/eval/schema_link_groundtruth.jsonl` chưa tồn tại, nên Recall@10, warm
+  p50/p95 và hash-bound evaluation report vẫn pending; template fixtures không
+  được gọi là independent annotation.
+- **Revisit:** Khi có đúng 50 rows được independently reviewed; chạy real
+  `evaluate`, kiểm tra field Recall@10 ≥0.80 và warm p50 <100 ms, rồi ghi report
+  hashes/metrics vào task và decision log.
+- **Linked:** `docs/tasks/phase-4-linking/01-schema-linker.md`,
+  `docs/superpowers/specs/2026-08-15-t4-1-google-sql-schema-linker-design.md`,
+  `src/nl2sparql/linking/schema/`, `scripts/13_schema_linker.py`.
+
+### 2026-08-15 — T3.5 migrate three-pool benchmark sang GoogleSQL và fail closed khi thiếu evidence
+
+- **Context:** T3.5 cũ yêu cầu NL–SPARQL, Fuseki và chỉ mô tả một Pool C reviewer,
+  trái với Plan B NL2SQL và không đủ để tính Cohen's kappa trên subset double-review.
+- **Options considered:** Giữ SPARQL/Fuseki; chỉ commit CSV/brief tĩnh; dựng survey
+  platform; hoặc tạo module/CLI GoogleSQL có validator offline và BigQuery adapter.
+- **Decision:** Dùng module sâu `src/nl2sparql/dataset/testset/` với contracts,
+  bundle/review/kappa/quota validation, SQL safety, hash-bound live evidence và
+  explicit lead selection. CLI có scaffold/validate/verify-live/finalize; chỉ
+  `verify-live` được tạo evidence và finalizer không tự chọn record.
+- **Rationale:** Một interface tập trung giữ schema/review/cost rules nhất quán,
+  test được không cần credentials, và không biến dữ liệu giả thành benchmark. Hai
+  reviewer trên 30 IDs là điều kiện cần để đo kappa thay vì percent agreement.
+- **Consequences:** Sau final review remediation, offline implementation có 68
+  focused tests và 558 tests toàn repository. SQLGlot BigQuery AST kiểm tra mọi
+  direct relation/table function cả offline/live; role identities tách biệt,
+  kappa degenerate/changing-pair bị chặn; normalized selection annotations được
+  kiểm tra với catalog và propagate. Result preview bị giới hạn, hai vòng
+  preflight đều chặn aggregate trước execution, ordered expected columns được
+  kiểm tra live, report có full-SHA/dirty provenance/hash, và finalizer kiểm tra
+  selection/evidence/policy fail closed. Raw collaborator files, consent,
+  BigQuery execution, 100 final rows và kappa thật vẫn pending. Thiếu credential/
+  submission trả structured `blocked` và không publish artifact.
+- **Revisit:** Khi có đủ Pool A/B/C và BigQuery credentials; sau đó ghi evidence
+  hashes, reject rate, kappa và final selection vào task.
+- **Linked:** `docs/tasks/phase-3-dataset/05-test-set-3pool.md`,
+  `docs/superpowers/specs/2026-08-15-t3-5-google-sql-test-set-design.md`,
+  `src/nl2sparql/dataset/testset/`.
+
 ### 2026-08-09 — T3.4 dùng exact deterministic quotas và bảo vệ semantic anchors
 
 - **Context:** Task noise cũ dùng Bernoulli 5%, cho phép compound labels và gọi
