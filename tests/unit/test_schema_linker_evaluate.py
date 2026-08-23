@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
@@ -630,6 +631,32 @@ def test_evaluate_rejects_all_input_and_cache_report_aliases_before_model(
         assert "overwrite" in payload["reason"]
         assert calls == []
         assert {path: path.read_bytes() for path in targets.values()} == protected
+
+
+@pytest.mark.parametrize("path_spelling", ("absolute", "relative"))
+def test_evaluate_rejects_nonexistent_report_in_matrix_generation_namespace(
+    tmp_path: Path, path_spelling: str
+) -> None:
+    calls: list[str] = []
+    cli, catalog, synonyms, cache, ground_truth, _ = _workflow_inputs(tmp_path, calls)
+    reserved_report = cache / f"schema-index-{'f' * 64}.npz"
+    report = (
+        reserved_report
+        if path_spelling == "absolute"
+        else Path(os.path.relpath(reserved_report, Path.cwd()))
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        _evaluate_arguments(catalog, synonyms, cache, ground_truth, report),
+    )
+
+    assert result.exit_code != 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "failed"
+    assert "matrix generation" in payload["reason"]
+    assert calls == []
+    assert not reserved_report.exists()
 
 
 def test_evaluate_parses_the_same_catalog_snapshot_it_hashes(

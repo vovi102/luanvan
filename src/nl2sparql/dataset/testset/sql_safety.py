@@ -21,6 +21,9 @@ MANAGED_RELATIONS = frozenset(
         "nl2sparql-thesis.nl2sparql_analytics.transaction_facts",
     }
 )
+# Named BigQuery table-valued functions are ``exp.Table`` nodes and use the
+# relation allowlist above. No relation-producing scope UDTF is currently approved.
+MANAGED_UDTFS: frozenset[str] = frozenset()
 
 
 def _relation_name(table: exp.Table) -> str:
@@ -83,6 +86,13 @@ def validate_sql_text(sql: str) -> None:
     relation_count = 0
     for scope in traverse_scope(expression):
         cte_names = frozenset(name.casefold() for name in scope.cte_sources)
+        for udtf in scope.udtfs:
+            udtf_name = udtf.key.casefold()
+            if udtf_name not in MANAGED_UDTFS:
+                raise TestSetError(
+                    f"SQL must use managed analytical objects, got UDTF {udtf_name!r}"
+                )
+            relation_count += 1
         for table in scope.tables:
             if _is_cte_reference(table, cte_names):
                 continue

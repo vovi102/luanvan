@@ -201,6 +201,18 @@ def test_validate_sql_text_accepts_every_managed_relation_and_table_function(
     validate_sql_text(sql)
 
 
+def test_validate_sql_text_rejects_unmanaged_relation_producing_udtf() -> None:
+    sql = (
+        "SELECT source.transaction_hash, external.value "
+        "FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+        "(DATE '2026-06-01', DATE '2026-06-02') AS source "
+        "CROSS JOIN UNNEST([STRUCT(1 AS value)]) AS external"
+    )
+
+    with pytest.raises(TestSetError, match="managed analytical"):
+        validate_sql_text(sql)
+
+
 def test_validate_sql_text_uses_ast_for_ctes_and_ignores_relation_text_in_strings() -> None:
     sql = """
     WITH managed AS (

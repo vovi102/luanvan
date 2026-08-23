@@ -184,6 +184,16 @@ def _protect_report_path(report_path: Path, protected: Mapping[str, Path]) -> No
             raise SchemaLinkerError(f"report path must not overwrite {label}")
 
 
+_MATRIX_GENERATION_FILENAME_RE = re.compile(r"^schema-index-[0-9a-f]{64}\.npz$")
+
+
+def _protect_matrix_generation_namespace(report_path: Path, cache_dir: Path) -> None:
+    if _MATRIX_GENERATION_FILENAME_RE.fullmatch(report_path.name) and _paths_alias(
+        report_path.parent, cache_dir
+    ):
+        raise SchemaLinkerError("report path must not overwrite a cache matrix generation")
+
+
 _GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -447,6 +457,7 @@ def create_cli(
             model_id = _validated_model_id(model_id)
             _validate_relation_cutoff(relation_k)
             paths = SchemaCachePaths.from_directory(cache_dir)
+            _protect_matrix_generation_namespace(report_path, paths.manifest.parent)
             matrix_generations = tuple(sorted(paths.manifest.parent.glob("schema-index-*.npz")))
             _protect_report_path(
                 report_path,
