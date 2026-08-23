@@ -81,8 +81,10 @@ closed.
 
 Owner documents contain the owner, sorted primary labels, sorted aliases, sorted
 categories, concept classes, and address roles. Concept documents contain the key,
-description, aliases, ontology class local name, and sorted instance owners.
-Documents and target metadata are deterministic and carry SHA-256 fingerprints.
+description, aliases, ontology class local name, total instance count, and at most
+the first 50 sorted instance owners. This deterministic bound prevents a broad
+concept such as `token_contract` from creating a document larger than the encoder
+can use. Documents and target metadata carry SHA-256 fingerprints.
 
 Normalization uses Unicode NFKC plus case folding and collapsed whitespace. The
 question tokenizer retains an original-character offset map so returned spans are
