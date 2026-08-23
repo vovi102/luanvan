@@ -41,7 +41,7 @@ filelock, pytest, Ruff, Jupyter JSON.
 - Produces: `EntityTarget`, `EntityAlternative`, `EntityMatch`, `EntityCachePaths`,
   `build_entity_corpus(artifacts) -> EntityCorpus`.
 
-- [ ] **Step 1: Write failing corpus/contract tests**
+- [x] **Step 1: Write failing corpus/contract tests**
 
 ```python
 def test_build_entity_corpus_groups_owner_addresses_and_concepts(dictionary_artifacts):
@@ -60,24 +60,24 @@ def test_phrase_collision_is_preserved_as_ordered_ambiguity(dictionary_artifacts
     )
 ```
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `uv run pytest -q tests/unit/test_entity_documents.py`
 Expected: collection fails because `nl2sparql.linking.entity` does not exist.
 
-- [ ] **Step 3: Implement validated immutable contracts and corpus builder**
+- [x] **Step 3: Implement validated immutable contracts and corpus builder**
 
 Create frozen dataclasses with `__post_init__` validation, percent-encoded owner
 IDs, SHA-256 document fingerprints, sorted addresses/categories/classes/roles,
 phrase-to-ordered-target mappings, and address lookup. Call `validate_artifacts`
 before reading derivations and reject missing alias targets or malformed text.
 
-- [ ] **Step 4: Verify GREEN and contract edge cases**
+- [x] **Step 4: Verify GREEN and contract edge cases**
 
 Run: `uv run pytest -q tests/unit/test_entity_documents.py tests/unit/test_entity_dictionary_schema.py`
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/nl2sparql/linking/entity tests/unit/test_entity_documents.py
