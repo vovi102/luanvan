@@ -9,6 +9,7 @@ import pytest
 from nl2sparql.dataset.testset.contracts import (
     PoolARecord,
     PoolBRecord,
+    SelectionRecord,
     TestSetError,
     TestSetPaths,
     load_csv,
@@ -78,6 +79,46 @@ def test_pool_b_record_requires_explicit_unique_result_columns() -> None:
         PoolBRecord("q-001", "writer_01", "SELECT 1", (), False, False)
     with pytest.raises(TestSetError, match="expected_columns"):
         PoolBRecord("q-001", "writer_01", "SELECT 1", ("value", "value"), False, False)
+
+
+def test_selection_record_normalizes_and_deduplicates_accepted_labels() -> None:
+    record = SelectionRecord(
+        "q-001",
+        "easy",
+        (" Simple_Filter ", "simple_filter", "TIME_RANGE"),
+        "accepted",
+        (" Named_Entity ", "named_entity", "ADDRESS_ONLY"),
+        (" transaction_facts ", "transaction_facts"),
+        (" CQ01 ", "CQ01"),
+    )
+
+    assert record.categories == ("simple_filter", "time_range")
+    assert record.entity_kinds == ("named_entity", "address_only")
+    assert record.schema_elements == ("transaction_facts",)
+    assert record.cq_ids == ("CQ01",)
+
+
+@pytest.mark.parametrize(
+    ("categories", "entity_kinds", "message"),
+    (
+        (("simple_filter", ""), ("named_entity",), "empty"),
+        (("unknown_category",), ("named_entity",), "category"),
+        (("simple_filter",), ("unknown_kind",), "entity"),
+    ),
+)
+def test_selection_record_rejects_empty_or_unknown_coverage_labels(
+    categories: tuple[str, ...], entity_kinds: tuple[str, ...], message: str
+) -> None:
+    with pytest.raises(TestSetError, match=message):
+        SelectionRecord(
+            "q-001",
+            "easy",
+            categories,
+            "accepted",
+            entity_kinds,
+            ("transaction_facts",),
+            ("CQ01",),
+        )
 
 
 def test_parse_bool_accepts_only_explicit_boolean_tokens() -> None:

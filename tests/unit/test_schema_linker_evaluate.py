@@ -74,9 +74,9 @@ def _match(element_id: str, kind: str) -> SchemaMatch:
 
 class RankedLinker:
     def __init__(self) -> None:
-        self.calls: list[tuple[str, int]] = []
+        self.calls: list[tuple[str, int | None]] = []
 
-    def link(self, question: str, top_k: int = 10) -> LinkResult:
+    def link(self, question: str, top_k: int | None = 10) -> LinkResult:
         self.calls.append((question, top_k))
         rankings = {
             "first": LinkResult(
@@ -113,6 +113,14 @@ class FakeEncoder:
 class NetworkEncoder:
     def encode(self, sentences, *, normalize_embeddings=True):
         raise OSError("network unavailable")
+
+
+class CauseChainedProgrammingEncoder:
+    def encode(self, sentences, *, normalize_embeddings=True):
+        try:
+            raise OSError("incidental low-level cause")
+        except OSError as exc:
+            raise RuntimeError("programming bug") from exc
 
 
 @pytest.mark.parametrize(
@@ -155,6 +163,14 @@ def test_load_ground_truth_rejects_malformed_json_with_line_context(tmp_path: Pa
 
     with pytest.raises(SchemaLinkerError, match=r"line 2.*JSON"):
         load_ground_truth(path, VALID_ELEMENTS, expected_count=2)
+
+
+def test_load_ground_truth_reports_the_first_extra_row_line(tmp_path: Path) -> None:
+    path = tmp_path / "ground-truth.jsonl"
+    _write_jsonl(path, _ground_truth_rows(51))
+
+    with pytest.raises(SchemaLinkerError, match=r"line 51.*exactly 50"):
+        load_ground_truth(path, VALID_ELEMENTS)
 
 
 def test_load_ground_truth_returns_immutable_typed_cases(tmp_path: Path) -> None:
@@ -202,19 +218,68 @@ def test_evaluate_linker_computes_micro_recall_mrr_and_excludes_warmup(
     ticks = iter((10.0, 10.01, 20.0, 20.03))
     monkeypatch.setattr(evaluate_module, "perf_counter", lambda: next(ticks))
 
-    report = evaluate_linker(linker, cases, field_k=2, relation_k=1)
+    report = evaluate_linker(linker, cases, relation_k=1)
 
-    assert linker.calls == [("first", 2), ("first", 2), ("second", 2)]
+    assert linker.calls == [("first", None), ("first", None), ("second", None)]
     assert report.case_count == 2
     assert report.relation_recall_at_k == pytest.approx(2 / 3)
-    assert report.field_recall_at_k == pytest.approx(1 / 3)
-    assert report.field_mrr == pytest.approx(1 / 4)
+    assert report.field_recall_at_5 == pytest.approx(2 / 3)
+    assert report.field_recall_at_10 == pytest.approx(2 / 3)
+    assert report.field_mrr == pytest.approx(5 / 12)
     assert report.latency_p50_ms == pytest.approx(20.0)
     assert report.latency_p95_ms == pytest.approx(29.0)
     assert report.results[0].retrieved_fields == (
         "transactions.from_address",
         "transactions.value",
+        "blocks.number",
     )
+
+
+class FullFieldPoolLinker:
+    def __init__(self, gold_ranks: tuple[int, ...]) -> None:
+        self.gold_ranks = gold_ranks
+        self.calls: list[int | None] = []
+
+    def link(self, question: str, top_k: int | None = 10) -> LinkResult:
+        self.calls.append(top_k)
+        fields = tuple(_match(f"transactions.field_{rank:02d}", "field") for rank in range(1, 13))
+        return LinkResult(relations=(_match("transactions", "relation"),), fields=fields)
+
+
+def test_evaluate_linker_emits_hand_derived_fixed_field_recalls() -> None:
+    linker = FullFieldPoolLinker((3, 7, 11))
+    case = GroundTruthCase(
+        "q-1",
+        "ranked fields",
+        ("transactions",),
+        tuple(f"transactions.field_{rank:02d}" for rank in linker.gold_ranks),
+    )
+
+    report = evaluate_linker(linker, (case,))
+
+    assert linker.calls == [None, None]
+    assert report.field_recall_at_5 == pytest.approx(1 / 3)
+    assert report.field_recall_at_10 == pytest.approx(2 / 3)
+    assert report.field_mrr == pytest.approx(1 / 3)
+    assert report.results[0].field_hits_at_5 == 1
+    assert report.results[0].field_hits_at_10 == 2
+
+
+def test_evaluate_linker_mrr_uses_first_relevant_field_beyond_rank_10() -> None:
+    linker = FullFieldPoolLinker((11,))
+    case = GroundTruthCase(
+        "q-1",
+        "rank eleven field",
+        ("transactions",),
+        ("transactions.field_11",),
+    )
+
+    report = evaluate_linker(linker, (case,))
+
+    assert report.field_recall_at_5 == 0.0
+    assert report.field_recall_at_10 == 0.0
+    assert report.field_mrr == pytest.approx(1 / 11)
+    assert report.results[0].field_reciprocal_rank == pytest.approx(1 / 11)
 
 
 def test_evaluate_linker_rejects_empty_cases_and_invalid_cutoffs() -> None:
@@ -222,10 +287,6 @@ def test_evaluate_linker_rejects_empty_cases_and_invalid_cutoffs() -> None:
 
     with pytest.raises(SchemaLinkerError, match="cases"):
         evaluate_linker(linker, ())
-    with pytest.raises(SchemaLinkerError, match="field_k"):
-        evaluate_linker(
-            linker, (GroundTruthCase("q", "first", ("blocks",), ("blocks.number",)),), field_k=0
-        )
     with pytest.raises(SchemaLinkerError, match="relation_k"):
         evaluate_linker(
             linker,
@@ -300,6 +361,11 @@ def _evaluate_arguments(
     ]
 
 
+def _current_matrix_path(cache: Path) -> Path:
+    manifest = json.loads(SchemaCachePaths.from_directory(cache).manifest.read_bytes())
+    return cache / manifest["matrices_file"]
+
+
 def test_cli_help_never_initializes_encoder() -> None:
     calls: list[str] = []
     runner = CliRunner()
@@ -315,6 +381,15 @@ def test_cli_help_never_initializes_encoder() -> None:
         assert result.exit_code == 0, result.output
 
     assert calls == []
+
+
+def test_cli_exposes_field_cutoff_only_for_query() -> None:
+    cli = _cli([])
+    query_help = CliRunner().invoke(cli, ["query", "--help"])
+    evaluate_help = CliRunner().invoke(cli, ["evaluate", "--help"])
+
+    assert "--field-k" in query_help.output
+    assert "--field-k" not in evaluate_help.output
 
 
 def test_cli_missing_ground_truth_is_blocked_without_factory_or_overwrite(tmp_path: Path) -> None:
@@ -349,7 +424,6 @@ def test_cli_invalid_cache_is_failed_without_factory(tmp_path: Path) -> None:
     cache.mkdir()
     paths = SchemaCachePaths.from_directory(cache)
     paths.manifest.write_text("{}", encoding="utf-8")
-    paths.matrices.write_bytes(b"invalid")
     paths.lock.write_bytes(b"")
 
     result = CliRunner().invoke(
@@ -474,7 +548,7 @@ def test_cli_model_commands_use_factory_lazily_and_emit_hashed_provenance(
     )
     assert len(calls) == 3
     payload = json.loads(report.read_bytes())
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == 2
     assert payload["status"] == "ready"
     assert payload["generated_at"] == "2026-08-15T12:00:00Z"
     assert payload["git_sha"] == "1" * 40
@@ -484,6 +558,10 @@ def test_cli_model_commands_use_factory_lazily_and_emit_hashed_provenance(
     assert payload["ground_truth_sha256"] == hashlib.sha256(ground_truth.read_bytes()).hexdigest()
     assert len(payload["cache_sha256"]) == 64
     assert payload["metrics"]["case_count"] == 50
+    assert "field_recall_at_5" in payload["metrics"]
+    assert "field_recall_at_10" in payload["metrics"]
+    assert "field_k" not in payload["metrics"]
+    assert "field_recall_at_k" not in payload["metrics"]
     supplied_hash = payload.pop("report_sha256")
     canonical = (json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n").encode()
     assert supplied_hash == hashlib.sha256(canonical).hexdigest()
@@ -525,12 +603,13 @@ def test_evaluate_rejects_all_input_and_cache_report_aliases_before_model(
         case_root = tmp_path / protected_name
         cli, catalog, synonyms, cache, ground_truth, _ = _workflow_inputs(case_root, calls)
         paths = SchemaCachePaths.from_directory(cache)
+        matrix = _current_matrix_path(cache)
         targets = {
             "ground_truth": ground_truth,
             "catalog": catalog,
             "synonyms": synonyms,
             "manifest": paths.manifest,
-            "matrices": paths.matrices,
+            "matrices": matrix,
             "lock": paths.lock,
         }
         report = targets.get(protected_name)
@@ -593,11 +672,14 @@ def test_evaluate_provenance_survives_deterministic_ground_truth_and_cache_race(
     accepted_ground_truth = ground_truth.read_bytes()
     accepted_synonyms = synonyms.read_bytes()
     paths = SchemaCachePaths.from_directory(cache)
+    accepted_matrix_path = _current_matrix_path(cache)
+    _, _, _, elements = workflow_module._catalog_inputs(catalog, synonyms)
     loaded = load_index(
         paths,
         hashlib.sha256(catalog.read_bytes()).hexdigest(),
         workflow_module.DEFAULT_MODEL_ID,
         workflow_module.DOCUMENT_VERSION,
+        elements,
     )
     cache_identity = {
         "manifest_sha256": hashlib.sha256(paths.manifest.read_bytes()).hexdigest(),
@@ -612,7 +694,7 @@ def test_evaluate_provenance_survives_deterministic_ground_truth_and_cache_race(
         evaluation = real_evaluate(*args, **kwargs)
         ground_truth.write_bytes(b"raced ground truth\n")
         paths.manifest.write_bytes(b"raced manifest\n")
-        paths.matrices.write_bytes(b"raced matrices\n")
+        accepted_matrix_path.write_bytes(b"raced matrices\n")
         return evaluation
 
     monkeypatch.setattr(workflow_module, "evaluate_linker", mutate_inputs_after_evaluation)
@@ -707,6 +789,64 @@ def test_cli_programming_factory_error_is_failed_not_blocked(tmp_path: Path) -> 
         "command": "query",
         "reason": "programming bug",
     }
+
+
+def test_cli_cause_chained_programming_error_is_failed_not_blocked(tmp_path: Path) -> None:
+    calls: list[str] = []
+    _, catalog, synonyms, cache, _, _ = _workflow_inputs(tmp_path, calls)
+    cli = create_cli(encoder_factory=lambda model_id: CauseChainedProgrammingEncoder())
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "query",
+            "--catalog",
+            str(catalog),
+            "--synonyms",
+            str(synonyms),
+            "--cache-dir",
+            str(cache),
+            "--question",
+            "transaction value",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert json.loads(result.output)["status"] == "failed"
+
+
+@pytest.mark.parametrize("command", ("query", "evaluate"))
+def test_cli_rejects_cache_built_from_stale_synonym_documents_before_model(
+    tmp_path: Path, command: str
+) -> None:
+    calls: list[str] = []
+    cli, catalog, synonyms, cache, ground_truth, report = _workflow_inputs(tmp_path, calls)
+    payload = json.loads(synonyms.read_bytes())
+    payload["value"].append("newly reviewed amount phrase")
+    synonyms.write_text(json.dumps(payload), encoding="utf-8")
+    arguments = (
+        [
+            "query",
+            "--catalog",
+            str(catalog),
+            "--synonyms",
+            str(synonyms),
+            "--cache-dir",
+            str(cache),
+            "--question",
+            "transaction value",
+        ]
+        if command == "query"
+        else _evaluate_arguments(catalog, synonyms, cache, ground_truth, report)
+    )
+
+    result = CliRunner().invoke(cli, arguments)
+
+    assert result.exit_code != 0
+    failure = json.loads(result.output)
+    assert failure["status"] == "failed"
+    assert "document" in failure["reason"] or "fingerprint" in failure["reason"]
+    assert calls == []
 
 
 def test_cli_uses_canonical_ground_truth_default_path() -> None:

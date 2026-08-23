@@ -37,7 +37,8 @@ class CaseEvaluation:
     retrieved_relations: tuple[str, ...]
     retrieved_fields: tuple[str, ...]
     relation_hits: int
-    field_hits: int
+    field_hits_at_5: int
+    field_hits_at_10: int
     field_reciprocal_rank: float
     latency_ms: float
 
@@ -48,9 +49,9 @@ class EvaluationReport:
 
     case_count: int
     relation_k: int
-    field_k: int
     relation_recall_at_k: float
-    field_recall_at_k: float
+    field_recall_at_5: float
+    field_recall_at_10: float
     field_mrr: float
     latency_p50_ms: float
     latency_p95_ms: float
@@ -85,7 +86,20 @@ def load_ground_truth(
     valid_elements: Sequence[SchemaElement],
     expected_count: int = 50,
 ) -> tuple[GroundTruthCase, ...]:
-    """Load an exact, explicit JSONL ground truth against catalog element IDs."""
+    """Load exact JSONL ground truth against current catalog element IDs.
+
+    Args:
+        path: UTF-8 JSONL file containing reviewed ground-truth rows.
+        valid_elements: Current relation and field elements accepted by the catalog.
+        expected_count: Exact number of rows required.
+
+    Returns:
+        Immutable validated ground-truth cases in file order.
+
+    Raises:
+        OSError: If ``path`` cannot be read.
+        SchemaLinkerError: If the content violates the ground-truth contract.
+    """
     return parse_ground_truth(path.read_bytes(), valid_elements, expected_count=expected_count)
 
 
@@ -94,7 +108,19 @@ def parse_ground_truth(
     valid_elements: Sequence[SchemaElement],
     expected_count: int = 50,
 ) -> tuple[GroundTruthCase, ...]:
-    """Parse ground truth from the exact bytes bound into evaluation provenance."""
+    """Parse ground truth from the exact bytes bound into provenance.
+
+    Args:
+        snapshot: Exact UTF-8 JSONL bytes used for report hashing.
+        valid_elements: Current relation and field elements accepted by the catalog.
+        expected_count: Exact number of rows required.
+
+    Returns:
+        Immutable validated ground-truth cases in source order.
+
+    Raises:
+        SchemaLinkerError: If bytes, rows, IDs, questions, or gold elements are invalid.
+    """
     if (
         not isinstance(expected_count, int)
         or isinstance(expected_count, bool)
@@ -151,7 +177,7 @@ def parse_ground_truth(
         seen_nl.add(normalized_nl)
         cases.append(GroundTruthCase(case_id, nl, gold_relations, gold_fields))
     if len(cases) != expected_count:
-        line_number = min(len(cases) + 1, expected_count)
+        line_number = min(len(cases), expected_count) + 1
         raise SchemaLinkerError(
             f"ground truth line {line_number}: expected exactly {expected_count} rows, "
             f"found {len(cases)}"
@@ -179,11 +205,24 @@ def _positive_integer(value: object, label: str) -> int:
 def evaluate_linker(
     linker: SchemaLinker,
     cases: Sequence[GroundTruthCase],
-    field_k: int = 10,
     relation_k: int = 5,
 ) -> EvaluationReport:
-    """Measure micro Recall@K, field MRR, and warm latency percentiles."""
-    field_k = _positive_integer(field_k, "field_k")
+    """Measure fixed field recall, full-pool MRR, and warm latency.
+
+    Args:
+        linker: Schema linker whose complete field pool can be ranked with
+            ``top_k=None``.
+        cases: Non-empty sequence of reviewed ground-truth cases.
+        relation_k: Configurable cutoff for relation micro recall.
+
+    Returns:
+        Aggregate relation Recall@K, field Recall@5/Recall@10, full-pool field
+        MRR, latency percentiles, and per-case rankings.
+
+    Raises:
+        SchemaLinkerError: If cases or ``relation_k`` violate the contract, or
+            the linker cannot return a valid ranking.
+    """
     relation_k = _positive_integer(relation_k, "relation_k")
     if not cases:
         raise SchemaLinkerError("cases must be non-empty")
@@ -191,23 +230,24 @@ def evaluate_linker(
     if any(not isinstance(case, GroundTruthCase) for case in case_rows):
         raise SchemaLinkerError("cases must contain GroundTruthCase values")
 
-    maximum_k = max(field_k, relation_k)
-    linker.link(case_rows[0].nl, top_k=maximum_k)
+    linker.link(case_rows[0].nl, top_k=None)
     results: list[CaseEvaluation] = []
     relation_hits = 0
     relation_relevant = 0
-    field_hits = 0
+    field_hits_at_5 = 0
+    field_hits_at_10 = 0
     field_relevant = 0
     reciprocal_rank_total = 0.0
     latencies: list[float] = []
     for case in case_rows:
         started = perf_counter()
-        linked = linker.link(case.nl, top_k=maximum_k)
+        linked = linker.link(case.nl, top_k=None)
         latency_ms = (perf_counter() - started) * 1_000.0
         retrieved_relations = tuple(row.element_id for row in linked.relations[:relation_k])
-        retrieved_fields = tuple(row.element_id for row in linked.fields[:field_k])
+        retrieved_fields = tuple(row.element_id for row in linked.fields)
         case_relation_hits = len(set(retrieved_relations) & set(case.gold_relations))
-        case_field_hits = len(set(retrieved_fields) & set(case.gold_fields))
+        case_field_hits_at_5 = len(set(retrieved_fields[:5]) & set(case.gold_fields))
+        case_field_hits_at_10 = len(set(retrieved_fields[:10]) & set(case.gold_fields))
         reciprocal_rank = next(
             (
                 1.0 / rank
@@ -218,7 +258,8 @@ def evaluate_linker(
         )
         relation_hits += case_relation_hits
         relation_relevant += len(set(case.gold_relations))
-        field_hits += case_field_hits
+        field_hits_at_5 += case_field_hits_at_5
+        field_hits_at_10 += case_field_hits_at_10
         field_relevant += len(set(case.gold_fields))
         reciprocal_rank_total += reciprocal_rank
         latencies.append(latency_ms)
@@ -231,7 +272,8 @@ def evaluate_linker(
                 retrieved_relations=retrieved_relations,
                 retrieved_fields=retrieved_fields,
                 relation_hits=case_relation_hits,
-                field_hits=case_field_hits,
+                field_hits_at_5=case_field_hits_at_5,
+                field_hits_at_10=case_field_hits_at_10,
                 field_reciprocal_rank=reciprocal_rank,
                 latency_ms=latency_ms,
             )
@@ -241,9 +283,9 @@ def evaluate_linker(
     return EvaluationReport(
         case_count=len(case_rows),
         relation_k=relation_k,
-        field_k=field_k,
         relation_recall_at_k=relation_hits / relation_relevant,
-        field_recall_at_k=field_hits / field_relevant,
+        field_recall_at_5=field_hits_at_5 / field_relevant,
+        field_recall_at_10=field_hits_at_10 / field_relevant,
         field_mrr=reciprocal_rank_total / len(case_rows),
         latency_p50_ms=_percentile(latencies, 0.50),
         latency_p95_ms=_percentile(latencies, 0.95),

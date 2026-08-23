@@ -10,7 +10,9 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+from google.api_core.exceptions import BadRequest, ServiceUnavailable
 
+from nl2sparql.dataset.testset import artifacts as artifacts_module
 from nl2sparql.dataset.testset.artifacts import (
     finalize_bundle,
     read_report,
@@ -32,7 +34,8 @@ from nl2sparql.dataset.testset.live import (
 from nl2sparql.dataset.testset.validate import Bundle
 
 SAFE_SQL = (
-    "SELECT transaction_hash FROM `nl2sparql-thesis.nl2sparql_analytics.transactions` LIMIT 1"
+    "SELECT transaction_hash FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+    "(DATE '2026-06-01', DATE '2026-06-02') LIMIT 1"
 )
 
 
@@ -45,7 +48,7 @@ def _final_bundle(tmp_path: Path) -> tuple[Bundle, LiveEvidence, Path]:
             "researcher",
             "batch-1",
         )
-        for index in range(100)
+        for index in range(105)
     )
     pool_b = tuple(
         PoolBRecord(
@@ -59,26 +62,54 @@ def _final_bundle(tmp_path: Path) -> tuple[Bundle, LiveEvidence, Path]:
         for row in pool_a
     )
     reviews = tuple(
-        ReviewRecord(row.question_id, "reviewer_01", 4, 4, "easy", "ACCEPT") for row in pool_a
+        ReviewRecord(
+            row.question_id,
+            "reviewer_01",
+            4,
+            4,
+            "easy",
+            "REVISE" if index < 5 else "ACCEPT",
+        )
+        for index, row in enumerate(pool_a)
     ) + tuple(
-        ReviewRecord(row.question_id, "reviewer_02", 4, 4, "easy", "ACCEPT") for row in pool_a[:30]
+        ReviewRecord(
+            row.question_id,
+            "reviewer_02",
+            4,
+            4,
+            "easy",
+            "REVISE" if index < 5 else "ACCEPT",
+        )
+        for index, row in enumerate(pool_a[:30])
     )
     difficulties = ("easy",) * 30 + ("medium",) * 50 + ("hard",) * 20
     selections = tuple(
         SelectionRecord(
             row.question_id,
             difficulty,
-            ("simple_filter", "entity_lookup", "time_range", "top_k", "aggregation", "multi_hop"),
+            (
+                "simple_filter",
+                "entity_lookup",
+                "time_range",
+                "top_k",
+                "transaction_aggregation",
+                "multi_hop",
+            ),
             "accepted",
-            ("named_entity", "address", "concept"),
+            ("named_entity", "address_only", "concept_class"),
+            ("transaction_facts", "transaction_facts.transaction_hash"),
+            ("CQ01",),
         )
-        for row, difficulty in zip(pool_a, difficulties, strict=True)
+        for row, difficulty in zip(pool_a[5:], difficulties, strict=True)
     )
     selection_path = tmp_path / "final_selection.csv"
-    lines = ["question_id,final_difficulty,categories,entity_kinds,selection_note"]
+    lines = [
+        "question_id,final_difficulty,categories,entity_kinds,schema_elements,cq_ids,selection_note"
+    ]
     lines.extend(
         f"{row.question_id},{row.final_difficulty},{'|'.join(row.categories)},"
-        f"{'|'.join(row.entity_kinds)},{row.selection_note}"
+        f"{'|'.join(row.entity_kinds)},{'|'.join(row.schema_elements)},"
+        f"{'|'.join(row.cq_ids)},{row.selection_note}"
         for row in selections
     )
     selection_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -147,7 +178,9 @@ def test_write_report_adds_a_stable_digest(tmp_path: Path) -> None:
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["status"] == "blocked"
     assert payload["schema_version"] == 1
-    assert payload["git_commit"]
+    assert len(payload["git_commit"]) == 40
+    assert payload["git_commit"] == payload["git_commit"].lower()
+    assert isinstance(payload["git_worktree_dirty"], bool)
     assert payload["generated_at"].endswith("Z")
     assert len(payload["input_digests"][str(source)]) == 64
     assert payload["policy_caps"]["per_query_bytes"] == 20 * 2**30
@@ -157,6 +190,62 @@ def test_write_report_adds_a_stable_digest(tmp_path: Path) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(TestSetError, match="digest mismatch"):
         read_report(path)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("categories", "simple_filter||time_range"),
+        ("entity_kinds", "named_entity||address_only"),
+        ("schema_elements", "transaction_facts||transaction_facts.transaction_hash"),
+        ("cq_ids", "CQ01||CQ02"),
+    ),
+)
+def test_finalization_parser_rejects_empty_pipe_delimited_selection_tokens(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    selection = {
+        "categories": "simple_filter|time_range",
+        "entity_kinds": "named_entity|address_only",
+        "schema_elements": "transaction_facts|transaction_facts.transaction_hash",
+        "cq_ids": "CQ01|CQ02",
+    }
+    selection[field] = value
+    path = tmp_path / "final_selection.csv"
+    path.write_text(
+        "question_id,final_difficulty,categories,entity_kinds,schema_elements,cq_ids,"
+        "selection_note\n"
+        f"q-001,easy,{selection['categories']},{selection['entity_kinds']},"
+        f"{selection['schema_elements']},{selection['cq_ids']},accepted\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(TestSetError, match="empty"):
+        artifacts_module._selection_rows(path)
+
+
+def test_write_report_rejects_ready_status_without_full_git_sha(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "report.json"
+    path.write_bytes(b"accepted report\n")
+    monkeypatch.setattr(artifacts_module, "_git_provenance", lambda: ("unknown", False))
+
+    with pytest.raises(TestSetError, match="git commit"):
+        write_report({"status": "ready"}, path)
+
+    assert path.read_bytes() == b"accepted report\n"
+
+
+def test_write_report_records_dirty_worktree_provenance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "report.json"
+    monkeypatch.setattr(artifacts_module, "_git_provenance", lambda: ("a" * 40, True))
+
+    write_report({"status": "ready"}, path)
+
+    assert read_report(path)["git_worktree_dirty"] is True
 
 
 def test_finalize_bundle_rejects_missing_live_evidence(tmp_path: Path) -> None:
@@ -172,7 +261,8 @@ def test_finalize_bundle_rejects_missing_live_evidence(tmp_path: Path) -> None:
 def test_finalize_bundle_rejects_nonready_live_evidence(tmp_path: Path) -> None:
     selection = tmp_path / "final_selection.csv"
     selection.write_text(
-        "question_id,final_difficulty,categories,entity_kinds,selection_note\n",
+        "question_id,final_difficulty,categories,entity_kinds,schema_elements,cq_ids,"
+        "selection_note\n",
         encoding="utf-8",
     )
     evidence = LiveEvidence(
@@ -205,6 +295,12 @@ def test_finalize_bundle_publishes_only_exact_policy_compliant_evidence(tmp_path
     assert report.record_count == 100
     assert second_report.output_sha256 == report.output_sha256
     assert output.read_bytes() == first_payload
+    first = json.loads(first_payload.splitlines()[0])
+    assert first["schema_elements"] == [
+        "transaction_facts",
+        "transaction_facts.transaction_hash",
+    ]
+    assert first["cq_ids"] == ["CQ01"]
 
     cache_tampered = replace(
         evidence,
@@ -250,3 +346,41 @@ def test_cli_validate_writes_structured_blocked_report_for_missing_inputs(tmp_pa
     report = json.loads((tmp_path / "validation-report.json").read_text(encoding="utf-8"))
     assert report["status"] == "blocked"
     assert report["command"] == "validate"
+
+
+@pytest.mark.parametrize(
+    ("error", "expected_status"),
+    (
+        (BadRequest("invalid GoogleSQL"), "failed"),
+        (ServiceUnavailable("BigQuery unavailable"), "blocked"),
+    ),
+)
+def test_cli_verify_live_classifies_deterministic_and_transient_bigquery_errors(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+    expected_status: str,
+) -> None:
+    path = Path("scripts/test_set_workflow.py").resolve()
+    spec = importlib.util.spec_from_file_location("test_set_workflow", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "_require_inputs", lambda paths: None)
+    monkeypatch.setattr(module, "load_bundle", lambda paths: object())
+    monkeypatch.setattr(module, "validate_bundle", lambda bundle: None)
+    monkeypatch.setattr(module, "validate_selection", lambda bundle: None)
+    monkeypatch.setattr(module, "_cases_from_bundle", lambda bundle: ())
+    monkeypatch.setattr(module.bigquery, "Client", lambda project: object())
+
+    def fail_verify(client, cases):
+        raise error
+
+    monkeypatch.setattr(module, "verify_sql", fail_verify)
+
+    result = CliRunner().invoke(module.main, ["verify-live", "--root", str(tmp_path)])
+
+    assert result.exit_code != 0
+    report = json.loads((tmp_path / "live-evidence.json").read_text(encoding="utf-8"))
+    assert report["status"] == expected_status
+    assert report["command"] == "verify-live"

@@ -45,14 +45,26 @@ def load_synonyms(
     if not isinstance(raw, dict) or not raw:
         raise SchemaDocumentError("schema synonyms must be a non-empty JSON object")
     normalized: dict[str, tuple[str, ...]] = {}
-    owners: dict[str, str] = {}
+    owners: dict[tuple[str, ...], str] = {}
     for raw_key, raw_aliases in raw.items():
         if not isinstance(raw_key, str) or not raw_key.strip() or _CONTROL_RE.search(raw_key):
             raise SchemaDocumentError("synonym group names must be non-empty and control-free")
         key = _normalize(raw_key)
+        key_tokens = _words(key)
+        if not key_tokens:
+            raise SchemaDocumentError("synonym group names must contain normalized text tokens")
+        if key in normalized:
+            raise SchemaDocumentError(f"synonym groups collide after normalized key {key!r}")
         if not isinstance(raw_aliases, list) or not raw_aliases:
             raise SchemaDocumentError(f"synonym group {key!r} must be a non-empty array")
         aliases: list[str] = []
+        phrases = {key_tokens}
+        previous = owners.get(key_tokens)
+        if previous is not None and previous != key:
+            raise SchemaDocumentError(
+                f"normalized synonym phrase belongs to both {previous!r} and {key!r}"
+            )
+        owners[key_tokens] = key
         for raw_alias in raw_aliases:
             if (
                 not isinstance(raw_alias, str)
@@ -61,14 +73,20 @@ def load_synonyms(
             ):
                 raise SchemaDocumentError(f"synonym group {key!r} contains an invalid alias")
             alias = _normalize(raw_alias)
-            if alias in aliases:
+            alias_tokens = _words(alias)
+            if not alias_tokens:
+                raise SchemaDocumentError(
+                    f"synonym group {key!r} contains a tokenless normalized alias"
+                )
+            if alias_tokens in phrases:
                 raise SchemaDocumentError(f"synonym group {key!r} contains duplicate aliases")
-            previous = owners.get(alias)
+            previous = owners.get(alias_tokens)
             if previous is not None and previous != key:
                 raise SchemaDocumentError(
                     f"synonym alias {alias!r} belongs to both {previous!r} and {key!r}"
                 )
-            owners[alias] = key
+            owners[alias_tokens] = key
+            phrases.add(alias_tokens)
             aliases.append(alias)
         normalized[key] = tuple(sorted(aliases))
     return dict(sorted(normalized.items()))

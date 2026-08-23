@@ -22,6 +22,7 @@ from nl2sparql.linking.schema import (
     DOCUMENT_VERSION,
     Encoder,
     SchemaCachePaths,
+    SchemaEncoderUnavailableError,
     SchemaIndex,
     SchemaIndexError,
     SchemaLinker,
@@ -57,8 +58,19 @@ def _default_encoder_factory(model_id: str) -> Encoder:
         raise ExternalDependencyError(f"unable to initialize model {model_id!r}: {exc}") from exc
     try:
         return SentenceTransformer(model_id)
-    except (ImportError, OSError) as exc:
-        raise ExternalDependencyError(f"unable to initialize model {model_id!r}: {exc}") from exc
+    except Exception as exc:
+        try:
+            from httpx import HTTPError as HttpxError
+            from huggingface_hub.errors import XetError
+        except ImportError:
+            dependency_errors: tuple[type[BaseException], ...] = (ImportError, OSError)
+        else:
+            dependency_errors = (ImportError, OSError, HttpxError, XetError)
+        if isinstance(exc, dependency_errors):
+            raise ExternalDependencyError(
+                f"unable to initialize model {model_id!r}: {exc}"
+            ) from exc
+        raise
 
 
 def _git_sha() -> str:
@@ -119,12 +131,18 @@ def _load_cached_index(
     cache_dir: Path,
     catalog_bytes: bytes,
     model_id: str,
+    elements,
 ) -> tuple[SchemaCachePaths, SchemaIndex]:
     paths = SchemaCachePaths.from_directory(cache_dir)
     _required_file(paths.manifest)
-    _required_file(paths.matrices)
     _required_file(paths.lock)
-    index = load_index(paths, _sha256(catalog_bytes), model_id, DOCUMENT_VERSION)
+    index = load_index(
+        paths,
+        _sha256(catalog_bytes),
+        model_id,
+        DOCUMENT_VERSION,
+        elements,
+    )
     return paths, index
 
 
@@ -132,6 +150,11 @@ def _validate_cutoffs(field_k: int, relation_k: int) -> None:
     for label, value in (("field_k", field_k), ("relation_k", relation_k)):
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise SchemaLinkerError(f"{label} must be a positive integer")
+
+
+def _validate_relation_cutoff(relation_k: int) -> None:
+    if isinstance(relation_k, bool) or not isinstance(relation_k, int) or relation_k <= 0:
+        raise SchemaLinkerError("relation_k must be a positive integer")
 
 
 def _validated_model_id(model_id: object) -> str:
@@ -184,14 +207,7 @@ def _emit_failure(command: str, status: str, error: Exception) -> None:
 
 
 def _is_external_failure(error: BaseException) -> bool:
-    current: BaseException | None = error
-    seen: set[int] = set()
-    while current is not None and id(current) not in seen:
-        seen.add(id(current))
-        if isinstance(current, (ExternalDependencyError, ImportError, OSError)):
-            return True
-        current = current.__cause__ or current.__context__
-    return False
+    return isinstance(error, (ExternalDependencyError, SchemaEncoderUnavailableError))
 
 
 def _emit_contract_failure(command: str, error: Exception) -> None:
@@ -229,7 +245,7 @@ def _evaluation_payload(
         "matrices_sha256": index.metadata.matrices_sha256,
     }
     body = {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "ready",
         "generated_at": generated_at,
         "git_sha": git_sha,
@@ -355,8 +371,8 @@ def create_cli(
         try:
             model_id = _validated_model_id(model_id)
             _validate_cutoffs(field_k, relation_k)
-            catalog_bytes, _, synonyms, _ = _catalog_inputs(catalog_path, synonyms_path)
-            _, index = _load_cached_index(cache_dir, catalog_bytes, model_id)
+            catalog_bytes, _, synonyms, elements = _catalog_inputs(catalog_path, synonyms_path)
+            _, index = _load_cached_index(cache_dir, catalog_bytes, model_id, elements)
             encoder = encoder_factory(model_id)
             linked = SchemaLinker(index, encoder, synonyms).link(
                 question, top_k=max(field_k, relation_k)
@@ -416,7 +432,6 @@ def create_cli(
         show_default=True,
     )
     @click.option("--model-id", default=DEFAULT_MODEL_ID, show_default=True)
-    @click.option("--field-k", type=int, default=10, show_default=True)
     @click.option("--relation-k", type=int, default=5, show_default=True)
     def evaluate_command(
         ground_truth: Path,
@@ -425,14 +440,14 @@ def create_cli(
         synonyms_path: Path,
         cache_dir: Path,
         model_id: str,
-        field_k: int,
         relation_k: int,
     ) -> None:
         """Evaluate a cached index against exactly 50 reviewed questions."""
         try:
             model_id = _validated_model_id(model_id)
-            _validate_cutoffs(field_k, relation_k)
+            _validate_relation_cutoff(relation_k)
             paths = SchemaCachePaths.from_directory(cache_dir)
+            matrix_generations = tuple(sorted(paths.manifest.parent.glob("schema-index-*.npz")))
             _protect_report_path(
                 report_path,
                 {
@@ -440,8 +455,8 @@ def create_cli(
                     "catalog": catalog_path,
                     "synonyms": synonyms_path,
                     "cache manifest": paths.manifest,
-                    "cache matrices": paths.matrices,
                     "cache lock": paths.lock,
+                    **{f"cache matrix generation {path.name}": path for path in matrix_generations},
                 },
             )
             _required_file(ground_truth)
@@ -450,13 +465,12 @@ def create_cli(
             )
             ground_truth_bytes = ground_truth.read_bytes()
             cases = parse_ground_truth(ground_truth_bytes, elements)
-            _, index = _load_cached_index(cache_dir, catalog_bytes, model_id)
+            _, index = _load_cached_index(cache_dir, catalog_bytes, model_id, elements)
             git_sha = _resolved_git_sha(git_sha_factory)
             encoder = encoder_factory(model_id)
             evaluation = evaluate_linker(
                 SchemaLinker(index, encoder, synonyms),
                 cases,
-                field_k=field_k,
                 relation_k=relation_k,
             )
             payload = _evaluation_payload(

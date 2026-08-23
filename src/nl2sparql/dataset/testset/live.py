@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import itertools
-import re
 import time
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -15,12 +14,8 @@ from google.cloud import bigquery
 
 from nl2sparql.dataset.noise.artifacts import jsonl_bytes
 from nl2sparql.dataset.testset.contracts import FinalCase, TestSetError
+from nl2sparql.dataset.testset.sql_safety import validate_sql_text
 
-MANAGED_PREFIX = "nl2sparql-thesis.nl2sparql_analytics."
-MUTATION_RE = re.compile(
-    r"\b(CREATE|DROP|ALTER|INSERT|UPDATE|DELETE|MERGE|TRUNCATE|EXPORT|CALL)\b",
-    re.IGNORECASE,
-)
 MAX_RESULT_PREVIEW_ROWS = 1_000
 
 
@@ -58,31 +53,6 @@ class LiveEvidence:
     total_processed_bytes: int
     total_billed_bytes: int
     input_sha256: str
-
-
-def validate_sql_text(sql: str) -> None:
-    """Reject unsafe or unmanaged SQL before sending it to BigQuery."""
-    if not isinstance(sql, str) or not sql.strip():
-        raise TestSetError("SQL must not be empty")
-    stripped = sql.strip()
-    if any(token in stripped for token in (";", "--", "#", "/*", "*/")):
-        raise TestSetError("SQL must be one statement without comments")
-    if not re.match(r"^(SELECT|WITH)\b", stripped, re.IGNORECASE):
-        raise TestSetError("SQL must start with SELECT or WITH")
-    if MUTATION_RE.search(stripped):
-        raise TestSetError("SQL contains a mutation keyword")
-    if re.search(
-        (
-            r"(?:\bSELECT|,)\s+(?:(?:DISTINCT|ALL)\s+)?"
-            r"(?:(?:`[^`]+`|[A-Za-z_]\w*(?:\s*\.\s*[A-Za-z_]\w*)*)\s*\.\s*)?\*"
-        ),
-        stripped,
-        re.IGNORECASE,
-    ):
-        raise TestSetError("SQL must project explicit columns")
-    tables = re.findall(r"`([^`]+)`", stripped)
-    if not tables or any(not table.startswith(MANAGED_PREFIX) for table in tables):
-        raise TestSetError("SQL must use managed analytical objects")
 
 
 def _query_config(policy: SqlPolicy, *, dry_run: bool) -> bigquery.QueryJobConfig:

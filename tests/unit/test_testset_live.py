@@ -25,7 +25,8 @@ from nl2sparql.dataset.testset.live import (
 from nl2sparql.dataset.testset.validate import Bundle
 
 SAFE_SQL = (
-    "SELECT transaction_hash FROM `nl2sparql-thesis.nl2sparql_analytics.transactions` LIMIT 1"
+    "SELECT transaction_hash FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+    "(DATE '2026-06-01', DATE '2026-06-02') LIMIT 1"
 )
 
 
@@ -142,9 +143,77 @@ def test_validate_sql_text_rejects_mutation_comments_wildcards_and_unmanaged_obj
         "SELECT 1 # hidden mutation",
         "SELECT 1; SELECT 2",
         "SELECT transaction_hash FROM `other-project.dataset.transactions`",
+        "SELECT transaction_hash FROM other_project.dataset.transactions",
+        (
+            "SELECT t.transaction_hash "
+            "FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+            "(DATE '2026-06-01', DATE '2026-06-02') AS t "
+            "JOIN other_project.dataset.transactions AS external "
+            "ON external.hash = t.transaction_hash"
+        ),
+        (
+            "SELECT t.transaction_hash "
+            "FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+            "(DATE '2026-06-01', DATE '2026-06-02') AS t "
+            "JOIN other_project.dataset.external_function() AS external "
+            "ON external.hash = t.transaction_hash"
+        ),
     ):
         with pytest.raises(TestSetError):
             validate_sql_text(sql)
+
+
+@pytest.mark.parametrize(
+    "managed_object",
+    (
+        "transaction_facts",
+        "block_facts",
+        "token_transfer_facts",
+        "contract_dimension",
+        "token_dimension",
+        "entity_labels_v1",
+        "labeled_transactions",
+        "labeled_token_transfers",
+    ),
+)
+def test_validate_sql_text_accepts_every_managed_relation_and_table_function(
+    managed_object: str,
+) -> None:
+    suffix = (
+        "(DATE '2026-06-01', DATE '2026-06-02')"
+        if managed_object
+        in {
+            "transaction_facts",
+            "block_facts",
+            "token_transfer_facts",
+            "labeled_transactions",
+            "labeled_token_transfers",
+        }
+        else ""
+    )
+    if managed_object == "contract_dimension":
+        suffix = "(DATE '2026-06-02')"
+    sql = (
+        "SELECT source.value "
+        f"FROM `nl2sparql-thesis.nl2sparql_analytics.{managed_object}`{suffix} AS source"
+    )
+
+    validate_sql_text(sql)
+
+
+def test_validate_sql_text_uses_ast_for_ctes_and_ignores_relation_text_in_strings() -> None:
+    sql = """
+    WITH managed AS (
+      SELECT transaction_hash
+      FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(
+        DATE '2026-06-01', DATE '2026-06-02'
+      )
+    )
+    SELECT transaction_hash, 'FROM `other-project.dataset.transactions`' AS note
+    FROM managed
+    """
+
+    validate_sql_text(sql)
 
 
 def test_verify_sql_preflights_twice_and_disables_query_cache() -> None:
@@ -227,7 +296,15 @@ def test_cli_case_builder_preserves_pool_b_expected_empty_policy() -> None:
         pool_b=(PoolBRecord("q-001", "writer_01", SAFE_SQL, ("transaction_hash",), True, False),),
         reviews=(ReviewRecord("q-001", "reviewer_01", 4, 4, "easy", "ACCEPT"),),
         selections=(
-            SelectionRecord("q-001", "easy", ("simple_filter",), "accepted", ("named_entity",)),
+            SelectionRecord(
+                "q-001",
+                "easy",
+                ("simple_filter",),
+                "accepted",
+                ("named_entity",),
+                ("transaction_facts", "transaction_facts.transaction_hash"),
+                ("CQ01",),
+            ),
         ),
     )
 
@@ -235,3 +312,8 @@ def test_cli_case_builder_preserves_pool_b_expected_empty_policy() -> None:
 
     assert case.expected_result_size is None
     assert case.expected_columns == ("transaction_hash",)
+    assert case.schema_elements == (
+        "transaction_facts",
+        "transaction_facts.transaction_hash",
+    )
+    assert case.cq_ids == ("CQ01",)

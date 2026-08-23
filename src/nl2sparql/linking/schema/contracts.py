@@ -11,7 +11,7 @@ from typing import Any, Protocol
 
 DEFAULT_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 DOCUMENT_VERSION = "1.0.0"
-INDEX_SCHEMA_VERSION = 1
+INDEX_SCHEMA_VERSION = 2
 
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -27,6 +27,10 @@ class SchemaDocumentError(SchemaLinkerError):
 
 class SchemaIndexError(SchemaLinkerError):
     """Raised when a schema index is stale, corrupt, or unsafe."""
+
+
+class SchemaEncoderUnavailableError(SchemaLinkerError):
+    """Raised when model files, packages, or network access are unavailable."""
 
 
 class Encoder(Protocol):
@@ -101,4 +105,12 @@ class SchemaCachePaths:
             manifest=directory / "schema-index.json",
             matrices=directory / "schema-index.npz",
             lock=directory / "schema-index.lock",
+        )
+
+    def matrix_generation(self, matrices_sha256: str) -> Path:
+        """Derive the immutable matrix-generation path for one content digest."""
+        if not isinstance(matrices_sha256, str) or not _SHA256_RE.fullmatch(matrices_sha256):
+            raise SchemaLinkerError("matrix generation requires a lowercase SHA-256 digest")
+        return self.matrices.with_name(
+            f"{self.matrices.stem}-{matrices_sha256}{self.matrices.suffix}"
         )

@@ -10,7 +10,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from nl2sparql.linking.schema.contracts import Encoder, SchemaElement, SchemaLinkerError
+from nl2sparql.linking.schema.contracts import (
+    Encoder,
+    SchemaElement,
+    SchemaEncoderUnavailableError,
+    SchemaLinkerError,
+)
 from nl2sparql.linking.schema.index import SchemaIndex
 
 MAX_QUESTION_CHARS = 2_000
@@ -110,6 +115,8 @@ def _query_vector(encoder: Encoder, question: str, dimension: int) -> np.ndarray
     try:
         raw = encoder.encode(question, normalize_embeddings=True)
         vector = np.asarray(raw, dtype=np.float32)
+    except (ImportError, OSError) as exc:
+        raise SchemaEncoderUnavailableError(f"schema query encoder unavailable: {exc}") from exc
     except Exception as exc:
         raise SchemaLinkerError(f"schema query encoder failed: {exc}") from exc
     if vector.ndim != 1:
@@ -172,13 +179,13 @@ class SchemaLinker:
         ):
             raise SchemaLinkerError("schema index shape does not match its metadata")
 
-    def link(self, question: str, top_k: int = 10) -> LinkResult:
+    def link(self, question: str, top_k: int | None = 10) -> LinkResult:
         """Return independently ranked relations and fields.
 
         Args:
             question: Natural-language Ethereum analytics question.
-            top_k: Maximum results returned from each pool. A shorter relation
-                pool is returned in full.
+            top_k: Maximum results returned from each pool. ``None`` returns both
+                complete pools. A shorter relation pool is returned in full.
 
         Returns:
             Immutable relation and field rankings.
@@ -203,6 +210,8 @@ class SchemaLinker:
             len(self._index.metadata.relation_elements),
             len(self._index.metadata.field_elements),
         )
+        if top_k is None:
+            top_k = maximum
         if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k <= 0 or top_k > maximum:
             raise SchemaLinkerError(f"top_k must be an integer from 1 to {maximum}")
         vector = _query_vector(self._encoder, normalized, self._index.metadata.dimension)

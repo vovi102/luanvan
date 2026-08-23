@@ -27,7 +27,7 @@ silently fall back to fabricated embeddings when the production model is absent.
 The public interface is typed:
 
 ```python
-SchemaLinker.link(question: str, top_k: int = 10) -> LinkResult
+SchemaLinker.link(question: str, top_k: int | None = 10) -> LinkResult
 
 LinkResult.relations: tuple[SchemaMatch, ...]
 LinkResult.fields: tuple[SchemaMatch, ...]
@@ -76,7 +76,7 @@ highest lexical weight. The default total is:
 Weights are immutable index metadata and validated to be finite, non-negative,
 and sum to one. A caller may request `top_k` from 1 through the pool size; zero,
 negative, boolean, oversized, empty, control-character, or non-string questions
-fail closed.
+fail closed. `top_k=None` explicitly ranks both complete pools for evaluation.
 
 ## Cache and lifecycle
 
@@ -84,15 +84,20 @@ Avoid pickle because it executes Python objects while loading. A cache consists
 of:
 
 - `schema-index.json`: schema version, model ID, document version, weights,
-  catalog SHA-256, ordered element metadata, dimensions, and payload SHA-256;
-- `schema-index.npz`: relation and field float32 matrices loaded with
-  `allow_pickle=False`.
+  catalog SHA-256, exact ordered current element/document metadata, dimensions,
+  referenced generation filename, and payload SHA-256;
+- `schema-index-<sha256>.npz`: immutable relation and field float32 matrix
+  generation loaded with `allow_pickle=False`.
 
-Publication writes unique temporary siblings, fsyncs them, and atomically
-replaces each final file under a process lock. The manifest is written last and
-hash-binds the matrix file. Loading validates catalog hash, model ID, document
-version, element order/count, dimensions, finite normalized vectors, and the NPZ
-digest. Any mismatch raises `SchemaIndexError`; it never recomputes implicitly.
+Publication writes and fsyncs a unique temporary matrix, moves it to its
+content-addressed immutable generation under a process lock, fsyncs the directory,
+then atomically switches/fsyncs the manifest last. Prior generations are retained,
+so the old manifest remains readable after termination before the switch. Loading
+requires the exact safe `schema-index-<digest>.npz` filename, rejects traversal,
+symlink and hardlink aliases, and validates catalog hash, model ID, document
+version, exact current ordered IDs/document hashes, dimensions, finite normalized
+vectors, and the NPZ digest. Any mismatch raises `SchemaIndexError`; it never
+recomputes implicitly.
 The explicit build command owns model loading and cache replacement.
 
 The load-time criterion `<1s` measures validated cache loading after Python
@@ -107,11 +112,14 @@ is warm-model p50 over the 50-case evaluation file after one warm-up query.
   publish the cache;
 - `query`: load a validated cache/model and print ranked relations and fields;
 - `evaluate`: load an explicit ground-truth JSONL, warm the model, and emit
-  Recall@K, MRR, latency distribution, input digests, model ID, and git SHA.
+  configurable relation Recall@K, fixed field Recall@5/Recall@10, full-field-pool
+  MRR, latency distribution, input digests, model ID, and git SHA.
 
 Missing model files/network or missing ground truth produce a structured
-`blocked` report and nonzero exit. Invalid catalog/cache/ground truth produces
-`failed`. No command invents labels or marks a run ready without evidence.
+`blocked` report and nonzero exit. Only explicit encoder dependency failures are
+classified through wrapped causes; programming errors remain `failed`, as do
+invalid catalog/cache/ground truth. No command invents labels or marks a run ready
+without evidence.
 
 `notebooks/11_schema_linker_eval.ipynb` imports production functions, displays
 the report, and does not contain a second implementation.
@@ -127,10 +135,11 @@ reviewed rows:
 
 IDs and normalized questions are unique. Gold elements must exist in the current
 catalog; every row has at least one gold field, and at least one relation is
-derived from those fields or explicitly annotated. Recall@K is micro recall over
-gold elements, computed separately for relations and fields; the acceptance gate
-uses field Recall@10 ≥0.80. MRR uses the first relevant field rank. The report
-also records relation Recall@5, field Recall@5, and warm p50/p95 latency.
+derived from those fields or explicitly annotated. Relation Recall@K is
+configurable and micro-averaged; field recall is always emitted at both 5 and 10,
+with field Recall@10 ≥0.80 as the acceptance gate. MRR uses the first relevant
+rank from the complete field pool, not a top-10 truncation. The report also records
+warm p50/p95 latency.
 
 The committed Stage A/template provenance may be used for unit fixtures and
 diagnostics, but it is not called manual ground truth and cannot close the

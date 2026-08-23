@@ -1737,6 +1737,7 @@ dependencies = [
     { name = "rdflib" },
     { name = "sentence-transformers" },
     { name = "sparqlwrapper" },
+    { name = "sqlglot" },
     { name = "torch" },
     { name = "transformers" },
     { name = "trl" },
@@ -1773,6 +1774,7 @@ requires-dist = [
     { name = "rdflib", specifier = ">=7.0,<8" },
     { name = "sentence-transformers", specifier = ">=2.7,<4" },
     { name = "sparqlwrapper", specifier = ">=2.0,<3" },
+    { name = "sqlglot", specifier = ">=30.17,<31" },
     { name = "torch", specifier = ">=2.3,<2.6" },
     { name = "transformers", specifier = ">=4.40,<4.50" },
     { name = "trl", specifier = ">=0.8,<1" },
@@ -2956,6 +2958,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4e/cc/453752fffa759ef41a3ceadb3f167e13dae1a74c1db057d9f6a7affa9240/SPARQLWrapper-2.0.0.tar.gz", hash = "sha256:3fed3ebcc77617a4a74d2644b86fd88e0f32e7f7003ac7b2b334c026201731f1", size = 98429, upload-time = "2022-03-13T23:14:00.671Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/31/89/176e3db96e31e795d7dfd91dd67749d3d1f0316bb30c6931a6140e1a0477/SPARQLWrapper-2.0.0-py3-none-any.whl", hash = "sha256:c99a7204fff676ee28e6acef327dc1ff8451c6f7217dcd8d49e8872f324a8a20", size = 28620, upload-time = "2022-03-13T23:13:58.969Z" },
+]
+
+[[package]]
+name = "sqlglot"
+version = "30.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/d4/da49abcc81beebbb25f29ddf87f2980c63c949569d7f2da40c06d95fa415/sqlglot-30.17.0.tar.gz", hash = "sha256:2d6b8def93304fa300f4d20f48e3909e7f436fda56ca1fafd8975f6c561ef62c", size = 5999019, upload-time = "2026-08-12T19:36:50.587Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/bc/2a07cef49046e6cf5d1a8b1de553aaef8491b4170dbfe254c8687c764408/sqlglot-30.17.0-py3-none-any.whl", hash = "sha256:84435ac283a60173da31b5fd7d11a725037a1c3fd6ed1e21fb065de74ddb579f", size = 741795, upload-time = "2026-08-12T19:36:48.699Z" },
 ]
 
 [[package]]

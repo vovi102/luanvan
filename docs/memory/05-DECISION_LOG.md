@@ -36,18 +36,23 @@
 - **Decision:** Rank riêng 6 analytical relations và 62 `relation.field` elements
   bằng `0.65 * semantic + 0.35 * lexical`, stable tie-break, typed immutable
   results và explicit `sentence-transformers/all-MiniLM-L6-v2` encoder. Cache dùng
-  JSON/NPZ `allow_pickle=False`, bind catalog/model/document/weights/order/digest
-  và không implicit rebuild/fake vector.
+  manifest JSON + immutable content-addressed NPZ `allow_pickle=False`, bind
+  catalog/model/exact current document hashes/weights/order/digest, switch
+  manifest cuối, giữ prior generations và không implicit rebuild/fake vector.
 - **Rationale:** Lexical evidence giữ directional blockchain roles; MiniLM xử lý
   paraphrase. Separate pools tránh so score relation với field, còn explicit
   cache lifecycle làm CI deterministic với fake encoder nhưng production evidence
   vẫn fail closed khi thiếu model/network.
-- **Consequences:** Real model build ngày 2026-08-15 đã tạo index 384-d cho 6
-  relations/62 fields; strict second load mất 2.806 ms. Manifest file SHA-256 là
-  `d3168a6d25830dea1dd2696281a816cae693a08c87fa6903b60bb8b2b8a9a8a0`, NPZ
+- **Consequences:** Real model rebuild schema v2 ngày 2026-08-15 đã tạo index
+  384-d cho 6 relations/62 fields; strict second load mất 2.686 ms. Manifest file
+  SHA-256 là
+  `7105c53158c8cd553ace796d5c84d7cdb93d2618a60fb5ca08291943de402c3b`, NPZ
   SHA-256 là
   `17b123ba8a2baf42d2c5235e7a63019d29b682dea7366affecb63b6cba987324`.
-  Model snapshot nằm trong Hugging Face cache ngoài repo. File
+  và manifest body SHA-256 là
+  `962f74fd498bc5eb8a45a0111aefa479135a3c153eb3b125c05ad653471cfda9`.
+  Model snapshot nằm trong Hugging Face cache ngoài repo. Evaluator nay emit
+  fixed field Recall@5/@10 và full-pool field MRR. File
   `data/eval/schema_link_groundtruth.jsonl` chưa tồn tại, nên Recall@10, warm
   p50/p95 và hash-bound evaluation report vẫn pending; template fixtures không
   được gọi là independent annotation.
@@ -71,11 +76,14 @@
 - **Rationale:** Một interface tập trung giữ schema/review/cost rules nhất quán,
   test được không cần credentials, và không biến dữ liệu giả thành benchmark. Hai
   reviewer trên 30 IDs là điều kiện cần để đo kappa thay vì percent agreement.
-- **Consequences:** Offline implementation đã sẵn sàng với 33 focused tests và
-  426 tests toàn repository. Result preview bị giới hạn, hai vòng preflight đều
-  chặn aggregate trước execution, ordered expected columns được kiểm tra live,
-  report có provenance/hash, và finalizer kiểm tra selection/evidence/policy
-  fail closed. Raw collaborator files, consent,
+- **Consequences:** Sau final review remediation, offline implementation có 68
+  focused tests và 558 tests toàn repository. SQLGlot BigQuery AST kiểm tra mọi
+  direct relation/table function cả offline/live; role identities tách biệt,
+  kappa degenerate/changing-pair bị chặn; normalized selection annotations được
+  kiểm tra với catalog và propagate. Result preview bị giới hạn, hai vòng
+  preflight đều chặn aggregate trước execution, ordered expected columns được
+  kiểm tra live, report có full-SHA/dirty provenance/hash, và finalizer kiểm tra
+  selection/evidence/policy fail closed. Raw collaborator files, consent,
   BigQuery execution, 100 final rows và kappa thật vẫn pending. Thiếu credential/
   submission trả structured `blocked` và không publish artifact.
 - **Revisit:** Khi có đủ Pool A/B/C và BigQuery credentials; sau đó ghi evidence

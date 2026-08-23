@@ -77,6 +77,26 @@ def test_load_synonyms_rejects_malformed_or_conflicting_groups(
         load_synonyms(path)
 
 
+@pytest.mark.parametrize(
+    "payload",
+    (
+        {"From": ["sender"], "from": ["originating"]},
+        {"from": ["sender"], "ｆｒｏｍ": ["originating"]},
+        {"!!!": ["sender"]},
+        {"from": ["!!!"]},
+        {"from": ["sender"], "sender": ["originating"]},
+    ),
+)
+def test_load_synonyms_rejects_normalized_key_collisions_and_tokenless_phrases(
+    tmp_path: Path, payload: object
+) -> None:
+    path = tmp_path / "synonyms.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(SchemaDocumentError, match="normalized|token"):
+        load_synonyms(path)
+
+
 def test_build_schema_elements_wraps_invalid_catalog_references() -> None:
     catalog = copy.deepcopy(load_catalog())
     catalog["semantic_mappings"][0]["targets"] = [{"relation": "missing_relation"}]
@@ -110,3 +130,4 @@ def test_schema_contracts_validate_elements_and_derive_cache_paths(tmp_path: Pat
     assert paths.manifest == tmp_path / "schema-index.json"
     assert paths.matrices == tmp_path / "schema-index.npz"
     assert paths.lock == tmp_path / "schema-index.lock"
+    assert paths.matrix_generation("a" * 64) == tmp_path / f"schema-index-{'a' * 64}.npz"

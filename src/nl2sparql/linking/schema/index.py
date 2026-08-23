@@ -8,6 +8,8 @@ import hmac
 import io
 import json
 import os
+import re
+import stat
 import tempfile
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
@@ -23,6 +25,7 @@ from nl2sparql.linking.schema.contracts import (
     Encoder,
     SchemaCachePaths,
     SchemaElement,
+    SchemaEncoderUnavailableError,
     SchemaIndexError,
     SchemaLinkerError,
     ScoreWeights,
@@ -44,6 +47,7 @@ class SchemaIndexMetadata:
     field_elements: tuple[SchemaElement, ...]
     manifest_sha256: str
     manifest_file_sha256: str = ""
+    matrices_file: str = ""
 
 
 @dataclass(frozen=True)
@@ -145,6 +149,7 @@ def _manifest_body(
     document_version: str,
     catalog_sha256: str,
     matrices_sha256: str,
+    matrices_file: str,
     dimension: int,
     weights: ScoreWeights,
     relations: tuple[SchemaElement, ...],
@@ -156,6 +161,7 @@ def _manifest_body(
         "document_version": document_version,
         "catalog_sha256": catalog_sha256,
         "matrices_sha256": matrices_sha256,
+        "matrices_file": matrices_file,
         "dimension": dimension,
         "weights": asdict(weights),
         "relation_elements": [asdict(row) for row in relations],
@@ -197,44 +203,60 @@ def _write_manifest_temp(paths: SchemaCachePaths, payload: bytes) -> Path:
         raise
 
 
-def _restore_artifact(path: Path, previous: bytes | None) -> None:
-    if previous is None:
-        path.unlink(missing_ok=True)
-        return
-    handle, temporary = _temporary_file(path.parent, f".{path.name}.", ".restore.tmp")
+def _publication_checkpoint(point: str) -> None:
+    """No-op hook used to simulate process death at durable boundaries in tests."""
+
+
+def _read_matrix_generation(path: Path) -> bytes:
     try:
-        with handle:
-            handle.write(previous)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
+        before = path.lstat()
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise SchemaIndexError("schema index matrix generation is an unsafe alias")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        try:
+            after = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(after.st_mode)
+                or after.st_nlink != 1
+                or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+            ):
+                raise SchemaIndexError("schema index matrix generation is an unsafe alias")
+            with os.fdopen(descriptor, "rb", closefd=False) as handle:
+                return handle.read()
+        finally:
+            os.close(descriptor)
+    except SchemaIndexError:
+        raise
+    except OSError as exc:
+        raise SchemaIndexError(f"unable to read schema index matrix generation: {exc}") from exc
 
 
-def _publish_pair(
+def _publish_generation(
     paths: SchemaCachePaths,
     matrix_temp: Path,
+    generation_path: Path,
+    matrices_sha256: str,
     manifest_temp: Path,
 ) -> None:
     with _index_lock(paths.lock):
-        previous_matrix = paths.matrices.read_bytes() if paths.matrices.is_file() else None
-        previous_manifest = paths.manifest.read_bytes() if paths.manifest.is_file() else None
         try:
-            os.replace(matrix_temp, paths.matrices)
-            _fsync_directory(paths.matrices.parent)
+            if generation_path.exists() or generation_path.is_symlink():
+                existing = _read_matrix_generation(generation_path)
+                if _sha256(existing) != matrices_sha256:
+                    raise SchemaIndexError("schema index matrix generation digest collision")
+                matrix_temp.unlink(missing_ok=True)
+            else:
+                os.replace(matrix_temp, generation_path)
+            _fsync_directory(generation_path.parent)
+            _publication_checkpoint("matrix_generation_durable")
             os.replace(manifest_temp, paths.manifest)
             _fsync_directory(paths.manifest.parent)
+            _publication_checkpoint("manifest_durable")
+        except SchemaIndexError:
+            raise
         except OSError as exc:
-            try:
-                _restore_artifact(paths.matrices, previous_matrix)
-                _restore_artifact(paths.manifest, previous_manifest)
-                _fsync_directory(paths.manifest.parent)
-            except OSError as rollback_exc:
-                raise SchemaIndexError(
-                    "schema index publication and rollback both failed"
-                ) from rollback_exc
-            raise SchemaIndexError("unable to publish schema index atomically") from exc
+            raise SchemaIndexError("unable to publish schema index manifest switch") from exc
 
 
 def build_index(
@@ -261,6 +283,8 @@ def build_index(
             [row.document for row in relations], normalize_embeddings=True
         )
         raw_fields = encoder.encode([row.document for row in fields], normalize_embeddings=True)
+    except (ImportError, OSError) as exc:
+        raise SchemaEncoderUnavailableError(f"schema index encoder unavailable: {exc}") from exc
     except SchemaIndexError:
         raise
     except Exception as exc:
@@ -282,11 +306,14 @@ def build_index(
     manifest_temp: Path | None = None
     try:
         matrix_temp, matrix_bytes = _write_matrix_temp(paths, relation_embeddings, field_embeddings)
+        matrices_sha256 = _sha256(matrix_bytes)
+        generation_path = paths.matrix_generation(matrices_sha256)
         body = _manifest_body(
             model_id=model_id.strip(),
             document_version=document_version.strip(),
             catalog_sha256=_sha256(catalog_bytes),
-            matrices_sha256=_sha256(matrix_bytes),
+            matrices_sha256=matrices_sha256,
+            matrices_file=generation_path.name,
             dimension=relation_embeddings.shape[1],
             weights=weights,
             relations=relations,
@@ -294,9 +321,13 @@ def build_index(
         )
         manifest_payload = {**body, "manifest_sha256": _sha256(_canonical_json(body))}
         manifest_temp = _write_manifest_temp(paths, _canonical_json(manifest_payload))
-        _publish_pair(paths, matrix_temp, manifest_temp)
-        matrix_temp = None
-        manifest_temp = None
+        _publish_generation(
+            paths,
+            matrix_temp,
+            generation_path,
+            matrices_sha256,
+            manifest_temp,
+        )
     finally:
         if matrix_temp is not None:
             matrix_temp.unlink(missing_ok=True)
@@ -307,6 +338,7 @@ def build_index(
         _sha256(catalog_bytes),
         model_id.strip(),
         document_version.strip(),
+        elements,
     )
 
 
@@ -350,33 +382,55 @@ def _load_matrices(raw: bytes) -> tuple[np.ndarray, np.ndarray]:
         raise SchemaIndexError(f"unable to load schema index NPZ: {exc}") from exc
 
 
+_MATRIX_FILENAME_RE = re.compile(r"^schema-index-([0-9a-f]{64})\.npz$")
+
+
+def _matrix_filename(body: dict[str, Any]) -> str:
+    filename = body.get("matrices_file")
+    matrices_sha256 = body.get("matrices_sha256")
+    if not isinstance(filename, str) or not isinstance(matrices_sha256, str):
+        raise SchemaIndexError("schema index matrix filename is invalid")
+    match = _MATRIX_FILENAME_RE.fullmatch(filename)
+    if match is None or match.group(1) != matrices_sha256:
+        raise SchemaIndexError("schema index matrix filename and digest do not match")
+    return filename
+
+
+def _element_fingerprints(
+    elements: tuple[SchemaElement, ...],
+) -> tuple[tuple[str, str], ...]:
+    return tuple((element.element_id, element.document_sha256) for element in elements)
+
+
 def load_index(
     paths: SchemaCachePaths,
     expected_catalog_sha256: str,
     expected_model_id: str,
     expected_document_version: str,
+    expected_elements: Sequence[SchemaElement],
 ) -> SchemaIndex:
     """Load a schema index only after all identity and integrity checks pass."""
     try:
         with _index_lock(paths.lock):
             manifest_bytes = paths.manifest.read_bytes()
-            matrix_bytes = paths.matrices.read_bytes()
+            body, manifest_sha256 = _parse_manifest(manifest_bytes)
+            schema_version = body.get("schema_version")
+            if (
+                not isinstance(schema_version, int)
+                or isinstance(schema_version, bool)
+                or schema_version != INDEX_SCHEMA_VERSION
+            ):
+                raise SchemaIndexError("schema index schema version mismatch")
+            if body.get("catalog_sha256") != expected_catalog_sha256:
+                raise SchemaIndexError("schema index catalog fingerprint mismatch")
+            if body.get("model_id") != expected_model_id:
+                raise SchemaIndexError("schema index model identity mismatch")
+            if body.get("document_version") != expected_document_version:
+                raise SchemaIndexError("schema index document version mismatch")
+            matrices_file = _matrix_filename(body)
+            matrix_bytes = _read_matrix_generation(paths.manifest.parent / matrices_file)
     except OSError as exc:
         raise SchemaIndexError(f"unable to read schema index: {exc}") from exc
-    body, manifest_sha256 = _parse_manifest(manifest_bytes)
-    schema_version = body.get("schema_version")
-    if (
-        not isinstance(schema_version, int)
-        or isinstance(schema_version, bool)
-        or schema_version != INDEX_SCHEMA_VERSION
-    ):
-        raise SchemaIndexError("schema index schema version mismatch")
-    if body.get("catalog_sha256") != expected_catalog_sha256:
-        raise SchemaIndexError("schema index catalog fingerprint mismatch")
-    if body.get("model_id") != expected_model_id:
-        raise SchemaIndexError("schema index model identity mismatch")
-    if body.get("document_version") != expected_document_version:
-        raise SchemaIndexError("schema index document version mismatch")
     if body.get("matrices_sha256") != _sha256(matrix_bytes):
         raise SchemaIndexError("schema index matrix digest mismatch")
     raw_dimension = body.get("dimension")
@@ -392,6 +446,11 @@ def load_index(
     relations = _elements_from_manifest(body.get("relation_elements"), "relation")
     fields = _elements_from_manifest(body.get("field_elements"), "field")
     relations, fields = _validate_elements((*relations, *fields))
+    expected_relations, expected_fields = _validate_elements(expected_elements)
+    if _element_fingerprints(relations) != _element_fingerprints(
+        expected_relations
+    ) or _element_fingerprints(fields) != _element_fingerprints(expected_fields):
+        raise SchemaIndexError("schema index current document fingerprints do not match")
     relation_raw, field_raw = _load_matrices(matrix_bytes)
     relation_embeddings = _validated_matrix(
         relation_raw,
@@ -419,5 +478,6 @@ def load_index(
         field_elements=fields,
         manifest_sha256=manifest_sha256,
         manifest_file_sha256=_sha256(manifest_bytes),
+        matrices_file=matrices_file,
     )
     return SchemaIndex(metadata, relation_embeddings, field_embeddings)

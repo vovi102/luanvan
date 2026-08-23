@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 import click
-from google.api_core.exceptions import GoogleAPIError
+from google.api_core.exceptions import BadRequest, GoogleAPIError
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import bigquery
 
@@ -81,8 +81,8 @@ def _cases_from_bundle(bundle: Bundle) -> tuple[FinalCase, ...]:
             sql=pool_b[selection.question_id].sql,
             difficulty=selection.final_difficulty,
             categories=selection.categories,
-            schema_elements=(),
-            cq_ids=(),
+            schema_elements=selection.schema_elements,
+            cq_ids=selection.cq_ids,
             expected_result_size=(None if pool_b[selection.question_id].expected_empty else 1),
             expected_columns=pool_b[selection.question_id].expected_columns,
             ambiguity_flag=pool_b[selection.question_id].ambiguity_flag,
@@ -161,6 +161,15 @@ def verify_live(root: Path, project: str) -> None:
         evidence = verify_sql(client, cases)
         write_report(evidence, paths.live_evidence, input_paths=_input_paths(paths))
         click.echo(json.dumps({"status": "ready", "evidence": str(paths.live_evidence)}))
+    except BadRequest as exc:
+        _failure_report(
+            paths.live_evidence,
+            command="verify-live",
+            status="failed",
+            error=exc,
+            input_paths=_input_paths(paths),
+        )
+        raise click.ClickException(str(exc)) from exc
     except (OSError, DefaultCredentialsError, GoogleAPIError) as exc:
         _failure_report(
             paths.live_evidence,

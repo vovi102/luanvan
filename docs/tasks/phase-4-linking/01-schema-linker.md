@@ -29,7 +29,7 @@ không thay thế manual ground truth và không được dùng để đóng acc
 Public API:
 
 ```python
-SchemaLinker.link(question: str, top_k: int = 10) -> LinkResult
+SchemaLinker.link(question: str, top_k: int | None = 10) -> LinkResult
 
 LinkResult.relations: tuple[SchemaMatch, ...]
 LinkResult.fields: tuple[SchemaMatch, ...]
@@ -56,9 +56,12 @@ Retrieval mặc định:
 Cache production không dùng pickle:
 
 - `src/nl2sparql/linking/cache/schema-index.json`: manifest canonical, bind model,
-  catalog SHA-256, document version, weights, element order/dimension và NPZ hash.
-- `src/nl2sparql/linking/cache/schema-index.npz`: relation/field matrices float32,
-  load bằng `allow_pickle=False`.
+  catalog SHA-256, document version, weights, exact current ordered element/document
+  fingerprints, dimension, NPZ filename và hash.
+- `src/nl2sparql/linking/cache/schema-index-<sha256>.npz`: immutable,
+  content-addressed relation/field matrices float32, load bằng
+  `allow_pickle=False`; manifest pointer được switch cuối và prior generations
+  được giữ để process death không làm hỏng generation đang được tham chiếu.
 - `src/nl2sparql/linking/cache/schema-index.lock`: process-lock sidecar do explicit
   build tạo; không chứa model/vector data.
 
@@ -69,7 +72,9 @@ Cache production không dùng pickle:
 - `evaluate`: chỉ chạy với đúng ground truth 50 rows, warm-up trước đo, xuất report
   aggregate có hashes/model/git provenance.
 
-Missing model/network/ground truth trả structured `blocked`; invalid
+Missing model/network/ground truth trả structured `blocked`; explicit encoder
+dependency failures cũng `blocked`, còn programming errors không bị phân loại
+nhầm qua cause chain; invalid
 catalog/cache/ground truth trả `failed`. Không command nào tự sinh manual labels
 hoặc silently rebuild cache stale.
 
@@ -96,19 +101,22 @@ hoặc silently rebuild cache stale.
 
 - [x] API typed trả hai ranking độc lập cho relation và field Plan B.
 - [x] Catalog documents deterministic cho 6 relations và 62 fields; unknown
-  references, duplicate IDs và synonym malformed fail closed.
+  references, duplicate IDs, normalized synonym key/phrase collision và tokenless
+  phrases fail closed trước model initialization.
 - [x] Hybrid lexical/MiniLM retrieval dùng weights `0.35/0.65`, stable tie-break và
   directional role terms như sender/from so với recipient/to.
-- [x] Cache JSON/NPZ fingerprinted, atomic, không pickle; loader validate catalog,
-  model, document version, element order/count, dimensions, normalization và
-  payload digest.
+- [x] Cache manifest + content-addressed NPZ generations crash-safe, không pickle;
+  loader validate safe referenced filename/no traversal/symlink/hardlink, catalog,
+  model, document version, exact current ordered ID/document hashes, dimensions,
+  normalization và payload digest.
 - [x] Real production index đã build bằng
   `sentence-transformers/all-MiniLM-L6-v2`, không fake vector.
-- [x] Validated cache load lần hai dưới 1 giây: 2.806 ms ngày 2026-08-15, 384
+- [x] Validated cache load lần hai dưới 1 giây: 2.686 ms ngày 2026-08-15, 384
   dimensions, 6 relation rows và 62 field rows.
-- [x] Tests cover invalid input, stale/tampered cache, atomic replacement, role
-  ambiguity, synonym ranking, metric math, exact-50 ground-truth validation và
-  CLI structured status.
+- [x] 97 focused tests cover invalid input, stale/tampered/current-document cache,
+  deterministic first/later publication crash points, path aliases, role
+  ambiguity, synonym ranking, fixed field Recall@5/@10, full-pool MRR including
+  first hit rank 11, exact-50 ground-truth validation và CLI structured status.
 - [x] Notebook là thin consumer của production evaluator và là JSON hợp lệ.
 
 ### Scientific/external acceptance còn pending
@@ -131,29 +139,31 @@ Ngày 2026-08-15 file ground truth accepted chưa tồn tại, vì vậy `evalua
 - Catalog SHA-256:
   `db8393aa7258d1331387eff9825e22ca729daf93234419f00d7dd538196cb3dd`.
 - Manifest file SHA-256:
-  `d3168a6d25830dea1dd2696281a816cae693a08c87fa6903b60bb8b2b8a9a8a0`.
+  `7105c53158c8cd553ace796d5c84d7cdb93d2618a60fb5ca08291943de402c3b`.
 - Manifest body SHA-256:
-  `0aa2a44211f1268ee329b52918540445d1d63c3d9615e24814c8394e22f375f7`.
-- NPZ SHA-256:
+  `962f74fd498bc5eb8a45a0111aefa479135a3c153eb3b125c05ad653471cfda9`.
+- Generation file:
+  `schema-index-17b123ba8a2baf42d2c5235e7a63019d29b682dea7366affecb63b6cba987324.npz`;
+  NPZ SHA-256:
   `17b123ba8a2baf42d2c5235e7a63019d29b682dea7366affecb63b6cba987324`.
 
 ## Verification
 
-Fresh repository verification ngày 2026-08-15:
+Fresh repository verification ngày 2026-08-23:
 
-- `UV_CACHE_DIR=.uv-cache uv run pytest -q`: exit 0, 502 passed, 342 warnings.
+- `UV_CACHE_DIR=.uv-cache uv run pytest -q`: exit 0, 558 passed, 342 warnings.
 - `UV_CACHE_DIR=.uv-cache uv run ruff check .`: exit 0, all checks passed.
-- `UV_CACHE_DIR=.uv-cache uv run ruff format --check .`: exit 0, 120 files đã
+- `UV_CACHE_DIR=.uv-cache uv run ruff format --check .`: exit 0, 121 files đã
   formatted.
 - `UV_CACHE_DIR=.uv-cache uv run python -m json.tool
   notebooks/11_schema_linker_eval.ipynb`: exit 0.
 - `git diff --check`: exit 0, không có output.
-- `git status --short --branch`: exit 0; chỉ có Task 5 docs/evidence/cache artifact
-  trước commit, branch ahead 8.
-- Formal focused review: **Approved**, không có Critical/Important/Minor finding.
-  Reviewer independently xác nhận NPZ có đúng hai float32 matrices shapes
-  `(6, 384)` và `(62, 384)`, unit-normalized, khớp manifest/catalog hashes,
-  element order, model ID, document version và score weights.
+- Strict post-rebuild load: exit 0, schema version 2, 2.686 ms, hai float32
+  matrices shapes `(6, 384)` và `(62, 384)`, khớp current ordered catalog
+  documents, manifest/model/digest và score weights.
+- Reviewed base `90bca619445c15aee9a7782ab50fcb3c361012e2` có 9 Important + 4 Minor;
+  fix wave này xử lý đủ 13 findings. Controller scoped re-review vẫn phải chạy
+  trước push; tài liệu không giữ claim “Approved” của pre-fix branch.
 
 Không dùng kết quả của unit fixture để suy ra scientific Recall@10 hoặc
 production query latency.

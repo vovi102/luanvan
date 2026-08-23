@@ -114,12 +114,15 @@ must have at least one independent review.
 `final_selection.csv`:
 
 ```text
-question_id,final_difficulty,categories,entity_kinds,selection_note
+question_id,final_difficulty,categories,entity_kinds,schema_elements,cq_ids,selection_note
 ```
 
 The lead researcher supplies exactly 100 unique accepted IDs and the final
-difficulty labels. Categories and entity kinds are pipe-separated stable labels.
-The finalizer checks, but does not rewrite, this human decision.
+difficulty labels. Categories and entity kinds are normalized, deduplicated, and
+validated against the accepted vocabulary. Schema elements and CQ IDs are
+pipe-separated explicit annotations validated against the canonical analytical
+catalog before publication. The finalizer checks, but does not invent or rewrite,
+this human decision.
 
 `test-100.jsonl` records contain only pseudonymous provenance and SQL-native
 fields: `id`, `source`, `nl`, `sql`, `difficulty`, `categories`,
@@ -140,7 +143,8 @@ fields: `id`, `source`, `nl`, `sql`, `difficulty`, `categories`,
 - `finalize`: require valid bundle, passing kappa/quota/review gates, live
   evidence hashes, and explicit final selection before publishing `test-100`.
 
-Every generated report includes the git commit, schema version, input SHA-256
+Every generated report includes a full lowercase git commit, tracked-worktree
+dirty provenance, schema version, input SHA-256
 digests, UTC timestamp, policy caps, and a `status` of `ready`, `blocked`, or
 `failed`. Publication is staged and replaced only after validation; an incomplete
 run cannot leave a plausible final artifact.
@@ -149,17 +153,18 @@ run cannot leave a plausible final artifact.
 
 - Canonical NL is Unicode-normalized, trimmed, and rejected if empty or contains
   control characters. Duplicate canonical NL is rejected within the final set.
-- SQL must be a single read-only `SELECT`/`WITH` statement, use the managed
-  analytical catalog, project explicit columns, and contain no comments or
-  mutation keywords that could hide a second statement. The live adapter remains
-  the authority for BigQuery parsing.
+- SQLGlot's BigQuery tokenizer/AST must parse a single read-only query, reject
+  projected wildcards and comments, resolve CTE aliases by scope, and validate
+  every direct table or table-valued-function reference against the managed
+  analytical allowlist. The same pure check runs offline and before live calls.
 - Final difficulty counts are exactly `easy=30`, `medium=50`, `hard=20`.
 - The final set must cover at least six categories and three entity kinds as
   recorded in the selected rows.
 - Review acceptance is computed from review rows; a `REVISE` or `REJECT` cannot
   silently become accepted.
 - Kappa uses the standard observed-agreement/chance-agreement formula on the
-  two-reviewer subset and fails closed when the denominator is zero.
+  two-reviewer subset, requires one stable reviewer pair, and fails closed when
+  the denominator is zero. Pool A/B/C identity sets are globally pairwise-disjoint.
 - Live evidence binds `question_id`, SQL SHA-256, row policy, bytes processed,
   bytes billed, cache-hit status, and job ID. A later SQL edit invalidates the
   evidence and blocks finalization.

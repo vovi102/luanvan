@@ -181,6 +181,15 @@ def test_link_uses_stable_element_id_ties_and_does_not_mutate_index() -> None:
     assert index.field_embeddings.flags.writeable is False
 
 
+def test_link_none_cutoff_returns_complete_relation_and_field_pools() -> None:
+    linker = SchemaLinker(_index(), ConstantEncoder(), {})
+
+    result = linker.link("unrelated words", top_k=None)
+
+    assert len(result.relations) == 2
+    assert len(result.fields) == 6
+
+
 @pytest.mark.parametrize(
     "question",
     ("", "   ", "!!!", "bad\u0001question", 123, "x" * 2001),

@@ -7,6 +7,8 @@ import unicodedata
 from collections import Counter, defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import lru_cache
+from typing import Any, cast
 
 from nl2sparql.dataset.testset.contracts import (
     PoolARecord,
@@ -18,6 +20,8 @@ from nl2sparql.dataset.testset.contracts import (
     load_csv,
     parse_bool,
 )
+from nl2sparql.dataset.testset.sql_safety import validate_sql_text
+from nl2sparql.sql.schema import SchemaCatalogError, load_catalog, validate_catalog
 
 
 @dataclass(frozen=True)
@@ -66,9 +70,7 @@ def cohen_kappa(labels_a: Sequence[str], labels_b: Sequence[str]) -> float:
         for label in set(first_counts) | set(second_counts)
     ) / (total * total)
     if math.isclose(chance, 1.0):
-        if observed == total:
-            return 1.0
-        raise TestSetError("kappa chance agreement is 1; statistic is undefined")
+        raise TestSetError("kappa inputs are degenerate; statistic is undefined")
     observed_rate = observed / total
     return (observed_rate - chance) / (1.0 - chance)
 
@@ -76,6 +78,27 @@ def cohen_kappa(labels_a: Sequence[str], labels_b: Sequence[str]) -> float:
 def _unique_ids(values: Sequence[str], label: str) -> None:
     if len(values) != len(set(values)):
         raise TestSetError(f"{label} IDs must be unique")
+
+
+@lru_cache(maxsize=1)
+def _catalog_annotation_ids() -> tuple[frozenset[str], frozenset[str]]:
+    try:
+        catalog = load_catalog()
+        validate_catalog(catalog)
+        relations = cast(dict[str, Any], catalog["analytical_relations"])
+        schema_ids = set(relations)
+        schema_ids.update(
+            f"{relation_id}.{field_id}"
+            for relation_id, relation in relations.items()
+            for field_id in cast(dict[str, Any], relation["fields"])
+        )
+        cq_ids = {
+            str(question["id"])
+            for question in cast(list[dict[str, Any]], catalog["competency_questions"])
+        }
+    except (KeyError, TypeError, SchemaCatalogError) as exc:
+        raise TestSetError(f"unable to validate canonical annotation catalog: {exc}") from exc
+    return frozenset(schema_ids), frozenset(cq_ids)
 
 
 def validate_bundle(bundle: Bundle) -> BundleReport:
@@ -98,6 +121,8 @@ def validate_bundle(bundle: Bundle) -> BundleReport:
         raise TestSetError("Pool B IDs must exactly match Pool A IDs")
     if any(len(rows) != 1 for rows in pool_b_by_id.values()):
         raise TestSetError("Pool B requires exactly one canonical row per question")
+    for rows in pool_b_by_id.values():
+        validate_sql_text(rows[0].sql)
 
     reviews_by_id: defaultdict[str, list[ReviewRecord]] = defaultdict(list)
     for review in bundle.reviews:
@@ -112,6 +137,15 @@ def validate_bundle(bundle: Bundle) -> BundleReport:
         raise TestSetError("a question cannot have duplicate reviews from one reviewer")
     authors_by_id = {record.question_id: record.author_id for record in bundle.pool_a}
     writers_by_id = {question_id: rows[0].writer_id for question_id, rows in pool_b_by_id.items()}
+    author_ids = set(authors_by_id.values())
+    writer_ids = set(writers_by_id.values())
+    reviewer_ids = {review.reviewer_id for review in bundle.reviews}
+    if author_ids & writer_ids:
+        raise TestSetError("Pool A and Pool B role identities must be disjoint")
+    if author_ids & reviewer_ids:
+        raise TestSetError("Pool A and Pool C roles must remain independent and disjoint")
+    if writer_ids & reviewer_ids:
+        raise TestSetError("Pool B and Pool C role identities must be disjoint")
     if any(
         review.reviewer_id in {authors_by_id[review.question_id], writers_by_id[review.question_id]}
         for review in bundle.reviews
@@ -135,6 +169,9 @@ def validate_bundle(bundle: Bundle) -> BundleReport:
         sorted(reviews_by_id[question_id], key=lambda row: row.reviewer_id)
         for question_id in double_review_ids
     ]
+    reviewer_pairs = {tuple(row.reviewer_id for row in rows) for rows in decisions}
+    if len(reviewer_pairs) != 1:
+        raise TestSetError("kappa rows require one stable reviewer pair")
     kappa = cohen_kappa(
         tuple(rows[0].decision for rows in decisions),
         tuple(rows[1].decision for rows in decisions),
@@ -194,6 +231,22 @@ def validate_selection(bundle: Bundle) -> tuple[SelectionRecord, ...]:
     entity_kinds = {kind for row in selections for kind in row.entity_kinds}
     if len(entity_kinds) < 3:
         raise TestSetError("final selection must cover at least three entity kinds")
+    schema_ids, cq_ids = _catalog_annotation_ids()
+    for row in selections:
+        if not row.schema_elements:
+            raise TestSetError(f"{row.question_id} requires schema annotations")
+        unknown_schema = set(row.schema_elements) - schema_ids
+        if unknown_schema:
+            raise TestSetError(
+                f"{row.question_id} has unknown schema annotations: {sorted(unknown_schema)}"
+            )
+        if not row.cq_ids:
+            raise TestSetError(f"{row.question_id} requires CQ annotations")
+        unknown_cqs = set(row.cq_ids) - cq_ids
+        if unknown_cqs:
+            raise TestSetError(
+                f"{row.question_id} has unknown CQ annotations: {sorted(unknown_cqs)}"
+            )
     return selections
 
 
@@ -245,8 +298,23 @@ def load_bundle(paths: TestSetPaths) -> Bundle:
     )
     selection_rows = load_csv(
         paths.final_selection,
-        ("question_id", "final_difficulty", "categories", "entity_kinds", "selection_note"),
-        required_values=("question_id", "final_difficulty", "categories", "entity_kinds"),
+        (
+            "question_id",
+            "final_difficulty",
+            "categories",
+            "entity_kinds",
+            "schema_elements",
+            "cq_ids",
+            "selection_note",
+        ),
+        required_values=(
+            "question_id",
+            "final_difficulty",
+            "categories",
+            "entity_kinds",
+            "schema_elements",
+            "cq_ids",
+        ),
     )
     return Bundle(
         pool_a=tuple(PoolARecord(**row) for row in pool_a_rows),
@@ -278,8 +346,10 @@ def load_bundle(paths: TestSetPaths) -> Bundle:
             SelectionRecord(
                 question_id=row["question_id"],
                 final_difficulty=row["final_difficulty"],
-                categories=tuple(filter(None, row["categories"].split("|"))),
-                entity_kinds=tuple(filter(None, row["entity_kinds"].split("|"))),
+                categories=tuple(row["categories"].split("|")),
+                entity_kinds=tuple(row["entity_kinds"].split("|")),
+                schema_elements=tuple(row["schema_elements"].split("|")),
+                cq_ids=tuple(row["cq_ids"].split("|")),
                 selection_note=row["selection_note"],
             )
             for row in selection_rows

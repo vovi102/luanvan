@@ -105,7 +105,7 @@ UV_CACHE_DIR=.uv-cache uv run ruff format --check src/nl2sparql/linking/schema t
 
 **Interfaces:**
 - Consumes: `SchemaElement`, `SchemaCachePaths`, `ScoreWeights`, and injected `Encoder` from Task 1.
-- Produces: `SchemaIndex(metadata, relation_embeddings, field_embeddings)`, `build_index(elements, encoder, model_id, catalog_bytes, paths, weights) -> SchemaIndex`, and `load_index(paths, expected_catalog_sha256, expected_model_id, expected_document_version) -> SchemaIndex`.
+- Produces: `SchemaIndex(metadata, relation_embeddings, field_embeddings)`, `build_index(elements, encoder, model_id, catalog_bytes, paths, weights) -> SchemaIndex`, and mandatory-current-document `load_index(paths, expected_catalog_sha256, expected_model_id, expected_document_version, expected_elements) -> SchemaIndex`.
 
 - [x] **Step 1: Write failing index tests with a deterministic encoder**
 
@@ -133,9 +133,11 @@ class FakeEncoder:
   unit-normalized vector per element with a shared positive dimension, and cast
   to float32. Write compressed NPZ to a unique sibling, flush/fsync, compute its
   SHA-256, then write canonical JSON manifest to another sibling. Under a lock,
-  replace NPZ first and manifest last. Loader reads the manifest under the same
-  lock, verifies its self-hash and expected fingerprints, verifies NPZ bytes,
-  loads with `allow_pickle=False`, and validates shapes/order/norms.
+  publish an immutable content-addressed NPZ generation first and switch the
+  manifest pointer last. Retain prior generations. Loader reads the manifest under
+  the same lock, rejects unsafe referenced names/aliases, verifies its self-hash
+  and exact current ordered document fingerprints, verifies NPZ bytes, loads with
+  `allow_pickle=False`, and validates shapes/order/norms.
 
 - [x] **Step 4: Run focused index gates**
 
@@ -209,7 +211,7 @@ def test_directional_terms_rank_correct_address_fields(linker):
 
 **Interfaces:**
 - Consumes: `SchemaLinker`, catalog elements, explicit ground-truth JSONL, cache paths, and an encoder factory.
-- Produces: `GroundTruthCase`, `EvaluationReport`, `load_ground_truth(path, valid_elements, expected_count=50)`, `evaluate_linker(linker, cases, field_k=10, relation_k=5)`, and Click commands `build-index`, `query`, `evaluate`.
+- Produces: `GroundTruthCase`, `EvaluationReport`, `load_ground_truth(path, valid_elements, expected_count=50)`, `evaluate_linker(linker, cases, relation_k=5)` with fixed field Recall@5/@10 and full-pool MRR, and Click commands `build-index`, `query`, `evaluate`.
 
 - [x] **Step 1: Write failing evaluator and CLI tests**
 
@@ -255,7 +257,7 @@ def test_directional_terms_rank_correct_address_fields(linker):
 
 **Files:**
 - Create when evidence exists: `src/nl2sparql/linking/cache/schema-index.json`
-- Create when evidence exists: `src/nl2sparql/linking/cache/schema-index.npz`
+- Create when evidence exists: `src/nl2sparql/linking/cache/schema-index-<sha256>.npz`
 - Modify: `docs/tasks/phase-4-linking/01-schema-linker.md`
 - Modify: `docs/memory/05-DECISION_LOG.md`
 - Modify: `docs/superpowers/specs/2026-08-15-t4-1-google-sql-schema-linker-design.md` only if implementation reveals a contradiction.
@@ -299,18 +301,33 @@ git status --short --branch
 
   Read every exit code and test count before updating evidence.
 
-- [x] **Step 5: Request focused code review and fix all Critical/Important findings**
+- [ ] **Step 5: Request focused code review and fix all Critical/Important findings**
 
   Review the complete diff against the approved design and task acceptance.
   Re-run affected focused tests after each correction and repeat review until
   merge-ready.
 
-  Focused review result: **Approved**, with 0 Critical, 0 Important, and 0 Minor
-  findings. Reviewer independently inspected the committed NPZ matrices and
-  confirmed shapes, float32 dtype, unit norms, manifest/catalog hashes, element
-  order, model ID, document version, and score weights.
+  The earlier approval was superseded by the final whole-branch review of
+  `90bca619445c15aee9a7782ab50fcb3c361012e2`, which found 9 Important and 4
+  Minor issues. The remediation below is complete, but controller scoped
+  re-review remains pending before push.
 
 - [x] **Step 6: Commit and push the T4.1 checkpoint**
 
   Commit `docs(linking): complete T4.1 implementation checkpoint`, push
   `wip/continuous-backlog`, and verify the remote branch SHA with `git ls-remote`.
+
+### Final review remediation (2026-08-15)
+
+- [x] Bind every load to current ordered element IDs/document hashes and pass
+  fresh elements through both query/evaluate.
+- [x] Reject normalized-key/phrase synonym collisions and tokenless phrases
+  before encoder initialization.
+- [x] Emit fixed field Recall@5/@10 and compute MRR over the complete field pool;
+  correct first-extra-row line context and evaluator docstrings.
+- [x] Publish content-addressed matrix generations with manifest switch-last,
+  deterministic crash tests, retained prior generations, and safe no-alias load.
+- [x] Split explicit model dependency blockers from programming failures; rebuild
+  and strict-load the real MiniLM schema-v2 artifact.
+- [ ] Independent 50-row ground truth, scientific Recall, and warm latency report
+  remain external and were not generated by this remediation.

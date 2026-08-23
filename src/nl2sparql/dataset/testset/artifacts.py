@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import subprocess
 import tempfile
 from collections.abc import Mapping
@@ -48,7 +49,10 @@ _HEADERS: dict[str, str] = {
     "review_pool_c.csv": (
         "question_id,reviewer_id,nl_quality,faithfulness,difficulty,decision,notes\n"
     ),
-    "final_selection.csv": "question_id,final_difficulty,categories,entity_kinds,selection_note\n",
+    "final_selection.csv": (
+        "question_id,final_difficulty,categories,entity_kinds,schema_elements,cq_ids,"
+        "selection_note\n"
+    ),
 }
 _PROCESS = """# T3.5 three-pool collection process
 
@@ -92,19 +96,29 @@ def write_scaffold(root: Path, force: bool = False) -> ScaffoldReport:
     return ScaffoldReport(created_count=len(created), paths=tuple(created))
 
 
-def _git_commit() -> str:
+_GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _git_provenance() -> tuple[str, bool]:
     repository = Path(__file__).resolve().parents[4]
     try:
-        completed = subprocess.run(
+        revision = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=repository,
             check=True,
             capture_output=True,
             text=True,
         )
+        status = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
     except (OSError, subprocess.CalledProcessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
+        return "unknown", False
+    return revision.stdout.strip() or "unknown", bool(status.stdout.strip())
 
 
 def _input_digests(paths: tuple[Path, ...]) -> dict[str, str | None]:
@@ -131,10 +145,14 @@ def write_report(
     policy = SqlPolicy() if policy is None else policy
     payload.setdefault("status", "ready")
     payload.setdefault("generated_at", datetime.now(UTC).isoformat().replace("+00:00", "Z"))
+    git_commit, git_worktree_dirty = _git_provenance()
+    if payload["status"] == "ready" and not _GIT_SHA_RE.fullmatch(git_commit):
+        raise TestSetError("ready report requires a valid full lowercase git commit SHA")
     body = {
         **payload,
         "schema_version": 1,
-        "git_commit": _git_commit(),
+        "git_commit": git_commit,
+        "git_worktree_dirty": git_worktree_dirty,
         "input_digests": _input_digests(input_paths),
         "policy_caps": asdict(policy),
     }
@@ -179,15 +197,32 @@ def _atomic_write(path: Path, payload: bytes) -> None:
 def _selection_rows(path: Path) -> tuple[SelectionRecord, ...]:
     rows = load_csv(
         path,
-        ("question_id", "final_difficulty", "categories", "entity_kinds", "selection_note"),
-        required_values=("question_id", "final_difficulty", "categories", "entity_kinds"),
+        (
+            "question_id",
+            "final_difficulty",
+            "categories",
+            "entity_kinds",
+            "schema_elements",
+            "cq_ids",
+            "selection_note",
+        ),
+        required_values=(
+            "question_id",
+            "final_difficulty",
+            "categories",
+            "entity_kinds",
+            "schema_elements",
+            "cq_ids",
+        ),
     )
     return tuple(
         SelectionRecord(
             question_id=row["question_id"],
             final_difficulty=row["final_difficulty"],
-            categories=tuple(filter(None, row["categories"].split("|"))),
-            entity_kinds=tuple(filter(None, row["entity_kinds"].split("|"))),
+            categories=tuple(row["categories"].split("|")),
+            entity_kinds=tuple(row["entity_kinds"].split("|")),
+            schema_elements=tuple(row["schema_elements"].split("|")),
+            cq_ids=tuple(row["cq_ids"].split("|")),
             selection_note=row["selection_note"],
         )
         for row in rows
@@ -282,7 +317,7 @@ def finalize_bundle(
             {
                 "ambiguity_flag": gold.ambiguity_flag,
                 "categories": list(selection.categories),
-                "cq_ids": [],
+                "cq_ids": list(selection.cq_ids),
                 "difficulty": selection.final_difficulty,
                 "evidence_sha256": live.sql_sha256,
                 "expected_result_size": live.row_count,
@@ -290,7 +325,7 @@ def finalize_bundle(
                 "nl": source.nl,
                 "pool_b_writer": gold.writer_id,
                 "pool_c_reviewers": list(reviews[question_id]),
-                "schema_elements": [],
+                "schema_elements": list(selection.schema_elements),
                 "source": source.author_id,
                 "sql": gold.sql,
                 "verified_at": evidence.generated_at,

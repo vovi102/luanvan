@@ -38,6 +38,7 @@ dependencies = [
   "torch>=2.3,<2.6",
   "transformers>=4.40,<4.50",
   "trl>=0.8,<1",
+  "sqlglot>=30.17,<31",
 ]
 
 [dependency-groups]

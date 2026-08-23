@@ -31,7 +31,7 @@ Tooling nằm ở `src/nl2sparql/dataset/testset/` và CLI
 - `raw_pool_a.csv`: `question_id,author_id,nl,persona,source_batch`.
 - `sql_pool_b.csv`: `question_id,writer_id,sql,expected_columns,expected_empty,ambiguity_flag,notes`.
 - `review_pool_c.csv`: `question_id,reviewer_id,nl_quality,faithfulness,difficulty,decision,notes`.
-- `final_selection.csv`: `question_id,final_difficulty,categories,entity_kinds,selection_note`.
+- `final_selection.csv`: `question_id,final_difficulty,categories,entity_kinds,schema_elements,cq_ids,selection_note`.
 - `test-100.jsonl`: SQL-native final records with NL, SQL, difficulty, categories,
   schema/CQ provenance, reviewer IDs, result size, SQL evidence hash and UTC
   verification time. Không có field SPARQL/Fuseki.
@@ -55,18 +55,25 @@ finalize      chỉ publish test-100 khi bundle + live evidence + selection pass
 - [x] Typed CSV contracts fail closed với header, ID, text/control-character,
   pseudonym và boolean lỗi.
 - [x] Bundle validator kiểm tra NL dedup, Pool A/B join, ≥3 author và ≥20 câu/
-  author, review ownership, reject rate, deterministic double-review subset và
-  Cohen's kappa.
+  author, ba tập identity Pool A/B/C pairwise-disjoint, review ownership, reject
+  rate, đúng một reviewer pair ổn định trên double-review subset và Cohen's kappa
+  không degenerate.
 - [x] Selection validator yêu cầu đúng 100 dòng, quota `easy=30, medium=50,
-  hard=20`, ≥6 category và ≥3 entity kinds.
-- [x] SQL adapter enforce read-only/managed-object policy, 20 GiB/query, 64 GiB
+  hard=20`, ≥6 category và ≥3 entity kinds sau trim/normalize/deduplicate theo
+  vocabulary; `schema_elements`/`cq_ids` bắt buộc tồn tại trong catalog canonical.
+- [x] Offline validator và SQL adapter dùng SQLGlot BigQuery AST để enforce một
+  read-only query, explicit projections và kiểm tra mọi direct relation/table
+  function theo allowlist (kể cả unquoted/mixed join/CTE); 20 GiB/query, 64 GiB
   aggregate, cache-off, complete dry-run preflight, batch-wide re-preflight và
   bounded result preview; Pool B bắt buộc khai báo ordered `expected_columns`
   và live result phải khớp chính xác.
 - [x] Scaffold/report/finalizer/CLI có atomic publication, hash evidence và
   metadata provenance, structured blocked behavior và fail-closed evidence
-  validation; offline mode không khởi tạo BigQuery client.
-- [x] Focused verification: 33 tests pass; full repository: 426 tests pass;
+  validation; ready report yêu cầu full lowercase commit SHA và ghi tracked
+  worktree dirty provenance; deterministic BigQuery `BadRequest` là `failed`,
+  transient API failure là `blocked`; offline mode không khởi tạo BigQuery client.
+- [x] Focused verification sau final review fix wave: 68 tests pass; full
+  repository: 558 tests pass;
   Ruff và format pass; scaffold/CLI help chạy không cần credentials; empty
   scaffold validate fail closed.
 
@@ -98,7 +105,7 @@ Nếu intent mơ hồ, flag để Pool C quyết định; không âm thầm ch�
 
 Mỗi reviewer chấm NL quality, faithfulness (1–5), difficulty và
 `ACCEPT/REVISE/REJECT`. Hai reviewer độc lập cùng chấm subset 30 để tính kappa;
-reviewer không tham gia viết cặp tương ứng.
+reviewer không tham gia Pool A/B; identity của ba pool tách biệt trên toàn process.
 
 ## Handoff và kiểm chứng
 

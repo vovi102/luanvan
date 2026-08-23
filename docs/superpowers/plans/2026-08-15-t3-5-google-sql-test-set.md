@@ -4,9 +4,9 @@
 
 **Goal:** Build a credential-free, fail-closed three-pool workflow that can validate and later finalize 100 independent GoogleSQL test cases without fabricating human or BigQuery evidence.
 
-**Architecture:** A deep `src/nl2sparql/dataset/testset/` module owns typed CSV contracts, bundle validation, review statistics, SQL safety, live evidence, and deterministic finalization. A Click CLI exposes scaffold, validate, verify-live, and finalize modes; the BigQuery client is injected as an adapter and never created in offline mode.
+**Architecture:** A deep `src/nl2sparql/dataset/testset/` module owns typed CSV contracts, bundle validation, review statistics, BigQuery-dialect AST SQL safety, live evidence, and deterministic finalization. A Click CLI exposes scaffold, validate, verify-live, and finalize modes; the BigQuery client is injected as an adapter and never created in offline mode.
 
-**Tech Stack:** Python 3.11, dataclasses, csv/json/hashlib, Click, google-cloud-bigquery, pytest, Ruff.
+**Tech Stack:** Python 3.11, dataclasses, csv/json/hashlib, Click, SQLGlot, google-cloud-bigquery, pytest, Ruff.
 
 ## Global Constraints
 
@@ -14,6 +14,8 @@
 - Final difficulty counts are exactly `easy=30`, `medium=50`, `hard=20`.
 - BigQuery policy is 20 GiB per query and 64 GiB aggregate, with cache disabled and complete dry-run preflight.
 - Human identifiers are pseudonyms; no emails or free-form names are accepted.
+- Pool A/B/C identity sets are pairwise-disjoint and the 30 kappa rows use one
+  stable reviewer pair; degenerate kappa never passes.
 - Offline commands must not instantiate a BigQuery client or require credentials.
 - Finalization requires explicit `final_selection.csv` and matching live evidence; missing external inputs produce `blocked`, not fake data.
 - Tests are written before implementation, and every public function has Google-style docstrings and type hints.
@@ -24,6 +26,8 @@
 - Create `src/nl2sparql/dataset/testset/contracts.py`: typed records, paths, policies, and domain errors.
 - Create `src/nl2sparql/dataset/testset/validate.py`: CSV decoding, cross-file validation, review aggregation, kappa, and quota reports.
 - Create `src/nl2sparql/dataset/testset/live.py`: read-only SQL checks and injected BigQuery execution adapter.
+- Create `src/nl2sparql/dataset/testset/sql_safety.py`: pure SQLGlot BigQuery AST
+  validation shared by offline and live paths.
 - Create `src/nl2sparql/dataset/testset/artifacts.py`: scaffold, evidence/report serialization, deterministic final JSONL, and atomic publication.
 - Create `src/nl2sparql/dataset/testset/__init__.py`: the small public interface exported by the package.
 - Create `scripts/test_set_workflow.py` and `scripts/12_test_set_workflow.py`: Click orchestration and numbered entry point with credential-free offline modes.
@@ -137,7 +141,9 @@
 
 - [x] **Step 3: Implement policy and injected adapter**
 
-  Reuse the managed catalog prefix and existing GoogleSQL budget conventions.
+  Parse with the SQLGlot BigQuery dialect, resolve CTE scopes, and allow only
+  exact managed direct relations/table functions. Reuse existing GoogleSQL
+  budget conventions.
   Call `client.query` with dry-run config for every case before execution, sum
   estimates before executing anything, and reject any cache hit or billed bytes
   over the caps. Record query SHA-256, job ID, result count, columns, bytes, and
@@ -220,3 +226,16 @@
   Commit `docs(dataset): migrate T3.5 to GoogleSQL test-set contract` after all
   checks pass. If Git metadata remains read-only, preserve the complete diff and
   report that commit/push is externally blocked.
+
+### Final review remediation (2026-08-15)
+
+- [x] Add AST-based offline/live SQL relation allowlisting and the `sqlglot`
+  production dependency with synchronized lockfile.
+- [x] Reject degenerate kappa, changing reviewer pairs, and all cross-pool role
+  identity overlap.
+- [x] Normalize coverage labels; validate and propagate explicit schema/CQ
+  annotations from `final_selection.csv`.
+- [x] Require valid ready-report Git SHA, record tracked dirty provenance, and
+  distinguish deterministic BigQuery validation failures from transient blockers.
+- [ ] Real three-pool submissions, consent, BigQuery execution, and final 100-row
+  evidence remain external and were not fabricated by this remediation.

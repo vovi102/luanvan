@@ -18,6 +18,21 @@ class TestSetError(ValueError):
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{1,63}$")
 _COLUMN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_CATEGORIES = frozenset(
+    {
+        "class_level",
+        "comparison",
+        "entity_lookup",
+        "multi_hop",
+        "simple_filter",
+        "temporal_pattern",
+        "time_range",
+        "token_specific",
+        "top_k",
+        "transaction_aggregation",
+    }
+)
+_ENTITY_KINDS = frozenset({"address_only", "concept_class", "named_entity"})
 
 
 def _text(value: str, field: str) -> str:
@@ -33,6 +48,36 @@ def _identifier(value: str, field: str) -> str:
     if "@" in value or not _IDENTIFIER_RE.fullmatch(value):
         raise TestSetError(f"{field} must be a pseudonym")
     return value
+
+
+def _normalized_labels(
+    values: tuple[str, ...], field: str, accepted: frozenset[str]
+) -> tuple[str, ...]:
+    if not isinstance(values, tuple):
+        raise TestSetError(f"{field} must be a tuple")
+    normalized: list[str] = []
+    for value in values:
+        label = _text(value, field).casefold()
+        if label not in accepted:
+            raise TestSetError(f"unknown {field} label: {value!r}")
+        if label not in normalized:
+            normalized.append(label)
+    return tuple(normalized)
+
+
+def _normalized_annotations(
+    values: tuple[str, ...], field: str, *, uppercase: bool = False
+) -> tuple[str, ...]:
+    if not isinstance(values, tuple):
+        raise TestSetError(f"{field} must be a tuple")
+    normalized: list[str] = []
+    for value in values:
+        annotation = _text(value, field)
+        if uppercase:
+            annotation = annotation.upper()
+        if annotation not in normalized:
+            normalized.append(annotation)
+    return tuple(normalized)
 
 
 def parse_bool(value: str) -> bool:
@@ -190,6 +235,34 @@ class SelectionRecord:
     categories: tuple[str, ...]
     selection_note: str
     entity_kinds: tuple[str, ...] = ()
+    schema_elements: tuple[str, ...] = ()
+    cq_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "question_id", _identifier(self.question_id, "question_id"))
+        if self.final_difficulty not in ReviewRecord.DIFFICULTIES:
+            raise TestSetError(f"invalid final difficulty: {self.final_difficulty!r}")
+        object.__setattr__(
+            self,
+            "categories",
+            _normalized_labels(self.categories, "category", _CATEGORIES),
+        )
+        object.__setattr__(
+            self,
+            "entity_kinds",
+            _normalized_labels(self.entity_kinds, "entity kind", _ENTITY_KINDS),
+        )
+        object.__setattr__(
+            self,
+            "schema_elements",
+            _normalized_annotations(self.schema_elements, "schema element"),
+        )
+        object.__setattr__(
+            self,
+            "cq_ids",
+            _normalized_annotations(self.cq_ids, "CQ ID", uppercase=True),
+        )
+        object.__setattr__(self, "selection_note", self.selection_note.strip())
 
 
 @dataclass(frozen=True)
