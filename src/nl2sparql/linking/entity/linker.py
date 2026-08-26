@@ -26,7 +26,7 @@ _TOKEN_RE = re.compile(r"[^\W_]+", re.UNICODE)
 _FUZZY_CUTOFF = 0.85
 _SEMANTIC_CUTOFF = 0.75
 _DIFFERENT_TARGET_MARGIN = 0.03
-_STOPWORDS = frozenset(
+_COMMON_QUERY_WORDS = frozenset(
     {
         "a",
         "an",
@@ -34,15 +34,42 @@ _STOPWORDS = frozenset(
         "are",
         "at",
         "by",
+        "can",
+        "count",
+        "counts",
+        "could",
+        "did",
+        "do",
+        "does",
+        "find",
         "for",
         "from",
+        "get",
+        "give",
+        "how",
         "in",
+        "is",
+        "list",
+        "many",
         "of",
         "on",
         "or",
+        "show",
         "the",
+        "there",
         "to",
+        "total",
+        "wallet",
+        "wallets",
+        "was",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
         "with",
+        "why",
     }
 )
 
@@ -81,29 +108,72 @@ class _Window:
 
 def _normalize_question(question: str) -> _NormalizedQuestion:
     """NFKC/casefold text while retaining source ranges for every output character."""
+    canonical = unicodedata.normalize("NFKC", question).casefold()
+    text, starts, ends = _segment_normalized_offsets(question)
+    if text != canonical:
+        text, starts, ends = _prefix_normalized_offsets(question)
+    return _collapse_whitespace(text, starts, ends)
+
+
+def _segment_normalized_offsets(question: str) -> tuple[str, list[int], list[int]]:
+    """Map stable starter-plus-combining segments without splitting composition inputs."""
     characters: list[str] = []
     starts: list[int] = []
     ends: list[int] = []
+    segment_start = 0
+    for offset in range(1, len(question) + 1):
+        if offset < len(question) and unicodedata.combining(question[offset]):
+            continue
+        normalized = unicodedata.normalize("NFKC", question[segment_start:offset]).casefold()
+        for output_character in normalized:
+            characters.append(output_character)
+            starts.append(segment_start)
+            ends.append(offset)
+        segment_start = offset
+    return "".join(characters), starts, ends
+
+
+def _prefix_normalized_offsets(question: str) -> tuple[str, list[int], list[int]]:
+    """Correctly map the rare NFKC interaction that crosses a starter boundary."""
+    text = ""
+    starts: list[int] = []
+    ends: list[int] = []
+    for offset in range(1, len(question) + 1):
+        next_text = unicodedata.normalize("NFKC", question[:offset]).casefold()
+        common = 0
+        while common < len(text) and common < len(next_text) and text[common] == next_text[common]:
+            common += 1
+        source_start = starts[common] if common < len(starts) else offset - 1
+        text = next_text
+        starts[common:] = [source_start] * (len(text) - common)
+        ends[common:] = [offset] * (len(text) - common)
+    return text, starts, ends
+
+
+def _collapse_whitespace(
+    text: str, starts: list[int], ends: list[int]
+) -> _NormalizedQuestion:
+    characters: list[str] = []
+    mapped_starts: list[int] = []
+    mapped_ends: list[int] = []
     pending_space: tuple[int, int] | None = None
-    for offset, character in enumerate(question):
-        normalized = unicodedata.normalize("NFKC", character).casefold()
-        if normalized.isspace():
+    for character, start, end in zip(text, starts, ends, strict=True):
+        if character.isspace():
             if characters:
                 pending_space = (
-                    pending_space[0] if pending_space else offset,
-                    offset + 1,
+                    pending_space[0] if pending_space else start,
+                    end,
                 )
             continue
         if pending_space is not None:
             characters.append(" ")
-            starts.append(pending_space[0])
-            ends.append(pending_space[1])
+            mapped_starts.append(pending_space[0])
+            mapped_ends.append(pending_space[1])
             pending_space = None
-        for output_character in normalized:
-            characters.append(output_character)
-            starts.append(offset)
-            ends.append(offset + 1)
-    return _NormalizedQuestion("".join(characters), tuple(starts), tuple(ends))
+        characters.append(character)
+        mapped_starts.append(start)
+        mapped_ends.append(end)
+    return _NormalizedQuestion("".join(characters), tuple(mapped_starts), tuple(mapped_ends))
 
 
 def _has_phrase_boundaries(text: str, start: int, end: int) -> bool:
@@ -152,7 +222,7 @@ class EntityLinker:
         required_text(question, "question")
         normalized = _normalize_question(question)
         address_matches = self._address_proposals(question)
-        exact_matches = self._exact_proposals(normalized, address_matches)
+        exact_matches = self._exact_proposals(question, normalized, address_matches)
         exact_selected = self._select_non_overlapping((*address_matches, *exact_matches))
         fuzzy_selected = self._select_non_overlapping(
             self._fuzzy_proposals(normalized, exact_selected)
@@ -174,7 +244,10 @@ class EntityLinker:
         return tuple(proposals)
 
     def _exact_proposals(
-        self, normalized: _NormalizedQuestion, addresses: tuple[_Proposal, ...]
+        self,
+        question: str,
+        normalized: _NormalizedQuestion,
+        addresses: tuple[_Proposal, ...],
     ) -> tuple[_Proposal, ...]:
         if not normalized.text:
             return ()
@@ -186,9 +259,12 @@ class EntityLinker:
                 if _has_phrase_boundaries(normalized.text, start, end):
                     source_start = normalized.starts[start]
                     source_end = normalized.ends[end - 1]
+                    source_span = question[source_start:source_end]
                     if not any(
                         source_start < address.end and address.start < source_end
                         for address in addresses
+                    ) and (
+                        phrase not in _COMMON_QUERY_WORDS or source_span.isupper()
                     ):
                         proposals.append(
                             _Proposal(source_start, source_end, target_ids[:3], "exact", 1.0)
@@ -203,6 +279,8 @@ class EntityLinker:
         for window in self._uncovered_windows(normalized, covered):
             scores: dict[str, float] = {}
             for phrase, target_ids in self._corpus.phrase_targets.items():
+                if phrase in _COMMON_QUERY_WORDS:
+                    continue
                 score = ratio(window.text, phrase) / 100.0
                 if score < _FUZZY_CUTOFF:
                     continue
@@ -315,14 +393,19 @@ class EntityLinker:
                 words = tuple(token.group() for token in _TOKEN_RE.finditer(text))
                 if not any(any(character.isalpha() for character in word) for word in words):
                     continue
-                if words and all(word in _STOPWORDS for word in words):
+                if words and all(word in _COMMON_QUERY_WORDS for word in words):
                     continue
                 windows.append(_Window(text, first.source_start, last.source_end))
         return tuple(windows)
 
     @staticmethod
     def _validated_query_embeddings(raw: object, count: int, dimension: int) -> np.ndarray:
-        array = np.asarray(raw)
+        try:
+            array = np.asarray(raw)
+        except (TypeError, ValueError) as exc:
+            raise EntityLinkerError(
+                "entity encoder output must be numeric and rectangular"
+            ) from exc
         if array.ndim != 2:
             raise EntityLinkerError("entity encoder output rank is invalid")
         if array.shape[0] != count:
@@ -344,9 +427,9 @@ class EntityLinker:
         ordered = sorted(
             proposals,
             key=lambda item: (
-                item.start,
                 0 if item.stage == "address" else 1,
                 -(item.end - item.start),
+                item.start,
                 item.target_ids[0],
             ),
         )

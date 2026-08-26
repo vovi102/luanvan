@@ -15,6 +15,7 @@ from nl2sparql.linking.entity import (
     EntityLinker,
     EntityLinkerError,
     EntityTarget,
+    build_entity_corpus,
 )
 
 
@@ -144,6 +145,11 @@ class MissingEncoder:
         raise ImportError("encoder package is absent")
 
 
+class NoModelEncoder:
+    def encode(self, sentences, *, normalize_embeddings=True):
+        raise AssertionError("no encoder should be needed for this regression")
+
+
 @pytest.fixture
 def linker(corpus: EntityCorpus, index: EntityIndex) -> EntityLinker:
     return EntityLinker(corpus, index, FakeEncoder())
@@ -198,6 +204,160 @@ def test_longest_non_overlapping_exact_span_wins(linker: EntityLinker) -> None:
         ("binance hot", "owner:Binance"),
         ("binance", "owner:Binance"),
     ]
+
+
+def test_longest_crossing_exact_span_wins_before_source_offset(
+    corpus: EntityCorpus, index: EntityIndex
+) -> None:
+    targets = tuple(
+        _target(
+            target.target_id,
+            target.owner,
+            tuple(sorted((*target.aliases, "alpha beta")))
+            if target.target_id == "concept:dex"
+            else target.aliases,
+            addresses=target.addresses,
+        )
+        if target.target_id == "concept:dex"
+        else _target(
+            target.target_id,
+            target.owner,
+            tuple(sorted((*target.aliases, "beta gamma delta")))
+            if target.target_id == "owner:TrustSwap"
+            else target.aliases,
+            addresses=target.addresses,
+        )
+        for target in corpus.targets
+    )
+    crossing_corpus = EntityCorpus(
+        targets=targets,
+        targets_by_id={target.target_id: target for target in targets},
+        phrase_targets={
+            **corpus.phrase_targets,
+            "alpha beta": ("concept:dex",),
+            "beta gamma delta": ("owner:TrustSwap",),
+        },
+        address_targets=corpus.address_targets,
+        entities_sha256=corpus.entities_sha256,
+        aliases_sha256=corpus.aliases_sha256,
+        concepts_sha256=corpus.concepts_sha256,
+    )
+    crossing_index = EntityIndex(
+        EntityIndexMetadata(
+            **{
+                **index.metadata.__dict__,
+                "target_document_sha256": tuple(target.document_sha256 for target in targets),
+            }
+        ),
+        index.target_embeddings,
+    )
+    linker = EntityLinker(crossing_corpus, crossing_index, FakeEncoder())
+
+    assert [(match.span, match.target_id) for match in linker.link("alpha beta gamma delta")] == [
+        ("beta gamma delta", "owner:TrustSwap")
+    ]
+
+
+def test_exact_matching_composes_unicode_before_mapping_original_offsets(
+    corpus: EntityCorpus, index: EntityIndex
+) -> None:
+    target = _target("concept:cafe", None, ("café",))
+    composed_corpus = EntityCorpus(
+        targets=tuple(sorted((*corpus.targets, target), key=lambda item: item.target_id)),
+        targets_by_id={**corpus.targets_by_id, target.target_id: target},
+        phrase_targets={**corpus.phrase_targets, "café": (target.target_id,)},
+        address_targets=corpus.address_targets,
+        entities_sha256=corpus.entities_sha256,
+        aliases_sha256=corpus.aliases_sha256,
+        concepts_sha256=corpus.concepts_sha256,
+    )
+    embeddings = np.vstack(
+        (index.target_embeddings, np.asarray([[1.0, 0.0, 0.0]], dtype=np.float32))
+    )
+    embeddings.setflags(write=False)
+    composed_index = EntityIndex(
+        EntityIndexMetadata(
+            **{
+                **index.metadata.__dict__,
+                "target_ids": tuple(target.target_id for target in composed_corpus.targets),
+                "target_document_sha256": tuple(
+                    target.document_sha256 for target in composed_corpus.targets
+                ),
+            }
+        ),
+        embeddings,
+    )
+    linker = EntityLinker(composed_corpus, composed_index, FakeEncoder())
+    question = "visit cafe\u0301 now"
+
+    match = linker.link(question)[0]
+
+    assert (match.span, match.span_offset, match.target_id) == (
+        "cafe\u0301",
+        (6, 11),
+        "concept:cafe",
+    )
+
+
+def test_common_one_token_alias_requires_an_uppercase_entity_signal(
+    corpus: EntityCorpus, index: EntityIndex
+) -> None:
+    target = _target("concept:show", None, ("show",))
+    common_corpus = EntityCorpus(
+        targets=tuple(sorted((*corpus.targets, target), key=lambda item: item.target_id)),
+        targets_by_id={**corpus.targets_by_id, target.target_id: target},
+        phrase_targets={**corpus.phrase_targets, "show": (target.target_id,)},
+        address_targets=corpus.address_targets,
+        entities_sha256=corpus.entities_sha256,
+        aliases_sha256=corpus.aliases_sha256,
+        concepts_sha256=corpus.concepts_sha256,
+    )
+    embeddings = np.vstack(
+        (index.target_embeddings, np.asarray([[1.0, 0.0, 0.0]], dtype=np.float32))
+    )
+    embeddings.setflags(write=False)
+    common_index = EntityIndex(
+        EntityIndexMetadata(
+            **{
+                **index.metadata.__dict__,
+                "target_ids": tuple(target.target_id for target in common_corpus.targets),
+                "target_document_sha256": tuple(
+                    target.document_sha256 for target in common_corpus.targets
+                ),
+            }
+        ),
+        embeddings,
+    )
+    linker = EntityLinker(common_corpus, common_index, FakeEncoder())
+
+    assert linker.link("show") == ()
+    assert linker.link("SHOW")[0].target_id == "concept:show"
+
+
+def test_production_common_question_words_do_not_fabricate_an_entity() -> None:
+    real_corpus = build_entity_corpus()
+    embeddings = np.ones((len(real_corpus.targets), 1), dtype=np.float32)
+    embeddings.setflags(write=False)
+    real_index = EntityIndex(
+        EntityIndexMetadata(
+            schema_version=1,
+            model_id="fake/model",
+            document_version="1.0.0",
+            entities_sha256=real_corpus.entities_sha256,
+            aliases_sha256=real_corpus.aliases_sha256,
+            concepts_sha256=real_corpus.concepts_sha256,
+            matrices_sha256="d" * 64,
+            dimension=1,
+            target_ids=tuple(target.target_id for target in real_corpus.targets),
+            target_document_sha256=tuple(target.document_sha256 for target in real_corpus.targets),
+            manifest_sha256="e" * 64,
+        ),
+        embeddings,
+    )
+
+    linker = EntityLinker(real_corpus, real_index, NoModelEncoder())
+
+    assert linker.link("show how many wallets") == ()
 
 
 def test_exact_collision_returns_deterministic_ambiguity(linker: EntityLinker) -> None:
@@ -273,6 +433,7 @@ def test_no_entity_evidence_returns_an_empty_tuple(
         (np.tile(np.asarray([[1.0, 0.0]]), (6, 1)), "dimension"),
         (np.tile(np.asarray([[np.nan, 0.0, 0.0]]), (6, 1)), "finite"),
         (np.ones((6, 3)), "normalized"),
+        ([[1.0, 0.0, 0.0], [1.0]], "numeric"),
     ],
 )
 def test_link_rejects_malformed_encoder_outputs(
