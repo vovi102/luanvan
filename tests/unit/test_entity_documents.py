@@ -181,6 +181,19 @@ def test_build_entity_corpus_rejects_malformed_tokenless_or_noncanonical_aliases
         build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
 
 
+@pytest.mark.parametrize("alias", [" binance", "binance  treasury"])
+def test_build_entity_corpus_rejects_noncanonical_entity_alias_whitespace(
+    tmp_path: Path, alias: str
+) -> None:
+    artifacts = _write_artifacts(tmp_path)
+    entities = json.loads(artifacts.entities_path.read_text(encoding="utf-8"))
+    entities[0]["aliases"] = [alias]
+    artifacts.entities_path.write_text(json.dumps(entities), encoding="utf-8")
+
+    with pytest.raises(EntityDocumentError, match="normalized"):
+        build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
+
+
 def _owner_target() -> EntityTarget:
     document = "Owner: Binance"
     return EntityTarget(

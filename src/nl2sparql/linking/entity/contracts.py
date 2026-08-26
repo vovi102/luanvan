@@ -72,7 +72,7 @@ def validate_canonical_phrase(value: object, label: str) -> str:
     """Return a canonical, token-bearing corpus phrase or fail closed."""
     text = required_text(value, label)
     normalized = " ".join(unicodedata.normalize("NFKC", text).casefold().split())
-    if text != normalized:
+    if value != normalized:
         raise EntityLinkerError(f"{label} must be normalized")
     if not any(character.isalnum() for character in normalized):
         raise EntityLinkerError(f"{label} must contain a token")

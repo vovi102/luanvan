@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 
 ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
 GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -14,7 +15,7 @@ class DictionaryValidationError(ValueError):
 
 
 def normalize_alias(value: str) -> str:
-    normalized = " ".join(value.strip().lower().split())
+    normalized = " ".join(unicodedata.normalize("NFKC", value).casefold().split())
     if not normalized:
         raise DictionaryValidationError("Alias must not be empty")
     return normalized

@@ -8,7 +8,8 @@ from types import ModuleType
 
 import pytest
 
-from nl2sparql.linking.dictionary.build import build_dictionary
+from nl2sparql.linking.dictionary import ALIASES_PATH, CONCEPTS_PATH, ENTITIES_PATH, SOURCES_PATH
+from nl2sparql.linking.dictionary.build import build_dictionary, write_dictionary
 from nl2sparql.linking.dictionary.schema import (
     DictionaryValidationError,
     normalize_address,
@@ -19,6 +20,8 @@ from nl2sparql.linking.dictionary.schema import (
     validate_source_locator,
     validate_source_revision,
 )
+from nl2sparql.linking.dictionary.validate import DictionaryArtifacts
+from nl2sparql.linking.entity import build_entity_corpus
 
 
 @pytest.fixture(scope="module")
@@ -52,6 +55,38 @@ def valid_chain_aware_row(*, address: str) -> dict[str, str]:
 
 def test_normalize_alias_lowercases_trims_and_collapses_spaces():
     assert normalize_alias("  Binance   Hot Wallet  ") == "binance hot wallet"
+
+
+def test_normalize_alias_applies_nfkc_before_casefolding():
+    assert normalize_alias("bitcoin.ℏ") == "bitcoin.ħ"
+
+
+def test_committed_dictionary_rebuild_is_byte_equivalent_and_accepted_by_entity_corpus(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "dictionary"
+    write_dictionary(
+        build_dictionary(
+            Path("data/entity_dictionary/raw/entities.csv"),
+            Path("data/entity_dictionary/curated/concepts.json"),
+        ),
+        output_dir,
+    )
+
+    for filename, committed_path in (
+        ("entities.json", ENTITIES_PATH),
+        ("concepts.json", CONCEPTS_PATH),
+        ("aliases.json", ALIASES_PATH),
+    ):
+        assert (output_dir / filename).read_bytes() == committed_path.read_bytes()
+
+    artifacts = DictionaryArtifacts(
+        entities_path=output_dir / "entities.json",
+        concepts_path=output_dir / "concepts.json",
+        aliases_path=output_dir / "aliases.json",
+        sources_path=SOURCES_PATH,
+    )
+    assert build_entity_corpus(artifacts) == build_entity_corpus(artifacts)
 
 
 def test_normalize_address_returns_lowercase_key():
