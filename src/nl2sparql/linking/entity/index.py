@@ -174,11 +174,11 @@ def _publication_checkpoint(point: str) -> None:
     """No-op hook used to simulate process death at durable boundaries in tests."""
 
 
-def _read_matrix_generation(path: Path) -> bytes:
+def _read_single_link_regular_file(path: Path, label: str) -> bytes:
     try:
         before = path.lstat()
         if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-            raise EntityIndexError("entity index matrix generation is an unsafe alias")
+            raise EntityIndexError(f"entity index {label} is an unsafe alias")
         flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
         descriptor = os.open(path, flags)
         try:
@@ -188,7 +188,7 @@ def _read_matrix_generation(path: Path) -> bytes:
                 or after.st_nlink != 1
                 or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
             ):
-                raise EntityIndexError("entity index matrix generation is an unsafe alias")
+                raise EntityIndexError(f"entity index {label} is an unsafe alias")
             with os.fdopen(descriptor, "rb", closefd=False) as handle:
                 return handle.read()
         finally:
@@ -196,7 +196,15 @@ def _read_matrix_generation(path: Path) -> bytes:
     except EntityIndexError:
         raise
     except OSError as exc:
-        raise EntityIndexError(f"unable to read entity index matrix generation: {exc}") from exc
+        raise EntityIndexError(f"unable to read entity index {label}: {exc}") from exc
+
+
+def _read_manifest(path: Path) -> bytes:
+    return _read_single_link_regular_file(path, "manifest")
+
+
+def _read_matrix_generation(path: Path) -> bytes:
+    return _read_single_link_regular_file(path, "matrix generation")
 
 
 def _publish_generation(
@@ -405,7 +413,7 @@ def load_index(
     model_id, document_version = _validate_build_arguments(corpus, model_id, document_version)
     try:
         with _index_lock(paths.lock):
-            manifest_bytes = paths.manifest.read_bytes()
+            manifest_bytes = _read_manifest(paths.manifest)
             body, manifest_sha256 = _parse_manifest(manifest_bytes)
             _validate_manifest_identity(body, corpus, model_id, document_version)
             matrices_file = _matrix_filename(body)

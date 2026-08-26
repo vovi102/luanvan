@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 from dataclasses import replace
@@ -48,11 +49,19 @@ class BrokenEncoder:
 
     def encode(self, sentences, *, normalize_embeddings=True):
         count = len(list(sentences))
+        if self.mode == "wrong_rows":
+            count += 1
+        if self.mode == "rank":
+            return np.ones(count, dtype=np.float64)
+        if self.mode == "non_numeric":
+            return [["not a number"]] * count
         rows = np.ones((count, 3), dtype=np.float64)
+        if self.mode not in {"unnormalized", "nan", "infinite"}:
+            rows /= np.linalg.norm(rows, axis=1, keepdims=True)
         if self.mode == "nan":
             rows[0, 0] = np.nan
-        if self.mode != "unnormalized":
-            rows /= np.linalg.norm(rows, axis=1, keepdims=True)
+        if self.mode == "infinite":
+            rows[0, 0] = np.inf
         return rows
 
 
@@ -110,6 +119,18 @@ def _rewrite_manifest(path: Path, payload: dict[str, object]) -> None:
     path.write_text(
         json.dumps(body, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"
     )
+
+
+def _publish_test_matrix(paths: EntityCachePaths, matrix: np.ndarray) -> None:
+    payload = json.loads(paths.manifest.read_bytes())
+    buffer = io.BytesIO()
+    np.savez_compressed(buffer, target_embeddings=matrix)
+    matrix_bytes = buffer.getvalue()
+    digest = hashlib.sha256(matrix_bytes).hexdigest()
+    paths.matrix_generation(digest).write_bytes(matrix_bytes)
+    payload["matrices_sha256"] = digest
+    payload["matrices_file"] = paths.matrix_generation(digest).name
+    _rewrite_manifest(paths.manifest, payload)
 
 
 def test_build_and_load_entity_index_uses_content_addressed_generation(
@@ -179,13 +200,24 @@ def test_load_rejects_digest_tamper_and_current_document_tamper(
     assert built.metadata.matrices_sha256
 
 
-def test_build_rejects_non_normalized_vectors_without_publishing(
-    tmp_path: Path, corpus: EntityCorpus
+@pytest.mark.parametrize(
+    ("mode", "message"),
+    (
+        ("unnormalized", "normalized"),
+        ("nan", "finite"),
+        ("infinite", "finite"),
+        ("wrong_rows", "row count"),
+        ("rank", "row count or rank"),
+        ("non_numeric", "numeric"),
+    ),
+)
+def test_build_rejects_invalid_encoder_vectors_without_publishing(
+    tmp_path: Path, corpus: EntityCorpus, mode: str, message: str
 ) -> None:
     paths = EntityCachePaths.from_directory(tmp_path)
 
-    with pytest.raises(EntityIndexError, match="normalized"):
-        build_index(corpus, BrokenEncoder("unnormalized"), paths, model_id=MODEL_ID)
+    with pytest.raises(EntityIndexError, match=message):
+        build_index(corpus, BrokenEncoder(mode), paths, model_id=MODEL_ID)
 
     assert not paths.manifest.exists()
     assert not list(tmp_path.glob("entity-index-*.npz"))
@@ -217,6 +249,43 @@ def test_load_rejects_traversal_symlink_and_hardlink_aliases(
     with pytest.raises(EntityIndexError, match="alias"):
         load_index(paths, corpus, model_id=MODEL_ID)
     assert built.metadata.matrices_file
+
+
+def test_load_rejects_symlink_and_hardlink_manifest_aliases(
+    tmp_path: Path, corpus: EntityCorpus
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+    build_index(corpus, FakeEncoder(), paths, model_id=MODEL_ID)
+    saved_manifest = tmp_path / "saved-manifest.json"
+    paths.manifest.rename(saved_manifest)
+    paths.manifest.symlink_to(saved_manifest)
+
+    with pytest.raises(EntityIndexError, match="manifest.*alias"):
+        load_index(paths, corpus, model_id=MODEL_ID)
+
+    paths.manifest.unlink()
+    os.link(saved_manifest, paths.manifest)
+    with pytest.raises(EntityIndexError, match="manifest.*alias"):
+        load_index(paths, corpus, model_id=MODEL_ID)
+
+
+@pytest.mark.parametrize(
+    ("matrix", "message"),
+    (
+        (np.ones((2, 3), dtype=np.float32), "normalized"),
+        (np.asarray([[np.nan, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float32), "finite"),
+        (np.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float64), "float32"),
+    ),
+)
+def test_load_rejects_self_consistent_malformed_persisted_vectors(
+    tmp_path: Path, corpus: EntityCorpus, matrix: np.ndarray, message: str
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+    build_index(corpus, FakeEncoder(), paths, model_id=MODEL_ID)
+    _publish_test_matrix(paths, matrix)
+
+    with pytest.raises(EntityIndexError, match=message):
+        load_index(paths, corpus, model_id=MODEL_ID)
 
 
 def test_build_rejects_future_generation_symlink_or_hardlink_alias(
@@ -267,3 +336,33 @@ def test_publication_failures_before_and_after_manifest_switch_are_recoverable(
         assert load_index(paths, corpus, model_id=MODEL_ID).metadata.matrices_file == _matrix_path(
             paths
         ).name
+
+
+@pytest.mark.parametrize("crash_point", ("matrix_generation_durable", "manifest_durable"))
+def test_interrupted_rebuild_preserves_a_readable_accepted_generation(
+    tmp_path: Path,
+    corpus: EntityCorpus,
+    monkeypatch: pytest.MonkeyPatch,
+    crash_point: str,
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+    accepted = build_index(corpus, FakeEncoder(), paths, model_id=MODEL_ID)
+    old_manifest = paths.manifest.read_bytes()
+    old_generation = _matrix_path(paths)
+
+    def crash(point: str) -> None:
+        if point == crash_point:
+            raise SimulatedCrash(point)
+
+    monkeypatch.setattr(index_module, "_publication_checkpoint", crash)
+    with pytest.raises(SimulatedCrash):
+        build_index(corpus, AlternateEncoder(), paths, model_id=MODEL_ID)
+
+    loaded = load_index(paths, corpus, model_id=MODEL_ID)
+    assert old_generation.is_file()
+    assert len(list(tmp_path.glob("entity-index-*.npz"))) == 2
+    if crash_point == "matrix_generation_durable":
+        assert paths.manifest.read_bytes() == old_manifest
+        assert loaded.metadata.matrices_sha256 == accepted.metadata.matrices_sha256
+    else:
+        assert loaded.metadata.matrices_sha256 != accepted.metadata.matrices_sha256
