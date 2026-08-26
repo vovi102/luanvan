@@ -15,8 +15,10 @@ from nl2sparql.linking.dictionary.validate import DictionaryArtifacts, validate_
 from nl2sparql.linking.entity.contracts import (
     EntityCorpus,
     EntityDocumentError,
+    EntityLinkerError,
     EntityTarget,
     required_text,
+    validate_canonical_phrase,
 )
 
 
@@ -24,6 +26,14 @@ def normalize_phrase(value: str) -> str:
     """Normalize one phrase for deterministic matching."""
     text = required_text(value, "entity phrase")
     return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+
+def _source_phrase(value: object, label: str) -> str:
+    """Validate one dictionary phrase without changing query normalization behavior."""
+    try:
+        return validate_canonical_phrase(value, label)
+    except EntityLinkerError as exc:
+        raise EntityDocumentError(str(exc)) from exc
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -84,7 +94,7 @@ def build_entity_corpus(
         target_id = owner_ids.get(owner)
         if target_id is None:
             raise EntityDocumentError(f"alias target does not exist: {owner!r}")
-        normalized = normalize_phrase(phrase)
+        normalized = _source_phrase(phrase, "dictionary alias")
         phrase_targets[normalized].add(target_id)
         owner_extra_aliases[owner].add(normalized)
 
@@ -100,7 +110,7 @@ def build_entity_corpus(
         normalized_aliases = {
             normalize_phrase(owner),
             *(normalize_phrase(label) for label in labels),
-            *(normalize_phrase(alias) for row in rows for alias in row["aliases"]),
+            *(_source_phrase(alias, "entity alias") for row in rows for alias in row["aliases"]),
             *owner_extra_aliases[owner],
         }
         target_aliases = tuple(sorted(normalized_aliases))
@@ -138,7 +148,12 @@ def build_entity_corpus(
     for key, info in sorted(concepts.items()):
         target_id = f"concept:{key}"
         target_aliases = tuple(
-            sorted({normalize_phrase(key), *(normalize_phrase(v) for v in info["aliases"])})
+            sorted(
+                {
+                    _source_phrase(key, "concept key"),
+                    *(_source_phrase(value, "concept alias") for value in info["aliases"]),
+                }
+            )
         )
         for phrase in target_aliases:
             phrase_targets[phrase].add(target_id)

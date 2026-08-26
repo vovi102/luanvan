@@ -18978,8 +18978,8 @@
     "category": "token_contract",
     "concept_class": "TokenContract",
     "aliases": [
-      "bitcoin.ℏ",
-      "btc.ℏ"
+      "bitcoin.ħ",
+      "btc.ħ"
     ],
     "chain_id": 1,
     "address_role": "token",

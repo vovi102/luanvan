@@ -61,8 +61,8 @@ def entity_row(**overrides: object) -> dict[str, object]:
 def test_committed_dictionary_builds_expected_immutable_snapshot() -> None:
     snapshot = build_label_snapshot()
 
-    assert snapshot.digest == ("190f73a91b7affa8b8396cc189e4a6b332dc6f7f0109037a0d44edb14531c536")
-    assert snapshot.table_name == "entity_labels_snapshot_190f73a91b7a"
+    assert snapshot.digest == ("cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e")
+    assert snapshot.table_name == "entity_labels_snapshot_cdc7856df81f"
     assert snapshot.entity_count == 5135
     assert snapshot.role_counts == {
         "operational": 14,
@@ -391,7 +391,7 @@ class FakeBigQueryClient:
                 "treasury_count": 30,
                 "digest_count": 1,
                 "dictionary_sha256": (
-                    "190f73a91b7affa8b8396cc189e4a6b332dc6f7f0109037a0d44edb14531c536"
+                    "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e"
                 ),
             }
             expected.update(self.validation_overrides)
@@ -407,7 +407,7 @@ def test_build_deployment_plan_is_deterministic_and_side_effect_free() -> None:
     assert plan.location == "US"
     assert plan.maximum_bytes_billed == DEFAULT_MAXIMUM_BYTES_BILLED
     assert plan.allow_expiring_objects is False
-    assert plan.snapshot.table_name == "entity_labels_snapshot_190f73a91b7a"
+    assert plan.snapshot.table_name == "entity_labels_snapshot_cdc7856df81f"
     assert len(plan.sql_objects) == 8
 
 
@@ -584,7 +584,7 @@ def test_deploy_cli_defaults_to_plan_only_without_creating_client() -> None:
 
     assert result.exit_code == 0, result.output
     assert "mode=plan" in result.output
-    assert "snapshot=entity_labels_snapshot_190f73a91b7a" in result.output
+    assert "snapshot=entity_labels_snapshot_cdc7856df81f" in result.output
     assert "entities=5135" in result.output
     assert "objects=8" in result.output
 

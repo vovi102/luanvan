@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
 from nl2sparql.linking.dictionary.validate import DictionaryArtifacts
-from nl2sparql.linking.entity import EntityDocumentError, build_entity_corpus
+from nl2sparql.linking.entity import (
+    EntityCorpus,
+    EntityDocumentError,
+    EntityLinkerError,
+    EntityTarget,
+    build_entity_corpus,
+)
 
 
 def _write_artifacts(tmp_path: Path, *, missing_alias_target: bool = False) -> DictionaryArtifacts:
@@ -151,6 +158,107 @@ def test_build_entity_corpus_rejects_alias_target_without_owner(tmp_path: Path) 
             min_entities=1,
             min_aliases=1,
         )
+
+
+@pytest.mark.parametrize(
+    ("phrase", "message"),
+    [
+        ("\x01", "control-free"),
+        ("!!!", "token"),
+        ("ﬁnance", "normalized"),
+    ],
+)
+def test_build_entity_corpus_rejects_malformed_tokenless_or_noncanonical_aliases(
+    tmp_path: Path, phrase: str, message: str
+) -> None:
+    artifacts = _write_artifacts(tmp_path)
+    aliases = json.loads(artifacts.aliases_path.read_text(encoding="utf-8"))
+    aliases.pop("binance")
+    aliases[phrase] = "Binance"
+    artifacts.aliases_path.write_text(json.dumps(aliases, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(EntityDocumentError, match=message):
+        build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
+
+
+def _owner_target() -> EntityTarget:
+    document = "Owner: Binance"
+    return EntityTarget(
+        target_id="owner:Binance",
+        target_kind="owner",
+        owner="Binance",
+        addresses=("0x1111111111111111111111111111111111111111",),
+        primary_labels=("Binance",),
+        aliases=("binance",),
+        categories=("exchange",),
+        concept_classes=("ExchangeAccount",),
+        address_roles=("treasury",),
+        description="Ethereum owner target Binance.",
+        document=document,
+        document_sha256=hashlib.sha256(document.encode("utf-8")).hexdigest(),
+    )
+
+
+def test_entity_target_rejects_document_digest_not_matching_content() -> None:
+    target = _owner_target()
+
+    with pytest.raises(EntityLinkerError, match="fingerprint"):
+        EntityTarget(
+            **{
+                **target.__dict__,
+                "document_sha256": "0" * 64,
+            }
+        )
+
+
+def test_entity_corpus_freezes_and_validates_lookup_relationships() -> None:
+    target = _owner_target()
+    targets_by_id = {target.target_id: target}
+    phrase_targets = {"binance": (target.target_id,)}
+    address_targets = {target.addresses[0]: target.target_id}
+    corpus = EntityCorpus(
+        targets=[target],
+        targets_by_id=targets_by_id,
+        phrase_targets=phrase_targets,
+        address_targets=address_targets,
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+
+    targets_by_id.clear()
+    phrase_targets.clear()
+    address_targets.clear()
+
+    assert corpus.targets == (target,)
+    assert corpus.targets_by_id == {target.target_id: target}
+    assert corpus.phrase_targets == {"binance": (target.target_id,)}
+    assert corpus.address_targets == {target.addresses[0]: target.target_id}
+    with pytest.raises(TypeError):
+        corpus.phrase_targets["other"] = (target.target_id,)  # type: ignore[index]
+
+    with pytest.raises(EntityLinkerError, match="unknown target"):
+        EntityCorpus(
+            targets=(target,),
+            targets_by_id={target.target_id: target},
+            phrase_targets={"binance": ("owner:Unknown",)},
+            address_targets={target.addresses[0]: target.target_id},
+            entities_sha256="a" * 64,
+            aliases_sha256="b" * 64,
+            concepts_sha256="c" * 64,
+        )
+
+
+def test_build_entity_corpus_has_deterministic_documents_and_fingerprints(tmp_path: Path) -> None:
+    artifacts = _write_artifacts(tmp_path)
+    first = build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
+    second = build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
+
+    assert first.targets == second.targets
+    assert tuple((target.target_id, target.document_sha256) for target in first.targets) == tuple(
+        (target.target_id, hashlib.sha256(target.document.encode("utf-8")).hexdigest())
+        for target in second.targets
+    )
 
 
 def test_production_corpus_uses_bounded_target_documents() -> None:
