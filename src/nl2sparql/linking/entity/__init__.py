@@ -16,6 +16,7 @@ from nl2sparql.linking.entity.contracts import (
     EntityTarget,
 )
 from nl2sparql.linking.entity.documents import build_entity_corpus, normalize_phrase
+from nl2sparql.linking.entity.index import EntityIndex, EntityIndexMetadata, build_index, load_index
 
 __all__ = [
     "DEFAULT_MODEL_ID",
@@ -28,9 +29,13 @@ __all__ = [
     "EntityDocumentError",
     "EntityEncoderUnavailableError",
     "EntityIndexError",
+    "EntityIndex",
+    "EntityIndexMetadata",
     "EntityLinkerError",
     "EntityMatch",
     "EntityTarget",
     "build_entity_corpus",
+    "build_index",
+    "load_index",
     "normalize_phrase",
 ]
