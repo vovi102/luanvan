@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 
 import numpy as np
 import pytest
 
 from nl2sparql.linking.entity import (
+    DEFAULT_LINKER_POLICY,
     EntityCorpus,
     EntityEncoderUnavailableError,
     EntityIndex,
     EntityIndexMetadata,
     EntityLinker,
     EntityLinkerError,
+    EntityLinkerPolicy,
     EntityTarget,
     build_entity_corpus,
 )
@@ -111,9 +114,7 @@ class FakeEncoder:
     def encode(self, sentences, *, normalize_embeddings=True):
         assert normalize_embeddings is True
         texts = [sentences] if isinstance(sentences, str) else list(sentences)
-        rows = np.tile(
-            np.asarray([2**-0.5, -(2**-0.5), 0.0], dtype=np.float32), (len(texts), 1)
-        )
+        rows = np.tile(np.asarray([2**-0.5, -(2**-0.5), 0.0], dtype=np.float32), (len(texts), 1))
         return rows
 
 
@@ -244,6 +245,18 @@ def test_link_returns_original_span_and_all_owner_addresses(linker: EntityLinker
     assert result[0].target_id == "owner:Binance"
     assert result[0].addresses == ("0x2222222222222222222222222222222222222222",)
     assert result[0].stage == "exact"
+
+
+def test_linker_rejects_an_index_built_with_a_different_policy(
+    corpus: EntityCorpus, index: EntityIndex
+) -> None:
+    mismatched_index = EntityIndex(
+        replace(index.metadata, linker_policy=EntityLinkerPolicy(0.86, 0.75, 0.03)),
+        index.target_embeddings,
+    )
+
+    with pytest.raises(EntityLinkerError, match="policy"):
+        EntityLinker(corpus, mismatched_index, FakeEncoder(), linker_policy=DEFAULT_LINKER_POLICY)
 
 
 def test_unknown_valid_address_remains_queryable(linker: EntityLinker) -> None:
@@ -481,9 +494,7 @@ def test_mixed_embedding_near_tie_keeps_token_alternative_for_ambiguity() -> Non
 def test_multi_token_windows_remain_eligible_for_fuzzy_and_embedding(
     token_symbol_corpus: EntityCorpus, token_symbol_index: EntityIndex
 ) -> None:
-    fuzzy_linker = EntityLinker(
-        token_symbol_corpus, token_symbol_index, FixedEncoder([-1.0, 0.0])
-    )
+    fuzzy_linker = EntityLinker(token_symbol_corpus, token_symbol_index, FixedEncoder([-1.0, 0.0]))
     embedding_linker = EntityLinker(
         token_symbol_corpus, token_symbol_index, FixedEncoder([0.0, 1.0])
     )

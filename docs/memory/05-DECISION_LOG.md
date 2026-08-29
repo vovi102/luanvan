@@ -38,15 +38,16 @@
   GoogleSQL predicate/join/filter resolution. Exact/fuzzy indexes được rebuild
   deterministic từ dictionary; chỉ matrix MiniLM float32 được cache trong NPZ
   content-addressed, `allow_pickle=False`, process lock và manifest-last. Strict
-  load bind dictionary/model/document hashes, matrix digest/shape/normalization
-  và reject path/alias tampering; không implicit rebuild/download.
+  load bind dictionary/model/document hashes, matrix digest/shape/normalization,
+  fuzzy/embedding thresholds và ambiguity margin; reject path/alias tampering
+  hoặc effective-policy mismatch, không implicit rebuild/download.
 - **Rationale:** Seam này giữ module sâu, tránh mặc định hóa SQL semantics trước
   schema resolution, và cho deterministic unit tests bằng fake encoder. Cache
   immutable/auditable giúp real production retrieval fail closed khi dictionary,
   model hoặc artifact stale/tampered thay vì tạo result khó truy nguyên.
 - **Consequences:** Local build ngày 2026-08-29 tạo 5,107 targets, matrix 384-d,
   manifest file SHA-256
-  `459f108f371ca173105b4098c1285143c17f7cf16d458158eabff287a45aca61` và
+  `0575e2222b0d1aebff0bee80cdd338c6dc8a80be38f6094f19cf9bbc05979a31` và
   matrix SHA-256
   `ee33c9fededf9be1091bca69e64c7f4075ba1d0f9948652a412c39f14c4dfa53`.
   Recognition output không chứa SQL; consumer phải resolve qua T4.3. Model

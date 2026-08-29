@@ -431,6 +431,7 @@ def create_cli(
     if encoder_loader is not None and encoder_factory is not None:
         raise ValueError("supply encoder_loader or encoder_factory, not both")
     if encoder_factory is not None:
+
         def compatibility_encoder_loader(model_id: str, _local_files_only: bool) -> Encoder:
             return encoder_factory(model_id)
 

@@ -37,6 +37,35 @@ class EntityEncoderUnavailableError(EntityLinkerError):
     """Raised when explicit production encoder initialization is unavailable."""
 
 
+@dataclass(frozen=True)
+class EntityLinkerPolicy:
+    """Retrieval thresholds that must bind a cached index to linker behavior."""
+
+    fuzzy_threshold: float
+    embedding_threshold: float
+    ambiguity_margin: float
+
+    def __post_init__(self) -> None:
+        for label, value, lower, upper, upper_inclusive in (
+            ("fuzzy threshold", self.fuzzy_threshold, 0.0, 1.0, True),
+            ("embedding threshold", self.embedding_threshold, 0.0, 1.0, True),
+            ("ambiguity margin", self.ambiguity_margin, 0.0, 1.0, False),
+        ):
+            if (
+                not isinstance(value, float)
+                or isinstance(value, bool)
+                or not math.isfinite(value)
+                or value <= lower
+                or value > upper
+                or (not upper_inclusive and value >= upper)
+            ):
+                boundary = "(0, 1]" if upper_inclusive else "(0, 1)"
+                raise EntityLinkerError(f"{label} must be a finite float in {boundary}")
+
+
+DEFAULT_LINKER_POLICY = EntityLinkerPolicy(0.85, 0.75, 0.03)
+
+
 class Encoder(Protocol):
     """Minimal sentence-encoder seam shared with deterministic test adapters."""
 

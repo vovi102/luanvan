@@ -69,9 +69,7 @@ def _rows(count: int = 100) -> list[dict[str, object]]:
         {
             "id": f"case-{number:03d}",
             "question": f"Binance question {number}",
-            "mentions": [
-                {"span": "Binance", "span_offset": [0, 7], "target_id": "owner:Binance"}
-            ],
+            "mentions": [{"span": "Binance", "span_offset": [0, 7], "target_id": "owner:Binance"}],
         }
         for number in range(count)
     ]

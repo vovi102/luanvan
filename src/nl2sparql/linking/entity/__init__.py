@@ -1,6 +1,7 @@
 """GoogleSQL-native entity linking primitives."""
 
 from nl2sparql.linking.entity.contracts import (
+    DEFAULT_LINKER_POLICY,
     DEFAULT_MODEL_ID,
     DOCUMENT_VERSION,
     INDEX_SCHEMA_VERSION,
@@ -12,6 +13,7 @@ from nl2sparql.linking.entity.contracts import (
     EntityEncoderUnavailableError,
     EntityIndexError,
     EntityLinkerError,
+    EntityLinkerPolicy,
     EntityMatch,
     EntityTarget,
 )
@@ -31,6 +33,7 @@ from nl2sparql.linking.entity.index import EntityIndex, EntityIndexMetadata, bui
 from nl2sparql.linking.entity.linker import EntityLinker
 
 __all__ = [
+    "DEFAULT_LINKER_POLICY",
     "DEFAULT_MODEL_ID",
     "DOCUMENT_VERSION",
     "INDEX_SCHEMA_VERSION",
@@ -47,6 +50,7 @@ __all__ = [
     "EntityIndexMetadata",
     "EntityLinker",
     "EntityLinkerError",
+    "EntityLinkerPolicy",
     "EntityMatch",
     "EntityTarget",
     "GitProvenance",

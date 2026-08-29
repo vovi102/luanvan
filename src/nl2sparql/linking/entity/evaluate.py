@@ -363,8 +363,7 @@ def load_ground_truth(path: Path, corpus: EntityCorpus) -> GroundTruthDataset:
         except EntityEvaluationError as exc:
             raise EntityEvaluationError(f"ground truth line {line_number}: {exc}") from exc
         has_owner_mention = any(
-            corpus.targets_by_id[mention.target_id].target_kind == "owner"
-            for mention in mentions
+            corpus.targets_by_id[mention.target_id].target_kind == "owner" for mention in mentions
         )
         if not has_owner_mention:
             raise EntityEvaluationError(
@@ -383,9 +382,7 @@ def load_ground_truth(path: Path, corpus: EntityCorpus) -> GroundTruthDataset:
 
 def _percentile(values: Sequence[float], percentile: float) -> float:
     if not values or any(
-        not isinstance(value, (int, float))
-        or isinstance(value, bool)
-        or not math.isfinite(value)
+        not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value)
         for value in values
     ):
         raise EntityEvaluationError("percentile values must be non-empty finite numbers")
@@ -440,9 +437,7 @@ def _validate_index_provenance(linker: object, corpus: EntityCorpus, model_id: s
         raise EntityEvaluationError("index target_ids do not match the entity corpus")
     expected_document_hashes = tuple(target.document_sha256 for target in corpus.targets)
     if getattr(metadata, "target_document_sha256", None) != expected_document_hashes:
-        raise EntityEvaluationError(
-            "index target_document_sha256 do not match the entity corpus"
-        )
+        raise EntityEvaluationError("index target_document_sha256 do not match the entity corpus")
 
 
 def _corpus_sha256(corpus: EntityCorpus) -> str:

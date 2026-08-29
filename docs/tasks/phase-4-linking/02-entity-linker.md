@@ -34,8 +34,9 @@ hay join.
 ## Dictionary, index và an toàn
 
 Dictionary đã validate trước khi sinh owner/concept targets và aliases. Production
-index không dùng pickle: manifest JSON canonical bind schema/document/model và
-hash của dictionary/documents; matrix float32 nằm trong immutable,
+index không dùng pickle: manifest JSON canonical bind schema/document/model,
+dictionary/documents và effective fuzzy/embedding/ambiguity policy; matrix
+float32 nằm trong immutable,
 content-addressed `entity-index-<sha256>.npz`, load với `allow_pickle=False`.
 Publish dưới process lock theo manifest-last; strict load kiểm tra generation,
 digest, shape, finite/L2-normalized vectors, aliases/symlink/hardlink/path
@@ -52,10 +53,13 @@ uv run python scripts/14_entity_linker.py build-index --local-files-only
 
 - Targets: `5,107`; dimension: `384`.
 - Model: `sentence-transformers/all-MiniLM-L6-v2`.
+- Policy bound in the strict manifest: fuzzy threshold `0.85`, embedding
+  threshold `0.75`, ambiguity margin `0.03`. Strict load rejects missing,
+  malformed, out-of-range, non-finite, or effective-policy-mismatched values.
 - Manifest file SHA-256:
-  `459f108f371ca173105b4098c1285143c17f7cf16d458158eabff287a45aca61`.
+  `0575e2222b0d1aebff0bee80cdd338c6dc8a80be38f6094f19cf9bbc05979a31`.
 - Manifest body SHA-256:
-  `3f78643318358f503bebf6dc00fa5a9a6477690be549193933b1e7ef8d72ea8a`.
+  `bc27bb10e6e09ea3244107c4adef3679604cf65583ab32f1ca3a02251588e2ce`.
 - Matrix SHA-256:
   `ee33c9fededf9be1091bca69e64c7f4075ba1d0f9948652a412c39f14c4dfa53`.
 - Strict-load succeeded against the current accepted dictionary and model ID.
@@ -64,8 +68,8 @@ uv run python scripts/14_entity_linker.py build-index --local-files-only
   (`0.933333...`); `centralized exchange` → `concept:exchange`; known address
   `0x6454ac71ca260f99cca99a3f4241dfda20cfa965` → enriched `owner:Binance`.
 - After strict load and explicit local MiniLM initialization, a warmed in-process
-  `show Binnance transfers` fuzzy smoke measured `89.819 ms`; 20 warm samples had
-  median `87.313 ms` and maximum `99.915 ms`. This is a smoke measurement, not
+  `show Binnance transfers` fuzzy smoke measured `74.945 ms`; 20 warm samples had
+  median `80.338 ms` and maximum `148.265 ms`. This is a smoke measurement, not
   the independently evaluated p95 scientific acceptance result.
 
 ## Acceptance criteria
@@ -73,8 +77,8 @@ uv run python scripts/14_entity_linker.py build-index --local-files-only
 - [x] GoogleSQL-native recognition API and immutable typed matches are implemented.
 - [x] Address, exact, fuzzy, embedding and explicit ambiguity behavior have focused
   production-module test coverage.
-- [x] Safe manifest-last, content-addressed production index builds and strict-loads
-  with the cached local MiniLM model.
+- [x] Safe manifest-last, content-addressed and policy-bound production index builds
+  and strict-loads with the cached local MiniLM model.
 - [x] Representative exact, fuzzy, concept and address production queries strict-load.
 - [ ] Named-entity Top-1 accuracy >=85% on exactly 100 independently reviewed
   ground-truth questions. `data/eval/entity_link_groundtruth.jsonl` is absent;

@@ -20,6 +20,7 @@ from typing import Any, BinaryIO
 import numpy as np
 
 from nl2sparql.linking.entity.contracts import (
+    DEFAULT_LINKER_POLICY,
     DOCUMENT_VERSION,
     INDEX_SCHEMA_VERSION,
     Encoder,
@@ -28,6 +29,7 @@ from nl2sparql.linking.entity.contracts import (
     EntityEncoderUnavailableError,
     EntityIndexError,
     EntityLinkerError,
+    EntityLinkerPolicy,
     validate_digest,
 )
 
@@ -49,6 +51,7 @@ class EntityIndexMetadata:
     manifest_sha256: str
     manifest_file_sha256: str = ""
     matrices_file: str = ""
+    linker_policy: EntityLinkerPolicy = DEFAULT_LINKER_POLICY
 
 
 @dataclass(frozen=True)
@@ -168,6 +171,7 @@ def _manifest_body(
     matrices_sha256: str,
     matrices_file: str,
     dimension: int,
+    linker_policy: EntityLinkerPolicy,
 ) -> dict[str, Any]:
     return {
         "schema_version": INDEX_SCHEMA_VERSION,
@@ -179,6 +183,9 @@ def _manifest_body(
         "matrices_sha256": matrices_sha256,
         "matrices_file": matrices_file,
         "dimension": dimension,
+        "fuzzy_threshold": linker_policy.fuzzy_threshold,
+        "embedding_threshold": linker_policy.embedding_threshold,
+        "ambiguity_margin": linker_policy.ambiguity_margin,
         "target_ids": [target.target_id for target in corpus.targets],
         "target_document_sha256": [target.document_sha256 for target in corpus.targets],
     }
@@ -278,14 +285,17 @@ def _validate_build_arguments(
     corpus: EntityCorpus,
     model_id: str,
     document_version: str,
-) -> tuple[str, str]:
+    linker_policy: EntityLinkerPolicy,
+) -> tuple[str, str, EntityLinkerPolicy]:
     if not isinstance(corpus, EntityCorpus):
         raise EntityIndexError("entity corpus is invalid")
     if not isinstance(model_id, str) or not model_id.strip():
         raise EntityIndexError("model ID must be non-empty")
     if not isinstance(document_version, str) or not document_version.strip():
         raise EntityIndexError("document version must be non-empty")
-    return model_id.strip(), document_version.strip()
+    if not isinstance(linker_policy, EntityLinkerPolicy):
+        raise EntityIndexError("entity linker policy is invalid")
+    return model_id.strip(), document_version.strip(), linker_policy
 
 
 def build_index(
@@ -295,9 +305,12 @@ def build_index(
     model_id: str,
     *,
     document_version: str = DOCUMENT_VERSION,
+    linker_policy: EntityLinkerPolicy = DEFAULT_LINKER_POLICY,
 ) -> EntityIndex:
     """Encode ordered corpus documents once, then atomically publish an entity index."""
-    model_id, document_version = _validate_build_arguments(corpus, model_id, document_version)
+    model_id, document_version, linker_policy = _validate_build_arguments(
+        corpus, model_id, document_version, linker_policy
+    )
     if paths.manifest.parent != paths.matrices.parent:
         raise EntityIndexError("entity manifest and matrices must share one directory")
     try:
@@ -328,6 +341,7 @@ def build_index(
             matrices_sha256=matrices_sha256,
             matrices_file=generation_path.name,
             dimension=embeddings.shape[1],
+            linker_policy=linker_policy,
         )
         manifest_payload = {**body, "manifest_sha256": _sha256(_canonical_json(body))}
         manifest_temp = _write_manifest_temp(paths, _canonical_json(manifest_payload))
@@ -343,7 +357,13 @@ def build_index(
             matrix_temp.unlink(missing_ok=True)
         if manifest_temp is not None:
             manifest_temp.unlink(missing_ok=True)
-    return load_index(paths, corpus, model_id, document_version=document_version)
+    return load_index(
+        paths,
+        corpus,
+        model_id,
+        document_version=document_version,
+        linker_policy=linker_policy,
+    )
 
 
 _MATRIX_FILENAME_RE = re.compile(r"^entity-index-([0-9a-f]{64})\.npz$")
@@ -357,6 +377,9 @@ _MANIFEST_KEYS = {
     "matrices_sha256",
     "matrices_file",
     "dimension",
+    "fuzzy_threshold",
+    "embedding_threshold",
+    "ambiguity_margin",
     "target_ids",
     "target_document_sha256",
 }
@@ -370,6 +393,8 @@ def _parse_manifest(raw: bytes) -> tuple[dict[str, Any], str]:
     if not isinstance(payload, dict):
         raise EntityIndexError("entity index manifest must contain a JSON object")
     supplied = payload.pop("manifest_sha256", None)
+    if not {"fuzzy_threshold", "embedding_threshold", "ambiguity_margin"} <= set(payload):
+        raise EntityIndexError("entity index linker policy fields are invalid")
     if set(payload) != _MANIFEST_KEYS:
         raise EntityIndexError("entity index manifest fields are invalid")
     expected = _sha256(_canonical_json(payload))
@@ -423,8 +448,12 @@ def _load_matrix(raw: bytes) -> np.ndarray:
 
 
 def _validate_manifest_identity(
-    body: dict[str, Any], corpus: EntityCorpus, model_id: str, document_version: str
-) -> None:
+    body: dict[str, Any],
+    corpus: EntityCorpus,
+    model_id: str,
+    document_version: str,
+    linker_policy: EntityLinkerPolicy,
+) -> EntityLinkerPolicy:
     schema_version = body.get("schema_version")
     if (
         not isinstance(schema_version, int)
@@ -442,6 +471,17 @@ def _validate_manifest_identity(
         or body.get("concepts_sha256") != corpus.concepts_sha256
     ):
         raise EntityIndexError("entity index dictionary fingerprint mismatch")
+    try:
+        persisted_policy = EntityLinkerPolicy(
+            body["fuzzy_threshold"],
+            body["embedding_threshold"],
+            body["ambiguity_margin"],
+        )
+    except (EntityLinkerError, KeyError) as exc:
+        raise EntityIndexError(f"entity index linker policy is invalid: {exc}") from exc
+    if persisted_policy != linker_policy:
+        raise EntityIndexError("entity index linker policy does not match the effective policy")
+    return persisted_policy
 
 
 def load_index(
@@ -450,14 +490,19 @@ def load_index(
     model_id: str,
     *,
     document_version: str = DOCUMENT_VERSION,
+    linker_policy: EntityLinkerPolicy = DEFAULT_LINKER_POLICY,
 ) -> EntityIndex:
     """Load an entity index only after identity and integrity checks pass."""
-    model_id, document_version = _validate_build_arguments(corpus, model_id, document_version)
+    model_id, document_version, linker_policy = _validate_build_arguments(
+        corpus, model_id, document_version, linker_policy
+    )
     try:
         with _index_lock(paths.lock, create=False):
             manifest_bytes = _read_manifest(paths.manifest)
             body, manifest_sha256 = _parse_manifest(manifest_bytes)
-            _validate_manifest_identity(body, corpus, model_id, document_version)
+            persisted_policy = _validate_manifest_identity(
+                body, corpus, model_id, document_version, linker_policy
+            )
             matrices_file = _matrix_filename(body)
             matrix_bytes = _read_matrix_generation(paths.manifest.parent / matrices_file)
     except OSError as exc:
@@ -468,9 +513,7 @@ def load_index(
     if not isinstance(raw_dimension, int) or isinstance(raw_dimension, bool) or raw_dimension <= 0:
         raise EntityIndexError("entity index dimension must be a positive integer")
     manifest_targets = _targets_from_manifest(body)
-    current_targets = tuple(
-        (target.target_id, target.document_sha256) for target in corpus.targets
-    )
+    current_targets = tuple((target.target_id, target.document_sha256) for target in corpus.targets)
     if manifest_targets != current_targets:
         raise EntityIndexError("entity index current document fingerprints do not match")
     embeddings = _validated_matrix(
@@ -493,5 +536,6 @@ def load_index(
         manifest_sha256=manifest_sha256,
         manifest_file_sha256=_sha256(manifest_bytes),
         matrices_file=matrices_file,
+        linker_policy=persisted_policy,
     )
     return EntityIndex(metadata, embeddings)

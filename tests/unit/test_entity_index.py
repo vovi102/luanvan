@@ -15,10 +15,12 @@ import numpy as np
 import pytest
 
 from nl2sparql.linking.entity import (
+    DEFAULT_LINKER_POLICY,
     EntityCachePaths,
     EntityCorpus,
     EntityEncoderUnavailableError,
     EntityIndexError,
+    EntityLinkerPolicy,
     EntityTarget,
     build_index,
     load_index,
@@ -152,6 +154,65 @@ def test_build_and_load_entity_index_uses_content_addressed_generation(
     assert not paths.matrices.exists()
     assert _matrix_path(paths).is_file()
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_index_manifest_binds_the_shared_linker_policy(
+    tmp_path: Path, corpus: EntityCorpus
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+
+    built = build_index(corpus, FakeEncoder(), paths, model_id=MODEL_ID)
+    payload = json.loads(paths.manifest.read_bytes())
+
+    assert payload["fuzzy_threshold"] == DEFAULT_LINKER_POLICY.fuzzy_threshold
+    assert payload["embedding_threshold"] == DEFAULT_LINKER_POLICY.embedding_threshold
+    assert payload["ambiguity_margin"] == DEFAULT_LINKER_POLICY.ambiguity_margin
+    assert built.metadata.linker_policy == DEFAULT_LINKER_POLICY
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid"),
+    (
+        ("fuzzy_threshold", None),
+        ("embedding_threshold", True),
+        ("ambiguity_margin", "0.03"),
+        ("fuzzy_threshold", float("nan")),
+        ("embedding_threshold", float("inf")),
+        ("ambiguity_margin", -0.01),
+        ("fuzzy_threshold", 0.0),
+        ("embedding_threshold", 1.01),
+        ("ambiguity_margin", 1.0),
+    ),
+)
+def test_strict_load_rejects_missing_or_invalid_persisted_linker_policy(
+    tmp_path: Path, corpus: EntityCorpus, field: str, invalid: object
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+    build_index(corpus, FakeEncoder(), paths, model_id=MODEL_ID)
+    payload = json.loads(paths.manifest.read_bytes())
+    if invalid is None:
+        payload.pop(field)
+    else:
+        payload[field] = invalid
+    _rewrite_manifest(paths.manifest, payload)
+
+    with pytest.raises(EntityIndexError, match="policy"):
+        load_index(paths, corpus, model_id=MODEL_ID)
+
+
+def test_strict_load_rejects_an_effective_linker_policy_mismatch(
+    tmp_path: Path, corpus: EntityCorpus
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+    policy = EntityLinkerPolicy(0.86, 0.75, 0.03)
+    build_index(corpus, FakeEncoder(), paths, model_id=MODEL_ID, linker_policy=policy)
+
+    with pytest.raises(EntityIndexError, match="policy"):
+        load_index(paths, corpus, model_id=MODEL_ID, linker_policy=DEFAULT_LINKER_POLICY)
+
+    loaded = load_index(paths, corpus, model_id=MODEL_ID, linker_policy=policy)
+
+    assert loaded.metadata.linker_policy == policy
 
 
 def test_load_rejects_stale_dictionary_hash(
@@ -373,9 +434,10 @@ def test_publication_failures_before_and_after_manifest_switch_are_recoverable(
     assert paths.manifest.exists() is manifest_exists
     assert len(list(tmp_path.glob("entity-index-*.npz"))) == 1
     if manifest_exists:
-        assert load_index(paths, corpus, model_id=MODEL_ID).metadata.matrices_file == _matrix_path(
-            paths
-        ).name
+        assert (
+            load_index(paths, corpus, model_id=MODEL_ID).metadata.matrices_file
+            == _matrix_path(paths).name
+        )
 
 
 @pytest.mark.parametrize("crash_point", ("matrix_generation_durable", "manifest_durable"))

@@ -11,10 +11,12 @@ import numpy as np
 from rapidfuzz.fuzz import ratio
 
 from nl2sparql.linking.entity.contracts import (
+    DEFAULT_LINKER_POLICY,
     EntityAlternative,
     EntityCorpus,
     EntityEncoderUnavailableError,
     EntityLinkerError,
+    EntityLinkerPolicy,
     EntityMatch,
     EntityTarget,
     required_text,
@@ -23,9 +25,6 @@ from nl2sparql.linking.entity.index import EntityIndex
 
 _ADDRESS_RE = re.compile(r"(?<![0-9a-zA-Z])0x[0-9a-f]{40}(?![0-9a-zA-Z])", re.IGNORECASE)
 _TOKEN_RE = re.compile(r"[^\W_]+", re.UNICODE)
-_FUZZY_CUTOFF = 0.85
-_SEMANTIC_CUTOFF = 0.75
-_DIFFERENT_TARGET_MARGIN = 0.03
 
 
 @dataclass(frozen=True)
@@ -105,9 +104,7 @@ def _prefix_normalized_offsets(question: str) -> tuple[str, list[int], list[int]
     return text, starts, ends
 
 
-def _collapse_whitespace(
-    text: str, starts: list[int], ends: list[int]
-) -> _NormalizedQuestion:
+def _collapse_whitespace(text: str, starts: list[int], ends: list[int]) -> _NormalizedQuestion:
     characters: list[str] = []
     mapped_starts: list[int] = []
     mapped_ends: list[int] = []
@@ -140,11 +137,24 @@ def _has_phrase_boundaries(text: str, start: int, end: int) -> bool:
 class EntityLinker:
     """Resolve address, exact, fuzzy, and semantic entity evidence deterministically."""
 
-    def __init__(self, corpus: EntityCorpus, index: EntityIndex, encoder: object) -> None:
+    def __init__(
+        self,
+        corpus: EntityCorpus,
+        index: EntityIndex,
+        encoder: object,
+        *,
+        linker_policy: EntityLinkerPolicy = DEFAULT_LINKER_POLICY,
+    ) -> None:
         if not isinstance(corpus, EntityCorpus):
             raise EntityLinkerError("entity corpus is invalid")
         if not isinstance(index, EntityIndex):
             raise EntityLinkerError("entity index is invalid")
+        if not isinstance(linker_policy, EntityLinkerPolicy):
+            raise EntityLinkerError("entity linker policy is invalid")
+        if index.metadata.linker_policy != linker_policy:
+            raise EntityLinkerError(
+                "entity index linker policy does not match the effective policy"
+            )
         if (
             index.metadata.entities_sha256 != corpus.entities_sha256
             or index.metadata.aliases_sha256 != corpus.aliases_sha256
@@ -169,16 +179,14 @@ class EntityLinker:
         self._corpus = corpus
         self._index = index
         self._encoder = encoder
+        self._linker_policy = linker_policy
         self._target_embeddings = matrix.copy()
         self._target_embeddings.setflags(write=False)
         self._signal_required_target_ids = frozenset(
             target.target_id
             for target in corpus.targets
             if target.target_kind == "owner"
-            and (
-                "token_contract" in target.categories
-                or "TokenContract" in target.concept_classes
-            )
+            and ("token_contract" in target.categories or "TokenContract" in target.concept_classes)
         )
 
     def link(self, question: str) -> tuple[EntityMatch, ...]:
@@ -253,11 +261,11 @@ class EntityLinker:
                 ):
                     continue
                 score = ratio(window.text, phrase) / 100.0
-                if score < _FUZZY_CUTOFF:
+                if score < self._linker_policy.fuzzy_threshold:
                     continue
                 for target_id in target_ids:
                     scores[target_id] = max(scores.get(target_id, 0.0), score)
-            ranked = self._rank_accepted_scores(scores, _FUZZY_CUTOFF)
+            ranked = self._rank_accepted_scores(scores, self._linker_policy.fuzzy_threshold)
             if ranked:
                 target_ids, confidences = ranked
                 proposals.append(
@@ -307,11 +315,11 @@ class EntityLinker:
             scores = {
                 target.target_id: min(1.0, float(score))
                 for target, score in zip(self._corpus.targets, row, strict=True)
-                if float(score) >= _SEMANTIC_CUTOFF
+                if float(score) >= self._linker_policy.embedding_threshold
             }
             if self._embedding_proposal_requires_entity_signal(question, window, scores):
                 continue
-            ranked = self._rank_accepted_scores(scores, _SEMANTIC_CUTOFF)
+            ranked = self._rank_accepted_scores(scores, self._linker_policy.embedding_threshold)
             if ranked:
                 target_ids, confidences = ranked
                 proposals.append(
@@ -326,16 +334,15 @@ class EntityLinker:
                 )
         return tuple(proposals)
 
-    @staticmethod
     def _rank_accepted_scores(
-        scores: dict[str, float], cutoff: float
+        self, scores: dict[str, float], cutoff: float
     ) -> tuple[tuple[str, ...], tuple[float, ...]] | None:
         ranked = tuple(sorted(scores.items(), key=lambda item: (-item[1], item[0])))
         if not ranked or ranked[0][1] < cutoff:
             return None
         accepted = [ranked[0]]
         for target_id, score in ranked[1:]:
-            if accepted[0][1] - score < _DIFFERENT_TARGET_MARGIN:
+            if accepted[0][1] - score < self._linker_policy.ambiguity_margin:
                 accepted.append((target_id, score))
             else:
                 break
