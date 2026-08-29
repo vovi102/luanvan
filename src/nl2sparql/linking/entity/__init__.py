@@ -16,6 +16,14 @@ from nl2sparql.linking.entity.contracts import (
     EntityTarget,
 )
 from nl2sparql.linking.entity.documents import build_entity_corpus, normalize_phrase
+from nl2sparql.linking.entity.evaluate import (
+    EntityEvaluationError,
+    EntityEvaluationReport,
+    GroundTruthCase,
+    GroundTruthMention,
+    evaluate_linker,
+    load_ground_truth,
+)
 from nl2sparql.linking.entity.index import EntityIndex, EntityIndexMetadata, build_index, load_index
 from nl2sparql.linking.entity.linker import EntityLinker
 
@@ -29,6 +37,8 @@ __all__ = [
     "EntityCorpus",
     "EntityDocumentError",
     "EntityEncoderUnavailableError",
+    "EntityEvaluationError",
+    "EntityEvaluationReport",
     "EntityIndexError",
     "EntityIndex",
     "EntityIndexMetadata",
@@ -36,8 +46,12 @@ __all__ = [
     "EntityLinkerError",
     "EntityMatch",
     "EntityTarget",
+    "GroundTruthCase",
+    "GroundTruthMention",
     "build_entity_corpus",
     "build_index",
+    "evaluate_linker",
     "load_index",
+    "load_ground_truth",
     "normalize_phrase",
 ]
