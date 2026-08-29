@@ -392,6 +392,51 @@ def test_post_replace_directory_fsync_failure_restores_prior_report(
     assert report.read_bytes() == b"accepted evidence\n"
 
 
+def test_incomplete_post_replace_rollback_retains_discoverable_prior_report_backup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    report = tmp_path / "report.json"
+    accepted_report = b"accepted evidence\n"
+    report.write_bytes(accepted_report)
+    destination = workflow._open_report_destination(report)
+    original_replace = workflow.os.replace
+    original_fsync = workflow.os.fsync
+    report_replaced = False
+    directory_failure_used = False
+
+    def fail_backup_restore(source, target, *args, **kwargs):
+        nonlocal report_replaced
+        if target == report.name and str(source).endswith(".backup"):
+            raise OSError("backup restore failure")
+        original_replace(source, target, *args, **kwargs)
+        if target == report.name:
+            report_replaced = True
+
+    def fail_post_replace_directory_fsync(descriptor: int) -> None:
+        nonlocal directory_failure_used
+        if (
+            report_replaced
+            and not directory_failure_used
+            and stat.S_ISDIR(os.fstat(descriptor).st_mode)
+        ):
+            directory_failure_used = True
+            raise OSError("directory fsync failure")
+        original_fsync(descriptor)
+
+    monkeypatch.setattr(workflow.os, "replace", fail_backup_restore)
+    monkeypatch.setattr(workflow.os, "fsync", fail_post_replace_directory_fsync)
+    try:
+        with pytest.raises(workflow.ReportPublicationError, match="rollback was incomplete"):
+            workflow._atomic_write(destination, b"new report\n")
+    finally:
+        destination.close()
+
+    backups = list(tmp_path.glob(f".{report.name}.*.backup"))
+    assert directory_failure_used is True
+    assert len(backups) == 1
+    assert backups[0].read_bytes() == accepted_report
+
+
 @pytest.mark.parametrize(
     "error",
     (httpx.ConnectError("offline"), httpx.ReadTimeout("slow"), OSError("missing")),

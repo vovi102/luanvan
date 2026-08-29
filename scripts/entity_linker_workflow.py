@@ -212,6 +212,7 @@ def _atomic_write(destination: _ReportDestination, payload: bytes) -> None:
     descriptor, temporary = _report_tempfile(destination, ".tmp")
     backup: str | None = None
     replaced = False
+    rollback_incomplete = False
     try:
         with os.fdopen(descriptor, "wb", closefd=True) as handle:
             handle.write(payload)
@@ -235,6 +236,7 @@ def _atomic_write(destination: _ReportDestination, payload: bytes) -> None:
         try:
             backup = _restore_report(destination, backup, replaced)
         except ReportPublicationError as rollback_error:
+            rollback_incomplete = True
             raise ReportPublicationError(
                 f"report publication failed and rollback was incomplete: {rollback_error}"
             ) from exc
@@ -242,7 +244,7 @@ def _atomic_write(destination: _ReportDestination, payload: bytes) -> None:
     finally:
         if temporary:
             _unlink_at(destination, temporary)
-        if backup is not None:
+        if backup is not None and not rollback_incomplete:
             _unlink_at(destination, backup)
 
 
