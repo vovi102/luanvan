@@ -444,6 +444,40 @@ def test_lowercase_one_token_window_requires_signal_at_embedding_stage(
     assert linker.link("ORDINARY")[0].stage == "embedding"
 
 
+def test_mixed_embedding_near_tie_keeps_token_alternative_for_ambiguity() -> None:
+    token_metadata = {
+        "categories": ("token_contract",),
+        "concept_classes": ("TokenContract",),
+    }
+    concept = _target("concept:mev", None, ("mev",))
+    token = _target("owner:Ticker", "Ticker", ("ticker",), **token_metadata)
+    corpus = EntityCorpus(
+        targets=(concept, token),
+        targets_by_id={concept.target_id: concept, token.target_id: token},
+        phrase_targets={"mev": (concept.target_id,), "ticker": (token.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    linker = EntityLinker(
+        corpus,
+        _index_for(
+            corpus,
+            np.asarray([[1.0, 0.0], [0.99, np.sqrt(1.0 - 0.99**2)]], dtype=np.float32),
+        ),
+        FixedEncoder([1.0, 0.0]),
+    )
+
+    match = linker.link("ordinary")[0]
+
+    assert match.stage == "ambiguous"
+    assert [alternative.target_id for alternative in match.alternatives] == [
+        "concept:mev",
+        "owner:Ticker",
+    ]
+
+
 def test_multi_token_windows_remain_eligible_for_fuzzy_and_embedding(
     token_symbol_corpus: EntityCorpus, token_symbol_index: EntityIndex
 ) -> None:

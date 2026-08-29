@@ -308,8 +308,9 @@ class EntityLinker:
                 target.target_id: min(1.0, float(score))
                 for target, score in zip(self._corpus.targets, row, strict=True)
                 if float(score) >= _SEMANTIC_CUTOFF
-                and not self._window_requires_entity_signal(question, window, target.target_id)
             }
+            if self._embedding_proposal_requires_entity_signal(question, window, scores):
+                continue
             ranked = self._rank_accepted_scores(scores, _SEMANTIC_CUTOFF)
             if ranked:
                 target_ids, confidences = ranked
@@ -380,13 +381,14 @@ class EntityLinker:
             and not source_is_uppercase
         )
 
-    def _window_requires_entity_signal(
-        self, question: str, window: _Window, target_id: str
+    def _embedding_proposal_requires_entity_signal(
+        self, question: str, window: _Window, scores: dict[str, float]
     ) -> bool:
         return (
             window.token_count == 1
-            and target_id in self._signal_required_target_ids
             and not question[window.source_start : window.source_end].isupper()
+            and bool(scores)
+            and all(target_id in self._signal_required_target_ids for target_id in scores)
         )
 
     @staticmethod
