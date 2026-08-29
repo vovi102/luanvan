@@ -25,6 +25,8 @@ def _target(
     aliases: tuple[str, ...],
     *,
     addresses: tuple[str, ...] = (),
+    categories: tuple[str, ...] | None = None,
+    concept_classes: tuple[str, ...] | None = None,
 ) -> EntityTarget:
     document = f"Target: {target_id}"
     return EntityTarget(
@@ -34,8 +36,14 @@ def _target(
         addresses=addresses,
         primary_labels=(owner,) if owner else (),
         aliases=aliases,
-        categories=("exchange",) if owner else ("mixer",),
-        concept_classes=("ExchangeAccount",) if owner else ("MixerAccount",),
+        categories=(
+            categories if categories is not None else (("exchange",) if owner else ("mixer",))
+        ),
+        concept_classes=(
+            concept_classes
+            if concept_classes is not None
+            else (("ExchangeAccount",) if owner else ("MixerAccount",))
+        ),
         address_roles=("treasury",) if addresses else (),
         description=f"Fixture target {target_id}.",
         document=document,
@@ -148,6 +156,79 @@ class MissingEncoder:
 class NoModelEncoder:
     def encode(self, sentences, *, normalize_embeddings=True):
         raise AssertionError("no encoder should be needed for this regression")
+
+
+class FixedEncoder:
+    def __init__(self, vector: list[float]) -> None:
+        self._vector = np.asarray(vector, dtype=np.float32)
+        self.calls = 0
+
+    def encode(self, sentences, *, normalize_embeddings=True):
+        self.calls += 1
+        texts = [sentences] if isinstance(sentences, str) else list(sentences)
+        return np.tile(self._vector, (len(texts), 1))
+
+
+def _index_for(corpus: EntityCorpus, embeddings: np.ndarray) -> EntityIndex:
+    embeddings = np.asarray(embeddings, dtype=np.float32)
+    embeddings.setflags(write=False)
+    return EntityIndex(
+        EntityIndexMetadata(
+            schema_version=1,
+            model_id="fake/model",
+            document_version="1.0.0",
+            entities_sha256=corpus.entities_sha256,
+            aliases_sha256=corpus.aliases_sha256,
+            concepts_sha256=corpus.concepts_sha256,
+            matrices_sha256="d" * 64,
+            dimension=embeddings.shape[1],
+            target_ids=tuple(target.target_id for target in corpus.targets),
+            target_document_sha256=tuple(target.document_sha256 for target in corpus.targets),
+            manifest_sha256="e" * 64,
+        ),
+        embeddings,
+    )
+
+
+@pytest.fixture
+def token_symbol_corpus() -> EntityCorpus:
+    token_metadata = {
+        "categories": ("token_contract",),
+        "concept_classes": ("TokenContract",),
+    }
+    targets = (
+        _target("owner:Payme", "Payme", ("longticker", "payme"), **token_metadata),
+        _target(
+            "owner:TickerPhrase",
+            "TickerPhrase",
+            ("asset ticker", "show up"),
+            **token_metadata,
+        ),
+    )
+    return EntityCorpus(
+        targets=targets,
+        targets_by_id={target.target_id: target for target in targets},
+        phrase_targets={
+            "asset ticker": ("owner:TickerPhrase",),
+            "longticker": ("owner:Payme",),
+            "payme": ("owner:Payme",),
+            "show up": ("owner:TickerPhrase",),
+        },
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+
+
+@pytest.fixture
+def token_symbol_index(token_symbol_corpus: EntityCorpus) -> EntityIndex:
+    return _index_for(token_symbol_corpus, np.eye(2, dtype=np.float32))
+
+
+@pytest.fixture(scope="module")
+def production_corpus() -> EntityCorpus:
+    return build_entity_corpus()
 
 
 @pytest.fixture
@@ -299,7 +380,7 @@ def test_exact_matching_composes_unicode_before_mapping_original_offsets(
     )
 
 
-def test_common_one_token_alias_requires_an_uppercase_entity_signal(
+def test_concept_one_token_alias_remains_exact_eligible(
     corpus: EntityCorpus, index: EntityIndex
 ) -> None:
     target = _target("concept:show", None, ("show",))
@@ -330,34 +411,84 @@ def test_common_one_token_alias_requires_an_uppercase_entity_signal(
     )
     linker = EntityLinker(common_corpus, common_index, FakeEncoder())
 
-    assert linker.link("show") == ()
-    assert linker.link("SHOW")[0].target_id == "concept:show"
+    assert linker.link("show")[0].target_id == "concept:show"
 
 
-def test_production_common_question_words_do_not_fabricate_an_entity() -> None:
-    real_corpus = build_entity_corpus()
-    embeddings = np.ones((len(real_corpus.targets), 1), dtype=np.float32)
-    embeddings.setflags(write=False)
-    real_index = EntityIndex(
-        EntityIndexMetadata(
-            schema_version=1,
-            model_id="fake/model",
-            document_version="1.0.0",
-            entities_sha256=real_corpus.entities_sha256,
-            aliases_sha256=real_corpus.aliases_sha256,
-            concepts_sha256=real_corpus.concepts_sha256,
-            matrices_sha256="d" * 64,
-            dimension=1,
-            target_ids=tuple(target.target_id for target in real_corpus.targets),
-            target_document_sha256=tuple(target.document_sha256 for target in real_corpus.targets),
-            manifest_sha256="e" * 64,
-        ),
-        embeddings,
+def test_lowercase_token_symbol_alias_requires_signal_at_exact_stage(
+    token_symbol_corpus: EntityCorpus, token_symbol_index: EntityIndex
+) -> None:
+    low_encoder = FixedEncoder([-1.0, 0.0])
+    linker = EntityLinker(token_symbol_corpus, token_symbol_index, low_encoder)
+
+    assert linker.link("payme") == ()
+    assert linker.link("PAYME")[0].target_id == "owner:Payme"
+
+
+def test_lowercase_token_symbol_alias_requires_signal_at_fuzzy_stage(
+    token_symbol_corpus: EntityCorpus, token_symbol_index: EntityIndex
+) -> None:
+    low_encoder = FixedEncoder([-1.0, 0.0])
+    linker = EntityLinker(token_symbol_corpus, token_symbol_index, low_encoder)
+
+    assert linker.link("paymee") == ()
+    assert linker.link("PAYMEE")[0].stage == "fuzzy"
+
+
+def test_lowercase_one_token_window_requires_signal_at_embedding_stage(
+    token_symbol_corpus: EntityCorpus, token_symbol_index: EntityIndex
+) -> None:
+    encoder = FixedEncoder([0.0, 1.0])
+    linker = EntityLinker(token_symbol_corpus, token_symbol_index, encoder)
+
+    assert linker.link("ordinary") == ()
+    assert linker.link("ORDINARY")[0].stage == "embedding"
+
+
+def test_multi_token_windows_remain_eligible_for_fuzzy_and_embedding(
+    token_symbol_corpus: EntityCorpus, token_symbol_index: EntityIndex
+) -> None:
+    fuzzy_linker = EntityLinker(
+        token_symbol_corpus, token_symbol_index, FixedEncoder([-1.0, 0.0])
+    )
+    embedding_linker = EntityLinker(
+        token_symbol_corpus, token_symbol_index, FixedEncoder([0.0, 1.0])
     )
 
-    linker = EntityLinker(real_corpus, real_index, NoModelEncoder())
+    assert fuzzy_linker.link("shwo up")[0].stage == "fuzzy"
+    assert fuzzy_linker.link("longticker x")[0].stage == "fuzzy"
+    assert embedding_linker.link("can you")[0].stage == "embedding"
 
-    assert linker.link("show how many wallets") == ()
+
+@pytest.mark.parametrize(
+    "question",
+    ("can you list my wallets", "show up transfers", "wait for transfers"),
+)
+def test_production_token_symbol_aliases_do_not_fabricate_lowercase_entities(
+    production_corpus: EntityCorpus, question: str
+) -> None:
+    linker = EntityLinker(
+        production_corpus,
+        _index_for(production_corpus, np.ones((len(production_corpus.targets), 1))),
+        FixedEncoder([-1.0]),
+    )
+
+    assert linker.link(question) == ()
+
+
+def test_production_uppercase_ticker_remains_recoverable(production_corpus: EntityCorpus) -> None:
+    linker = EntityLinker(
+        production_corpus,
+        _index_for(production_corpus, np.ones((len(production_corpus.targets), 1))),
+        FixedEncoder([-1.0]),
+    )
+
+    match = linker.link("show UP transfers")[0]
+
+    assert match.stage == "ambiguous"
+    assert [alternative.target_id for alternative in match.alternatives] == [
+        "owner:Superform",
+        "owner:Unitas",
+    ]
 
 
 def test_exact_collision_returns_deterministic_ambiguity(linker: EntityLinker) -> None:

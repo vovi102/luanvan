@@ -26,52 +26,6 @@ _TOKEN_RE = re.compile(r"[^\W_]+", re.UNICODE)
 _FUZZY_CUTOFF = 0.85
 _SEMANTIC_CUTOFF = 0.75
 _DIFFERENT_TARGET_MARGIN = 0.03
-_COMMON_QUERY_WORDS = frozenset(
-    {
-        "a",
-        "an",
-        "and",
-        "are",
-        "at",
-        "by",
-        "can",
-        "count",
-        "counts",
-        "could",
-        "did",
-        "do",
-        "does",
-        "find",
-        "for",
-        "from",
-        "get",
-        "give",
-        "how",
-        "in",
-        "is",
-        "list",
-        "many",
-        "of",
-        "on",
-        "or",
-        "show",
-        "the",
-        "there",
-        "to",
-        "total",
-        "wallet",
-        "wallets",
-        "was",
-        "were",
-        "what",
-        "when",
-        "where",
-        "which",
-        "who",
-        "with",
-        "why",
-    }
-)
 
 
 @dataclass(frozen=True)
@@ -104,6 +58,7 @@ class _Window:
     text: str
     source_start: int
     source_end: int
+    token_count: int
 
 
 def _normalize_question(question: str) -> _NormalizedQuestion:
@@ -216,6 +171,15 @@ class EntityLinker:
         self._encoder = encoder
         self._target_embeddings = matrix.copy()
         self._target_embeddings.setflags(write=False)
+        self._signal_required_target_ids = frozenset(
+            target.target_id
+            for target in corpus.targets
+            if target.target_kind == "owner"
+            and (
+                "token_contract" in target.categories
+                or "TokenContract" in target.concept_classes
+            )
+        )
 
     def link(self, question: str) -> tuple[EntityMatch, ...]:
         """Return immutable entity matches with original source offsets."""
@@ -225,10 +189,10 @@ class EntityLinker:
         exact_matches = self._exact_proposals(question, normalized, address_matches)
         exact_selected = self._select_non_overlapping((*address_matches, *exact_matches))
         fuzzy_selected = self._select_non_overlapping(
-            self._fuzzy_proposals(normalized, exact_selected)
+            self._fuzzy_proposals(question, normalized, exact_selected)
         )
         embedding_selected = self._select_non_overlapping(
-            self._embedding_proposals(normalized, (*exact_selected, *fuzzy_selected))
+            self._embedding_proposals(question, normalized, (*exact_selected, *fuzzy_selected))
         )
         selected = self._select_non_overlapping(
             (*exact_selected, *fuzzy_selected, *embedding_selected)
@@ -263,8 +227,8 @@ class EntityLinker:
                     if not any(
                         source_start < address.end and address.start < source_end
                         for address in addresses
-                    ) and (
-                        phrase not in _COMMON_QUERY_WORDS or source_span.isupper()
+                    ) and not self._requires_entity_signal(
+                        phrase, target_ids, source_span.isupper()
                     ):
                         proposals.append(
                             _Proposal(source_start, source_end, target_ids[:3], "exact", 1.0)
@@ -273,13 +237,20 @@ class EntityLinker:
         return tuple(proposals)
 
     def _fuzzy_proposals(
-        self, normalized: _NormalizedQuestion, covered: tuple[_Proposal, ...]
+        self,
+        question: str,
+        normalized: _NormalizedQuestion,
+        covered: tuple[_Proposal, ...],
     ) -> tuple[_Proposal, ...]:
         proposals: list[_Proposal] = []
         for window in self._uncovered_windows(normalized, covered):
             scores: dict[str, float] = {}
             for phrase, target_ids in self._corpus.phrase_targets.items():
-                if phrase in _COMMON_QUERY_WORDS:
+                if window.token_count == 1 and self._requires_entity_signal(
+                    phrase,
+                    target_ids,
+                    question[window.source_start : window.source_end].isupper(),
+                ):
                     continue
                 score = ratio(window.text, phrase) / 100.0
                 if score < _FUZZY_CUTOFF:
@@ -302,7 +273,10 @@ class EntityLinker:
         return tuple(proposals)
 
     def _embedding_proposals(
-        self, normalized: _NormalizedQuestion, covered: tuple[_Proposal, ...]
+        self,
+        question: str,
+        normalized: _NormalizedQuestion,
+        covered: tuple[_Proposal, ...],
     ) -> tuple[_Proposal, ...]:
         windows = self._uncovered_windows(normalized, covered)
         if not windows:
@@ -334,6 +308,7 @@ class EntityLinker:
                 target.target_id: min(1.0, float(score))
                 for target, score in zip(self._corpus.targets, row, strict=True)
                 if float(score) >= _SEMANTIC_CUTOFF
+                and not self._window_requires_entity_signal(question, window, target.target_id)
             }
             ranked = self._rank_accepted_scores(scores, _SEMANTIC_CUTOFF)
             if ranked:
@@ -393,10 +368,26 @@ class EntityLinker:
                 words = tuple(token.group() for token in _TOKEN_RE.finditer(text))
                 if not any(any(character.isalpha() for character in word) for word in words):
                     continue
-                if words and all(word in _COMMON_QUERY_WORDS for word in words):
-                    continue
-                windows.append(_Window(text, first.source_start, last.source_end))
+                windows.append(_Window(text, first.source_start, last.source_end, size))
         return tuple(windows)
+
+    def _requires_entity_signal(
+        self, phrase: str, target_ids: tuple[str, ...], source_is_uppercase: bool
+    ) -> bool:
+        return (
+            _TOKEN_RE.fullmatch(phrase) is not None
+            and all(target_id in self._signal_required_target_ids for target_id in target_ids)
+            and not source_is_uppercase
+        )
+
+    def _window_requires_entity_signal(
+        self, question: str, window: _Window, target_id: str
+    ) -> bool:
+        return (
+            window.token_count == 1
+            and target_id in self._signal_required_target_ids
+            and not question[window.source_start : window.source_end].isupper()
+        )
 
     @staticmethod
     def _validated_query_embeddings(raw: object, count: int, dimension: int) -> np.ndarray:
