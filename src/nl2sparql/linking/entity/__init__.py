@@ -23,6 +23,7 @@ from nl2sparql.linking.entity.evaluate import (
     GroundTruthCase,
     GroundTruthDataset,
     GroundTruthMention,
+    StageCount,
     evaluate_linker,
     load_ground_truth,
 )
@@ -52,6 +53,7 @@ __all__ = [
     "GroundTruthCase",
     "GroundTruthDataset",
     "GroundTruthMention",
+    "StageCount",
     "build_entity_corpus",
     "build_index",
     "evaluate_linker",

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -16,6 +17,7 @@ from nl2sparql.linking.entity.evaluate import (
     GroundTruthCase,
     GroundTruthDataset,
     GroundTruthMention,
+    StageCount,
     _percentile,
     evaluate_linker,
     load_ground_truth,
@@ -190,8 +192,13 @@ def test_public_contracts_validate_direct_instances_and_are_deeply_immutable(
         model_id="fake/model",
         git_provenance=_provenance(),
     )
+    assert report.stage_counts == (StageCount("exact", 100),)
+    assert report.stage_count_map == {"exact": 100}
     with pytest.raises(TypeError):
-        report.stage_counts["exact"] = 0  # type: ignore[index]
+        report.stage_count_map["exact"] = 0  # type: ignore[index]
+    serialized = json.dumps(asdict(report), sort_keys=True)
+    assert "Binance question" not in serialized
+    assert json.loads(serialized)["stage_counts"] == [{"count": 100, "stage": "exact"}]
 
 
 def test_evaluator_requires_a_dataset_of_exactly_one_hundred_cases(
@@ -297,6 +304,8 @@ def test_readiness_has_exact_accuracy_boundary(tmp_path: Path, corpus: EntityCor
     )
     assert ready.named_entity_top1_accuracy == pytest.approx(0.85)
     assert ready.ready is True
+    with pytest.raises(EntityEvaluationError, match="ready"):
+        replace(ready, ready=False)
 
 
 def test_readiness_requires_p95_strictly_below_two_hundred_ms(
@@ -353,3 +362,151 @@ def test_percentile_rejects_boolean_values_and_parameters() -> None:
         _percentile((True,), 0.5)
     with pytest.raises(EntityEvaluationError, match="percentile"):
         _percentile((1.0,), True)
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    (
+        ("not-json\n", r"line 1.*JSON"),
+        ("[]\n", r"line 1.*object"),
+    ),
+)
+def test_ground_truth_rejects_malformed_json_and_non_object_rows(
+    tmp_path: Path, corpus: EntityCorpus, content: str, message: str
+) -> None:
+    path = tmp_path / "gt.jsonl"
+    path.write_text(content, encoding="utf-8")
+
+    with pytest.raises(EntityEvaluationError, match=message):
+        load_ground_truth(path, corpus)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    (
+        (
+            lambda rows: [
+                *rows[:-1],
+                {**rows[-1], "mentions": [{**rows[-1]["mentions"][0], "span": "wrong"}]},
+            ],
+            "original question slice",
+        ),
+        (
+            lambda rows: [
+                *rows[:-1],
+                {
+                    **rows[-1],
+                    "mentions": [{**rows[-1]["mentions"][0], "target_id": "owner:Unknown"}],
+                },
+            ],
+            "unknown target",
+        ),
+        (
+            lambda rows: [
+                *rows[:-1],
+                {
+                    **rows[-1],
+                    "mentions": [{**rows[-1]["mentions"][0], "target_id": "concept:dex"}],
+                },
+            ],
+            "named-entity",
+        ),
+    ),
+)
+def test_ground_truth_rejects_invalid_slices_targets_and_owner_coverage(
+    tmp_path: Path, corpus: EntityCorpus, mutate, message: str
+) -> None:
+    with pytest.raises(EntityEvaluationError, match=rf"line 100.*{message}"):
+        load_ground_truth(_write_cases(tmp_path / "gt.jsonl", mutate(_rows())), corpus)
+
+
+def test_evaluator_handles_zero_predictions_and_linker_failures(
+    tmp_path: Path, corpus: EntityCorpus
+) -> None:
+    report = evaluate_linker(
+        FakeLinker(corpus, lambda question: ()),
+        _dataset(tmp_path, corpus),
+        model_id="fake/model",
+        git_provenance=_provenance(),
+    )
+    assert report.mention_precision == 0.0
+    assert report.mention_recall == 0.0
+    assert report.mention_f1 == 0.0
+    assert report.stage_counts == ()
+
+    class BrokenLinker(FakeLinker):
+        def link(self, question: str) -> tuple[EntityMatch, ...]:
+            raise RuntimeError("boom")
+
+    with pytest.raises(EntityEvaluationError, match="linker failed"):
+        evaluate_linker(
+            BrokenLinker(corpus, lambda question: ()),
+            _dataset(tmp_path, corpus),
+            model_id="fake/model",
+            git_provenance=_provenance(),
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (("target_ids", ("owner:Binance",)), ("target_document_sha256", ("0" * 64,))),
+)
+def test_evaluator_rejects_index_target_identity_disagreement(
+    tmp_path: Path, corpus: EntityCorpus, field: str, value: tuple[str, ...]
+) -> None:
+    linker = FakeLinker(corpus, lambda question: (_match(question, "owner:Binance"),))
+    metadata = SimpleNamespace(
+        model_id="fake/model",
+        entities_sha256=corpus.entities_sha256,
+        aliases_sha256=corpus.aliases_sha256,
+        concepts_sha256=corpus.concepts_sha256,
+        manifest_sha256="e" * 64,
+        matrices_sha256="f" * 64,
+        target_ids=tuple(target.target_id for target in corpus.targets),
+        target_document_sha256=tuple(target.document_sha256 for target in corpus.targets),
+    )
+    setattr(metadata, field, value)
+    linker._index = SimpleNamespace(metadata=metadata)
+
+    with pytest.raises(EntityEvaluationError, match=field):
+        evaluate_linker(
+            linker,
+            _dataset(tmp_path, corpus),
+            model_id="fake/model",
+            git_provenance=_provenance(),
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    (
+        ("model_id", "other/model", "model ID"),
+        ("entities_sha256", "0" * 64, "entities_sha256"),
+        ("aliases_sha256", "0" * 64, "aliases_sha256"),
+        ("concepts_sha256", "0" * 64, "concepts_sha256"),
+    ),
+)
+def test_evaluator_rejects_index_model_and_dictionary_disagreement(
+    tmp_path: Path, corpus: EntityCorpus, field: str, value: str, message: str
+) -> None:
+    linker = FakeLinker(corpus, lambda question: (_match(question, "owner:Binance"),))
+    metadata = SimpleNamespace(
+        model_id="fake/model",
+        entities_sha256=corpus.entities_sha256,
+        aliases_sha256=corpus.aliases_sha256,
+        concepts_sha256=corpus.concepts_sha256,
+        manifest_sha256="e" * 64,
+        matrices_sha256="f" * 64,
+        target_ids=tuple(target.target_id for target in corpus.targets),
+        target_document_sha256=tuple(target.document_sha256 for target in corpus.targets),
+    )
+    setattr(metadata, field, value)
+    linker._index = SimpleNamespace(metadata=metadata)
+
+    with pytest.raises(EntityEvaluationError, match=message):
+        evaluate_linker(
+            linker,
+            _dataset(tmp_path, corpus),
+            model_id="fake/model",
+            git_provenance=_provenance(),
+        )

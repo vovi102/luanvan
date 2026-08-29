@@ -142,6 +142,19 @@ class GitProvenance:
 
 
 @dataclass(frozen=True)
+class StageCount:
+    """One JSON-serializable immutable count of predictions from a linker stage."""
+
+    stage: str
+    count: int
+
+    def __post_init__(self) -> None:
+        _required_text(self.stage, "stage count key")
+        if not isinstance(self.count, int) or isinstance(self.count, bool) or self.count <= 0:
+            raise EntityEvaluationError("stage counts must be positive integers")
+
+
+@dataclass(frozen=True)
 class EntityEvaluationReport:
     """Aggregate, question-free evidence metrics and reproducibility identities."""
 
@@ -151,7 +164,7 @@ class EntityEvaluationReport:
     mention_precision: float
     mention_recall: float
     mention_f1: float
-    stage_counts: Mapping[str, int]
+    stage_counts: tuple[StageCount, ...] | Mapping[str, int]
     warm_latency_p50_ms: float
     warm_latency_p95_ms: float
     ready: bool
@@ -201,22 +214,31 @@ class EntityEvaluationReport:
                 or value < 0.0
             ):
                 raise EntityEvaluationError(f"{label} must be a finite non-negative number")
-        if not isinstance(self.stage_counts, Mapping):
-            raise EntityEvaluationError("stage counts must be a mapping")
-        stage_counts: dict[str, int] = {}
-        for stage, count in self.stage_counts.items():
-            _required_text(stage, "stage count key")
-            if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
-                raise EntityEvaluationError("stage counts must be positive integers")
-            stage_counts[stage] = count
+        if isinstance(self.stage_counts, Mapping):
+            stage_counts = tuple(
+                StageCount(stage, count) for stage, count in sorted(self.stage_counts.items())
+            )
+        elif isinstance(self.stage_counts, tuple) and all(
+            isinstance(entry, StageCount) for entry in self.stage_counts
+        ):
+            stage_counts = self.stage_counts
+        else:
+            raise EntityEvaluationError(
+                "stage counts must be a mapping or tuple of StageCount values"
+            )
+        if tuple(sorted(stage_counts, key=lambda entry: entry.stage)) != stage_counts:
+            raise EntityEvaluationError("stage counts must be sorted by stage")
+        if len({entry.stage for entry in stage_counts}) != len(stage_counts):
+            raise EntityEvaluationError("stage counts must not contain duplicate stages")
         if not isinstance(self.ready, bool):
             raise EntityEvaluationError("ready must be boolean")
-        if self.ready and (
-            self.case_count != 100
-            or self.named_entity_top1_accuracy < 0.85
-            or self.warm_latency_p95_ms >= 200.0
-        ):
-            raise EntityEvaluationError("ready requires 100 cases, Top-1 >= 0.85, and p95 < 200 ms")
+        expected_ready = (
+            self.case_count == 100
+            and self.named_entity_top1_accuracy >= 0.85
+            and self.warm_latency_p95_ms < 200.0
+        )
+        if self.ready != expected_ready:
+            raise EntityEvaluationError("ready must equal the 100-case Top-1 and p95 gate")
         _required_text(self.model_id, "model ID")
         for value, label in (
             (self.model_id_sha256, "model ID hash"),
@@ -230,9 +252,12 @@ class EntityEvaluationReport:
         ):
             _digest(value, label)
         GitProvenance(self.git_sha, self.git_worktree_dirty)
-        object.__setattr__(
-            self, "stage_counts", MappingProxyType(dict(sorted(stage_counts.items())))
-        )
+        object.__setattr__(self, "stage_counts", stage_counts)
+
+    @property
+    def stage_count_map(self) -> Mapping[str, int]:
+        """Return a newly derived read-only mapping for convenient stage lookup."""
+        return MappingProxyType({entry.stage: entry.count for entry in self.stage_counts})
 
 
 def _json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -410,6 +435,14 @@ def _validate_index_provenance(linker: object, corpus: EntityCorpus, model_id: s
     ):
         if _digest(getattr(metadata, field_name, None), f"index {field_name}") != expected:
             raise EntityEvaluationError(f"index {field_name} does not match the entity corpus")
+    expected_target_ids = tuple(target.target_id for target in corpus.targets)
+    if getattr(metadata, "target_ids", None) != expected_target_ids:
+        raise EntityEvaluationError("index target_ids do not match the entity corpus")
+    expected_document_hashes = tuple(target.document_sha256 for target in corpus.targets)
+    if getattr(metadata, "target_document_sha256", None) != expected_document_hashes:
+        raise EntityEvaluationError(
+            "index target_document_sha256 do not match the entity corpus"
+        )
 
 
 def _corpus_sha256(corpus: EntityCorpus) -> str:
