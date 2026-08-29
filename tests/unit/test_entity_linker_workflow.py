@@ -6,8 +6,13 @@ import hashlib
 import importlib.util
 import json
 import os
+import stat
+import subprocess
+import sys
+import types
 from pathlib import Path
 
+import httpx
 import numpy as np
 import pytest
 from click.testing import CliRunner
@@ -261,3 +266,241 @@ def test_malformed_model_output_is_failed_not_blocked(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert json.loads(result.output)["cause"] == "cache_integrity_failure"
+
+
+def test_evaluation_keeps_publication_in_preflight_parent_after_symlink_retarget(
+    tmp_path: Path,
+) -> None:
+    calls: list[tuple[str, bool]] = []
+    _, cache, ground_truth, _ = _inputs(tmp_path, calls)
+    accepted_ground_truth = ground_truth.read_bytes()
+    safe_parent = tmp_path / "safe-reports"
+    safe_parent.mkdir()
+    report_parent = tmp_path / "report-parent"
+    report_parent.symlink_to(safe_parent, target_is_directory=True)
+    report = report_parent / ground_truth.name
+
+    def retargeting_encoder(model_id: str, local_files_only: bool) -> FakeEncoder:
+        calls.append((model_id, local_files_only))
+        report_parent.unlink()
+        report_parent.symlink_to(ground_truth.parent, target_is_directory=True)
+        return FakeEncoder()
+
+    cli = workflow.create_cli(
+        encoder_loader=retargeting_encoder,
+        corpus_builder=lambda artifacts: _corpus(),
+        git_provenance_factory=lambda repository: workflow.GitProvenance("1" * 40, False),
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "evaluate",
+            "--cache-dir",
+            str(cache),
+            "--ground-truth",
+            str(ground_truth),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert ground_truth.read_bytes() == accepted_ground_truth
+    assert (safe_parent / ground_truth.name).is_file()
+
+
+def test_evaluate_lock_deletion_after_preflight_is_failed_without_recreation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[str, bool]] = []
+    cli, cache, ground_truth, report = _inputs(tmp_path, calls)
+    original_load_index = workflow.load_index
+
+    def delete_lock_then_load(*args, **kwargs):
+        workflow.EntityCachePaths.from_directory(cache).lock.unlink()
+        return original_load_index(*args, **kwargs)
+
+    monkeypatch.setattr(workflow, "load_index", delete_lock_then_load)
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "evaluate",
+            "--cache-dir",
+            str(cache),
+            "--ground-truth",
+            str(ground_truth),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert json.loads(result.output)["cause"] == "cache_integrity_failure"
+    assert calls == []
+    assert not workflow.EntityCachePaths.from_directory(cache).lock.exists()
+
+
+def test_post_replace_directory_fsync_failure_restores_prior_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[str, bool]] = []
+    cli, cache, ground_truth, report = _inputs(tmp_path, calls)
+    report.write_bytes(b"accepted evidence\n")
+    original_replace = workflow.os.replace
+    original_fsync = workflow.os.fsync
+    report_replaced = False
+    directory_failure_used = False
+
+    def observe_replace(source, destination, *args, **kwargs):
+        nonlocal report_replaced
+        original_replace(source, destination, *args, **kwargs)
+        if destination == report.name:
+            report_replaced = True
+
+    def fail_first_directory_fsync_after_replace(descriptor: int) -> None:
+        nonlocal directory_failure_used
+        if (
+            report_replaced
+            and not directory_failure_used
+            and stat.S_ISDIR(os.fstat(descriptor).st_mode)
+        ):
+            directory_failure_used = True
+            raise OSError("directory fsync failure")
+        original_fsync(descriptor)
+
+    monkeypatch.setattr(workflow.os, "replace", observe_replace)
+    monkeypatch.setattr(workflow.os, "fsync", fail_first_directory_fsync_after_replace)
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "evaluate",
+            "--cache-dir",
+            str(cache),
+            "--ground-truth",
+            str(ground_truth),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert json.loads(result.output)["cause"] == "publication_failure"
+    assert directory_failure_used is True
+    assert report.read_bytes() == b"accepted evidence\n"
+
+
+@pytest.mark.parametrize(
+    "error",
+    (httpx.ConnectError("offline"), httpx.ReadTimeout("slow"), OSError("missing")),
+)
+def test_model_transport_and_local_failures_are_blocked(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], error: Exception
+) -> None:
+    class FailingSentenceTransformer:
+        def __init__(self, *args, **kwargs) -> None:
+            raise error
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        types.SimpleNamespace(SentenceTransformer=FailingSentenceTransformer),
+    )
+
+    with pytest.raises(workflow.ExternalDependencyError):
+        workflow.load_encoder("fixture/model", local_files_only=True)
+
+    assert workflow._failure("query", workflow.ExternalDependencyError(str(error))) == 2
+    assert json.loads(capsys.readouterr().out)["cause"] == "external_model_unavailable"
+
+
+def test_unrelated_publication_file_not_found_is_failed_not_blocked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[str, bool]] = []
+    cli, cache, ground_truth, report = _inputs(tmp_path, calls)
+
+    def missing_destination(path: Path, payload: bytes) -> None:
+        raise FileNotFoundError("destination disappeared")
+
+    monkeypatch.setattr(workflow, "_atomic_write", missing_destination)
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "evaluate",
+            "--cache-dir",
+            str(cache),
+            "--ground-truth",
+            str(ground_truth),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert json.loads(result.output)["cause"] == "internal_error"
+
+
+def _initialize_git_repository(path: Path, content: str) -> str:
+    path.mkdir()
+    commands = (
+        ("init",),
+        ("config", "user.email", "test@example.com"),
+        ("config", "user.name", "Test"),
+    )
+    for arguments in commands:
+        subprocess.run(["git", *arguments], cwd=path, check=True, capture_output=True, text=True)
+    (path / "tracked.txt").write_text(content, encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "tracked.txt"], cwd=path, check=True, capture_output=True, text=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "fixture"], cwd=path, check=True, capture_output=True, text=True
+    )
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=path, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def test_git_provenance_ignores_ambient_repository_override_and_requires_top_level(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository = tmp_path / "repository"
+    expected_sha = _initialize_git_repository(repository, "primary\n")
+    other_repository = tmp_path / "other-repository"
+    _initialize_git_repository(other_repository, "other\n")
+    monkeypatch.setenv("GIT_DIR", str(other_repository / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(other_repository))
+
+    provenance = workflow._git_provenance(repository)
+
+    assert provenance == workflow.GitProvenance(expected_sha, False)
+    nested = repository / "nested"
+    nested.mkdir()
+    with pytest.raises(workflow.ProvenanceError, match="top level"):
+        workflow._git_provenance(nested)
+
+
+def test_defaults_use_shared_linking_cache_and_numbered_script_names_subcommand(
+    tmp_path: Path,
+) -> None:
+    assert workflow.DEFAULT_CACHE_DIRECTORY == Path("src/nl2sparql/linking/cache")
+    notebook_path = WORKFLOW_PATH.parents[1] / "notebooks/12_entity_linker_eval.ipynb"
+    notebook = json.loads(notebook_path.read_text())
+    source = "".join(notebook["cells"][1]["source"])
+    assert "src/nl2sparql/linking/cache" in source
+
+    wrapper = WORKFLOW_PATH.parent / "14_entity_linker.py"
+    completed = subprocess.run(
+        [sys.executable, str(wrapper), "query", "--unknown-option"],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=WORKFLOW_PATH.parents[1],
+    )
+
+    assert completed.returncode == 1
+    assert json.loads(completed.stdout)["command"] == "query"

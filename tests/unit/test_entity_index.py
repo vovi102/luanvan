@@ -6,15 +6,18 @@ import hashlib
 import io
 import json
 import os
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 
+import httpx
 import numpy as np
 import pytest
 
 from nl2sparql.linking.entity import (
     EntityCachePaths,
     EntityCorpus,
+    EntityEncoderUnavailableError,
     EntityIndexError,
     EntityTarget,
     build_index,
@@ -223,6 +226,22 @@ def test_build_rejects_invalid_encoder_vectors_without_publishing(
     assert not list(tmp_path.glob("entity-index-*.npz"))
 
 
+@pytest.mark.parametrize("error", (httpx.ConnectError("offline"), httpx.ReadTimeout("slow")))
+def test_build_marks_encoder_transport_failures_unavailable(
+    tmp_path: Path, corpus: EntityCorpus, error: Exception
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+
+    class TransportFailingEncoder:
+        def encode(self, sentences, *, normalize_embeddings=True):
+            raise error
+
+    with pytest.raises(EntityEncoderUnavailableError, match="unavailable"):
+        build_index(corpus, TransportFailingEncoder(), paths, model_id=MODEL_ID)
+
+    assert not paths.manifest.exists()
+
+
 def test_load_rejects_traversal_symlink_and_hardlink_aliases(
     tmp_path: Path, corpus: EntityCorpus
 ) -> None:
@@ -267,6 +286,27 @@ def test_load_rejects_symlink_and_hardlink_manifest_aliases(
     os.link(saved_manifest, paths.manifest)
     with pytest.raises(EntityIndexError, match="manifest.*alias"):
         load_index(paths, corpus, model_id=MODEL_ID)
+
+
+def test_strict_load_does_not_recreate_lock_deleted_before_open(
+    tmp_path: Path, corpus: EntityCorpus, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+    build_index(corpus, FakeEncoder(), paths, model_id=MODEL_ID)
+    original_lock = index_module._index_lock
+
+    @contextmanager
+    def delete_then_open(path: Path, **kwargs):
+        path.unlink()
+        with original_lock(path, **kwargs):
+            yield
+
+    monkeypatch.setattr(index_module, "_index_lock", delete_then_open)
+
+    with pytest.raises(EntityIndexError, match="lock"):
+        load_index(paths, corpus, model_id=MODEL_ID)
+
+    assert not paths.lock.exists()
 
 
 @pytest.mark.parametrize(

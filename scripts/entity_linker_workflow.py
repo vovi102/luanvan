@@ -11,7 +11,9 @@ import hashlib
 import json
 import os
 import re
+import stat
 import subprocess
+import sys
 import tempfile
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict
@@ -43,7 +45,7 @@ from nl2sparql.linking.entity import (
 )
 from nl2sparql.linking.entity.contracts import required_text
 
-DEFAULT_CACHE_DIRECTORY = Path("src/nl2sparql/linking/entity/cache")
+DEFAULT_CACHE_DIRECTORY = Path("src/nl2sparql/linking/cache")
 DEFAULT_GROUND_TRUTH_PATH = Path("data/eval/entity_link_groundtruth.jsonl")
 DEFAULT_REPORT_PATH = Path("reports/entity_linker_evaluation.json")
 DEFAULT_REPOSITORY = Path(__file__).resolve().parents[1]
@@ -64,6 +66,30 @@ class ProvenanceError(EntityLinkerError):
     """Git provenance could not be established reproducibly."""
 
 
+class ExternalEvidenceUnavailableError(EntityLinkerError):
+    """A required user-supplied evidence artifact is unavailable."""
+
+
+class ReportPublicationError(EntityLinkerError):
+    """A report could not be published while preserving the accepted destination."""
+
+
+class _ReportDestination:
+    """A report filename pinned to an opened, validated parent directory."""
+
+    def __init__(self, parent: Path, directory_fd: int, filename: str) -> None:
+        self.parent = parent
+        self.directory_fd = directory_fd
+        self.filename = filename
+
+    @property
+    def path(self) -> Path:
+        return self.parent / self.filename
+
+    def close(self) -> None:
+        os.close(self.directory_fd)
+
+
 def load_encoder(model_id: str, local_files_only: bool = False) -> Encoder:
     """Initialize the SentenceTransformer only inside a command callback."""
     try:
@@ -71,8 +97,24 @@ def load_encoder(model_id: str, local_files_only: bool = False) -> Encoder:
     except ImportError as exc:
         raise ExternalDependencyError(f"unable to import model runtime: {exc}") from exc
     try:
+        import httpx
+    except ImportError:
+        unavailable_errors: tuple[type[BaseException], ...] = (
+            ConnectionError,
+            OSError,
+            TimeoutError,
+        )
+    else:
+        unavailable_errors = (
+            ConnectionError,
+            OSError,
+            TimeoutError,
+            httpx.ConnectError,
+            httpx.TimeoutException,
+        )
+    try:
         return SentenceTransformer(model_id, local_files_only=local_files_only)
-    except (ConnectionError, OSError, TimeoutError) as exc:
+    except unavailable_errors as exc:
         mode = "local files" if local_files_only else "model files"
         raise ExternalDependencyError(
             f"unable to initialize {mode} for {model_id!r}: {exc}"
@@ -94,26 +136,131 @@ def _utc_timestamp(clock: Callable[[], datetime]) -> str:
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
-def _atomic_write(path: Path, payload: bytes) -> None:
-    """Durably replace one report without exposing a partial file."""
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _report_tempfile(destination: _ReportDestination, suffix: str) -> tuple[int, str]:
     descriptor, raw_temporary = tempfile.mkstemp(
-        dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
+        dir=f"/proc/self/fd/{destination.directory_fd}",
+        prefix=f".{destination.filename}.",
+        suffix=suffix,
     )
-    temporary = Path(raw_temporary)
+    return descriptor, Path(raw_temporary).name
+
+
+def _unlink_at(destination: _ReportDestination, name: str) -> None:
     try:
-        with os.fdopen(descriptor, "wb") as handle:
+        os.unlink(name, dir_fd=destination.directory_fd)
+    except FileNotFoundError:
+        pass
+
+
+def _backup_report(destination: _ReportDestination) -> str | None:
+    try:
+        existing = os.stat(
+            destination.filename,
+            dir_fd=destination.directory_fd,
+            follow_symlinks=False,
+        )
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISREG(existing.st_mode) or existing.st_nlink != 1:
+        raise ReportPublicationError("existing report destination is an unsafe alias")
+    descriptor, backup = _report_tempfile(destination, ".backup")
+    os.close(descriptor)
+    _unlink_at(destination, backup)
+    try:
+        os.link(
+            destination.filename,
+            backup,
+            src_dir_fd=destination.directory_fd,
+            dst_dir_fd=destination.directory_fd,
+            follow_symlinks=False,
+        )
+    except OSError as exc:
+        raise ReportPublicationError(f"unable to back up accepted report: {exc}") from exc
+    return backup
+
+
+def _restore_report(
+    destination: _ReportDestination, backup: str | None, replaced: bool
+) -> str | None:
+    if not replaced:
+        return backup
+    try:
+        if backup is None:
+            _unlink_at(destination, destination.filename)
+        else:
+            os.replace(
+                backup,
+                destination.filename,
+                src_dir_fd=destination.directory_fd,
+                dst_dir_fd=destination.directory_fd,
+            )
+            backup = None
+        os.fsync(destination.directory_fd)
+    except OSError as exc:
+        raise ReportPublicationError(
+            f"unable to restore accepted report after publication failure: {exc}"
+        ) from exc
+    return backup
+
+
+def _atomic_write(destination: _ReportDestination, payload: bytes) -> None:
+    """Publish through a pinned directory FD, restoring a prior report on runtime failure.
+
+    A process crash between replacement and directory fsync still has filesystem-dependent
+    durability semantics; the backup makes ordinary reported publication failures reversible.
+    """
+    descriptor, temporary = _report_tempfile(destination, ".tmp")
+    backup: str | None = None
+    replaced = False
+    try:
+        with os.fdopen(descriptor, "wb", closefd=True) as handle:
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, path)
-        directory_fd = os.open(path.parent, os.O_RDONLY)
+        backup = _backup_report(destination)
+        if backup is not None:
+            os.fsync(destination.directory_fd)
+        os.replace(
+            temporary,
+            destination.filename,
+            src_dir_fd=destination.directory_fd,
+            dst_dir_fd=destination.directory_fd,
+        )
+        temporary = ""
+        replaced = True
+        os.fsync(destination.directory_fd)
+    except ReportPublicationError:
+        raise
+    except OSError as exc:
         try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+            backup = _restore_report(destination, backup, replaced)
+        except ReportPublicationError as rollback_error:
+            raise ReportPublicationError(
+                f"report publication failed and rollback was incomplete: {rollback_error}"
+            ) from exc
+        raise ReportPublicationError(f"unable to publish report: {exc}") from exc
     finally:
-        temporary.unlink(missing_ok=True)
+        if temporary:
+            _unlink_at(destination, temporary)
+        if backup is not None:
+            _unlink_at(destination, backup)
+
+
+def _open_report_destination(report_path: Path) -> _ReportDestination:
+    filename = report_path.name
+    if not filename:
+        raise EntityLinkerError("report path must name a file")
+    try:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        parent = report_path.parent.resolve(strict=True)
+        flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(parent, flags)
+        details = os.fstat(descriptor)
+        if not stat.S_ISDIR(details.st_mode):
+            raise ReportPublicationError("report parent is not a directory")
+        return _ReportDestination(parent=parent, directory_fd=descriptor, filename=filename)
+    except (OSError, RuntimeError) as exc:
+        raise ReportPublicationError(f"unable to open report parent securely: {exc}") from exc
 
 
 def _paths_alias(left: Path, right: Path) -> bool:
@@ -139,7 +286,7 @@ def _protect_generation_namespace(report_path: Path, cache_dir: Path) -> None:
 
 def _required_file(path: Path, label: str) -> None:
     if not path.is_file():
-        raise FileNotFoundError(f"missing required {label}: {path}")
+        raise ExternalEvidenceUnavailableError(f"missing required {label}: {path}")
 
 
 def _validated_model_id(model_id: object) -> str:
@@ -178,25 +325,43 @@ def _load_cached_index(cache_dir: Path, corpus: Any, model_id: str):
 
 
 def _git_provenance(repository: Path) -> GitProvenance:
+    environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     try:
+        resolved_repository = repository.resolve(strict=True)
+        if not resolved_repository.is_dir():
+            raise ProvenanceError("--repository must be a directory")
+        top_level = Path(
+            subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=resolved_repository,
+                check=True,
+                capture_output=True,
+                text=True,
+                env=environment,
+            ).stdout.strip()
+        ).resolve(strict=True)
+        if top_level != resolved_repository:
+            raise ProvenanceError("--repository must resolve to the Git work tree top level")
         sha = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            cwd=repository,
+            cwd=resolved_repository,
             check=True,
             capture_output=True,
             text=True,
+            env=environment,
         ).stdout.strip()
         dirty = bool(
             subprocess.run(
                 ["git", "status", "--porcelain", "--untracked-files=all"],
-                cwd=repository,
+                cwd=resolved_repository,
                 check=True,
                 capture_output=True,
                 text=True,
+                env=environment,
             ).stdout
         )
         return GitProvenance(sha, dirty)
-    except (OSError, subprocess.CalledProcessError, EntityEvaluationError) as exc:
+    except (OSError, RuntimeError, subprocess.CalledProcessError, EntityEvaluationError) as exc:
         raise ProvenanceError(f"unable to resolve repository git provenance: {exc}") from exc
 
 
@@ -223,11 +388,14 @@ def _failure(command: str, error: Exception) -> int:
     if isinstance(error, (ExternalDependencyError, EntityEncoderUnavailableError)):
         _emit(status="blocked", command=command, cause="external_model_unavailable", reason=error)
         return 2
-    if isinstance(error, FileNotFoundError):
+    if isinstance(error, ExternalEvidenceUnavailableError):
         _emit(
             status="blocked", command=command, cause="external_evidence_unavailable", reason=error
         )
         return 2
+    if isinstance(error, ReportPublicationError):
+        _emit(status="failed", command=command, cause="publication_failure", reason=error)
+        return 1
     if isinstance(error, EntityIndexError):
         _emit(status="failed", command=command, cause="cache_integrity_failure", reason=error)
         return 1
@@ -405,12 +573,12 @@ def create_cli(
     ) -> None:
         """Evaluate the strict cached index on 100 reviewed questions."""
         command = "evaluate"
+        destination: _ReportDestination | None = None
         try:
             model_id = _validated_model_id(model_id)
-            if not str(report_path):
-                raise EntityLinkerError("report path must be non-empty")
+            destination = _open_report_destination(report_path)
             paths = EntityCachePaths.from_directory(cache_dir)
-            _protect_generation_namespace(report_path, paths.manifest.parent)
+            _protect_generation_namespace(destination.path, paths.manifest.parent)
             protected = {
                 "ground truth": ground_truth,
                 "dictionary entities": entities,
@@ -425,7 +593,7 @@ def create_cli(
                     for path in paths.manifest.parent.glob("entity-index-*.npz")
                 },
             }
-            _protect_report_path(report_path, protected)
+            _protect_report_path(destination.path, protected)
             corpus = corpus_builder(
                 _dictionary_artifacts(
                     entities=entities, aliases=aliases, concepts=concepts, sources=sources
@@ -441,7 +609,7 @@ def create_cli(
                 model_id=model_id,
                 git_provenance=provenance,
             )
-            _atomic_write(report_path, _evaluation_payload(evaluation, _utc_timestamp(clock)))
+            _atomic_write(destination, _evaluation_payload(evaluation, _utc_timestamp(clock)))
             click.echo(
                 json.dumps(
                     {"status": "ready", "command": command, "report": str(report_path)},
@@ -450,22 +618,34 @@ def create_cli(
             )
         except Exception as exc:
             raise click.exceptions.Exit(_failure(command, exc)) from exc
+        finally:
+            if destination is not None:
+                destination.close()
 
     return cli
 
 
 def main(args: Sequence[str] | None = None) -> int:
     """Run the CLI programmatically, always returning its documented exit code."""
+    effective_args = list(sys.argv[1:] if args is None else args)
     try:
-        result = create_cli().main(
-            args=list(args) if args is not None else None, standalone_mode=False
-        )
+        result = create_cli().main(args=effective_args, standalone_mode=False)
         return int(result or 0)
     except click.ClickException as exc:
-        _emit(status="failed", command=_command_name(args), cause="invalid_input", reason=exc)
+        _emit(
+            status="failed",
+            command=_command_name(effective_args),
+            cause="invalid_input",
+            reason=exc,
+        )
         return 1
     except click.Abort as exc:
-        _emit(status="failed", command=_command_name(args), cause="invalid_input", reason=exc)
+        _emit(
+            status="failed",
+            command=_command_name(effective_args),
+            cause="invalid_input",
+            reason=exc,
+        )
         return 1
 
 

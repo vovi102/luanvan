@@ -68,14 +68,46 @@ def _sha256(payload: bytes) -> str:
 
 
 @contextmanager
-def _index_lock(path: Path) -> Iterator[None]:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a+b") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+def _index_lock(path: Path, *, create: bool) -> Iterator[None]:
+    """Lock an index lifecycle operation without creating locks during strict loads."""
+    descriptor: int | None = None
+    try:
+        if create:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            descriptor = os.open(
+                path,
+                os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
+        else:
+            before = path.lstat()
+            if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                raise EntityIndexError("entity index lock is an unsafe alias")
+            descriptor = os.open(path, os.O_RDWR | getattr(os, "O_NOFOLLOW", 0))
+            after = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(after.st_mode)
+                or after.st_nlink != 1
+                or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+            ):
+                raise EntityIndexError("entity index lock changed while opening")
+    except EntityIndexError:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    except OSError as exc:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise EntityIndexError(f"unable to open entity index lock: {exc}") from exc
+    assert descriptor is not None
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
         try:
             yield
         finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)
 
 
 def _fsync_directory(path: Path) -> None:
@@ -118,6 +150,14 @@ def _validated_matrix(
         raise EntityIndexError("entity encoder output must be normalized")
     array.setflags(write=False)
     return array
+
+
+def _is_encoder_transport_failure(error: BaseException) -> bool:
+    try:
+        import httpx
+    except ImportError:
+        return False
+    return isinstance(error, (httpx.ConnectError, httpx.TimeoutException))
 
 
 def _manifest_body(
@@ -214,7 +254,7 @@ def _publish_generation(
     matrices_sha256: str,
     manifest_temp: Path,
 ) -> None:
-    with _index_lock(paths.lock):
+    with _index_lock(paths.lock, create=True):
         try:
             if generation_path.exists() or generation_path.is_symlink():
                 existing = _read_matrix_generation(generation_path)
@@ -269,6 +309,8 @@ def build_index(
     except EntityIndexError:
         raise
     except Exception as exc:
+        if _is_encoder_transport_failure(exc):
+            raise EntityEncoderUnavailableError(f"entity index encoder unavailable: {exc}") from exc
         raise EntityIndexError(f"entity encoder failed: {exc}") from exc
     embeddings = _validated_matrix(raw_embeddings, expected_rows=len(corpus.targets))
 
@@ -412,7 +454,7 @@ def load_index(
     """Load an entity index only after identity and integrity checks pass."""
     model_id, document_version = _validate_build_arguments(corpus, model_id, document_version)
     try:
-        with _index_lock(paths.lock):
+        with _index_lock(paths.lock, create=False):
             manifest_bytes = _read_manifest(paths.manifest)
             body, manifest_sha256 = _parse_manifest(manifest_bytes)
             _validate_manifest_identity(body, corpus, model_id, document_version)
