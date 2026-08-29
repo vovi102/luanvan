@@ -24,6 +24,40 @@
 
 ## Entries
 
+### 2026-08-29 — T4.2 tách recognition entity khỏi GoogleSQL resolution và publish index fail-closed
+
+- **Context:** T4.2 legacy từng trộn nhận diện entity với SPARQL triple/filter,
+  pickle cache và fallback `unknown`. Sau Pivot #1, analytical catalog
+  GoogleSQL là runtime canonical; quyết định predicate, join và SQL filter phụ
+  thuộc context schema nên không thuộc entity recognition.
+- **Options considered:** Resolve trực tiếp thành SQL/VALUES trong T4.2; quét
+  dictionary ở mọi query không có artifact; persist pickle/trie; hoặc tách
+  linker typed nhận diện evidence và cache chỉ embedding matrix có provenance.
+- **Decision:** `EntityLinker.link()` chỉ trả owner/concept/address evidence,
+  original spans, ambiguity alternatives và target fingerprints. T4.3 sở hữu
+  GoogleSQL predicate/join/filter resolution. Exact/fuzzy indexes được rebuild
+  deterministic từ dictionary; chỉ matrix MiniLM float32 được cache trong NPZ
+  content-addressed, `allow_pickle=False`, process lock và manifest-last. Strict
+  load bind dictionary/model/document hashes, matrix digest/shape/normalization
+  và reject path/alias tampering; không implicit rebuild/download.
+- **Rationale:** Seam này giữ module sâu, tránh mặc định hóa SQL semantics trước
+  schema resolution, và cho deterministic unit tests bằng fake encoder. Cache
+  immutable/auditable giúp real production retrieval fail closed khi dictionary,
+  model hoặc artifact stale/tampered thay vì tạo result khó truy nguyên.
+- **Consequences:** Local build ngày 2026-08-29 tạo 5,107 targets, matrix 384-d,
+  manifest file SHA-256
+  `459f108f371ca173105b4098c1285143c17f7cf16d458158eabff287a45aca61` và
+  matrix SHA-256
+  `ee33c9fededf9be1091bca69e64c7f4075ba1d0f9948652a412c39f14c4dfa53`.
+  Recognition output không chứa SQL; consumer phải resolve qua T4.3. Model
+  snapshot remains outside the repository, while only validated production index
+  artifacts are versioned.
+- **Revisit:** Khi có đúng 100 rows independently reviewed, chạy real evaluation
+  để kiểm tra named-entity Top-1 >=0.85 và warm p95 <200 ms; khi T4.3 ổn định,
+  review seam có cần thêm typed resolution request hay không.
+- **Linked:** `docs/tasks/phase-4-linking/02-entity-linker.md`,
+  `src/nl2sparql/linking/entity/`, `scripts/14_entity_linker.py`.
+
 ### 2026-08-15 — T4.1 rank GoogleSQL relation/field bằng hybrid linker fail-closed
 
 - **Context:** Task T4.1 cũ rank ontology property/class để inject SPARQL, trái với

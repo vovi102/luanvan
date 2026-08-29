@@ -1,179 +1,90 @@
-# T4.2 — Entity Linker (4-Stage Cascading Match)
+# T4.2 — GoogleSQL Entity Linker (4-Stage Cascading Match)
 
 ## Mục tiêu
 
-Xây dựng module `EntityLinker` nhận câu hỏi NL → trích xuất entity mentions ("Binance", "Tornado Cash") → resolve sang địa chỉ Ethereum (set của addresses) hoặc concept class.
+Xây dựng module `EntityLinker` nhận câu hỏi ngôn ngữ tự nhiên và nhận diện
+evidence thực thể cho pipeline GoogleSQL/BigQuery: owner, concept hoặc Ethereum
+address. T4.2 chỉ nhận diện và trả provenance; T4.3 mới quyết định predicate,
+join và filter GoogleSQL.
 
-## Bối cảnh & lý do
+## Thiết kế đã triển khai
 
-Đặc thù blockchain (xem `00-PROJECT_OVERVIEW.md` đặc thù 1-3): "Binance" = ~30 addresses; "Tornado Cash" có aliases. Đây là **đóng góp khoa học định lượng** (RQ2).
+API công khai là `EntityLinker.link(question: str) -> tuple[EntityMatch, ...]`.
+Kết quả bất biến có raw span/original offset, stable target ID/kind, owner,
+addresses, category/concept class khi có, confidence, stage, alternatives và
+fingerprint của dictionary target. Một câu không có entity evidence trả tuple
+rỗng, không tạo `unknown` giả.
 
-Pipeline 4 stage cascading (mỗi stage trả lại kết quả nếu match, fallback xuống stage sau):
-- **Stage A:** Exact match (case-insensitive) trên `entities.json` + `aliases.json`.
-- **Stage B:** Fuzzy match (Levenshtein/rapidfuzz) ratio ≥0.85.
-- **Stage C:** Embedding similarity (sentence-transformers) ≥0.75.
-- **Stage D:** Fallback → "unknown", prompt clarification (hoặc skip).
+Cascade chạy theo thứ tự:
 
-## Phụ thuộc
+1. Address/exact: nhận diện đầy đủ `0x` + 40 hex hoặc phrase dictionary/concept
+   dài nhất với Unicode NFKC, case-folding và original-character offsets.
+2. Fuzzy: RapidFuzz cho các cửa sổ 1--5 token chưa phủ, threshold `0.85` và
+   different-target margin `0.03`.
+3. Embedding: MiniLM `sentence-transformers/all-MiniLM-L6-v2`, threshold `0.75`
+   và cùng margin; encoder chỉ khởi tạo ở lệnh production explicit.
+4. Ambiguity: trả alternatives typed thay vì tự chọn khi collision hoặc khoảng
+   cách không đủ an toàn.
 
-- T2.2 — Entity dictionary đã có ≥3000 entries.
-- T4.1 — Sentence-transformers model đã load (reuse).
+Một address hợp lệ luôn query được. Address đã biết được enrich từ dictionary;
+address lạ trả target `address:<lowercase-address>` không owner/category claim.
+Kết quả recognition không chứa SQL fragment và không tự quyết định SQL predicate
+hay join.
 
-## Đầu vào
+## Dictionary, index và an toàn
 
-- `src/nl2sparql/linking/dictionary/entities.json`.
-- `src/nl2sparql/linking/dictionary/aliases.json`.
-- Câu hỏi NL.
+Dictionary đã validate trước khi sinh owner/concept targets và aliases. Production
+index không dùng pickle: manifest JSON canonical bind schema/document/model và
+hash của dictionary/documents; matrix float32 nằm trong immutable,
+content-addressed `entity-index-<sha256>.npz`, load với `allow_pickle=False`.
+Publish dưới process lock theo manifest-last; strict load kiểm tra generation,
+digest, shape, finite/L2-normalized vectors, aliases/symlink/hardlink/path
+traversal và metadata hiện tại. Không có implicit rebuild, download model hay
+BigQuery call.
 
-## Đầu ra
+## Evidence triển khai cục bộ — 2026-08-29
 
-- Module `src/nl2sparql/linking/entity_linker.py`.
-- File index `src/nl2sparql/linking/cache/entity_index.pkl`.
-- Tests `tests/test_entity_linker.py` với 30+ test cases.
-- Notebook `notebooks/12_entity_linker_eval.ipynb`.
+Build dùng cache model cục bộ thành công, không tải model:
+
+```text
+uv run python scripts/14_entity_linker.py build-index --local-files-only
+```
+
+- Targets: `5,107`; dimension: `384`.
+- Model: `sentence-transformers/all-MiniLM-L6-v2`.
+- Manifest file SHA-256:
+  `459f108f371ca173105b4098c1285143c17f7cf16d458158eabff287a45aca61`.
+- Manifest body SHA-256:
+  `3f78643318358f503bebf6dc00fa5a9a6477690be549193933b1e7ef8d72ea8a`.
+- Matrix SHA-256:
+  `ee33c9fededf9be1091bca69e64c7f4075ba1d0f9948652a412c39f14c4dfa53`.
+- Strict-load succeeded against the current accepted dictionary and model ID.
+- Representative strict-loaded CLI queries succeeded with `--local-files-only`:
+  exact `Binance` → `owner:Binance`; fuzzy `Binnance` → `owner:Binance`
+  (`0.933333...`); `centralized exchange` → `concept:exchange`; known address
+  `0x6454ac71ca260f99cca99a3f4241dfda20cfa965` → enriched `owner:Binance`.
+- After strict load and explicit local MiniLM initialization, a warmed in-process
+  `show Binnance transfers` fuzzy smoke measured `89.819 ms`; 20 warm samples had
+  median `87.313 ms` and maximum `99.915 ms`. This is a smoke measurement, not
+  the independently evaluated p95 scientific acceptance result.
 
 ## Acceptance criteria
 
-- [ ] API: `link(nl_question: str) -> List[EntityMatch]`.
-- [ ] Latency <200ms cho 1 query (typical 1-3 entities).
-- [ ] Top-1 accuracy ≥85% trên test set 100 câu (named entities only, không kể address-only).
-- [ ] Test cover 4 stages, có ít nhất 1 case mỗi stage.
-- [ ] Clarification UI khi confidence <0.75 (return special "ambiguous" type).
-
-## Hướng dẫn triển khai
-
-### EntityMatch schema
-
-```python
-@dataclass
-class EntityMatch:
-    span: str                    # raw text trong câu hỏi
-    span_offset: tuple[int, int] # (start, end) char offset
-    matched_to: str              # primary_label, e.g. "Binance"
-    addresses: list[str]         # [0x..., 0x..., ...]
-    concept_class: Optional[str] # "Exchange", "MixerAccount", ...
-    stage: str                   # "exact" | "fuzzy" | "embedding" | "unknown"
-    confidence: float            # 0-1
-    candidates: list[dict]       # top-3 alternatives nếu ambiguous
-```
-
-### Mention extraction
-
-Vì câu hỏi ngắn, KHÔNG dùng NER nặng. Strategy: candidate generation từ n-grams + dictionary lookup.
-
-```python
-def extract_candidates(nl: str, max_ngram: int = 4) -> list[str]:
-    tokens = nl.split()
-    candidates = []
-    for n in range(1, min(max_ngram, len(tokens)) + 1):
-        for i in range(len(tokens) - n + 1):
-            span = " ".join(tokens[i:i+n])
-            candidates.append((span, (i, i+n)))
-    return candidates
-```
-
-Optional: dùng spaCy NER để filter candidates xuống ORG/PERSON labels.
-
-### Stage A — Exact match
-
-```python
-def stage_a(span, exact_index):
-    # exact_index: dict[lower_str] -> entity_record
-    key = span.lower().strip()
-    return exact_index.get(key)
-```
-
-Build index với both `primary_label` và `aliases`.
-
-### Stage B — Fuzzy
-
-```python
-from rapidfuzz import process, fuzz
-
-def stage_b(span, all_labels, threshold=85):
-    matches = process.extract(span, all_labels, scorer=fuzz.WRatio, limit=3)
-    matches = [m for m in matches if m[1] >= threshold]
-    return matches  # [(label, score, idx), ...]
-```
-
-`WRatio` xử lý token order và partial matches tốt hơn Levenshtein thuần.
-
-### Stage C — Embedding
-
-```python
-def stage_c(span, label_embeddings, labels, threshold=0.75):
-    span_emb = self.model.encode(span, normalize_embeddings=True)
-    scores = label_embeddings @ span_emb
-    top_idx = np.argsort(-scores)[:3]
-    matches = [(labels[i], scores[i]) for i in top_idx if scores[i] >= threshold]
-    return matches
-```
-
-### Stage D — Fallback
-
-```python
-def stage_d(span):
-    return EntityMatch(
-        span=span, matched_to=None, addresses=[],
-        stage="unknown", confidence=0.0,
-        candidates=[]
-    )
-```
-
-### Address detection (parallel pipeline)
-
-Nếu user paste 0x... trực tiếp: regex `^0x[a-fA-F0-9]{40}$`, không cần linking.
-
-```python
-def detect_address(span):
-    if re.fullmatch(r'0x[a-fA-F0-9]{40}', span):
-        return span.lower()
-    return None
-```
-
-### Concept-class detection
-
-Một số mention không phải instance mà là class: "any DEX", "all exchanges", "mixers". Build small concept dictionary:
-
-```json
-{
-  "exchange": ":ExchangeAccount",
-  "exchanges": ":ExchangeAccount",
-  "DEX": ":DEXProtocol",
-  "DEXes": ":DEXProtocol",
-  "mixer": ":MixerAccount",
-  "mixers": ":MixerAccount",
-  "lending protocol": ":LendingProtocol"
-}
-```
-
-Nếu match concept → returnconcept_class set, addresses=[] (LLM sẽ generate `?x a :Class` triple thay vì VALUES).
-
-### Greedy span selection
-
-Có thể nhiều ngram match. Dùng greedy left-to-right longest-match để tránh duplicate:
-
-```
-"Binance hot wallet" → match "Binance" (1-gram) AND "Binance hot wallet" (3-gram)
-→ chọn 3-gram (longest), drop 1-gram nested.
-```
-
-### Ambiguity handling
-
-Nếu top-2 matches có confidence gần (delta <0.1) → flag `ambiguous=true`, return cả 2 candidates. Downstream pipeline có thể:
-- Hỏi user clarification (interactive demo).
-- Pick top-1 và log warning (batch mode).
-
-## Rủi ro & note
-
-- **False positive trên common words:** "the" có thể fuzzy match một entity nào đó. Solution: stop-word filter trước khi gen candidates.
-- **Aliases conflict:** "Uni" = Uniswap hay UNI token? Cần priority rule (giữ trong `entities.json` field `priority`).
-- **Long-tail entities không có dictionary:** stage D báo "unknown" rõ ràng, không hallucinate. Là finding khoa học (long-tail performance).
-
-## Estimated effort
-
-2 ngày.
+- [x] GoogleSQL-native recognition API and immutable typed matches are implemented.
+- [x] Address, exact, fuzzy, embedding and explicit ambiguity behavior have focused
+  production-module test coverage.
+- [x] Safe manifest-last, content-addressed production index builds and strict-loads
+  with the cached local MiniLM model.
+- [x] Representative exact, fuzzy, concept and address production queries strict-load.
+- [ ] Named-entity Top-1 accuracy >=85% on exactly 100 independently reviewed
+  ground-truth questions. `data/eval/entity_link_groundtruth.jsonl` is absent;
+  no synthetic/manual labels were created.
+- [ ] Warm p95 latency <200 ms from the independently reviewed 100-row evaluation.
+  The local 20-query smoke above is intentionally not substituted for this gate.
 
 ## Trạng thái
 
-todo
+Implementation checkpoint complete locally. Scientific acceptance remains pending
+the independent 100-row artifact and a real `evaluate` run. The production index
+and test evidence are offline/local; no BigQuery query or external write is part
+of this checkpoint.
