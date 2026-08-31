@@ -19,6 +19,7 @@ from nl2sparql.linking.entity import (
     EntityLinkerPolicy,
     EntityTarget,
     build_entity_corpus,
+    stopwords,
 )
 
 
@@ -178,6 +179,18 @@ class RecordingFixedEncoder(FixedEncoder):
     def encode(self, sentences, *, normalize_embeddings=True):
         self.sentences = tuple(sentences)
         return super().encode(sentences, normalize_embeddings=normalize_embeddings)
+
+
+def test_vendored_snowball_inventory_matches_the_documented_active_snapshot() -> None:
+    canonicalized = "\n".join(sorted(stopwords.SNOWBALL_ENGLISH_STOPWORDS)).encode()
+    thesis_auxiliaries = frozenset(getattr(stopwords, "THESIS_QUERY_AUXILIARIES", frozenset()))
+
+    assert len(stopwords.SNOWBALL_ENGLISH_STOPWORDS) == 174
+    assert hashlib.sha256(canonicalized).hexdigest() == (
+        "1ab5c50f44a3bb9616c1978098c9061ede10984532f0302592414f93a62d4f0b"
+    )
+    assert stopwords.SNOWBALL_ENGLISH_STOPWORDS.isdisjoint(thesis_auxiliaries)
+    assert thesis_auxiliaries == {"can", "may", "might", "must", "shall", "will"}
 
 
 def _index_for(corpus: EntityCorpus, embeddings: np.ndarray) -> EntityIndex:
