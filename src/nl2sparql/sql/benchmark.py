@@ -98,7 +98,7 @@ SELECT
     AND token_count = 5091
     AND treasury_count = 30
     AND digest_count = 1
-    AND dictionary_sha256 = '190f73a91b7affa8b8396cc189e4a6b332dc6f7f0109037a0d44edb14531c536'
+    AND dictionary_sha256 = 'cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e'
     AS passed
 FROM stats""",
     ),
