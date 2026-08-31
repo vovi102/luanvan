@@ -31,6 +31,8 @@ class ResolverCatalog:
     concept_field: FieldCandidate
     allowed_roles: tuple[str, ...]
     semantic_status_by_class: Mapping[str, str]
+    all_relations: frozenset[str]
+    all_fields: frozenset[FieldCandidate]
 
 
 def load_resolver_catalog(path: Path) -> ResolverCatalog:
@@ -99,6 +101,13 @@ def load_resolver_catalog(path: Path) -> ResolverCatalog:
     frozen_candidates = MappingProxyType(
         {key: tuple(sorted(values)) for key, values in sorted(candidates.items())}
     )
+    all_fields = frozenset(
+        FieldCandidate(str(relation_id), str(field_id))
+        for relation_id, raw_relation in relations.items()
+        for field_id in _mapping(raw_relation, f"analytical relation {relation_id}").get(
+            "fields", {}
+        )
+    )
     return ResolverCatalog(
         catalog_sha256=hashlib.sha256(snapshot).hexdigest(),
         fields_by_direction=frozen_candidates,
@@ -108,4 +117,6 @@ def load_resolver_catalog(path: Path) -> ResolverCatalog:
         concept_field=FieldCandidate("entity_labels_v1", "concept_class"),
         allowed_roles=tuple(sorted(raw_roles)),
         semantic_status_by_class=MappingProxyType(dict(sorted(statuses.items()))),
+        all_relations=frozenset(map(str, relations)),
+        all_fields=all_fields,
     )
