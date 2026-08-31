@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 from nl2sparql.dataset.templates import TEMPLATES_PATH
@@ -56,3 +57,22 @@ def test_compiled_seed_tolerates_case_and_repeated_whitespace() -> None:
     )
 
     assert match is not None
+
+
+def test_seed_literals_are_nfkc_normalized(tmp_path: Path) -> None:
+    templates = json.loads(TEMPLATES_PATH.read_text(encoding="utf-8"))
+    templates[0]["nl_seed"] = (
+        "Ｈｏｗ ｍａｎｙ ｔｒａｎｓａｃｔｉｏｎｓ ｈａｐｐｅｎｅｄ ｂｅｔｗｅｅｎ "
+        "{start_date} ａｎｄ {end_date}?"
+    )
+    path = tmp_path / "templates.json"
+    path.write_text(json.dumps(templates), encoding="utf-8")
+    row = next(
+        value
+        for value in compile_template_snapshot(path, B0Policy())
+        if value.template_id == "T_COUNT_TX_IN_RANGE"
+    )
+
+    assert row.seed_pattern.fullmatch(
+        "How many transactions happened between 2026-06-15 and 2026-06-16?"
+    )

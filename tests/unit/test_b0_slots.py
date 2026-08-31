@@ -6,8 +6,13 @@ from collections.abc import Callable
 import pytest
 
 from nl2sparql.dataset.templates import TEMPLATES_PATH
-from nl2sparql.linking.resolver import ResolutionPlan, ResolvedEntity
-from nl2sparql.models.b0 import B0Policy, CompiledTemplate, compile_template_snapshot
+from nl2sparql.linking.resolver import FieldCandidate, ResolutionPlan, ResolvedEntity
+from nl2sparql.models.b0 import (
+    B0Policy,
+    CompiledTemplate,
+    LinkingProvenance,
+    compile_template_snapshot,
+)
 from nl2sparql.models.b0.slots import (
     extract_seed_slots,
     extract_structural_slots,
@@ -45,7 +50,13 @@ def _plan(
     )
 
 
-def _instance(question: str, span: str, values: tuple[str, ...]) -> ResolutionPlan:
+def _instance(
+    question: str,
+    span: str,
+    values: tuple[str, ...],
+    *,
+    direction: str = "from",
+) -> ResolutionPlan:
     start = question.index(span)
     entity = ResolvedEntity(
         span=span,
@@ -53,8 +64,8 @@ def _instance(question: str, span: str, values: tuple[str, ...]) -> ResolutionPl
         target_id="owner:test",
         target_sha256=_DIGEST,
         resolution_kind="instance",
-        direction="from",
-        fields=(),
+        direction=direction,
+        fields=(FieldCandidate("labeled_transactions", f"{direction}_address"),),
         operator="in",
         values=values,
         required_relation=None,
@@ -77,7 +88,7 @@ def _concept(question: str, *, coverage: str = "supported") -> ResolutionPlan:
         target_sha256=_DIGEST,
         resolution_kind="concept",
         direction="to",
-        fields=(),
+        fields=(FieldCandidate("labeled_transactions", "to_address"),),
         operator="equals",
         values=("DEXProtocol",),
         required_relation="entity_labels_v1",
@@ -153,6 +164,34 @@ def test_multi_address_owner_rejects_scalar_slot(template_lookup) -> None:
         template,
         question,
         _instance(question, "Binance", (ADDRESS_A, ADDRESS_B)),
+    )
+
+    assert slots is None
+
+
+def test_direction_conflict_rejects_owner_for_destination_slot(template_lookup) -> None:
+    template = template_lookup("T_LIST_TX_TO_ACCOUNT")
+    question = "List 10 transactions received by Binance between 2026-06-15 and 2026-06-16."
+
+    slots = extract_structural_slots(
+        template,
+        question,
+        _instance(question, "Binance", (ADDRESS_A,), direction="from"),
+    )
+
+    assert slots is None
+
+
+def test_stale_linking_provenance_rejects_resolver_plan(template_lookup) -> None:
+    template = template_lookup("T_LIST_TX_FROM_ACCOUNT")
+    question = "List 10 transactions sent by Binance between 2026-06-15 and 2026-06-16."
+    expected = LinkingProvenance("b" * 64, _DIGEST, _DIGEST, _DIGEST)
+
+    slots = extract_structural_slots(
+        template,
+        question,
+        _instance(question, "Binance", (ADDRESS_A,)),
+        expected_provenance=expected,
     )
 
     assert slots is None

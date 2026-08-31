@@ -17,11 +17,14 @@ from typing import Any
 import click
 
 from nl2sparql.dataset.templates import TEMPLATES_PATH
+from nl2sparql.linking import ClassResolverError
 from nl2sparql.linking.class_resolver import ClassResolver
 from nl2sparql.linking.dictionary.validate import DictionaryArtifacts
 from nl2sparql.linking.entity import (
     DEFAULT_MODEL_ID,
     EntityCachePaths,
+    EntityDocumentError,
+    EntityIndexError,
     EntityLinker,
     build_entity_corpus,
 )
@@ -36,6 +39,8 @@ from nl2sparql.linking.schema import (
 )
 from nl2sparql.linking.schema import (
     SchemaCachePaths,
+    SchemaDocumentError,
+    SchemaIndexError,
     SchemaLinker,
     build_schema_elements,
     load_synonyms,
@@ -47,10 +52,12 @@ from nl2sparql.models.b0 import (
     B0Error,
     B0EvaluationError,
     BaselineB0,
+    LinkingProvenance,
     evaluate_b0,
     load_b0_cases,
+    validate_b0_question,
 )
-from nl2sparql.sql.schema import CATALOG_PATH, load_catalog
+from nl2sparql.sql.schema import CATALOG_PATH, SchemaCatalogError, load_catalog
 
 DEFAULT_CACHE_DIRECTORY = Path(__file__).resolve().parents[1] / "src/nl2sparql/linking/cache"
 DEFAULT_SYNONYMS_PATH = (
@@ -102,36 +109,56 @@ def _production_baseline(templates_path: Path) -> BaselineB0:
         ("entity index lock", entity_paths.lock),
     ):
         _required_file(path, label)
-    catalog_bytes = CATALOG_PATH.read_bytes()
-    synonyms_bytes = DEFAULT_SYNONYMS_PATH.read_bytes()
-    catalog = load_catalog(CATALOG_PATH, snapshot=catalog_bytes)
-    synonyms = load_synonyms(DEFAULT_SYNONYMS_PATH, snapshot=synonyms_bytes)
-    schema_elements = build_schema_elements(catalog, synonyms)
-    schema_index = load_schema_index(
-        schema_paths,
-        hashlib.sha256(catalog_bytes).hexdigest(),
-        DEFAULT_MODEL_ID,
-        SCHEMA_DOCUMENT_VERSION,
-        schema_elements,
-    )
-    corpus = build_entity_corpus(DictionaryArtifacts())
-    entity_index = load_entity_index(
-        entity_paths,
-        corpus,
-        DEFAULT_MODEL_ID,
-        document_version=ENTITY_DOCUMENT_VERSION,
-    )
     try:
+        catalog_bytes = CATALOG_PATH.read_bytes()
+        synonyms_bytes = DEFAULT_SYNONYMS_PATH.read_bytes()
+        catalog = load_catalog(CATALOG_PATH, snapshot=catalog_bytes)
+        synonyms = load_synonyms(DEFAULT_SYNONYMS_PATH, snapshot=synonyms_bytes)
+        schema_elements = build_schema_elements(catalog, synonyms)
+        schema_index = load_schema_index(
+            schema_paths,
+            hashlib.sha256(catalog_bytes).hexdigest(),
+            DEFAULT_MODEL_ID,
+            SCHEMA_DOCUMENT_VERSION,
+            schema_elements,
+        )
+        corpus = build_entity_corpus(DictionaryArtifacts())
+        entity_index = load_entity_index(
+            entity_paths,
+            corpus,
+            DEFAULT_MODEL_ID,
+            document_version=ENTITY_DOCUMENT_VERSION,
+        )
+        class_resolver = ClassResolver(CATALOG_PATH, corpus)
         from sentence_transformers import SentenceTransformer
 
         encoder = SentenceTransformer(DEFAULT_MODEL_ID, local_files_only=True)
-    except (ImportError, OSError, RuntimeError) as exc:
-        raise ExternalEvidenceUnavailableError(f"local encoder is unavailable: {exc}") from exc
+    except (
+        EntityDocumentError,
+        EntityIndexError,
+        ClassResolverError,
+        ImportError,
+        OSError,
+        RuntimeError,
+        SchemaCatalogError,
+        SchemaDocumentError,
+        SchemaIndexError,
+    ) as exc:
+        raise ExternalEvidenceUnavailableError(
+            f"local linking evidence is unavailable: {exc}"
+        ) from exc
+    provenance = LinkingProvenance(
+        catalog_sha256=hashlib.sha256(catalog_bytes).hexdigest(),
+        entities_sha256=corpus.entities_sha256,
+        aliases_sha256=corpus.aliases_sha256,
+        concepts_sha256=corpus.concepts_sha256,
+    )
     return BaselineB0(
         templates_path,
         schema_linker=SchemaLinker(schema_index, encoder, synonyms),
         entity_linker=EntityLinker(corpus, entity_index, encoder),
-        class_resolver=ClassResolver(CATALOG_PATH, corpus),
+        class_resolver=class_resolver,
+        linking_provenance=provenance,
     )
 
 
@@ -150,6 +177,27 @@ def _protect_outputs(predictions: Path, report: Path, protected: Mapping[str, Pa
     for label, path in protected.items():
         if _paths_alias(predictions, path) or _paths_alias(report, path):
             raise ReportPublicationError(f"output path must not overwrite {label}")
+
+
+def _production_inputs(test_set: Path, templates_path: Path) -> dict[str, Path]:
+    artifacts = DictionaryArtifacts()
+    protected = {
+        "test set": test_set,
+        "templates": templates_path,
+        "catalog": CATALOG_PATH,
+        "schema synonyms": DEFAULT_SYNONYMS_PATH,
+        "dictionary entities": artifacts.entities_path,
+        "dictionary concepts": artifacts.concepts_path,
+        "dictionary aliases": artifacts.aliases_path,
+        "dictionary sources": artifacts.sources_path,
+        "schema index manifest": SchemaCachePaths.from_directory(DEFAULT_CACHE_DIRECTORY).manifest,
+        "schema index lock": SchemaCachePaths.from_directory(DEFAULT_CACHE_DIRECTORY).lock,
+        "entity index manifest": EntityCachePaths.from_directory(DEFAULT_CACHE_DIRECTORY).manifest,
+        "entity index lock": EntityCachePaths.from_directory(DEFAULT_CACHE_DIRECTORY).lock,
+    }
+    for index, path in enumerate(sorted(DEFAULT_CACHE_DIRECTORY.glob("*-index*.npz"))):
+        protected[f"index matrix {index}"] = path
+    return protected
 
 
 def _existing_bytes(path: Path) -> bytes | None:
@@ -198,7 +246,17 @@ def publish_evaluation_artifacts(
     prediction_rows: Sequence[Mapping[str, Any]],
     report: Mapping[str, Any],
 ) -> None:
-    """Publish predictions first and the acceptance report last, with rollback."""
+    """Publish predictions first and the acceptance report last, with rollback.
+
+    Args:
+        predictions_path: Destination JSONL path for per-case predictions.
+        report_path: Destination JSON path for the aggregate report.
+        prediction_rows: Serializable per-case prediction mappings.
+        report: Serializable report body before its checksum is attached.
+
+    Raises:
+        ReportPublicationError: If atomic publication or rollback fails.
+    """
     previous_predictions = _existing_bytes(predictions_path)
     prediction_payload = b"".join(_canonical_json(dict(row)) for row in prediction_rows)
     report_body = dict(report)
@@ -272,7 +330,14 @@ def _failure(command: str, error: Exception) -> int:
 
 
 def create_cli(*, baseline_factory: BaselineFactory = _production_baseline) -> click.Group:
-    """Create the lazy B0 command group."""
+    """Create the lazy B0 command group.
+
+    Args:
+        baseline_factory: Lazy constructor for the configured B0 baseline.
+
+    Returns:
+        Click command group with ``predict`` and ``evaluate`` commands.
+    """
 
     @click.group()
     def cli() -> None:
@@ -291,6 +356,7 @@ def create_cli(*, baseline_factory: BaselineFactory = _production_baseline) -> c
         """Predict one safe GoogleSQL query or emit an unmatched result."""
         try:
             _required_file(templates_path, "templates")
+            validate_b0_question(question)
             prediction = baseline_factory(templates_path).predict_detailed(question)
             question_sha256 = hashlib.sha256(question.encode()).hexdigest()
             if prediction is None:
@@ -353,7 +419,7 @@ def create_cli(*, baseline_factory: BaselineFactory = _production_baseline) -> c
             _protect_outputs(
                 predictions_path,
                 report_path,
-                {"test set": test_set, "templates": templates_path},
+                _production_inputs(test_set, templates_path),
             )
             case_set = load_b0_cases(test_set, synthetic=synthetic)
             baseline = baseline_factory(templates_path)
@@ -385,7 +451,11 @@ def create_cli(*, baseline_factory: BaselineFactory = _production_baseline) -> c
 
 
 def main() -> int:
-    """Run the CLI with an integer exit code for the numbered wrapper."""
+    """Run the CLI with an integer exit code for the numbered wrapper.
+
+    Returns:
+        Process-style integer exit code.
+    """
     try:
         create_cli().main(standalone_mode=False)
     except click.exceptions.Exit as exc:

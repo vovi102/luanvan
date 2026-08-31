@@ -1,7 +1,13 @@
 """Deterministic GoogleSQL rule-baseline contracts."""
 
-from nl2sparql.models.b0.baseline import BaselineB0
-from nl2sparql.models.b0.contracts import B0Error, B0Policy, B0Prediction, SlotValue
+from nl2sparql.models.b0.baseline import BaselineB0, validate_b0_question
+from nl2sparql.models.b0.contracts import (
+    B0Error,
+    B0Policy,
+    B0Prediction,
+    LinkingProvenance,
+    SlotValue,
+)
 from nl2sparql.models.b0.evaluate import (
     B0CaseResult,
     B0CaseSet,
@@ -24,8 +30,10 @@ __all__ = [
     "B0EvaluationError",
     "B0EvaluationReport",
     "CompiledTemplate",
+    "LinkingProvenance",
     "SlotValue",
     "compile_template_snapshot",
     "evaluate_b0",
     "load_b0_cases",
+    "validate_b0_question",
 ]

@@ -48,6 +48,7 @@ class CompiledTemplate:
 
 
 def _literal_pattern(value: str) -> str:
+    value = unicodedata.normalize("NFKC", value)
     pieces = re.split(r"(\s+)", value)
     return "".join(r"\s+" if piece.isspace() else re.escape(piece) for piece in pieces if piece)
 
@@ -87,7 +88,19 @@ def compile_template_snapshot(
     path: Path,
     policy: B0Policy,
 ) -> tuple[CompiledTemplate, ...]:
-    """Validate and compile one exact template-library snapshot."""
+    """Validate and compile one exact template-library snapshot.
+
+    Args:
+        path: Template YAML snapshot to read.
+        policy: Effective matching and abstention policy.
+
+    Returns:
+        Deterministically ordered compiled templates.
+
+    Raises:
+        B0Error: If inputs are invalid or the snapshot cannot be compiled.
+        TemplateValidationError: If the template library violates its schema.
+    """
     if not isinstance(path, Path):
         raise B0Error("template path must be a Path")
     if not isinstance(policy, B0Policy):

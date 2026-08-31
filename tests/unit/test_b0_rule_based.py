@@ -8,7 +8,7 @@ import pytest
 from nl2sparql.dataset.templates import TEMPLATES_PATH
 from nl2sparql.dataset.testset.sql_safety import validate_sql_text
 from nl2sparql.linking.schema_linker import LinkResult, SchemaMatch
-from nl2sparql.models.b0_rule_based import B0Error, BaselineB0
+from nl2sparql.models.b0_rule_based import B0Error, BaselineB0, LinkingProvenance
 
 ADDRESS = "0x1111111111111111111111111111111111111111"
 
@@ -76,6 +76,31 @@ def test_predict_detailed_records_seed_provenance() -> None:
     assert result.score == 1.0
     assert result.template_sha256
     assert result.catalog_sha256 is None
+
+
+def test_prediction_records_constructor_bound_linking_provenance() -> None:
+    provenance = LinkingProvenance("a" * 64, "b" * 64, "c" * 64, "d" * 64)
+    baseline = BaselineB0(TEMPLATES_PATH, linking_provenance=provenance)
+
+    result = baseline.predict_detailed(
+        "How many transactions happened between 2026-06-15 and 2026-06-16?"
+    )
+
+    assert result is not None
+    assert result.catalog_sha256 == provenance.catalog_sha256
+    assert result.entities_sha256 == provenance.entities_sha256
+
+
+def test_seed_matching_normalizes_nfkc_compatible_characters() -> None:
+    baseline = BaselineB0(TEMPLATES_PATH)
+
+    result = baseline.predict_detailed(
+        "Ｈｏｗ ｍａｎｙ ｔｒａｎｓａｃｔｉｏｎｓ ｈａｐｐｅｎｅｄ ｂｅｔｗｅｅｎ "
+        "2026-06-15 ａｎｄ 2026-06-16?"
+    )
+
+    assert result is not None
+    assert result.match_mode == "seed"
 
 
 def test_structural_fallback_matches_unique_anchor_set() -> None:

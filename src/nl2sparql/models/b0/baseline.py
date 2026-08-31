@@ -14,7 +14,12 @@ from nl2sparql.dataset.testset import TestSetError
 from nl2sparql.dataset.testset.sql_safety import validate_sql_text
 from nl2sparql.linking.resolver import ResolutionPlan
 from nl2sparql.linking.schema_linker import LinkResult
-from nl2sparql.models.b0.contracts import B0Error, B0Policy, B0Prediction
+from nl2sparql.models.b0.contracts import (
+    B0Error,
+    B0Policy,
+    B0Prediction,
+    LinkingProvenance,
+)
 from nl2sparql.models.b0.slots import extract_seed_slots, extract_structural_slots, slot_mapping
 from nl2sparql.models.b0.templates import CompiledTemplate, compile_template_snapshot
 
@@ -26,6 +31,29 @@ _MASK_RE = re.compile(
     re.IGNORECASE,
 )
 _DEFAULT_POLICY = B0Policy()
+
+
+def validate_b0_question(question: object) -> str:
+    """Validate one public B0 question before loading expensive dependencies.
+
+    Args:
+        question: Candidate natural-language question.
+
+    Returns:
+        The validated question unchanged.
+
+    Raises:
+        B0Error: If the question is malformed or outside the accepted bounds.
+    """
+    if (
+        not isinstance(question, str)
+        or not question.strip()
+        or len(question) > 2_000
+        or _CONTROL_RE.search(question)
+        or not _TOKEN_RE.search(unicodedata.normalize("NFKC", question).casefold())
+    ):
+        raise B0Error("question must contain text, be control-free, and at most 2000 chars")
+    return question
 
 
 class _SchemaLinker(Protocol):
@@ -62,7 +90,19 @@ def _token_f1(left: tuple[str, ...], right: tuple[str, ...]) -> float:
 
 
 class BaselineB0:
-    """Select, fill, and validate one accepted GoogleSQL template or abstain."""
+    """Select, fill, and validate one accepted GoogleSQL template or abstain.
+
+    Args:
+        templates_path: Accepted template-library snapshot.
+        schema_linker: Optional schema evidence provider for ambiguity resolution.
+        entity_linker: Optional entity evidence provider for linked slots.
+        class_resolver: Optional resolver for entity constraints.
+        linking_provenance: Expected fingerprints for all linking evidence.
+        policy: Deterministic matching and abstention policy.
+
+    Raises:
+        B0Error: If policy or provenance inputs are invalid.
+    """
 
     def __init__(
         self,
@@ -71,27 +111,80 @@ class BaselineB0:
         schema_linker: _SchemaLinker | None = None,
         entity_linker: _EntityLinker | None = None,
         class_resolver: _ClassResolver | None = None,
+        linking_provenance: LinkingProvenance | None = None,
         policy: B0Policy = _DEFAULT_POLICY,
     ) -> None:
         if not isinstance(policy, B0Policy):
             raise B0Error("B0 policy is invalid")
+        if linking_provenance is not None and not isinstance(linking_provenance, LinkingProvenance):
+            raise B0Error("linking provenance is invalid")
         self._templates = compile_template_snapshot(templates_path, policy)
         self._schema_linker = schema_linker
         self._entity_linker = entity_linker
         self._class_resolver = class_resolver
+        self._linking_provenance = linking_provenance
         self._policy = policy
 
+    @property
+    def template_sha256(self) -> str:
+        """Return the exact template snapshot fingerprint.
+
+        Returns:
+            Lowercase SHA-256 digest of the template snapshot.
+        """
+        return self._templates[0].template_sha256
+
+    @property
+    def policy_sha256(self) -> str:
+        """Return the effective matching-policy fingerprint.
+
+        Returns:
+            Lowercase SHA-256 digest of the effective policy.
+        """
+        return self._policy.sha256
+
+    @property
+    def linking_provenance(self) -> LinkingProvenance | None:
+        """Return expected resolver provenance when linking is configured.
+
+        Returns:
+            Bound linking fingerprints, or ``None`` when linking is not configured.
+        """
+        return self._linking_provenance
+
     def predict(self, nl: str) -> str | None:
-        """Return one safe GoogleSQL prediction or abstain."""
+        """Return one safe GoogleSQL prediction or abstain.
+
+        Args:
+            nl: Natural-language question.
+
+        Returns:
+            Validated GoogleSQL text, or ``None`` when the baseline abstains.
+
+        Raises:
+            B0Error: If the question is invalid.
+        """
         prediction = self.predict_detailed(nl)
         return prediction.sql if prediction is not None else None
 
     def predict_detailed(self, nl: str) -> B0Prediction | None:
-        """Return a provenance-bound prediction or abstain on uncertainty."""
+        """Return a provenance-bound prediction or abstain on uncertainty.
+
+        Args:
+            nl: Natural-language question.
+
+        Returns:
+            Detailed validated prediction, or ``None`` when the baseline abstains.
+
+        Raises:
+            B0Error: If the question is invalid.
+        """
         self._validate_question(nl)
+        normalized = unicodedata.normalize("NFKC", nl)
+        seed_question = normalized if len(normalized) == len(nl) else nl
         seed_predictions: list[B0Prediction] = []
         for template in self._templates:
-            match = template.seed_pattern.fullmatch(nl)
+            match = template.seed_pattern.fullmatch(seed_question)
             if match is None:
                 continue
             plan: ResolutionPlan | None = None
@@ -99,7 +192,13 @@ class BaselineB0:
                 _, plan, valid = self._entity_evidence(nl)
                 if not valid:
                     continue
-            slots = extract_seed_slots(template, nl, match, plan)
+            slots = extract_seed_slots(
+                template,
+                nl,
+                match,
+                plan,
+                expected_provenance=self._linking_provenance,
+            )
             prediction = self._render(template, slots, "seed", 1.0, plan)
             if prediction is not None:
                 seed_predictions.append(prediction)
@@ -118,14 +217,7 @@ class BaselineB0:
 
     @staticmethod
     def _validate_question(question: object) -> None:
-        if (
-            not isinstance(question, str)
-            or not question.strip()
-            or len(question) > 2_000
-            or _CONTROL_RE.search(question)
-            or not _TOKEN_RE.search(unicodedata.normalize("NFKC", question).casefold())
-        ):
-            raise B0Error("question must contain text, be control-free, and at most 2000 chars")
+        validate_b0_question(question)
 
     def _template(self, template_id: str) -> CompiledTemplate:
         return next(template for template in self._templates if template.template_id == template_id)
@@ -179,7 +271,12 @@ class BaselineB0:
             score = _token_f1(question_tokens, template.literal_tokens)
             if score < self._policy.structural_threshold:
                 continue
-            slots = extract_structural_slots(template, question, plan)
+            slots = extract_structural_slots(
+                template,
+                question,
+                plan,
+                expected_provenance=self._linking_provenance,
+            )
             prediction = self._render(template, slots, "structural", score, plan)
             if prediction is not None:
                 candidates.append((score, template, prediction))
@@ -231,6 +328,7 @@ class BaselineB0:
         try:
             sql = render_template(template.raw, slot_mapping(slots))
             validate_sql_text(sql)
+            provenance = self._linking_provenance
             return B0Prediction(
                 sql=sql,
                 template_id=template.template_id,
@@ -239,10 +337,34 @@ class BaselineB0:
                 slots=slots,
                 template_sha256=template.template_sha256,
                 policy_sha256=self._policy.sha256,
-                catalog_sha256=plan.catalog_sha256 if plan is not None else None,
-                entities_sha256=plan.entities_sha256 if plan is not None else None,
-                aliases_sha256=plan.aliases_sha256 if plan is not None else None,
-                concepts_sha256=plan.concepts_sha256 if plan is not None else None,
+                catalog_sha256=(
+                    plan.catalog_sha256
+                    if plan is not None
+                    else provenance.catalog_sha256
+                    if provenance is not None
+                    else None
+                ),
+                entities_sha256=(
+                    plan.entities_sha256
+                    if plan is not None
+                    else provenance.entities_sha256
+                    if provenance is not None
+                    else None
+                ),
+                aliases_sha256=(
+                    plan.aliases_sha256
+                    if plan is not None
+                    else provenance.aliases_sha256
+                    if provenance is not None
+                    else None
+                ),
+                concepts_sha256=(
+                    plan.concepts_sha256
+                    if plan is not None
+                    else provenance.concepts_sha256
+                    if provenance is not None
+                    else None
+                ),
                 schema_elements=template.schema_elements,
                 cq_ids=template.cq_ids,
                 warnings=(),

@@ -4,9 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 import scripts.b0_rule_baseline_workflow as workflow
+from nl2sparql.dataset.templates import TEMPLATES_PATH
+from nl2sparql.linking.schema import SchemaIndexError
 from nl2sparql.models.b0 import B0Prediction
 
 SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
@@ -70,6 +73,19 @@ def test_help_does_not_initialize_baseline() -> None:
     assert result.exit_code == 0
     assert "predict" in result.output
     assert "evaluate" in result.output
+
+
+def test_invalid_question_fails_before_baseline_initialization() -> None:
+    def forbidden(path: Path) -> _Baseline:
+        raise AssertionError(f"invalid input initialized baseline from {path}")
+
+    result = CliRunner().invoke(
+        workflow.create_cli(baseline_factory=forbidden),
+        ["predict", "--question", "   "],
+    )
+
+    assert result.exit_code == 1
+    assert json.loads(result.output)["cause"] == "invalid_input"
 
 
 def test_predict_emits_canonical_unmatched_result() -> None:
@@ -140,3 +156,34 @@ def test_output_may_not_alias_input(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert input_path.read_bytes() == original
+
+
+def test_output_may_not_alias_catalog_input(tmp_path: Path, monkeypatch) -> None:
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text("accepted catalog", encoding="utf-8")
+    monkeypatch.setattr(workflow, "CATALOG_PATH", catalog)
+
+    result = CliRunner().invoke(
+        workflow.create_cli(baseline_factory=_factory),
+        [
+            "evaluate",
+            "--test-set",
+            str(_synthetic_input(tmp_path / "cases.jsonl")),
+            "--synthetic",
+            "--report",
+            str(catalog),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert catalog.read_text(encoding="utf-8") == "accepted catalog"
+
+
+def test_stale_schema_index_is_classified_as_blocked(monkeypatch) -> None:
+    def stale_index(*args, **kwargs):
+        raise SchemaIndexError("stale schema cache")
+
+    monkeypatch.setattr(workflow, "load_schema_index", stale_index)
+
+    with pytest.raises(workflow.ExternalEvidenceUnavailableError, match="stale schema cache"):
+        workflow._production_baseline(TEMPLATES_PATH)

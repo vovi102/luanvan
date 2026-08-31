@@ -10,7 +10,7 @@ from re import Match
 
 from nl2sparql.dataset.templates import TemplateValidationError, render_template
 from nl2sparql.linking.resolver import ResolutionPlan, ResolvedEntity
-from nl2sparql.models.b0.contracts import B0Error, SlotValue
+from nl2sparql.models.b0.contracts import B0Error, LinkingProvenance, SlotValue
 from nl2sparql.models.b0.templates import CompiledTemplate
 
 _DATE_RE = re.compile(r"(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)")
@@ -25,7 +25,14 @@ _NUMERIC_TYPES = frozenset({"integer", "block_number", "duration_minutes", "deci
 
 
 def slot_mapping(values: Sequence[SlotValue]) -> dict[str, str | int]:
-    """Return the render-compatible mapping for one complete slot tuple."""
+    """Return the render-compatible mapping for one complete slot tuple.
+
+    Args:
+        values: Validated typed slot values.
+
+    Returns:
+        Slot names mapped to renderer-compatible scalar values.
+    """
     return {value.name: value.value for value in values}
 
 
@@ -36,6 +43,7 @@ def _overlaps(left: tuple[int, int], right: tuple[int, int]) -> bool:
 def _trusted_entities(
     question: str,
     plan: ResolutionPlan | None,
+    expected_provenance: LinkingProvenance | None,
 ) -> tuple[ResolvedEntity, ...] | None:
     if plan is None:
         return ()
@@ -46,6 +54,13 @@ def _trusted_entities(
         or plan.warnings
     ):
         return None
+    if expected_provenance is not None and (
+        plan.catalog_sha256 != expected_provenance.catalog_sha256
+        or plan.entities_sha256 != expected_provenance.entities_sha256
+        or plan.aliases_sha256 != expected_provenance.aliases_sha256
+        or plan.concepts_sha256 != expected_provenance.concepts_sha256
+    ):
+        return None
     return plan.entities
 
 
@@ -53,33 +68,72 @@ def _entity_value(
     entities: tuple[ResolvedEntity, ...],
     slot_type: str,
     span: tuple[int, int] | None,
+    expected_direction: str,
 ) -> tuple[str, tuple[int, int]] | None:
     candidates = tuple(
         entity for entity in entities if span is None or _overlaps(entity.span_offset, span)
     )
-    if slot_type == "ethereum_address":
-        candidates = tuple(
-            entity
-            for entity in candidates
-            if entity.resolution_kind == "instance"
-            and entity.coverage_status == "supported"
-            and entity.operator == "in"
-            and len(entity.values) == 1
-        )
-    elif slot_type == "concept_class":
-        candidates = tuple(
-            entity
-            for entity in candidates
-            if entity.resolution_kind == "concept"
-            and entity.coverage_status == "supported"
-            and entity.operator == "equals"
-            and len(entity.values) == 1
-        )
-    else:
-        return None
+    candidates = tuple(
+        entity for entity in candidates if _eligible_entity(entity, slot_type, expected_direction)
+    )
     if len(candidates) != 1:
         return None
     return candidates[0].values[0], candidates[0].span_offset
+
+
+def _eligible_entity(
+    entity: ResolvedEntity,
+    slot_type: str,
+    expected_direction: str,
+) -> bool:
+    if slot_type == "ethereum_address":
+        return (
+            entity.resolution_kind == "instance"
+            and entity.coverage_status == "supported"
+            and entity.operator == "in"
+            and len(entity.values) == 1
+            and (
+                expected_direction == "unspecified"
+                or (
+                    entity.direction == expected_direction
+                    and any(
+                        field.field == f"{expected_direction}_address" for field in entity.fields
+                    )
+                )
+            )
+        )
+    if slot_type == "concept_class":
+        return (
+            entity.resolution_kind == "concept"
+            and entity.coverage_status == "supported"
+            and entity.operator == "equals"
+            and len(entity.values) == 1
+            and entity.required_relation == "entity_labels_v1"
+            and entity.required_join == "fact_address_to_entity"
+            and entity.required_role is not None
+            and (
+                expected_direction == "unspecified"
+                or (
+                    entity.direction == expected_direction
+                    and any(
+                        field.field == f"{expected_direction}_address" for field in entity.fields
+                    )
+                )
+            )
+        )
+    return False
+
+
+def _expected_direction(template: CompiledTemplate, name: str) -> str:
+    sql = str(template.raw["sql_template"]).casefold()
+    placeholder = "{" + name.casefold() + "}"
+    directions = {
+        direction
+        for direction in ("from", "to", "token")
+        if f"{direction}_address = '{placeholder}'" in sql
+        or f"{direction}_concept_class = '{placeholder}'" in sql
+    }
+    return next(iter(directions)) if len(directions) == 1 else "unspecified"
 
 
 def _direct_value(slot_type: str, text: str) -> str | int | None:
@@ -121,9 +175,22 @@ def extract_seed_slots(
     question: str,
     groups: Match[str],
     resolution_plan: ResolutionPlan | None,
+    *,
+    expected_provenance: LinkingProvenance | None = None,
 ) -> tuple[SlotValue, ...] | None:
-    """Parse named seed groups and validate one complete template fill."""
-    entities = _trusted_entities(question, resolution_plan)
+    """Parse named seed groups and validate one complete template fill.
+
+    Args:
+        template: Compiled template selected by exact seed matching.
+        question: Original natural-language question.
+        groups: Full seed-pattern match with named slot groups.
+        resolution_plan: Optional resolver evidence for linked slots.
+        expected_provenance: Required resolver fingerprints when configured.
+
+    Returns:
+        Ordered validated slot values, or ``None`` when evidence is unsafe.
+    """
+    entities = _trusted_entities(question, resolution_plan, expected_provenance)
     if entities is None:
         return None
     values: list[SlotValue] = []
@@ -135,7 +202,12 @@ def extract_seed_slots(
         if direct is not None:
             values.append(SlotValue(name, slot_type, direct, span))
             continue
-        linked = _entity_value(entities, slot_type, span)
+        linked = _entity_value(
+            entities,
+            slot_type,
+            span,
+            _expected_direction(template, name),
+        )
         if linked is None:
             return None
         value, source_span = linked
@@ -176,9 +248,21 @@ def extract_structural_slots(
     template: CompiledTemplate,
     question: str,
     resolution_plan: ResolutionPlan | None,
+    *,
+    expected_provenance: LinkingProvenance | None = None,
 ) -> tuple[SlotValue, ...] | None:
-    """Extract every declared slot from source order or supported resolver evidence."""
-    entities = _trusted_entities(question, resolution_plan)
+    """Extract every declared slot from source order or supported resolver evidence.
+
+    Args:
+        template: Compiled template selected by structural matching.
+        question: Original natural-language question.
+        resolution_plan: Optional resolver evidence for linked slots.
+        expected_provenance: Required resolver fingerprints when configured.
+
+    Returns:
+        Ordered validated slot values, or ``None`` when extraction is ambiguous.
+    """
+    entities = _trusted_entities(question, resolution_plan, expected_provenance)
     if entities is None:
         return None
     definitions: Mapping[str, Mapping[str, object]] = template.raw["slots"]
@@ -209,15 +293,23 @@ def extract_structural_slots(
     address_names = [
         name for name in template.slot_order if slot_type_by_name[name] == "ethereum_address"
     ]
-    linked_addresses = [
-        (entity.values[0], entity.span_offset)
-        for entity in entities
-        if entity.resolution_kind == "instance"
-        and entity.coverage_status == "supported"
-        and entity.operator == "in"
-        and len(entity.values) == 1
-        and not any(_overlaps(entity.span_offset, span) for _, span in address_candidates)
-    ]
+    linked_addresses: list[tuple[str, tuple[int, int]]] = []
+    remaining_entities = list(entities)
+    for name in address_names[len(address_candidates) :]:
+        expected_direction = _expected_direction(template, name)
+        eligible = sorted(
+            (
+                entity
+                for entity in remaining_entities
+                if _eligible_entity(entity, "ethereum_address", expected_direction)
+            ),
+            key=lambda entity: entity.span_offset,
+        )
+        if not eligible:
+            return None
+        selected = eligible[0]
+        linked_addresses.append((selected.values[0], selected.span_offset))
+        remaining_entities.remove(selected)
     all_addresses = sorted((*address_candidates, *linked_addresses), key=lambda item: item[1])
     if not _assign(values, address_names, slot_type_by_name, all_addresses):
         return None
@@ -232,12 +324,17 @@ def extract_structural_slots(
         name for name in template.slot_order if slot_type_by_name[name] == "concept_class"
     ]
     concepts = [
-        (entity.values[0], entity.span_offset)
-        for entity in entities
-        if entity.resolution_kind == "concept"
-        and entity.coverage_status == "supported"
-        and entity.operator == "equals"
-        and len(entity.values) == 1
+        linked
+        for name in concept_names
+        if (
+            linked := _entity_value(
+                entities,
+                "concept_class",
+                None,
+                _expected_direction(template, name),
+            )
+        )
+        is not None
     ]
     if len(concept_names) != len(concepts):
         return None

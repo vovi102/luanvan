@@ -136,8 +136,15 @@ class B0EvaluationReport:
     input_sha256: str
     synthetic: bool
     match_mode_counts: tuple[tuple[str, int], ...]
+    template_counts: tuple[tuple[str, int], ...]
     difficulty_counts: tuple[tuple[str, int], ...]
     rejection_counts: tuple[tuple[str, int], ...]
+    template_sha256: str | None
+    policy_sha256: str | None
+    catalog_sha256: str | None
+    entities_sha256: str | None
+    aliases_sha256: str | None
+    concepts_sha256: str | None
 
 
 def _json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -201,7 +208,18 @@ def _parse_row(raw: object, row_number: int, *, synthetic: bool) -> B0Evaluation
 
 
 def load_b0_cases(path: Path, *, synthetic: bool = False) -> B0CaseSet:
-    """Load finalized T3.5-style JSONL without weakening scientific provenance."""
+    """Load finalized T3.5-style JSONL without weakening scientific provenance.
+
+    Args:
+        path: Evaluation JSONL snapshot.
+        synthetic: Whether the snapshot is explicitly synthetic.
+
+    Returns:
+        Validated immutable evaluation cases and input fingerprint.
+
+    Raises:
+        B0EvaluationError: If rows or independent review identities are invalid.
+    """
     if not isinstance(path, Path):
         raise B0EvaluationError("evaluation path must be a Path")
     if not isinstance(synthetic, bool):
@@ -212,12 +230,18 @@ def load_b0_cases(path: Path, *, synthetic: bool = False) -> B0CaseSet:
     except (OSError, UnicodeDecodeError) as exc:
         raise B0EvaluationError(f"unable to read evaluation input: {exc}") from exc
     cases: list[B0EvaluationCase] = []
+    author_ids: set[str] = set()
+    writer_ids: set[str] = set()
+    reviewer_ids: set[str] = set()
     try:
         for row_number, line in enumerate(text.splitlines(), start=1):
             if not line.strip():
                 raise B0EvaluationError(f"row {row_number} must not be blank")
             raw = json.loads(line, object_pairs_hook=_json_object)
             cases.append(_parse_row(raw, row_number, synthetic=synthetic))
+            author_ids.add(str(raw["source"]))
+            writer_ids.add(str(raw["pool_b_writer"]))
+            reviewer_ids.update(raw["pool_c_reviewers"])
     except _DuplicateKey as exc:
         raise B0EvaluationError(f"duplicate JSON key {exc.args[0]!r}") from exc
     except json.JSONDecodeError as exc:
@@ -225,6 +249,8 @@ def load_b0_cases(path: Path, *, synthetic: bool = False) -> B0CaseSet:
     ids = tuple(case.case_id for case in cases)
     if len(ids) != len(set(ids)):
         raise B0EvaluationError("evaluation input contains duplicate case IDs")
+    if author_ids & writer_ids or author_ids & reviewer_ids or writer_ids & reviewer_ids:
+        raise B0EvaluationError("Pool A, Pool B, and Pool C identities must remain independent")
     return B0CaseSet(
         cases=tuple(cases),
         input_sha256=hashlib.sha256(snapshot).hexdigest(),
@@ -245,20 +271,50 @@ def _percentile(values: Sequence[float], percentile: float) -> float:
     return ordered[index]
 
 
+def _single_fingerprint(values: Sequence[str | None], label: str) -> str | None:
+    present = {value for value in values if value is not None}
+    if len(present) > 1:
+        raise B0EvaluationError(f"predictions contain inconsistent {label} fingerprints")
+    return next(iter(present)) if present else None
+
+
+def _baseline_fingerprint(baseline: object, name: str) -> str | None:
+    direct = getattr(baseline, name, None)
+    if isinstance(direct, str):
+        return direct
+    provenance = getattr(baseline, "linking_provenance", None)
+    value = getattr(provenance, name, None)
+    return value if isinstance(value, str) else None
+
+
 def evaluate_b0(
     baseline: _Baseline,
     case_set: B0CaseSet,
     *,
     clock: Callable[[], int] = time.perf_counter_ns,
 ) -> tuple[tuple[B0CaseResult, ...], B0EvaluationReport]:
-    """Measure local B0 text accuracy, structural accuracy, coverage, and latency."""
+    """Measure local B0 text accuracy, structural accuracy, coverage, and latency.
+
+    Args:
+        baseline: Predictor under evaluation.
+        case_set: Validated B0 cases.
+        clock: Monotonic nanosecond clock used for latency measurement.
+
+    Returns:
+        Per-case results and the aggregate evaluation report.
+
+    Raises:
+        B0EvaluationError: If predictions, fingerprints, or timing evidence are invalid.
+    """
     if not isinstance(case_set, B0CaseSet):
         raise B0EvaluationError("case set is invalid")
     results: list[B0CaseResult] = []
     latencies: list[float] = []
     mode_counts: Counter[str] = Counter()
+    template_counts: Counter[str] = Counter()
     rejection_counts: Counter[str] = Counter()
     difficulty_counts = Counter(case.difficulty for case in case_set.cases)
+    observed_predictions: list[B0Prediction] = []
     for case in case_set.cases:
         baseline.predict_detailed(case.question)
         started = clock()
@@ -285,6 +341,8 @@ def evaluate_b0(
         exact = " ".join(prediction.sql.split()) == " ".join(case.gold_sql.split())
         structural = _canonical_sql(prediction.sql) == _canonical_sql(case.gold_sql)
         mode_counts[prediction.match_mode] += 1
+        template_counts[prediction.template_id] += 1
+        observed_predictions.append(prediction)
         results.append(
             B0CaseResult(
                 case.case_id,
@@ -325,7 +383,50 @@ def evaluate_b0(
         input_sha256=case_set.input_sha256,
         synthetic=case_set.synthetic,
         match_mode_counts=tuple(sorted(mode_counts.items())),
+        template_counts=tuple(sorted(template_counts.items())),
         difficulty_counts=tuple(sorted(difficulty_counts.items())),
         rejection_counts=tuple(sorted(rejection_counts.items())),
+        template_sha256=_single_fingerprint(
+            [
+                _baseline_fingerprint(baseline, "template_sha256"),
+                *(prediction.template_sha256 for prediction in observed_predictions),
+            ],
+            "template",
+        ),
+        policy_sha256=_single_fingerprint(
+            [
+                _baseline_fingerprint(baseline, "policy_sha256"),
+                *(prediction.policy_sha256 for prediction in observed_predictions),
+            ],
+            "policy",
+        ),
+        catalog_sha256=_single_fingerprint(
+            [
+                _baseline_fingerprint(baseline, "catalog_sha256"),
+                *(prediction.catalog_sha256 for prediction in observed_predictions),
+            ],
+            "catalog",
+        ),
+        entities_sha256=_single_fingerprint(
+            [
+                _baseline_fingerprint(baseline, "entities_sha256"),
+                *(prediction.entities_sha256 for prediction in observed_predictions),
+            ],
+            "entities",
+        ),
+        aliases_sha256=_single_fingerprint(
+            [
+                _baseline_fingerprint(baseline, "aliases_sha256"),
+                *(prediction.aliases_sha256 for prediction in observed_predictions),
+            ],
+            "aliases",
+        ),
+        concepts_sha256=_single_fingerprint(
+            [
+                _baseline_fingerprint(baseline, "concepts_sha256"),
+                *(prediction.concepts_sha256 for prediction in observed_predictions),
+            ],
+            "concepts",
+        ),
     )
     return tuple(results), report

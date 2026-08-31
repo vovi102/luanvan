@@ -90,6 +90,14 @@ def test_scientific_rows_require_live_verification(tmp_path: Path) -> None:
         load_b0_cases(path, synthetic=False)
 
 
+def test_reviewed_rows_require_disjoint_pool_identities(tmp_path: Path) -> None:
+    row = _row("Q001") | {"pool_b_writer": "author_1"}
+    path = _write_jsonl(tmp_path, [row])
+
+    with pytest.raises(B0EvaluationError, match="independent"):
+        load_b0_cases(path, synthetic=False)
+
+
 def test_synthetic_rows_allow_explicitly_unverified_fixture(tmp_path: Path) -> None:
     path = _write_jsonl(tmp_path, [_row("Q001", verified=False)])
 
@@ -130,6 +138,9 @@ def test_metrics_separate_coverage_and_matched_accuracy() -> None:
     assert report.execution_accuracy is None
     assert report.local_status == "ready"
     assert report.scientific_status == "not_ready"
+    assert report.template_counts == (("T_LIST_KNOWN_EXCHANGES", 2),)
+    assert report.template_sha256 == "a" * 64
+    assert report.policy_sha256 == "b" * 64
 
 
 def test_synthetic_report_never_becomes_ready() -> None:

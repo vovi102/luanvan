@@ -12,6 +12,11 @@ def test_b0_notebook_reads_the_published_workflow_artifact() -> None:
     assert "reports/b0_evaluation.json" in source
     assert "BaselineB0(" not in source
     assert "BigQuery" not in source
-    assert all(
-        cell.get("outputs", []) == [] for cell in notebook["cells"] if cell["cell_type"] == "code"
-    )
+    assert notebook["cells"][0]["cell_type"] == "code"
+    first_source = "".join(notebook["cells"][0]["source"])
+    assert "sys.version" in first_source
+    assert "pip" in first_source
+    assert "freeze" in first_source
+    code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
+    assert all(cell["execution_count"] is not None for cell in code_cells)
+    assert all(cell["outputs"] for cell in code_cells)

@@ -103,6 +103,25 @@ class SlotValue:
 
 
 @dataclass(frozen=True)
+class LinkingProvenance:
+    """Expected catalog and dictionary fingerprints for resolver evidence."""
+
+    catalog_sha256: str
+    entities_sha256: str
+    aliases_sha256: str
+    concepts_sha256: str
+
+    def __post_init__(self) -> None:
+        for label, value in (
+            ("catalog fingerprint", self.catalog_sha256),
+            ("entities fingerprint", self.entities_sha256),
+            ("aliases fingerprint", self.aliases_sha256),
+            ("concepts fingerprint", self.concepts_sha256),
+        ):
+            _digest(value, label)
+
+
+@dataclass(frozen=True)
 class B0Prediction:
     """One safe SQL prediction with matching and source provenance."""
 
