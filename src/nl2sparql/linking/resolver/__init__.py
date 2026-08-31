@@ -7,8 +7,10 @@ from nl2sparql.linking.resolver.contracts import (
     ResolutionPlan,
     ResolvedEntity,
 )
+from nl2sparql.linking.resolver.resolver import ClassResolver
 
 __all__ = [
+    "ClassResolver",
     "ClassResolverError",
     "FieldCandidate",
     "ResolvedEntity",
