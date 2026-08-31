@@ -170,6 +170,16 @@ class FixedEncoder:
         return np.tile(self._vector, (len(texts), 1))
 
 
+class RecordingFixedEncoder(FixedEncoder):
+    def __init__(self, vector: list[float]) -> None:
+        super().__init__(vector)
+        self.sentences: tuple[str, ...] = ()
+
+    def encode(self, sentences, *, normalize_embeddings=True):
+        self.sentences = tuple(sentences)
+        return super().encode(sentences, normalize_embeddings=normalize_embeddings)
+
+
 def _index_for(corpus: EntityCorpus, embeddings: np.ndarray) -> EntityIndex:
     embeddings = np.asarray(embeddings, dtype=np.float32)
     embeddings.setflags(write=False)
@@ -486,12 +496,12 @@ def test_stopword_only_windows_do_not_reach_fuzzy_or_embedding_retrieval() -> No
 
 
 def test_question_word_only_windows_are_discarded_but_exact_aliases_are_exempt() -> None:
-    exact_target = _target("concept:can", None, ("can",))
+    exact_target = _target("concept:there", None, ("there",))
     semantic_target = _target("concept:ledger", None, ("ledger",))
     exact_corpus = EntityCorpus(
         targets=(exact_target,),
         targets_by_id={exact_target.target_id: exact_target},
-        phrase_targets={"can": (exact_target.target_id,)},
+        phrase_targets={"there": (exact_target.target_id,)},
         address_targets={},
         entities_sha256="a" * 64,
         aliases_sha256="b" * 64,
@@ -517,7 +527,7 @@ def test_question_word_only_windows_are_discarded_but_exact_aliases_are_exempt()
         FixedEncoder([1.0]),
     )
 
-    assert exact_linker.link("can")[0].stage == "exact"
+    assert exact_linker.link("there")[0].stage == "exact"
     assert semantic_linker.link("can you") == ()
     assert semantic_linker.link("can you please") == ()
     assert semantic_linker.link("can you balance")[0].target_id == "concept:ledger"
@@ -555,6 +565,66 @@ def test_function_word_only_windows_never_reach_semantic_retrieval(question: str
     )
 
     assert linker.link(question) == ()
+
+
+@pytest.mark.parametrize(
+    "question",
+    (
+        pytest.param("is there any", id="existential-singular"),
+        pytest.param("are there any", id="existential-plural"),
+        pytest.param("if they can", id="subordinator-pronoun-modal"),
+    ),
+)
+def test_snowball_function_word_windows_never_reach_semantic_retrieval(question: str) -> None:
+    target = _target("concept:ledger", None, ("ledger",))
+    corpus = EntityCorpus(
+        targets=(target,),
+        targets_by_id={target.target_id: target},
+        phrase_targets={"ledger": (target.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    linker = EntityLinker(
+        corpus,
+        _index_for(corpus, np.asarray([[1.0]], dtype=np.float32)),
+        FixedEncoder([1.0]),
+    )
+
+    assert linker.link(question) == ()
+
+
+def test_snowball_scaffolding_subwindows_are_filtered_but_balance_is_retrieved() -> None:
+    target = _target("concept:ledger", None, ("ledger",))
+    corpus = EntityCorpus(
+        targets=(target,),
+        targets_by_id={target.target_id: target},
+        phrase_targets={"ledger": (target.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    encoder = RecordingFixedEncoder([1.0])
+    linker = EntityLinker(
+        corpus,
+        _index_for(corpus, np.asarray([[1.0]], dtype=np.float32)),
+        encoder,
+    )
+
+    matches = linker.link("is there any balance")
+
+    assert matches[0].span == "is there any balance"
+    assert "balance" in encoder.sentences
+    assert not {
+        "is",
+        "there",
+        "any",
+        "is there",
+        "there any",
+        "is there any",
+    }.intersection(encoder.sentences)
 
 
 def test_lowercase_token_winner_is_suppressed_despite_a_distant_non_token_candidate() -> None:
