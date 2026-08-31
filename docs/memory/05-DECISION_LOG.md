@@ -24,6 +24,30 @@
 
 ## Entries
 
+### 2026-08-31 — T4.3 resolve entity evidence thành typed GoogleSQL constraint plan
+
+- **Context:** T4.3 legacy sinh SPARQL `VALUES`/class triple, trong khi T4.2 Plan
+  B chỉ trả recognition evidence và analytical catalog mới sở hữu relation,
+  field, join, role và coverage semantics.
+- **Options considered:** Giữ SPARQL fragments; render GoogleSQL predicate ngay
+  trong resolver; dùng LLM để classify từng mention; hoặc trả deterministic
+  typed constraint plan.
+- **Decision:** `ClassResolver.resolve()` trả immutable `ResolutionPlan` với
+  resolution kind, direction, catalog field candidates, typed operator/values,
+  required label relation/join/role, coverage status và full fingerprints. SQL
+  rendering nằm downstream. Ambiguity fail closed trừ một concept alternative có
+  explicit class trigger; raw T4.2 address target vẫn được self-authenticate.
+- **Rationale:** Một interface nhỏ che linguistic, corpus và catalog policy giữ
+  module sâu, test offline và ngăn free-form SQL vượt qua catalog validation.
+- **Consequences:** T5.1/T6.1 nhận plan machine-readable thay vì fragment. Missing
+  mixer/NFT coverage và unspecified/conflicting direction hiện rõ, không bị biến
+  thành query success giả. Exactly-50 evaluator có provenance nhưng scientific
+  >=0.90 vẫn pending independent artifact.
+- **Revisit:** Sau khi T5.1 renderer dùng interface và 50-row evaluation được
+  review độc lập; khi đó kiểm tra candidate-field granularity và ambiguity rules.
+- **Linked:** `docs/tasks/phase-4-linking/03-class-resolver.md`,
+  `src/nl2sparql/linking/resolver/`, `scripts/15_class_resolver.py`.
+
 ### 2026-08-29 — T4.2 tách recognition entity khỏi GoogleSQL resolution và publish index fail-closed
 
 - **Context:** T4.2 legacy từng trộn nhận diện entity với SPARQL triple/filter,
