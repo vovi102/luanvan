@@ -7,6 +7,7 @@ side effects is initialized only after deterministic input and cache checks.
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
@@ -16,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -152,6 +154,68 @@ def _unlink_at(destination: _ReportDestination, name: str) -> None:
         pass
 
 
+@contextmanager
+def _report_lock(destination: _ReportDestination):
+    """Serialize writers to one pinned report name without accepting aliases."""
+    name = f".{destination.filename}.lock"
+    descriptor: int | None = None
+    try:
+        for _ in range(2):
+            try:
+                before = os.stat(name, dir_fd=destination.directory_fd, follow_symlinks=False)
+            except FileNotFoundError:
+                try:
+                    descriptor = os.open(
+                        name,
+                        os.O_RDWR | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                        0o600,
+                        dir_fd=destination.directory_fd,
+                    )
+                except FileExistsError:
+                    continue
+                before = os.fstat(descriptor)
+            else:
+                if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                    raise ReportPublicationError("report publication lock is an unsafe alias")
+                descriptor = os.open(
+                    name,
+                    os.O_RDWR | getattr(os, "O_NOFOLLOW", 0),
+                    dir_fd=destination.directory_fd,
+                )
+                after = os.fstat(descriptor)
+                if (
+                    not stat.S_ISREG(after.st_mode)
+                    or after.st_nlink != 1
+                    or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+                ):
+                    raise ReportPublicationError("report publication lock changed while opening")
+            if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                raise ReportPublicationError("report publication lock is an unsafe alias")
+            break
+        if descriptor is None:
+            raise ReportPublicationError("report publication lock changed while opening")
+    except ReportPublicationError:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    except OSError as exc:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise ReportPublicationError(f"unable to open report publication lock: {exc}") from exc
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)
+
+
+def _report_publication_checkpoint(point: str) -> None:
+    """No-op hook for deterministic process-interleaving regressions."""
+
+
 def _backup_report(destination: _ReportDestination) -> str | None:
     try:
         existing = os.stat(
@@ -209,6 +273,11 @@ def _atomic_write(destination: _ReportDestination, payload: bytes) -> None:
     A process crash between replacement and directory fsync still has filesystem-dependent
     durability semantics; the backup makes ordinary reported publication failures reversible.
     """
+    with _report_lock(destination):
+        _atomic_write_locked(destination, payload)
+
+
+def _atomic_write_locked(destination: _ReportDestination, payload: bytes) -> None:
     descriptor, temporary = _report_tempfile(destination, ".tmp")
     backup: str | None = None
     replaced = False
@@ -229,6 +298,7 @@ def _atomic_write(destination: _ReportDestination, payload: bytes) -> None:
         )
         temporary = ""
         replaced = True
+        _report_publication_checkpoint("report_replaced")
         os.fsync(destination.directory_fd)
     except ReportPublicationError:
         raise

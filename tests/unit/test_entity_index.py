@@ -389,6 +389,15 @@ def test_load_rejects_self_consistent_malformed_persisted_vectors(
         load_index(paths, corpus, model_id=MODEL_ID)
 
 
+def test_load_rejects_zero_width_persisted_matrix(tmp_path: Path, corpus: EntityCorpus) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+    build_index(corpus, FakeEncoder(), paths, model_id=MODEL_ID)
+    _publish_test_matrix(paths, np.empty((len(corpus.targets), 0), dtype=np.float32))
+
+    with pytest.raises(EntityIndexError, match="dimension must be positive"):
+        load_index(paths, corpus, model_id=MODEL_ID)
+
+
 def test_build_rejects_future_generation_symlink_or_hardlink_alias(
     tmp_path: Path, corpus: EntityCorpus
 ) -> None:

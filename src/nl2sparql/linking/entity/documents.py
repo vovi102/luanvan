@@ -6,12 +6,11 @@ import hashlib
 import json
 import unicodedata
 from collections import defaultdict
-from pathlib import Path
 from types import MappingProxyType
 from urllib.parse import quote
 
 from nl2sparql.linking.dictionary.schema import DictionaryValidationError
-from nl2sparql.linking.dictionary.validate import DictionaryArtifacts, validate_artifacts
+from nl2sparql.linking.dictionary.validate import DictionaryArtifacts, validate_artifact_data
 from nl2sparql.linking.entity.contracts import (
     EntityCorpus,
     EntityDocumentError,
@@ -40,8 +39,50 @@ def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
-def _load_json(path: Path) -> object:
-    return json.loads(path.read_text(encoding="utf-8"))
+def _load_snapshot(artifacts: DictionaryArtifacts) -> tuple[bytes, bytes, bytes, bytes]:
+    """Read each dictionary artifact once so validation and derivation share an identity."""
+    return (
+        artifacts.entities_path.read_bytes(),
+        artifacts.aliases_path.read_bytes(),
+        artifacts.concepts_path.read_bytes(),
+        artifacts.sources_path.read_bytes(),
+    )
+
+
+def _validate_snapshot(
+    snapshot: tuple[bytes, bytes, bytes, bytes], *, min_entities: int, min_aliases: int
+) -> tuple[list[dict], dict[str, str], dict[str, dict]]:
+    entities_raw, aliases_raw, concepts_raw, sources_raw = snapshot
+    try:
+        entities = json.loads(entities_raw)
+        aliases = json.loads(aliases_raw)
+        concepts = json.loads(concepts_raw)
+        sources = sources_raw.decode("utf-8")
+        validate_artifact_data(
+            entities,
+            concepts,
+            aliases,
+            sources,
+            min_entities=min_entities,
+            min_aliases=min_aliases,
+        )
+    except (
+        DictionaryValidationError,
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        AttributeError,
+        KeyError,
+        TypeError,
+    ) as exc:
+        raise EntityDocumentError(f"invalid entity dictionary: {exc}") from exc
+    if (
+        not isinstance(entities, list)
+        or not isinstance(aliases, dict)
+        or not isinstance(concepts, dict)
+    ):
+        raise EntityDocumentError("invalid entity dictionary structure")
+    return entities, aliases, concepts
 
 
 def _target_document(lines: list[str]) -> tuple[str, str]:
@@ -62,26 +103,13 @@ def build_entity_corpus(
     """Validate dictionary artifacts and derive canonical owner/concept targets."""
     artifacts = artifacts or DictionaryArtifacts()
     try:
-        validate_artifacts(
-            artifacts,
-            min_entities=min_entities,
-            min_aliases=min_aliases,
-        )
-    except (DictionaryValidationError, OSError, json.JSONDecodeError) as exc:
+        snapshot = _load_snapshot(artifacts)
+    except OSError as exc:
         raise EntityDocumentError(f"invalid entity dictionary: {exc}") from exc
-
-    entities_raw = artifacts.entities_path.read_bytes()
-    aliases_raw = artifacts.aliases_path.read_bytes()
-    concepts_raw = artifacts.concepts_path.read_bytes()
-    entities = _load_json(artifacts.entities_path)
-    aliases = _load_json(artifacts.aliases_path)
-    concepts = _load_json(artifacts.concepts_path)
-    if (
-        not isinstance(entities, list)
-        or not isinstance(aliases, dict)
-        or not isinstance(concepts, dict)
-    ):
-        raise EntityDocumentError("validated dictionary changed during corpus construction")
+    entities_raw, aliases_raw, concepts_raw, _ = snapshot
+    entities, aliases, concepts = _validate_snapshot(
+        snapshot, min_entities=min_entities, min_aliases=min_aliases
+    )
 
     owner_rows: dict[str, list[dict]] = defaultdict(list)
     for row in entities:

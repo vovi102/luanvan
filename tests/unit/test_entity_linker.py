@@ -279,6 +279,13 @@ def test_known_address_is_enriched_from_its_owner(linker: EntityLinker) -> None:
     assert (match.target_id, match.owner, match.stage) == ("owner:Binance", "Binance", "address")
 
 
+def test_address_recognition_rejects_unicode_word_boundaries(linker: EntityLinker) -> None:
+    address = "0x1111111111111111111111111111111111111111"
+
+    assert linker.link(f"é{address}") == ()
+    assert linker.link(f"{address}β") == ()
+
+
 def test_exact_matching_normalizes_unicode_case_and_whitespace_with_original_offsets(
     linker: EntityLinker,
 ) -> None:
@@ -455,6 +462,52 @@ def test_lowercase_one_token_window_requires_signal_at_embedding_stage(
 
     assert linker.link("ordinary") == ()
     assert linker.link("ORDINARY")[0].stage == "embedding"
+
+
+def test_stopword_only_windows_do_not_reach_fuzzy_or_embedding_retrieval() -> None:
+    target = _target("concept:theory", None, ("theory",))
+    stopword_corpus = EntityCorpus(
+        targets=(target,),
+        targets_by_id={target.target_id: target},
+        phrase_targets={"theory": (target.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    linker = EntityLinker(
+        stopword_corpus,
+        _index_for(stopword_corpus, np.asarray([[1.0]], dtype=np.float32)),
+        FixedEncoder([1.0]),
+    )
+
+    assert linker.link("the") == ()
+    assert linker.link("the theory")[-1].target_id == "concept:theory"
+
+
+def test_lowercase_token_winner_is_suppressed_despite_a_distant_non_token_candidate() -> None:
+    token_metadata = {
+        "categories": ("token_contract",),
+        "concept_classes": ("TokenContract",),
+    }
+    token = _target("owner:Ticker", "Ticker", ("ticker",), **token_metadata)
+    concept = _target("concept:mev", None, ("mev",))
+    corpus = EntityCorpus(
+        targets=(concept, token),
+        targets_by_id={concept.target_id: concept, token.target_id: token},
+        phrase_targets={"mev": (concept.target_id,), "ticker": (token.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    linker = EntityLinker(
+        corpus,
+        _index_for(corpus, np.asarray([[0.8, 0.6], [1.0, 0.0]], dtype=np.float32)),
+        FixedEncoder([1.0, 0.0]),
+    )
+
+    assert linker.link("ordinary") == ()
 
 
 def test_mixed_embedding_near_tie_keeps_token_alternative_for_ambiguity() -> None:

@@ -8,9 +8,11 @@ import pytest
 
 from nl2sparql.linking.dictionary.validate import DictionaryArtifacts
 from nl2sparql.linking.entity import (
+    EntityAlternative,
     EntityCorpus,
     EntityDocumentError,
     EntityLinkerError,
+    EntityMatch,
     EntityTarget,
     build_entity_corpus,
 )
@@ -160,6 +162,35 @@ def test_build_entity_corpus_rejects_alias_target_without_owner(tmp_path: Path) 
         )
 
 
+def test_build_entity_corpus_uses_one_validated_snapshot_during_replacement_race(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    artifacts = _write_artifacts(tmp_path)
+    expected_entities_sha256 = hashlib.sha256(artifacts.entities_path.read_bytes()).hexdigest()
+    import nl2sparql.linking.entity.documents as documents
+
+    original_validate = documents._validate_snapshot
+
+    def replace_after_snapshot(*args, **kwargs):
+        artifacts.entities_path.write_text("[1]", encoding="utf-8")
+        return original_validate(*args, **kwargs)
+
+    monkeypatch.setattr(documents, "_validate_snapshot", replace_after_snapshot)
+
+    corpus = build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
+
+    assert corpus.entities_sha256 == expected_entities_sha256
+    assert "owner:Binance" in corpus.targets_by_id
+
+
+def test_build_entity_corpus_translates_structural_dictionary_errors(tmp_path: Path) -> None:
+    artifacts = _write_artifacts(tmp_path)
+    artifacts.entities_path.write_text("[1]", encoding="utf-8")
+
+    with pytest.raises(EntityDocumentError, match="invalid entity dictionary"):
+        build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
+
+
 @pytest.mark.parametrize(
     ("phrase", "message"),
     [
@@ -222,6 +253,43 @@ def test_entity_target_rejects_document_digest_not_matching_content() -> None:
                 "document_sha256": "0" * 64,
             }
         )
+
+
+def test_entity_match_is_deeply_immutable_and_rejects_inconsistent_runtime_values() -> None:
+    address = "0x1111111111111111111111111111111111111111"
+    match = EntityMatch(
+        span=address,
+        span_offset=(0, len(address)),
+        target_id=f"address:{address}",
+        target_kind="address",
+        owner=None,
+        addresses=(address,),
+        categories=(),
+        concept_classes=(),
+        stage="address",
+        confidence=1.0,
+        alternatives=(),
+        target_sha256="a" * 64,
+    )
+
+    with pytest.raises((AttributeError, TypeError)):
+        match.addresses += (address,)  # type: ignore[misc]
+    with pytest.raises(EntityLinkerError, match="addresses must be a tuple"):
+        EntityMatch(**{**match.__dict__, "addresses": [address]})
+    with pytest.raises(EntityLinkerError, match="inconsistent"):
+        EntityMatch(**{**match.__dict__, "target_id": "owner:Binance"})
+    with pytest.raises(EntityLinkerError, match="non-ambiguous"):
+        EntityMatch(**{**match.__dict__, "alternatives": (object(),)})
+    with pytest.raises(EntityLinkerError, match="two-item tuple"):
+        EntityMatch(**{**match.__dict__, "span_offset": [0, len(address)]})
+    with pytest.raises(EntityLinkerError, match="addresses are invalid"):
+        EntityMatch(**{**match.__dict__, "addresses": (address.upper(),)})
+    with pytest.raises(EntityLinkerError, match="cannot claim an owner"):
+        EntityMatch(**{**match.__dict__, "owner": "not an address owner"})
+    with pytest.raises(EntityLinkerError, match="one to three alternatives"):
+        EntityMatch(**{**match.__dict__, "stage": "ambiguous"})
+    with pytest.raises(EntityLinkerError, match="alternative target ID and kind"):
+        EntityAlternative("owner:Binance", "concept", 0.9)
 
 
 def test_entity_corpus_freezes_and_validates_lookup_relationships() -> None:

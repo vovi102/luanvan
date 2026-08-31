@@ -1,7 +1,7 @@
 # T4.2 GoogleSQL Entity Linker Design
 
-**Date:** 2026-08-23  
-**Status:** approved under the user's standing self-approval delegation  
+**Date:** 2026-08-23
+**Status:** approved under the user's standing self-approval delegation
 **Scope:** migrate T4.2 from SPARQL-oriented entity resolution to a typed,
 GoogleSQL-native linker over the accepted chain-aware dictionary.
 

@@ -50,6 +50,26 @@ def validate_artifacts(
     aliases = _load_json(artifacts.aliases_path)
     if not artifacts.sources_path.exists():
         raise DictionaryValidationError(f"Missing dictionary artifact: {artifacts.sources_path}")
+    return validate_artifact_data(
+        entities,
+        concepts,
+        aliases,
+        artifacts.sources_path.read_text(encoding="utf-8"),
+        min_entities=min_entities,
+        min_aliases=min_aliases,
+    )
+
+
+def validate_artifact_data(
+    entities: Any,
+    concepts: Any,
+    aliases: Any,
+    sources_text: str,
+    *,
+    min_entities: int = 3000,
+    min_aliases: int = 1000,
+) -> dict[str, int]:
+    """Validate one already-read dictionary snapshot without rereading its paths."""
     if not isinstance(entities, list):
         raise DictionaryValidationError("entities.json must contain a list")
     if not isinstance(concepts, dict):
@@ -149,7 +169,8 @@ def validate_artifacts(
         if target not in owners:
             raise DictionaryValidationError(f"Alias target does not exist: {target!r}")
 
-    sources_text = artifacts.sources_path.read_text(encoding="utf-8")
+    if not isinstance(sources_text, str):
+        raise DictionaryValidationError("sources.md must contain text")
     for phrase in (
         "Retrieved date:",
         "Manual verification:",

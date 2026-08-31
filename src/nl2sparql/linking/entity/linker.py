@@ -23,8 +23,31 @@ from nl2sparql.linking.entity.contracts import (
 )
 from nl2sparql.linking.entity.index import EntityIndex
 
-_ADDRESS_RE = re.compile(r"(?<![0-9a-zA-Z])0x[0-9a-f]{40}(?![0-9a-zA-Z])", re.IGNORECASE)
+_ADDRESS_RE = re.compile(r"(?<!\w)0x[0-9a-f]{40}(?!\w)", re.IGNORECASE)
 _TOKEN_RE = re.compile(r"[^\W_]+", re.UNICODE)
+_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "in",
+        "is",
+        "it",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "with",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -317,11 +340,11 @@ class EntityLinker:
                 for target, score in zip(self._corpus.targets, row, strict=True)
                 if float(score) >= self._linker_policy.embedding_threshold
             }
-            if self._embedding_proposal_requires_entity_signal(question, window, scores):
-                continue
             ranked = self._rank_accepted_scores(scores, self._linker_policy.embedding_threshold)
             if ranked:
                 target_ids, confidences = ranked
+                if self._embedding_proposal_requires_entity_signal(question, window, target_ids):
+                    continue
                 proposals.append(
                     _Proposal(
                         window.source_start,
@@ -376,6 +399,8 @@ class EntityLinker:
                 words = tuple(token.group() for token in _TOKEN_RE.finditer(text))
                 if not any(any(character.isalpha() for character in word) for word in words):
                     continue
+                if all(word in _STOPWORDS for word in words):
+                    continue
                 windows.append(_Window(text, first.source_start, last.source_end, size))
         return tuple(windows)
 
@@ -389,13 +414,13 @@ class EntityLinker:
         )
 
     def _embedding_proposal_requires_entity_signal(
-        self, question: str, window: _Window, scores: dict[str, float]
+        self, question: str, window: _Window, target_ids: tuple[str, ...]
     ) -> bool:
         return (
             window.token_count == 1
             and not question[window.source_start : window.source_end].isupper()
-            and bool(scores)
-            and all(target_id in self._signal_required_target_ids for target_id in scores)
+            and bool(target_ids)
+            and all(target_id in self._signal_required_target_ids for target_id in target_ids)
         )
 
     @staticmethod

@@ -164,10 +164,15 @@ class EntityAlternative:
     confidence: float
 
     def __post_init__(self) -> None:
-        required_text(self.target_id, "alternative target ID")
+        _validate_target_identity(self.target_id, self.target_kind, "alternative")
         if self.target_kind not in {"owner", "concept", "address"}:
             raise EntityLinkerError("alternative target kind is invalid")
-        if not math.isfinite(self.confidence) or not 0.0 <= self.confidence <= 1.0:
+        if (
+            not isinstance(self.confidence, float)
+            or isinstance(self.confidence, bool)
+            or not math.isfinite(self.confidence)
+            or not 0.0 <= self.confidence <= 1.0
+        ):
             raise EntityLinkerError("alternative confidence must be finite in [0, 1]")
 
 
@@ -190,16 +195,80 @@ class EntityMatch:
 
     def __post_init__(self) -> None:
         required_text(self.span, "entity span")
+        if not isinstance(self.span_offset, tuple) or len(self.span_offset) != 2:
+            raise EntityLinkerError("entity span offsets must be a two-item tuple")
         start, end = self.span_offset
-        if isinstance(start, bool) or isinstance(end, bool) or start < 0 or end <= start:
+        if (
+            not isinstance(start, int)
+            or isinstance(start, bool)
+            or not isinstance(end, int)
+            or isinstance(end, bool)
+            or start < 0
+            or end <= start
+        ):
             raise EntityLinkerError("entity span offsets are invalid")
-        if self.target_kind not in {"owner", "concept", "address"}:
-            raise EntityLinkerError("entity target kind is invalid")
+        _validate_target_identity(self.target_id, self.target_kind, "entity")
         if self.stage not in {"address", "exact", "fuzzy", "embedding", "ambiguous"}:
             raise EntityLinkerError("entity match stage is invalid")
-        if not math.isfinite(self.confidence) or not 0.0 <= self.confidence <= 1.0:
+        if (
+            not isinstance(self.confidence, float)
+            or isinstance(self.confidence, bool)
+            or not math.isfinite(self.confidence)
+            or not 0.0 <= self.confidence <= 1.0
+        ):
             raise EntityLinkerError("entity confidence must be finite in [0, 1]")
+        _validate_match_tuple(self.addresses, "addresses", address=True)
+        _validate_match_tuple(self.categories, "categories")
+        _validate_match_tuple(self.concept_classes, "concept classes")
+        if self.owner is not None:
+            required_text(self.owner, "entity owner")
+        if self.target_kind != "owner" and self.owner is not None:
+            raise EntityLinkerError("non-owner entity targets cannot claim an owner")
+        if self.target_kind == "concept" and self.addresses:
+            raise EntityLinkerError("concept targets cannot contain addresses")
+        if self.target_kind == "address":
+            address = self.target_id.removeprefix("address:")
+            if self.addresses != (address,) or self.categories or self.concept_classes:
+                raise EntityLinkerError("address target fields are inconsistent")
+        if not isinstance(self.alternatives, tuple):
+            raise EntityLinkerError("entity alternatives must be a tuple")
+        if self.stage == "ambiguous":
+            if not 1 <= len(self.alternatives) <= 3:
+                raise EntityLinkerError(
+                    "ambiguous entity matches require one to three alternatives"
+                )
+            if any(not isinstance(value, EntityAlternative) for value in self.alternatives):
+                raise EntityLinkerError("entity alternatives must be typed alternatives")
+            if len({value.target_id for value in self.alternatives}) != len(self.alternatives):
+                raise EntityLinkerError("ambiguous entity alternatives must be unique")
+        elif self.alternatives:
+            raise EntityLinkerError("non-ambiguous entity matches cannot contain alternatives")
         validate_digest(self.target_sha256, "entity target fingerprint")
+
+
+def _validate_target_identity(target_id: object, target_kind: object, label: str) -> None:
+    if target_kind not in {"owner", "concept", "address"}:
+        raise EntityLinkerError(f"{label} target kind is invalid")
+    target_id = required_text(target_id, f"{label} target ID")
+    prefix = f"{target_kind}:"
+    if not target_id.startswith(prefix) or not target_id.removeprefix(prefix):
+        raise EntityLinkerError(f"{label} target ID and kind are inconsistent")
+    if target_kind == "address" and not _ADDRESS_RE.fullmatch(target_id.removeprefix(prefix)):
+        raise EntityLinkerError(f"{label} address target ID is invalid")
+
+
+def _validate_match_tuple(values: object, label: str, *, address: bool = False) -> None:
+    if not isinstance(values, tuple):
+        raise EntityLinkerError(f"entity {label} must be a tuple")
+    if any(not isinstance(value, str) for value in values):
+        raise EntityLinkerError(f"entity {label} must contain strings")
+    if address:
+        if any(not _ADDRESS_RE.fullmatch(value) for value in values):
+            raise EntityLinkerError("entity addresses are invalid")
+    elif any(not value or _CONTROL_RE.search(value) for value in values):
+        raise EntityLinkerError(f"entity {label} must contain non-empty control-free strings")
+    if tuple(sorted(set(values))) != values:
+        raise EntityLinkerError(f"entity {label} must be unique and sorted")
 
 
 @dataclass(frozen=True)

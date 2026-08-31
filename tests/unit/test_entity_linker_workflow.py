@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import multiprocessing
 import os
 import stat
 import subprocess
@@ -95,6 +96,42 @@ def _inputs(tmp_path: Path, calls: list[tuple[str, bool]]):
 
 def _fail_if_called(*args, **kwargs):
     raise AssertionError("the model must not load during CLI preflight")
+
+
+def _concurrent_report_writer(
+    report: str,
+    payload: bytes,
+    fail_after_replace: bool,
+    ready: object,
+    release: object,
+    results: object,
+) -> None:
+    destination = workflow._open_report_destination(Path(report))
+    original_fsync = workflow.os.fsync
+    after_replace = False
+
+    def checkpoint(point: str) -> None:
+        nonlocal after_replace
+        if fail_after_replace and point == "report_replaced":
+            ready.set()
+            release.wait(10)
+            after_replace = True
+
+    def fail_after_replacement(descriptor: int) -> None:
+        if fail_after_replace and after_replace and stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            raise OSError("post-replace fsync failure")
+        original_fsync(descriptor)
+
+    workflow._report_publication_checkpoint = checkpoint
+    workflow.os.fsync = fail_after_replacement
+    try:
+        workflow._atomic_write(destination, payload)
+        results.put("published")
+    except workflow.ReportPublicationError:
+        results.put("failed")
+    finally:
+        workflow.os.fsync = original_fsync
+        destination.close()
 
 
 @pytest.mark.parametrize(
@@ -437,6 +474,34 @@ def test_incomplete_post_replace_rollback_retains_discoverable_prior_report_back
     assert backups[0].read_bytes() == accepted_report
 
 
+def test_concurrent_report_publication_serializes_rollback_and_success(tmp_path: Path) -> None:
+    report = tmp_path / "report.json"
+    report.write_bytes(b"accepted evidence\n")
+    context = multiprocessing.get_context("fork")
+    ready = context.Event()
+    release = context.Event()
+    results = context.Queue()
+    failed_writer = context.Process(
+        target=_concurrent_report_writer,
+        args=(str(report), b"failed writer\n", True, ready, release, results),
+    )
+    successful_writer = context.Process(
+        target=_concurrent_report_writer,
+        args=(str(report), b"successful writer\n", False, ready, release, results),
+    )
+    failed_writer.start()
+    assert ready.wait(10)
+    successful_writer.start()
+    release.set()
+    failed_writer.join(10)
+    successful_writer.join(10)
+
+    assert failed_writer.exitcode == 0
+    assert successful_writer.exitcode == 0
+    assert sorted((results.get(timeout=1), results.get(timeout=1))) == ["failed", "published"]
+    assert report.read_bytes() == b"successful writer\n"
+
+
 @pytest.mark.parametrize(
     "error",
     (httpx.ConnectError("offline"), httpx.ReadTimeout("slow"), OSError("missing")),
@@ -467,10 +532,14 @@ def test_unrelated_publication_file_not_found_is_failed_not_blocked(
     calls: list[tuple[str, bool]] = []
     cli, cache, ground_truth, report = _inputs(tmp_path, calls)
 
-    def missing_destination(path: Path, payload: bytes) -> None:
-        raise FileNotFoundError("destination disappeared")
+    original_replace = workflow.os.replace
 
-    monkeypatch.setattr(workflow, "_atomic_write", missing_destination)
+    def missing_destination(source, destination, *args, **kwargs) -> None:
+        if destination == report.name:
+            raise OSError("destination disappeared")
+        original_replace(source, destination, *args, **kwargs)
+
+    monkeypatch.setattr(workflow.os, "replace", missing_destination)
 
     result = CliRunner().invoke(
         cli,
@@ -486,7 +555,7 @@ def test_unrelated_publication_file_not_found_is_failed_not_blocked(
     )
 
     assert result.exit_code == 1
-    assert json.loads(result.output)["cause"] == "internal_error"
+    assert json.loads(result.output)["cause"] == "publication_failure"
 
 
 def _initialize_git_repository(path: Path, content: str) -> str:
