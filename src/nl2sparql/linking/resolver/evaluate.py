@@ -249,7 +249,7 @@ def _json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return result
 
 
-def _parse_match(raw: object, question: str, corpus: EntityCorpus, line: int) -> EntityMatch:
+def parse_entity_match(raw: object, question: str, corpus: EntityCorpus, line: int) -> EntityMatch:
     if not isinstance(raw, Mapping) or set(raw) != _MATCH_KEYS:
         raise ResolverEvaluationError(f"ground truth line {line}: match keys are invalid")
     raw_alternatives = raw["alternatives"]
@@ -370,7 +370,7 @@ def load_resolver_ground_truth(path: Path, corpus: EntityCorpus) -> ResolverGrou
                 f"ground truth line {line_number}: expected must be a non-empty array"
             )
         matches = tuple(
-            _parse_match(value, question, corpus, line_number) for value in raw["matches"]
+            parse_entity_match(value, question, corpus, line_number) for value in raw["matches"]
         )
         expected = tuple(_parse_expected(value, line_number) for value in raw["expected"])
         try:
