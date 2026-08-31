@@ -90,8 +90,8 @@ implementation local.
 
 ## Evidence triển khai cục bộ — 2026-08-31
 
-- Focused T4.3 suite: `66 passed`.
-- Full repository suite: `813 passed`, `342 warnings` từ dependencies/legacy RML
+- Focused T4.3 suite: `72 passed`.
+- Full repository suite: `819 passed`, `342 warnings` từ dependencies/legacy RML
   paths đã biết; không có failure.
 - `ruff check .`: pass.
 - `ruff format --check .`: `151 files already formatted`.
