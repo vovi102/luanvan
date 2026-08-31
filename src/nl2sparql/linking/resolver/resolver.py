@@ -71,6 +71,13 @@ class ClassResolver:
             )
             entities.append(resolved)
             warnings.extend(match_warnings)
+            if match.stage == "ambiguous":
+                if resolved.resolution_kind == "unresolved":
+                    warnings.append(f"ambiguity remains unresolved for span {match.span!r}")
+                else:
+                    warnings.append(f"ambiguity selected concept for span {match.span!r}")
+            if resolved.coverage_status == "coverage_gap":
+                warnings.append(f"coverage gap for span {match.span!r}")
             if resolved.direction == "unspecified" and resolved.resolution_kind != "unresolved":
                 warnings.append(f"direction is unspecified for span {match.span!r}")
         if not entities:
@@ -276,17 +283,26 @@ class ClassResolver:
     ) -> ResolvedEntity:
         concept_class = target.concept_classes[0]
         supporters = self._owners_by_class.get(concept_class, ())
-        if supporters:
-            common_roles = set(self._catalog.allowed_roles)
-            for supporter in supporters:
-                common_roles.intersection_update(supporter.address_roles)
-            required_role = next(iter(common_roles)) if len(common_roles) == 1 else None
+        category = target.categories[0] if len(target.categories) == 1 else None
+        policy = self._catalog.concept_policies.get(category) if category is not None else None
+        required_role = policy.required_role if policy is not None else None
+        qualifying_supporters = (
+            tuple(supporter for supporter in supporters if required_role in supporter.address_roles)
+            if required_role is not None
+            else ()
+        )
+        if policy is not None and policy.coverage_status == "supported" and qualifying_supporters:
             coverage_status = "supported"
             explanation = "Concept target resolved through the catalog entity-label lookup."
-        else:
-            required_role = None
+        elif policy is None:
             coverage_status = "coverage_gap"
-            explanation = "Concept is representable but has no accepted address coverage."
+            explanation = "Concept has no catalog competency role coverage policy."
+        elif policy.coverage_status != "supported":
+            coverage_status = "coverage_gap"
+            explanation = "Catalog competency coverage for this concept is incomplete."
+        else:
+            coverage_status = "coverage_gap"
+            explanation = f"Concept has no accepted {required_role} address endpoint coverage."
         return ResolvedEntity(
             span=match.span,
             span_offset=match.span_offset,

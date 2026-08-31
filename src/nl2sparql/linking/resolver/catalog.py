@@ -12,11 +12,30 @@ from typing import Any
 from nl2sparql.linking.resolver.contracts import ClassResolverError, FieldCandidate
 from nl2sparql.sql.schema import SchemaCatalogError, load_catalog, validate_catalog
 
+_ROLE_REQUIREMENT_CONCEPTS = {
+    "bridge": "bridge",
+    "dex": "dex",
+    "exchange": "exchange",
+    "lending": "lending",
+    "marketplace": "nft_marketplace",
+    "mev_actor": "mev",
+    "mixer": "mixer",
+    "token": "token_contract",
+}
+
 
 def _mapping(value: object, label: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise ClassResolverError(f"invalid analytical catalog {label}")
     return value
+
+
+@dataclass(frozen=True)
+class ConceptPolicy:
+    """Catalog-derived role and competency coverage for one concept category."""
+
+    required_role: str
+    coverage_status: str
 
 
 @dataclass(frozen=True)
@@ -30,6 +49,7 @@ class ResolverCatalog:
     entity_address_field: str
     concept_field: FieldCandidate
     allowed_roles: tuple[str, ...]
+    concept_policies: Mapping[str, ConceptPolicy]
     semantic_status_by_class: Mapping[str, str]
     all_relations: frozenset[str]
     all_fields: frozenset[FieldCandidate]
@@ -77,6 +97,10 @@ def load_resolver_catalog(path: Path) -> ResolverCatalog:
     if "concept_class" not in label_fields:
         raise ClassResolverError("entity label relation lacks concept class")
 
+    raw_roles = lookup.get("allowed_right_roles")
+    if not isinstance(raw_roles, list) or any(not isinstance(value, str) for value in raw_roles):
+        raise ClassResolverError("invalid analytical catalog entity lookup roles")
+
     statuses: dict[str, str] = {}
     mappings = catalog.get("semantic_mappings")
     if not isinstance(mappings, list):
@@ -95,9 +119,38 @@ def load_resolver_catalog(path: Path) -> ResolverCatalog:
         ):
             statuses[semantic_id.lstrip(":")] = str(mapping.get("status"))
 
-    raw_roles = lookup.get("allowed_right_roles")
-    if not isinstance(raw_roles, list) or any(not isinstance(value, str) for value in raw_roles):
-        raise ClassResolverError("invalid analytical catalog entity lookup roles")
+    raw_questions = catalog.get("competency_questions")
+    if not isinstance(raw_questions, list):
+        raise ClassResolverError("invalid analytical catalog competency questions")
+    policy_roles: dict[str, set[str]] = {}
+    policy_statuses: dict[str, set[str]] = {}
+    for raw_question in raw_questions:
+        question = _mapping(raw_question, "competency question")
+        requirements = _mapping(
+            question.get("role_requirements", {}), "competency role requirements"
+        )
+        for vocabulary_key, role in requirements.items():
+            category = _ROLE_REQUIREMENT_CONCEPTS.get(str(vocabulary_key))
+            if category is None:
+                continue
+            if not isinstance(role, str) or role not in raw_roles:
+                raise ClassResolverError("invalid competency concept role")
+            policy_roles.setdefault(category, set()).add(role)
+            policy_statuses.setdefault(category, set()).add(str(question.get("status")))
+
+    concept_policies: dict[str, ConceptPolicy] = {}
+    for category, roles_for_category in sorted(policy_roles.items()):
+        if len(roles_for_category) != 1:
+            raise ClassResolverError(
+                f"conflicting competency roles for concept category {category!r}"
+            )
+        coverage_status = (
+            "supported" if "supported" in policy_statuses.get(category, set()) else "coverage_gap"
+        )
+        concept_policies[category] = ConceptPolicy(
+            required_role=next(iter(roles_for_category)),
+            coverage_status=coverage_status,
+        )
     frozen_candidates = MappingProxyType(
         {key: tuple(sorted(values)) for key, values in sorted(candidates.items())}
     )
@@ -116,6 +169,7 @@ def load_resolver_catalog(path: Path) -> ResolverCatalog:
         entity_address_field="address",
         concept_field=FieldCandidate("entity_labels_v1", "concept_class"),
         allowed_roles=tuple(sorted(raw_roles)),
+        concept_policies=MappingProxyType(concept_policies),
         semantic_status_by_class=MappingProxyType(dict(sorted(statuses.items()))),
         all_relations=frozenset(map(str, relations)),
         all_fields=all_fields,

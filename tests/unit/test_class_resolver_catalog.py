@@ -50,6 +50,20 @@ def test_catalog_index_derives_direction_fields_from_the_address_lookup(tmp_path
     )
 
 
+def test_catalog_index_derives_concept_role_and_competency_coverage(tmp_path: Path) -> None:
+    index = load_resolver_catalog(_catalog_path(tmp_path))
+
+    assert index.concept_policies["exchange"].required_role == "treasury"
+    assert index.concept_policies["exchange"].coverage_status == "supported"
+    assert index.concept_policies["dex"].required_role == "operational"
+    assert index.concept_policies["dex"].coverage_status == "supported"
+    assert index.concept_policies["mixer"].required_role == "operational"
+    assert index.concept_policies["mixer"].coverage_status == "coverage_gap"
+    assert index.concept_policies["nft_marketplace"].coverage_status == "coverage_gap"
+    assert index.concept_policies["mev"].coverage_status == "coverage_gap"
+    assert index.concept_policies["token_contract"].required_role == "token"
+
+
 def test_catalog_index_rejects_a_semantically_wrong_entity_lookup(tmp_path: Path) -> None:
     path = _catalog_path(tmp_path)
     raw = json.loads(path.read_text(encoding="utf-8"))

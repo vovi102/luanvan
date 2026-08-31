@@ -40,7 +40,7 @@ def _payload(path: Path) -> Path:
     return path
 
 
-def _ground_truth(path: Path) -> Path:
+def _ground_truth(path: Path, *, expected_direction: str = "to") -> Path:
     rows: list[str] = []
     for index in range(50):
         question = f"transactions to {ADDRESS} case {index:02d}"
@@ -54,7 +54,7 @@ def _ground_truth(path: Path) -> Path:
                     "span_offset": [16, 58],
                     "target_id": TARGET_ID,
                     "resolution_kind": "instance",
-                    "direction": "to",
+                    "direction": expected_direction,
                     "coverage_status": "supported",
                 }
             ],
@@ -152,6 +152,27 @@ def test_evaluate_publishes_a_canonical_hash_bound_report(tmp_path: Path) -> Non
     assert report_hash == hashlib.sha256(_canonical(body).encode()).hexdigest()
     body["report_sha256"] = report_hash
     assert report.read_text(encoding="utf-8") == _canonical(body)
+
+
+def test_evaluate_reports_not_ready_below_the_accuracy_threshold(tmp_path: Path) -> None:
+    ground_truth = _ground_truth(tmp_path / "ground-truth.jsonl", expected_direction="from")
+    report = tmp_path / "report.json"
+    cli = workflow.create_cli(git_provenance_factory=lambda _path: GitProvenance("1" * 40, False))
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "evaluate",
+            "--ground-truth",
+            str(ground_truth),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["status"] == "not_ready"
+    assert json.loads(report.read_text(encoding="utf-8"))["status"] == "not_ready"
 
 
 def test_evaluate_rejects_report_aliasing_ground_truth_before_mutation(tmp_path: Path) -> None:

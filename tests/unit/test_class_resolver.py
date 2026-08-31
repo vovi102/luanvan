@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -136,6 +137,40 @@ def test_unknown_raw_address_keeps_the_t42_self_authenticating_contract(
     assert entity.direction == "from"
 
 
+def test_owner_without_verified_addresses_remains_unresolved(
+    corpus: EntityCorpus,
+) -> None:
+    original = corpus.targets_by_id["owner:Binance"]
+    empty_owner = replace(original, addresses=())
+    targets = tuple(
+        sorted(
+            (
+                empty_owner if target.target_id == empty_owner.target_id else target
+                for target in corpus.targets
+            ),
+            key=lambda target: target.target_id,
+        )
+    )
+    local_corpus = replace(
+        corpus,
+        targets=targets,
+        targets_by_id={target.target_id: target for target in targets},
+        address_targets={
+            address: target_id
+            for address, target_id in corpus.address_targets.items()
+            if target_id != empty_owner.target_id
+        },
+    )
+    resolver = ClassResolver(CATALOG_PATH, local_corpus)
+    question = "transactions to Binance"
+
+    plan = resolver.resolve(question, (_target_match(question, "Binance", empty_owner),))
+
+    assert plan.status == "unresolved"
+    assert plan.entities[0].resolution_kind == "unresolved"
+    assert plan.entities[0].coverage_status == "unresolved"
+
+
 def test_concept_resolves_through_the_catalog_label_join(
     resolver: ClassResolver, corpus: EntityCorpus
 ) -> None:
@@ -261,6 +296,20 @@ def test_ambiguous_match_without_a_class_trigger_remains_unresolved(
 
     assert plan.status == "unresolved"
     assert plan.entities[0].resolution_kind == "unresolved"
+    assert plan.warnings == ("ambiguity remains unresolved for span 'exchange'",)
+
+
+def test_plural_generic_selects_concept_but_preserves_ambiguity_warning(
+    resolver: ClassResolver, corpus: EntityCorpus
+) -> None:
+    question = "transactions to exchanges"
+    match = _ambiguous_match(question, "exchanges", corpus)
+
+    plan = resolver.resolve(question, (match,))
+
+    assert plan.entities[0].target_id == "concept:exchange"
+    assert plan.status == "partial"
+    assert plan.warnings == ("ambiguity selected concept for span 'exchanges'",)
 
 
 def test_class_trigger_with_two_concept_alternatives_remains_unresolved(
@@ -355,11 +404,14 @@ def test_empty_concept_coverage_is_explicit(resolver: ClassResolver, corpus: Ent
     question = "transactions to any mixer"
     target = corpus.targets_by_id["concept:mixer"]
 
-    entity = resolver.resolve(question, (_target_match(question, "mixer", target),)).entities[0]
+    plan = resolver.resolve(question, (_target_match(question, "mixer", target),))
+    entity = plan.entities[0]
 
     assert entity.coverage_status == "coverage_gap"
-    assert entity.required_role is None
+    assert entity.required_role == "operational"
     assert "coverage" in entity.explanation.casefold()
+    assert plan.status == "partial"
+    assert plan.warnings == ("coverage gap for span 'mixer'",)
 
 
 def test_supported_concept_uses_the_common_accepted_address_role(
@@ -372,6 +424,39 @@ def test_supported_concept_uses_the_common_accepted_address_role(
 
     assert entity.coverage_status == "supported"
     assert entity.required_role == "treasury"
+
+
+def test_catalog_role_policy_rejects_nonqualifying_owner_endpoints(
+    tmp_path: Path, corpus: EntityCorpus
+) -> None:
+    raw = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    for question in raw["competency_questions"]:
+        if "dex" in question["role_requirements"]:
+            question["role_requirements"]["dex"] = "treasury"
+    path = tmp_path / "catalog.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    resolver = ClassResolver(path, corpus)
+    question = "transactions to any dex"
+    target = corpus.targets_by_id["concept:dex"]
+
+    plan = resolver.resolve(question, (_target_match(question, "dex", target),))
+
+    assert plan.entities[0].required_role == "treasury"
+    assert plan.entities[0].coverage_status == "coverage_gap"
+    assert plan.status == "partial"
+
+
+def test_catalog_competency_gap_downgrades_representable_concept(
+    resolver: ClassResolver, corpus: EntityCorpus
+) -> None:
+    question = "transactions to any nft marketplace"
+    target = corpus.targets_by_id["concept:nft_marketplace"]
+
+    plan = resolver.resolve(question, (_target_match(question, "nft marketplace", target),))
+
+    assert plan.entities[0].required_role == "operational"
+    assert plan.entities[0].coverage_status == "coverage_gap"
+    assert plan.status == "partial"
 
 
 def test_two_mentions_with_the_same_direction_emit_a_conflict_warning(

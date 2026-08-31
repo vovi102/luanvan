@@ -204,7 +204,8 @@ def _git_provenance(repository: Path) -> GitProvenance:
 
 
 def _report_payload(report: object) -> bytes:
-    body = {"schema_version": 1, "status": "ready", **asdict(report)}
+    status = "ready" if getattr(report, "ready", False) else "not_ready"
+    body = {"schema_version": 1, "status": status, **asdict(report)}
     return _canonical_json(
         {**body, "report_sha256": hashlib.sha256(_canonical_json(body)).hexdigest()}
     )
@@ -334,7 +335,11 @@ def create_cli(
             _atomic_write(report, _report_payload(evaluation))
             click.echo(
                 _canonical_json(
-                    {"status": "ready", "command": command, "report": str(report)}
+                    {
+                        "status": "ready" if evaluation.ready else "not_ready",
+                        "command": command,
+                        "report": str(report),
+                    }
                 ).decode(),
                 nl=False,
             )

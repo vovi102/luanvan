@@ -67,13 +67,15 @@ Concept constraint ghi:
 - required relation `entity_labels_v1`;
 - required join `fact_address_to_entity`;
 - typed value trên `concept_class`;
-- common accepted role chỉ khi mọi supporting owner target chia sẻ đúng một role
-  trong catalog policy.
+- required address role lấy từ `competency_questions.role_requirements`, sau khi
+  ánh xạ vocabulary key của catalog sang concept category.
 
-Coverage được chứng minh từ owner targets có cùng concept class và ít nhất một
-verified address. Không có supporter, ví dụ MixerAccount trong snapshot hiện tại,
-trả `coverage_gap`. Resolver vẫn mô tả constraint representable nhưng không claim
-query có endpoint matches.
+Coverage chỉ là `supported` khi competency policy có ít nhất một CQ supported và
+corpus có owner target cùng concept class, verified address, đúng required role.
+Role khác không được thay thế. CQ chỉ có `coverage_gap`, thiếu role policy, hoặc
+không có qualifying endpoint đều trả `coverage_gap` và warning khiến plan là
+`partial`. Resolver vẫn mô tả constraint representable nhưng không claim query có
+endpoint matches.
 
 ### 6. Cross-mention conflicts
 
@@ -88,4 +90,3 @@ schema link, operator/value combination hoặc provenance raise
 `ClassResolverError`. Valid ambiguity, missing direction và coverage gap là typed
 data. Resolver không persist question text, initialize encoder, access network,
 query BigQuery hoặc emit executable SQL.
-
