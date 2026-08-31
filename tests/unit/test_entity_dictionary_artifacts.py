@@ -9,7 +9,11 @@ from nl2sparql.linking.dictionary import (
     SOURCES_PATH,
 )
 from nl2sparql.linking.dictionary.schema import DictionaryValidationError
-from nl2sparql.linking.dictionary.validate import DictionaryArtifacts, validate_artifacts
+from nl2sparql.linking.dictionary.validate import (
+    DictionaryArtifacts,
+    validate_artifact_data,
+    validate_artifacts,
+)
 
 
 def write_minimal_chain_aware_artifacts(
@@ -70,6 +74,18 @@ def write_minimal_chain_aware_artifacts(
     return paths
 
 
+def _valid_concepts_data() -> dict[str, dict[str, object]]:
+    return {
+        f"category_{index}": {
+            "ontology_class": f"https://example.test/Category{index}",
+            "aliases": [f"category {index}"],
+            "instances": [],
+            "description": f"Category {index}",
+        }
+        for index in range(8)
+    }
+
+
 def test_validate_artifacts_reports_missing_files(tmp_path):
     artifacts = DictionaryArtifacts(
         entities_path=tmp_path / "entities.json",
@@ -113,6 +129,76 @@ def test_validate_artifacts_reports_operational_entity_count(tmp_path):
     report = validate_artifacts(artifacts, min_entities=1, min_aliases=1)
 
     assert report["operational_entity_count"] == 1
+
+
+@pytest.mark.parametrize(
+    ("artifact", "mutate"),
+    (
+        pytest.param(
+            "entities",
+            lambda payload: payload.__setitem__(0, 1),
+            id="entity-must-be-object",
+        ),
+        pytest.param(
+            "entities",
+            lambda payload: payload[0].__setitem__("category", 1),
+            id="entity-category-must-be-text-before-sort",
+        ),
+        pytest.param(
+            "entities",
+            lambda payload: payload.append({**payload[0], "category": 1}),
+            id="mixed-category-types-must-not-leak-type-error",
+        ),
+        pytest.param(
+            "entities",
+            lambda payload: payload[0].pop("address_lower"),
+            id="missing-sort-key-must-not-leak-type-error",
+        ),
+        pytest.param(
+            "concepts",
+            lambda payload: payload.__setitem__("category_0", 1),
+            id="concept-must-be-object",
+        ),
+    ),
+)
+def test_validate_artifacts_rejects_malformed_entries_before_sorting(tmp_path, artifact, mutate):
+    artifacts = write_minimal_chain_aware_artifacts(tmp_path)
+    path = getattr(artifacts, f"{artifact}_path")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    mutate(payload)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(DictionaryValidationError):
+        validate_artifacts(artifacts, min_entities=1, min_aliases=1)
+
+
+@pytest.mark.parametrize(
+    ("entities", "concepts", "aliases"),
+    (
+        pytest.param(
+            [],
+            {**_valid_concepts_data(), 1: _valid_concepts_data()["category_0"]},
+            {},
+            id="concept-key-must-be-text",
+        ),
+        pytest.param(
+            [],
+            _valid_concepts_data(),
+            {1: "Owner", "owner": "Owner"},
+            id="alias-key-must-be-text-before-sort",
+        ),
+    ),
+)
+def test_validate_artifact_data_rejects_non_text_comparison_keys(entities, concepts, aliases):
+    with pytest.raises(DictionaryValidationError):
+        validate_artifact_data(
+            entities,
+            concepts,
+            aliases,
+            "Retrieved date:\nManual verification:\nAutomated acceptance criteria\n",
+            min_entities=0,
+            min_aliases=0,
+        )
 
 
 def test_committed_dictionary_artifacts_meet_t2_2_thresholds():

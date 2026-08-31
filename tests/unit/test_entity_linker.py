@@ -523,6 +523,40 @@ def test_question_word_only_windows_are_discarded_but_exact_aliases_are_exempt()
     assert semantic_linker.link("can you balance")[0].target_id == "concept:ledger"
 
 
+@pytest.mark.parametrize(
+    "question",
+    (
+        pytest.param("the that these", id="articles-determiners-demonstratives"),
+        pytest.param("he she they myself", id="personal-possessive-reflexive-pronouns"),
+        pytest.param("what which whom", id="interrogatives-relatives"),
+        pytest.param("do would can", id="auxiliaries-modals"),
+        pytest.param("and through up", id="conjunctions-prepositions-particles"),
+        pytest.param("please show list", id="request-scaffolding"),
+        pytest.param("do they", id="auxiliary-pronoun-combination"),
+        pytest.param("would she", id="modal-pronoun-combination"),
+        pytest.param("what is this", id="interrogative-copula-demonstrative-combination"),
+    ),
+)
+def test_function_word_only_windows_never_reach_semantic_retrieval(question: str) -> None:
+    target = _target("concept:ledger", None, ("ledger",))
+    corpus = EntityCorpus(
+        targets=(target,),
+        targets_by_id={target.target_id: target},
+        phrase_targets={"ledger": (target.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    linker = EntityLinker(
+        corpus,
+        _index_for(corpus, np.asarray([[1.0]], dtype=np.float32)),
+        FixedEncoder([1.0]),
+    )
+
+    assert linker.link(question) == ()
+
+
 def test_lowercase_token_winner_is_suppressed_despite_a_distant_non_token_candidate() -> None:
     token_metadata = {
         "categories": ("token_contract",),

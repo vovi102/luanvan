@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from nl2sparql.linking.dictionary.validate import DictionaryArtifacts
+from nl2sparql.linking.dictionary.schema import DictionaryValidationError
+from nl2sparql.linking.dictionary.validate import DictionaryArtifacts, validate_artifacts
 from nl2sparql.linking.entity import (
     EntityAlternative,
     EntityCorpus,
@@ -187,6 +188,32 @@ def test_build_entity_corpus_translates_structural_dictionary_errors(tmp_path: P
     artifacts = _write_artifacts(tmp_path)
     artifacts.entities_path.write_text("[1]", encoding="utf-8")
 
+    with pytest.raises(EntityDocumentError, match="invalid entity dictionary"):
+        build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
+
+
+@pytest.mark.parametrize(
+    ("field_path", "invalid"),
+    (
+        pytest.param((0,), 1, id="entity-must-be-object"),
+        pytest.param((0, "category"), 1, id="category-must-be-text-before-sort"),
+        pytest.param((0, "owner"), 1, id="owner-must-be-text-before-sort"),
+        pytest.param((0, "address_lower"), 1, id="address-lower-must-be-text-before-sort"),
+    ),
+)
+def test_malformed_sort_fields_raise_at_public_and_corpus_boundaries(
+    tmp_path: Path, field_path: tuple[object, ...], invalid: object
+) -> None:
+    artifacts = _write_artifacts(tmp_path)
+    entities = json.loads(artifacts.entities_path.read_text(encoding="utf-8"))
+    parent = entities
+    for part in field_path[:-1]:
+        parent = parent[part]
+    parent[field_path[-1]] = invalid
+    artifacts.entities_path.write_text(json.dumps(entities), encoding="utf-8")
+
+    with pytest.raises(DictionaryValidationError):
+        validate_artifacts(artifacts, min_entities=1, min_aliases=1)
     with pytest.raises(EntityDocumentError, match="invalid entity dictionary"):
         build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
 
