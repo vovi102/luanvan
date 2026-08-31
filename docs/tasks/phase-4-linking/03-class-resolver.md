@@ -1,166 +1,101 @@
-# T4.3 — Class Resolver (Hierarchical Concept-to-Triple)
+# T4.3 — GoogleSQL Class Resolver (Typed Constraint Planning)
 
 ## Mục tiêu
 
-Module `ClassResolver` quyết định cách inject entity vào SPARQL: là `VALUES` clause (instance addresses) hay class triple pattern (`?x a :Class`).
+Chuyển evidence từ T4.2 và ranking tùy chọn từ T4.1 thành constraint plan có
+kiểu, bind vào analytical catalog và dictionary provenance. Resolver không sinh
+SPARQL, không render SQL và không gọi BigQuery.
 
-## Bối cảnh & lý do
+## Migration sau Pivot #1
 
-Đặc thù 3 (xem `00-PROJECT_OVERVIEW.md`): hierarchical dictionary 2 tầng. Cùng ý tưởng "transactions to mixer" có 2 cách hiểu:
-- **Concept-level:** "any mixer" → `?to a :MixerAccount`.
-- **Instance-level:** "Tornado Cash specifically" → `VALUES ?to {0xabc... 0xdef...}`.
+Task cũ yêu cầu `VALUES`, `BIND` và RDF class triple. Contract đó đã bị
+supersede bởi Plan B GoogleSQL. Runtime canonical dùng:
 
-Resolver quyết định:
-- Mention có alias/owner cụ thể → instance-level.
-- Mention là common noun chỉ category → class-level.
-- Mention "all major X" / "any X" / "exchanges" → class-level.
+- field identity dạng `relation.field` đã tồn tại trong catalog;
+- operator typed `in`, `equals`, hoặc `none`;
+- `fact_address_to_entity` và `entity_labels_v1` cho concept lookup;
+- role `operational`, `treasury`, `token` đúng catalog policy;
+- explicit `coverage_gap` thay vì claim endpoint không có trong dictionary.
 
 ## Phụ thuộc
 
-- T4.2 — `EntityLinker` đã có concept_class detection.
-- T2.1 — Ontology với class hierarchy.
+- T4.1 — `SchemaLinker` rank analytical relations và fields.
+- T4.2 — `EntityLinker` trả immutable `EntityMatch` evidence.
+- T2-SQL-1/2 — validated catalog và label-enriched analytical layer.
 
-## Đầu vào
+## Interface
 
-- Output của T4.2 (`EntityMatch` records).
-- Câu hỏi NL gốc (cho linguistic clue).
+```python
+ClassResolver(catalog_path, entity_corpus).resolve(
+    question,
+    matches,
+    schema_links=None,
+) -> ResolutionPlan
+```
 
-## Đầu ra
+`ResolutionPlan` chứa ordered `ResolvedEntity`, catalog/dictionary/question
+fingerprints, aggregate status và warnings. Mỗi entity ghi resolution kind,
+direction, candidate fields, typed operator/values, required relation/join/role,
+coverage status, confidence và explanation. Output không chứa executable query.
 
-- Module `src/nl2sparql/linking/class_resolver.py`.
-- Tests `tests/test_class_resolver.py` ≥20 cases.
-- Documentation `src/nl2sparql/linking/RESOLVER_RULES.md` giải thích rules.
+## Resolution policy
+
+1. Owner hoặc raw address hợp lệ resolve thành instance address membership.
+2. Concept resolve qua `entity_labels_v1.concept_class` và
+   `fact_address_to_entity`.
+3. Ambiguous match mặc định unresolved. `any`, `all`, `every`, `major` hoặc
+   plural generic chỉ chọn khi có đúng một concept alternative trong corpus.
+4. Cue local xác định `from`, `to`; T4.1 token field có thể xác định `token`.
+   Cue xung đột hoặc thiếu evidence giữ `unspecified`.
+5. T4.1 chỉ thu hẹp candidate catalog; unknown relation/field fail closed.
+6. Concept coverage được kiểm tra từ owner targets có cùng concept class và
+   accepted address roles. Không có endpoint thì `coverage_gap`.
+7. Hai mention dùng cùng direction được giữ nguyên và phát conflict warning;
+   resolver không tự phát minh boolean intent.
+
+Chi tiết vận hành nằm tại `src/nl2sparql/linking/RESOLVER_RULES.md`.
+
+## Offline workflow
+
+```bash
+uv run python scripts/15_class_resolver.py resolve --input path/to/payload.json
+uv run python scripts/15_class_resolver.py evaluate \
+  --ground-truth data/eval/class_resolver_groundtruth.jsonl \
+  --report reports/class_resolver_evaluation.json
+```
+
+`resolve` in canonical JSON ra stdout. `evaluate` yêu cầu đúng 50 câu reviewed,
+bind exact JSONL bytes và provenance, rồi publish report atomically. Import và
+`--help` không build model/corpus hay gọi external service.
 
 ## Acceptance criteria
 
-- [ ] API: `resolve(matches: list[EntityMatch], nl: str) -> list[ResolvedEntity]`.
-- [ ] Output mỗi entity có `triple_pattern` (string) inject vào SPARQL.
-- [ ] Test cover 5 cases: pure instance, pure concept, ambiguous (default rule), "any X" trigger, "all X" trigger.
-- [ ] Accuracy ≥90% trên test set 50 câu manual annotation.
-
-## Hướng dẫn triển khai
-
-### ResolvedEntity schema
-
-```python
-@dataclass
-class ResolvedEntity:
-    span: str
-    resolution_type: str  # "instance" | "class" | "mixed"
-    triple_pattern: str   # ready-to-inject SPARQL fragment
-    var_name: str         # ?from, ?to, ?addr ...
-    explanation: str      # for prompt context
-```
-
-### Resolution rules
-
-Priority (top wins):
-
-**Rule 1: Linguistic class trigger.**
-
-Nếu NL chứa pattern: "any X", "all X", "every X", "X (plural common noun)" → class-level.
-
-Examples:
-- "any mixer" → `:MixerAccount`.
-- "all exchanges" → `:ExchangeAccount`.
-- "any DEX" → `:DEXProtocol`.
-
-```python
-CLASS_TRIGGERS = [
-    r"\bany\s+(\w+)",
-    r"\ball\s+(\w+s?)",
-    r"\bevery\s+(\w+)",
-    r"\bmajor\s+(\w+s?)",
-]
-```
-
-**Rule 2: Plural common noun.**
-
-"exchanges" (no specific name) → class.
-"Binance" (proper noun, capitalized) → instance.
-
-Heuristic: if span is in concept dictionary AND not in named entity dictionary → class.
-
-**Rule 3: Default = instance (more specific).**
-
-Nếu match cả concept và instance, ưu tiên instance.
-
-Example: "Tornado Cash" match cả `MixerAccount` (class) và Tornado Cash entity (instance) → dùng instance addresses.
-
-**Rule 4: Mixed (rare).**
-
-Nếu user hỏi "transactions from Binance to any mixer" → 2 entities khác cách resolve. Resolver xử lý từng entity riêng.
-
-### Triple pattern builder
-
-```python
-def build_instance_pattern(addresses, var_name):
-    if len(addresses) == 1:
-        return f"BIND(<{addresses[0]}> AS {var_name})"
-    else:
-        addr_list = " ".join(f"<{a}>" for a in addresses)
-        return f"VALUES {var_name} {{ {addr_list} }}"
-
-def build_class_pattern(class_uri, var_name):
-    return f"{var_name} a {class_uri} ."
-```
-
-Examples:
-
-```sparql
-# instance, single
-BIND(<0xabc...> AS ?from)
-
-# instance, multiple (Binance ~30 addresses)
-VALUES ?from { <0xabc...> <0xdef...> ... }
-
-# class
-?to a :MixerAccount .
-
-# mixed (one entity each side)
-VALUES ?from { <0x...> ... }
-?to a :ExchangeAccount .
-```
-
-### Variable name assignment
-
-Schema linker (T4.1) sẽ giúp suggest vars:
-- "from X" → `?from`.
-- "to Y" → `?to`.
-- Default `?addr_<i>` if unclear.
-
-Resolver cần coordinate với LLM Generator (T6.1) — có thể just pass triple_pattern và để LLM dùng làm hint.
-
-### Prompt injection format
-
-Output cuối cùng là string inject vào prompt LLM:
-
-```
-Linked entities:
-- "Binance" → instance with 28 addresses
-  Use: VALUES ?from { <0x...> ... <0x...> }
-- "any mixer" → class :MixerAccount
-  Use: ?to a :MixerAccount .
-```
-
-### Edge cases để test
-
-- Entity ở vị trí object: "transactions to Binance" (object position).
-- Entity là chủ ngữ: "Binance sent X" (subject).
-- Entity với time qualifier: "Binance hot wallet last quarter" (vẫn instance).
-- "DEX" alone (singular common noun, no "the"): class (ambiguous, rule lỏng).
-- "the DEX" (with article + singular): có thể context-dependent, default class.
-
-## Rủi ro & note
-
-- **Tiếng Anh ambiguous:** "exchange" có thể là verb ("to exchange ETH") hoặc noun. NER + POS tag có thể cần. Defer nếu phức tạp.
-- **Class hierarchy lookup:** "any DeFi protocol" → `:DEXProtocol ∪ :LendingProtocol`. Có thể dùng `?x a/rdfs:subClassOf* :DeFiProtocol`. Lưu ý SPARQL property path.
-- **Variable naming clash:** nhiều entities cùng var → rename.
-
-## Estimated effort
-
-1 ngày.
+- [x] GoogleSQL-native immutable typed contracts và stable resolver facade.
+- [x] Owner, raw address, concept, ambiguity, direction, schema narrowing,
+  role, coverage và conflict behavior có focused tests.
+- [x] Catalog/dictionary/span/fingerprint evidence fail closed.
+- [x] Exactly-50 JSONL validator và deterministic evaluation metrics.
+- [x] Offline numbered CLI, canonical JSON và safe atomic report publication.
+- [x] Local focused/full pytest, Ruff lint/format và diff checks pass.
+- [ ] Fully resolved plan accuracy >=90% trên đúng 50 câu independently
+  reviewed. Artifact `data/eval/class_resolver_groundtruth.jsonl` chưa tồn tại;
+  fixtures synthetic không thay thế scientific evidence.
 
 ## Trạng thái
 
-todo
+Implementation checkpoint complete locally. Scientific acceptance còn pending
+independent 50-row artifact và production `evaluate` run. Task không yêu cầu
+credential, network, model download hoặc BigQuery execution để hoàn tất phần
+implementation local.
+
+## Evidence triển khai cục bộ — 2026-08-31
+
+- Focused T4.3 suite: `66 passed`.
+- Full repository suite: `813 passed`, `342 warnings` từ dependencies/legacy RML
+  paths đã biết; không có failure.
+- `ruff check .`: pass.
+- `ruff format --check .`: `151 files already formatted`.
+- Numbered `scripts/15_class_resolver.py --help`: pass với `resolve` và `evaluate`.
+- `git diff --check`: pass.
+- Không có model initialization, network access, BigQuery credential hoặc live
+  query trong verification.
