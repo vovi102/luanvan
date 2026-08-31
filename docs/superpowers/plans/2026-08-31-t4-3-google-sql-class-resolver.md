@@ -198,9 +198,11 @@ Expected: import or attribute failure for `ClassResolver`.
 
 The constructor strict-loads the resolver catalog once and indexes corpus targets
 by ID. `resolve` must verify question length/content, exact span slices, source
-ordering, non-overlap, target existence, and target fingerprint equality before
-building any result. Owner/address targets use address membership; concept targets
-use the catalog-backed concept-class constraint.
+ordering, non-overlap, owner/concept target existence, and target fingerprint
+equality before building any result. A raw address target instead verifies the
+T4.2 self-authenticating target-ID/address/SHA-256 contract. Owner/address targets
+use address membership; concept targets use the catalog-backed concept-class
+constraint.
 
 ```python
 class ClassResolver:

@@ -119,11 +119,14 @@ deriving an internal lookup of analytical relations, fields, joins, semantic
 mappings, roles, and competency coverage. The resolver accepts a single catalog
 snapshot and hashes the exact canonical bytes used to build that lookup.
 
-The supplied `EntityCorpus` must agree with every match target and target
-fingerprint. Addresses and concept metadata are hydrated only from that corpus.
-Unknown, stale, or mismatched targets fail closed. Ambiguous alternatives are
-also hydrated through the corpus; their abbreviated T4.2 records are never
-treated as complete metadata.
+The supplied `EntityCorpus` must agree with every owner/concept match target and
+target fingerprint. Addresses and concept metadata are hydrated only from that
+corpus. A T4.2 raw `address:<lowercase-address>` target is the sole exception: it
+is self-authenticating when its target ID, one-item address tuple, empty semantic
+claims, and SHA-256 of the target ID agree. Unknown owner/concept targets and all
+stale or mismatched targets fail closed. Ambiguous alternatives are hydrated
+through the corpus; their abbreviated T4.2 records are never treated as complete
+metadata.
 
 The output carries catalog and dictionary fingerprints so later baseline or
 generator artifacts can prove which semantics produced a constraint plan.
