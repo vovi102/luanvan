@@ -7,6 +7,15 @@ from nl2sparql.linking.resolver.contracts import (
     ResolutionPlan,
     ResolvedEntity,
 )
+from nl2sparql.linking.resolver.evaluate import (
+    ResolverEvaluationError,
+    ResolverEvaluationReport,
+    ResolverExpected,
+    ResolverGroundTruth,
+    ResolverGroundTruthCase,
+    evaluate_resolver,
+    load_resolver_ground_truth,
+)
 from nl2sparql.linking.resolver.resolver import ClassResolver
 
 __all__ = [
@@ -15,6 +24,13 @@ __all__ = [
     "FieldCandidate",
     "ResolvedEntity",
     "ResolutionPlan",
+    "ResolverEvaluationError",
+    "ResolverEvaluationReport",
+    "ResolverExpected",
+    "ResolverGroundTruth",
+    "ResolverGroundTruthCase",
     "ResolverCatalog",
     "load_resolver_catalog",
+    "evaluate_resolver",
+    "load_resolver_ground_truth",
 ]
