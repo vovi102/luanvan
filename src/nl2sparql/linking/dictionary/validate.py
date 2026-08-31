@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -91,25 +92,51 @@ def validate_artifact_data(
     if list(aliases) != sorted(aliases):
         raise DictionaryValidationError("aliases.json keys must be sorted")
 
+    def require_mapping(value: Any, label: str) -> Mapping[str, Any]:
+        if not isinstance(value, Mapping):
+            raise DictionaryValidationError(f"{label} must contain an object")
+        return value
+
+    def require_text(value: Any, label: str) -> str:
+        if not isinstance(value, str):
+            raise DictionaryValidationError(f"{label} must contain text")
+        return value
+
+    def require_text_list(value: Any, label: str) -> list[str]:
+        if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+            raise DictionaryValidationError(f"{label} must contain a list of text values")
+        return value
+
+    for key, target in aliases.items():
+        require_text(key, "alias key")
+        require_text(target, "alias target")
+
     concept_keys = set(concepts)
     owners = set()
     seen_addresses = set()
-    entity_sort_keys = [
-        (entry.get("category"), entry.get("owner"), entry.get("address_lower"))
-        for entry in entities
-    ]
+    entity_sort_keys = []
+    for index, raw_entry in enumerate(entities):
+        entry = require_mapping(raw_entry, f"entity {index}")
+        entity_sort_keys.append(
+            (entry.get("category"), entry.get("owner"), entry.get("address_lower"))
+        )
     if entity_sort_keys != sorted(entity_sort_keys):
         raise DictionaryValidationError(
             "entities.json must be sorted by category, owner, address_lower"
         )
 
     for concept_key, concept in concepts.items():
+        require_text(concept_key, "concept key")
+        concept = require_mapping(concept, f"concept {concept_key!r}")
         if normalize_alias(concept_key) != concept_key:
             raise DictionaryValidationError(f"Concept key is not normalized: {concept_key!r}")
         for field in ("ontology_class", "aliases", "instances", "description"):
             if field not in concept:
                 raise DictionaryValidationError(f"Concept {concept_key!r} missing field {field!r}")
-        owners.update(concept["instances"])
+        require_text(concept["ontology_class"], f"concept {concept_key!r} ontology_class")
+        require_text_list(concept["aliases"], f"concept {concept_key!r} aliases")
+        owners.update(require_text_list(concept["instances"], f"concept {concept_key!r} instances"))
+        require_text(concept["description"], f"concept {concept_key!r} description")
 
     required = {
         "address",
@@ -126,10 +153,28 @@ def validate_artifact_data(
         "verified_date",
     }
     operational_entity_count = 0
-    for entry in entities:
+    for index, raw_entry in enumerate(entities):
+        entry = require_mapping(raw_entry, f"entity {index}")
         missing = required - set(entry)
         if missing:
             raise DictionaryValidationError(f"Entity missing fields: {sorted(missing)}")
+        for field in (
+            "address",
+            "address_lower",
+            "primary_label",
+            "owner",
+            "category",
+            "concept_class",
+            "address_role",
+            "confidence",
+            "verified_date",
+        ):
+            require_text(entry[field], f"entity {index} {field}")
+        require_text_list(entry["aliases"], f"entity {index} aliases")
+        if isinstance(entry["chain_id"], bool) or not isinstance(entry["chain_id"], (int, str)):
+            raise DictionaryValidationError(f"entity {index} chain_id must be an integer or text")
+        if not isinstance(entry["sources"], list):
+            raise DictionaryValidationError(f"entity {index} sources must contain a list")
         address_lower = normalize_address(entry["address"])
         if entry["address_lower"] != address_lower:
             raise DictionaryValidationError(f"address_lower mismatch for {entry['address']}")
@@ -148,6 +193,7 @@ def validate_artifact_data(
         for alias in entry["aliases"]:
             normalize_alias(alias)
         for source in entry["sources"]:
+            source = require_mapping(source, f"source for {entry['address']}")
             for field in (
                 "name",
                 "url",
@@ -160,6 +206,7 @@ def validate_artifact_data(
                     raise DictionaryValidationError(
                         f"Source missing field {field!r} for {entry['address']}"
                     )
+                require_text(source[field], f"source {field} for {entry['address']}")
             validate_source_revision(source["revision"])
             validate_source_locator(source["locator"])
 

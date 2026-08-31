@@ -86,7 +86,7 @@ def _match(question: str, target_id: str, stage: str = "exact") -> EntityMatch:
         span_offset=(0, 7),
         target_id=target_id,
         target_kind="owner" if target_id.startswith("owner:") else "concept",
-        owner="Binance" if target_id == "owner:Binance" else None,
+        owner=target_id.removeprefix("owner:") if target_id.startswith("owner:") else None,
         addresses=(),
         categories=(),
         concept_classes=(),
@@ -228,7 +228,10 @@ def test_evaluator_uses_span_only_mention_detection_and_primary_named_top1(
         concept_classes=(),
         stage="ambiguous",
         confidence=1.0,
-        alternatives=(EntityAlternative("owner:Binance", "owner", 1.0),),
+        alternatives=(
+            EntityAlternative("concept:dex", "concept", 1.0),
+            EntityAlternative("owner:Binance", "owner", 1.0),
+        ),
         target_sha256="d" * 64,
     )
     report = evaluate_linker(

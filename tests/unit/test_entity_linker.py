@@ -485,6 +485,44 @@ def test_stopword_only_windows_do_not_reach_fuzzy_or_embedding_retrieval() -> No
     assert linker.link("the theory")[-1].target_id == "concept:theory"
 
 
+def test_question_word_only_windows_are_discarded_but_exact_aliases_are_exempt() -> None:
+    exact_target = _target("concept:can", None, ("can",))
+    semantic_target = _target("concept:ledger", None, ("ledger",))
+    exact_corpus = EntityCorpus(
+        targets=(exact_target,),
+        targets_by_id={exact_target.target_id: exact_target},
+        phrase_targets={"can": (exact_target.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    semantic_corpus = EntityCorpus(
+        targets=(semantic_target,),
+        targets_by_id={semantic_target.target_id: semantic_target},
+        phrase_targets={"ledger": (semantic_target.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    exact_linker = EntityLinker(
+        exact_corpus,
+        _index_for(exact_corpus, np.asarray([[1.0]], dtype=np.float32)),
+        FixedEncoder([1.0]),
+    )
+    semantic_linker = EntityLinker(
+        semantic_corpus,
+        _index_for(semantic_corpus, np.asarray([[1.0]], dtype=np.float32)),
+        FixedEncoder([1.0]),
+    )
+
+    assert exact_linker.link("can")[0].stage == "exact"
+    assert semantic_linker.link("can you") == ()
+    assert semantic_linker.link("can you please") == ()
+    assert semantic_linker.link("can you balance")[0].target_id == "concept:ledger"
+
+
 def test_lowercase_token_winner_is_suppressed_despite_a_distant_non_token_candidate() -> None:
     token_metadata = {
         "categories": ("token_contract",),
@@ -554,7 +592,7 @@ def test_multi_token_windows_remain_eligible_for_fuzzy_and_embedding(
 
     assert fuzzy_linker.link("shwo up")[0].stage == "fuzzy"
     assert fuzzy_linker.link("longticker x")[0].stage == "fuzzy"
-    assert embedding_linker.link("can you")[0].stage == "embedding"
+    assert embedding_linker.link("please show transfers")[0].stage == "embedding"
 
 
 @pytest.mark.parametrize(

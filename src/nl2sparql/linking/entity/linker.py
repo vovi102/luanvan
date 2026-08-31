@@ -25,6 +25,9 @@ from nl2sparql.linking.entity.index import EntityIndex
 
 _ADDRESS_RE = re.compile(r"(?<!\w)0x[0-9a-f]{40}(?!\w)", re.IGNORECASE)
 _TOKEN_RE = re.compile(r"[^\W_]+", re.UNICODE)
+# Static English function/question scaffolding used in thesis-style requests. A
+# semantic window must retain at least one lexical content word; exact aliases
+# deliberately bypass this policy.
 _STOPWORDS = frozenset(
     {
         "a",
@@ -34,18 +37,56 @@ _STOPWORDS = frozenset(
         "as",
         "at",
         "be",
-        "by",
+        "can",
+        "could",
+        "did",
+        "do",
+        "does",
         "for",
         "from",
+        "get",
+        "give",
+        "had",
+        "has",
+        "have",
+        "how",
+        "i",
         "in",
         "is",
         "it",
+        "list",
+        "may",
+        "me",
+        "might",
+        "must",
+        "my",
+        "need",
         "of",
         "on",
         "or",
+        "our",
+        "please",
+        "show",
+        "should",
+        "tell",
+        "by",
         "the",
         "to",
+        "us",
+        "was",
+        "we",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "why",
+        "will",
         "with",
+        "would",
+        "you",
+        "your",
     }
 )
 

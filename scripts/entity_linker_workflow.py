@@ -156,60 +156,15 @@ def _unlink_at(destination: _ReportDestination, name: str) -> None:
 
 @contextmanager
 def _report_lock(destination: _ReportDestination):
-    """Serialize writers to one pinned report name without accepting aliases."""
-    name = f".{destination.filename}.lock"
-    descriptor: int | None = None
+    """Serialize publication through the already pinned report-directory inode."""
     try:
-        for _ in range(2):
-            try:
-                before = os.stat(name, dir_fd=destination.directory_fd, follow_symlinks=False)
-            except FileNotFoundError:
-                try:
-                    descriptor = os.open(
-                        name,
-                        os.O_RDWR | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-                        0o600,
-                        dir_fd=destination.directory_fd,
-                    )
-                except FileExistsError:
-                    continue
-                before = os.fstat(descriptor)
-            else:
-                if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-                    raise ReportPublicationError("report publication lock is an unsafe alias")
-                descriptor = os.open(
-                    name,
-                    os.O_RDWR | getattr(os, "O_NOFOLLOW", 0),
-                    dir_fd=destination.directory_fd,
-                )
-                after = os.fstat(descriptor)
-                if (
-                    not stat.S_ISREG(after.st_mode)
-                    or after.st_nlink != 1
-                    or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
-                ):
-                    raise ReportPublicationError("report publication lock changed while opening")
-            if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-                raise ReportPublicationError("report publication lock is an unsafe alias")
-            break
-        if descriptor is None:
-            raise ReportPublicationError("report publication lock changed while opening")
-    except ReportPublicationError:
-        if descriptor is not None:
-            os.close(descriptor)
-        raise
+        fcntl.flock(destination.directory_fd, fcntl.LOCK_EX)
     except OSError as exc:
-        if descriptor is not None:
-            os.close(descriptor)
-        raise ReportPublicationError(f"unable to open report publication lock: {exc}") from exc
+        raise ReportPublicationError(f"unable to lock report publication directory: {exc}") from exc
     try:
-        fcntl.flock(descriptor, fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        yield
     finally:
-        os.close(descriptor)
+        fcntl.flock(destination.directory_fd, fcntl.LOCK_UN)
 
 
 def _report_publication_checkpoint(point: str) -> None:

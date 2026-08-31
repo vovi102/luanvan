@@ -105,6 +105,8 @@ def _concurrent_report_writer(
     ready: object,
     release: object,
     results: object,
+    attempting: object | None = None,
+    entered: object | None = None,
 ) -> None:
     destination = workflow._open_report_destination(Path(report))
     original_fsync = workflow.os.fsync
@@ -112,6 +114,8 @@ def _concurrent_report_writer(
 
     def checkpoint(point: str) -> None:
         nonlocal after_replace
+        if entered is not None and point == "report_replaced":
+            entered.set()
         if fail_after_replace and point == "report_replaced":
             ready.set()
             release.wait(10)
@@ -125,6 +129,8 @@ def _concurrent_report_writer(
     workflow._report_publication_checkpoint = checkpoint
     workflow.os.fsync = fail_after_replacement
     try:
+        if attempting is not None:
+            attempting.set()
         workflow._atomic_write(destination, payload)
         results.put("published")
     except workflow.ReportPublicationError:
@@ -500,6 +506,51 @@ def test_concurrent_report_publication_serializes_rollback_and_success(tmp_path:
     assert successful_writer.exitcode == 0
     assert sorted((results.get(timeout=1), results.get(timeout=1))) == ["failed", "published"]
     assert report.read_bytes() == b"successful writer\n"
+
+
+def test_replacing_former_report_sidecar_cannot_bypass_publication_lock(tmp_path: Path) -> None:
+    report = tmp_path / "report.json"
+    report.write_bytes(b"accepted evidence\n")
+    context = multiprocessing.get_context("fork")
+    ready = context.Event()
+    release = context.Event()
+    attempting = context.Event()
+    entered = context.Event()
+    results = context.Queue()
+    first = context.Process(
+        target=_concurrent_report_writer,
+        args=(str(report), b"first writer\n", True, ready, release, results),
+    )
+    second = context.Process(
+        target=_concurrent_report_writer,
+        args=(
+            str(report),
+            b"second writer\n",
+            False,
+            ready,
+            release,
+            results,
+            attempting,
+            entered,
+        ),
+    )
+    first.start()
+    assert ready.wait(10)
+    former_sidecar = report.with_name(f".{report.name}.lock")
+    former_sidecar.unlink(missing_ok=True)
+    former_sidecar.write_bytes(b"replacement inode\n")
+    second.start()
+    assert attempting.wait(10)
+    assert not entered.wait(0.3)
+    release.set()
+    first.join(10)
+    second.join(10)
+
+    assert first.exitcode == second.exitcode == 0
+    assert entered.is_set()
+    assert sorted((results.get(timeout=1), results.get(timeout=1))) == ["failed", "published"]
+    assert report.read_bytes() == b"second writer\n"
+    assert former_sidecar.read_bytes() == b"replacement inode\n"
 
 
 @pytest.mark.parametrize(

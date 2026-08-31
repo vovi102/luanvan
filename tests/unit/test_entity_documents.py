@@ -192,6 +192,39 @@ def test_build_entity_corpus_translates_structural_dictionary_errors(tmp_path: P
 
 
 @pytest.mark.parametrize(
+    ("artifact", "field_path", "invalid"),
+    (
+        ("concepts", ("exchange",), 1),
+        ("concepts", ("exchange", "ontology_class"), 1),
+        ("concepts", ("exchange", "aliases"), 1),
+        ("concepts", ("exchange", "aliases", 0), 1),
+        ("concepts", ("exchange", "instances"), ["Binance", 1]),
+        ("concepts", ("exchange", "description"), 1),
+        ("entities", (0, "primary_label"), 1),
+        ("entities", (0, "owner"), 1),
+        ("entities", (0, "aliases"), ["binance", 1]),
+        ("entities", (0, "concept_class"), 1),
+        ("entities", (0, "sources"), [1]),
+        ("entities", (0, "sources", 0, "name"), 1),
+    ),
+)
+def test_build_entity_corpus_rejects_malformed_nested_snapshot_fields(
+    tmp_path: Path, artifact: str, field_path: tuple[object, ...], invalid: object
+) -> None:
+    artifacts = _write_artifacts(tmp_path)
+    path = getattr(artifacts, f"{artifact}_path")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    parent = payload
+    for part in field_path[:-1]:
+        parent = parent[part]
+    parent[field_path[-1]] = invalid
+    path.write_text(json.dumps(payload, sort_keys=artifact != "entities"), encoding="utf-8")
+
+    with pytest.raises(EntityDocumentError, match="invalid entity dictionary"):
+        build_entity_corpus(artifacts, min_entities=1, min_aliases=1)
+
+
+@pytest.mark.parametrize(
     ("phrase", "message"),
     [
         ("\x01", "control-free"),
@@ -286,10 +319,37 @@ def test_entity_match_is_deeply_immutable_and_rejects_inconsistent_runtime_value
         EntityMatch(**{**match.__dict__, "addresses": (address.upper(),)})
     with pytest.raises(EntityLinkerError, match="cannot claim an owner"):
         EntityMatch(**{**match.__dict__, "owner": "not an address owner"})
-    with pytest.raises(EntityLinkerError, match="one to three alternatives"):
+    with pytest.raises(EntityLinkerError, match="two or three alternatives"):
         EntityMatch(**{**match.__dict__, "stage": "ambiguous"})
     with pytest.raises(EntityLinkerError, match="alternative target ID and kind"):
         EntityAlternative("owner:Binance", "concept", 0.9)
+
+
+def test_entity_match_requires_owner_and_coherent_ambiguous_primary() -> None:
+    base = {
+        "span": "Binance",
+        "span_offset": (0, 7),
+        "target_id": "owner:Binance",
+        "target_kind": "owner",
+        "owner": "Binance",
+        "addresses": (),
+        "categories": (),
+        "concept_classes": (),
+        "stage": "exact",
+        "confidence": 1.0,
+        "alternatives": (),
+        "target_sha256": "a" * 64,
+    }
+    primary = EntityAlternative("owner:Binance", "owner", 1.0)
+    other = EntityAlternative("concept:dex", "concept", 0.99)
+
+    with pytest.raises(EntityLinkerError, match="owner target must include owner"):
+        EntityMatch(**{**base, "owner": None})
+    with pytest.raises(EntityLinkerError, match="two or three alternatives"):
+        EntityMatch(**{**base, "stage": "ambiguous", "alternatives": (primary,)})
+    with pytest.raises(EntityLinkerError, match="primary alternative"):
+        EntityMatch(**{**base, "stage": "ambiguous", "alternatives": (other, primary)})
+    assert EntityMatch(**{**base, "stage": "ambiguous", "alternatives": (primary, other)})
 
 
 def test_entity_corpus_freezes_and_validates_lookup_relationships() -> None:

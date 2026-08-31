@@ -220,9 +220,11 @@ class EntityMatch:
         _validate_match_tuple(self.addresses, "addresses", address=True)
         _validate_match_tuple(self.categories, "categories")
         _validate_match_tuple(self.concept_classes, "concept classes")
-        if self.owner is not None:
+        if self.target_kind == "owner":
+            if self.owner is None:
+                raise EntityLinkerError("owner target must include owner")
             required_text(self.owner, "entity owner")
-        if self.target_kind != "owner" and self.owner is not None:
+        elif self.owner is not None:
             raise EntityLinkerError("non-owner entity targets cannot claim an owner")
         if self.target_kind == "concept" and self.addresses:
             raise EntityLinkerError("concept targets cannot contain addresses")
@@ -233,14 +235,19 @@ class EntityMatch:
         if not isinstance(self.alternatives, tuple):
             raise EntityLinkerError("entity alternatives must be a tuple")
         if self.stage == "ambiguous":
-            if not 1 <= len(self.alternatives) <= 3:
+            if not 2 <= len(self.alternatives) <= 3:
                 raise EntityLinkerError(
-                    "ambiguous entity matches require one to three alternatives"
+                    "ambiguous entity matches require two or three alternatives"
                 )
             if any(not isinstance(value, EntityAlternative) for value in self.alternatives):
                 raise EntityLinkerError("entity alternatives must be typed alternatives")
             if len({value.target_id for value in self.alternatives}) != len(self.alternatives):
                 raise EntityLinkerError("ambiguous entity alternatives must be unique")
+            primary = self.alternatives[0]
+            if primary.target_id != self.target_id or primary.target_kind != self.target_kind:
+                raise EntityLinkerError(
+                    "ambiguous entity primary alternative must match the primary target"
+                )
         elif self.alternatives:
             raise EntityLinkerError("non-ambiguous entity matches cannot contain alternatives")
         validate_digest(self.target_sha256, "entity target fingerprint")
