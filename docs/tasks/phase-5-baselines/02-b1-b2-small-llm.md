@@ -1,214 +1,160 @@
-# T5.2 — B1 + B2: Small LLM Zero-Shot & Few-Shot (Llama 3 8B)
+# T5.2 — B1/B2 GoogleSQL Small-LLM Baselines (Llama 3 8B)
 
 ## Mục tiêu
 
-Triển khai 2 baselines:
-- **B1:** Llama 3 8B Instruct, zero-shot (chỉ system prompt + ontology summary).
-- **B2:** Llama 3 8B Instruct, few-shot (5 in-context examples từ training set).
+Triển khai hai raw-model baselines sau Pivot #1:
 
-KHÔNG dùng schema/entity linking ở B1/B2 — đó là "raw LLM" baselines để quantify đóng góp linking.
+- **B1:** Llama 3 8B Instruct zero-shot, chỉ nhận câu hỏi và analytical catalog
+  summary.
+- **B2:** cùng model/config với B1, thêm đúng năm ví dụ gần nhất từ training pool.
 
-## Bối cảnh & lý do
+B1/B2 sinh một read-only GoogleSQL query hoặc fail closed. Hai baseline không
+dùng schema linker, entity linker hay class resolver; khác biệt này được giữ để
+định lượng đóng góp linking ở các thí nghiệm sau.
 
-B1/B2 đo capability "thuần" của LLM nhỏ. Khi so với B3 (fine-tuned) → quantify giá trị fine-tuning. Khi so với Full system (B3 + linking) → quantify giá trị linking (đáp RQ2).
+T5.2 chỉ inference, **không train model**. Workstation local GTX 1650 4 GiB không
+được dùng để thay thế evidence Kaggle T4 và task không tải Llama 3 8B ở local.
 
-## Phụ thuộc
+## Quyết định kiến trúc
 
-- T2.1 — Ontology (cấp summary cho prompt).
-- T3.5 — Test set 100 câu.
-- T3 dataset (training pool, để rút ra few-shot examples cho B2).
+Deep module `src/nl2sparql/models/b12/` che catalog compilation, prompt,
+retrieval, backend generation, extraction, provenance và evaluation sau hai
+interface:
 
-## Đầu vào
+```python
+BaselineB1.predict(question: str) -> str | None
+BaselineB1.predict_detailed(question: str) -> SmallLLMPrediction
 
-- Test set `data/dataset/test/test-100.jsonl`.
-- Ontology summary (auto-generated từ ontology, ~500 tokens).
-- Training pool cho few-shot retrieval (B2).
+BaselineB2.predict(question: str, *, target_id: str | None = None) -> str | None
+BaselineB2.predict_detailed(
+    question: str,
+    *,
+    target_id: str | None = None,
+) -> SmallLLMPrediction
+```
 
-## Đầu ra
+Generation backend và text encoder là internal seams. Test dùng adapter
+deterministic; production dùng Transformers/SentenceTransformers được import
+lazy sau input/artifact preflight. Synthetic adapter luôn được đánh dấu và không
+thể tạo scientific readiness.
 
-- Module `src/nl2sparql/models/b1_zero_shot.py` và `src/nl2sparql/models/b2_few_shot.py`.
-- Predictions `data/eval/predictions/b1_test.jsonl` và `b2_test.jsonl`.
-- Inference logs `data/eval/logs/b1_*.log` (tokens, latency).
+## Phụ thuộc và artifact boundary
+
+- T2-SQL-1 analytical catalog là prompt schema authority.
+- T3.5 finalized test set cung cấp exact reviewed/live GoogleSQL evidence.
+- T3 training artifact cung cấp B2 examples và phải tách khỏi test set.
+- T3.5 SQL safety validator enforce một read-only statement, explicit
+  projections và managed relations.
+- Model/encoder revision phải là pinned lowercase 40-hex revision.
+
+Final T3.5 và accepted training artifact chưa có trong repository. Tooling local
+không tự tạo cộng tác viên, gold query, model completion hoặc benchmark giả để
+đóng các gate này.
+
+## Module và output
+
+- `src/nl2sparql/models/b12/contracts.py`: immutable config/completion/prediction.
+- `catalog_summary.py`: validate, summarize và fingerprint exact catalog bytes.
+- `prompts.py`: một system prompt chung; chỉ B2 có examples block.
+- `retrieval.py`: cosine top-5 deterministic, leakage exclusion và atomic cache.
+- `extraction.py`: whole-output GoogleSQL extraction fail closed.
+- `baseline.py`: public B1/B2 orchestration và generation-only latency.
+- `transformers_backend.py`: lazy 4-bit Kaggle adapter, không có import-time Torch.
+- `evaluate.py`: operational metrics và trusted T3.5 provenance gate.
+- Compatibility deliverables: `b1_zero_shot.py`, `b2_few_shot.py`.
+- CLI: `scripts/17_small_llm_baselines.py`.
+
+Khi external artifacts/model có mặt, workflow publish atomically:
+
+- `data/eval/predictions/b1_test.jsonl`, `b2_test.jsonl`;
+- `data/eval/logs/b1_run.jsonl`, `b2_run.jsonl`;
+- `reports/b1_inference.json`, `b2_inference.json`.
+
+Mỗi prediction giữ raw output, parsed GoogleSQL, extraction status, model/config,
+catalog/summary/prompt/training fingerprints, token counts, latency và B2 selected
+example identities.
+
+## Prompt, retrieval và extraction contract
+
+B1/B2 dùng model `meta-llama/Meta-Llama-3-8B-Instruct`, seed 42, greedy decoding,
+`do_sample=False`, `max_new_tokens=512`, batch size một. Temperature không được
+truyền trong greedy mode. Production load 4-bit bằng `BitsAndBytesConfig` và chỉ
+sau explicit `--real-inference`.
+
+B2 đọc exact UTF-8 JSONL training bytes, yêu cầu unique ID/câu hỏi, `split=train`,
+`synthetic_fixture=false` và safe GoogleSQL. Embedding được L2-normalize; ranking
+dùng descending cosine score rồi stable record ID. Target ID và NFKC/casefold
+question trùng test case bị loại trước khi chọn đúng năm examples. Cache bind
+training SHA-256, encoder/revision, ordered IDs, shape/dtype và matrix digest.
+
+Extractor chỉ unwrap một complete outer SQL fence rồi validate toàn response.
+Nó không tìm `SELECT` nằm giữa prose và không cắt bỏ statement/content phía sau.
+Status gồm `ok`, `empty`, `prose`, `invalid_sql`, `unsafe_sql`; chỉ `ok` trả SQL.
+
+## Workflow local
+
+```bash
+uv run python scripts/17_small_llm_baselines.py --help
+uv run python scripts/17_small_llm_baselines.py validate --baseline b1
+
+# Chỉ chạy khi pinned model snapshot và external artifacts đã có:
+uv run python scripts/17_small_llm_baselines.py predict \
+  --baseline b1 \
+  --question "List known Ethereum addresses" \
+  --model-revision <40-hex-revision> \
+  --real-inference
+```
+
+`--help`, invalid question, missing file, output-alias và T3.5 validation không
+khởi tạo model. B2 cache-only `validate` cũng không load encoder. Predictions và
+logs được publish trước, report cuối; failure rollback toàn bộ prior outputs.
 
 ## Acceptance criteria
 
-- [ ] B1 inference chạy stable trên Kaggle T4 (no OOM).
-- [ ] B2 retrieval module dùng sentence-transformers chọn 5 examples gần nhất.
-- [ ] Predictions có raw output + parsed SPARQL + extraction status.
-- [ ] B1 latency <5s/query trên T4.
-- [ ] B2 latency <8s/query (longer prompt).
+### Implementation local
 
-## Hướng dẫn triển khai
+- [x] B1/B2 public interface và task-named compatibility imports.
+- [x] Compact deterministic catalog summary bind exact source/summary SHA-256.
+- [x] B1/B2 prompt parity; B2 thêm đúng năm examples, không dùng T4 linkers.
+- [x] Training snapshot validation, leakage exclusion, deterministic cosine
+  ranking và provenance-bound atomic embedding cache.
+- [x] Whole-output extraction qua T3.5 managed read-only GoogleSQL validator.
+- [x] Raw output, extraction status, token/latency và complete fingerprints.
+- [x] Lazy Transformers 4-bit adapter; import/help/preflight không load ML stack.
+- [x] Evaluator giữ difficulty/category/status metrics và không suy execution
+  accuracy từ text/AST.
+- [x] Synthetic backend/test set và manual evidence flags không thể tạo readiness.
+- [x] Canonical atomic predictions/log/report, protected-path checks và rollback.
+- [x] Numbered `validate`, `predict`, `evaluate` CLI với explicit real opt-in.
 
-### Common: model loading
+### Local checkpoint — 2026-09-01
 
-```python
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+- Baseline trước implementation: `869 passed, 342 warnings in 44.64s` qua
+  `uv run python -m pytest -q`.
+- Focused B1/B2 suite tại workflow checkpoint: `72 passed in 6.05s`.
+- Focused Ruff lint/format, CLI help, B1 catalog validation và `git diff --check`
+  pass tại checkpoint.
+- Full repository suite trước whole-branch review: `941 passed, 342 warnings in
+  41.07s`; Ruff check pass và 193 files đã đúng format.
+- Final review evidence sẽ được cập nhật sau whole-branch review; các kết quả
+  local này không phải Kaggle/scientific acceptance.
 
-MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
+### Pending external/scientific acceptance
 
-def load_llama():
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
-        load_in_4bit=True,  # bitsandbytes nếu T4 không đủ VRAM
-    )
-    return model, tokenizer
-```
-
-### Ontology summary builder
-
-Auto-generate compact summary trong ~500 tokens:
-
-```
-ONTOLOGY:
-
-Classes:
-- :Account — Ethereum address
-- :Transaction — A transfer of value
-- :ExchangeAccount — Exchange wallet (subclass of Account)
-- :MixerAccount — Mixer service (subclass of Account)
-- :DEXProtocol — Decentralized exchange (subclass of Account)
-... (15-20 classes)
-
-Properties:
-- :hasFrom (Transaction → Account) — sender address
-- :hasTo (Transaction → Account) — recipient address
-- :hasValue (Transaction → xsd:decimal) — amount in Wei
-- :hasTimestamp (Transaction → xsd:dateTime) — execution time
-- :hasOwner (Account → xsd:string) — entity name (e.g. "Binance")
-... (~30 properties)
-
-PREFIXES:
-PREFIX : <http://example.org/eth-kg#>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-```
-
-Build script `src/nl2sparql/models/ontology_summary.py` từ ontology TTL.
-
-### B1 prompt template
-
-```python
-B1_SYSTEM = """You are an expert SPARQL query writer for Ethereum blockchain
-knowledge graph analytics. Given a question in English, write the equivalent
-SPARQL 1.1 query.
-
-ONTOLOGY:
-{ontology_summary}
-
-Rules:
-- Always include PREFIX declarations.
-- Use full URIs from the ontology.
-- For ETH amounts, values are stored in Wei (1 ETH = 1e18 Wei).
-- Output ONLY the SPARQL query. No explanation, no markdown fences.
-"""
-
-B1_USER = "Question: {question}\n\nSPARQL:"
-```
-
-### B2 retrieval
-
-```python
-class FewShotRetriever:
-    def __init__(self, train_pool, model_name="all-MiniLM-L6-v2"):
-        self.encoder = SentenceTransformer(model_name)
-        self.train = train_pool
-        self.embeddings = self.encoder.encode(
-            [r["nl"] for r in train_pool], normalize_embeddings=True
-        )
-
-    def retrieve(self, query, k=5):
-        q_emb = self.encoder.encode(query, normalize_embeddings=True)
-        scores = self.embeddings @ q_emb
-        top_idx = np.argsort(-scores)[:k]
-        return [self.train[i] for i in top_idx]
-```
-
-### B2 prompt template
-
-```python
-B2_SYSTEM = B1_SYSTEM  # same
-
-B2_USER_TEMPLATE = """Here are some examples:
-
-{examples}
-
-Now answer this question.
-Question: {question}
-
-SPARQL:"""
-
-def format_example(rec):
-    return f"Question: {rec['nl']}\nSPARQL: {rec['sparql']}\n"
-```
-
-### Inference loop
-
-```python
-def run_baseline(test_set, prompt_fn, model, tokenizer):
-    results = []
-    for case in tqdm(test_set):
-        prompt = prompt_fn(case)
-        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-        with torch.no_grad():
-            output = model.generate(
-                **inputs,
-                max_new_tokens=512,
-                do_sample=False,  # deterministic
-                temperature=0.0,
-                pad_token_id=tokenizer.eos_token_id,
-            )
-        raw = tokenizer.decode(output[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
-        sparql = extract_sparql(raw)
-        results.append({
-            "id": case["id"],
-            "nl": case["nl"],
-            "raw_output": raw,
-            "predicted_sparql": sparql,
-            "extraction_status": "ok" if sparql else "failed",
-        })
-    return results
-```
-
-### SPARQL extraction
-
-```python
-def extract_sparql(raw: str) -> Optional[str]:
-    # Remove markdown fences
-    raw = re.sub(r"```\w*\n?", "", raw)
-    raw = re.sub(r"```", "", raw)
-    # Trim to first SELECT/CONSTRUCT/ASK/DESCRIBE
-    m = re.search(r"(PREFIX[\s\S]+?)(SELECT|CONSTRUCT|ASK|DESCRIBE)[\s\S]+", raw)
-    if m:
-        return raw[m.start():].strip()
-    # Fallback: first occurrence of query keyword
-    m = re.search(r"(SELECT|CONSTRUCT|ASK|DESCRIBE)[\s\S]+", raw)
-    if m:
-        return raw[m.start():].strip()
-    return None
-```
-
-### Reproducibility
-
-- Seed: `torch.manual_seed(42)`.
-- Run 3 lần (B1, B2 nếu sample) → log variance.
-- Document temperature, top_p, max_tokens trong file config.
-
-## Rủi ro & note
-
-- **Llama 3 8B base có thể hallucinate prefix sai:** prompt nhấn mạnh "use ontology only".
-- **VRAM trên T4 (16GB):** load 4-bit quantize, batch size 1, output ~512 tokens.
-- **Few-shot retrieval bias:** examples gần ≠ examples diverse. Có thể thử "diverse retrieval" (k-DPP) cho ablation.
-- **Fairness compare:** B1 vs B2 chỉ khác prompt, KHÔNG khác model/seed.
-
-## Estimated effort
-
-2 ngày (1 ngày code + 1 ngày run + analyze).
+- [ ] Finalized independently reviewed T3.5 test set 100 câu có valid live
+  GoogleSQL evidence.
+- [ ] Accepted non-test training artifact và pinned MiniLM snapshot/revision.
+- [ ] Pinned Llama 3 8B snapshot chạy đủ B1/B2 trên Kaggle T4, không OOM.
+- [ ] B1 latency `<5 s/query` trên Kaggle T4.
+- [ ] B2 latency `<8 s/query` trên Kaggle T4.
+- [ ] Genuine prediction/log/report artifacts được publish từ các input trên.
 
 ## Trạng thái
 
-todo
+`implementation locally complete — final local review in progress; Kaggle and reviewed-data gates pending`
+
+Linked:
+
+- Spec: `docs/superpowers/specs/2026-09-01-t5-2-google-sql-small-llm-design.md`.
+- Plan: `docs/superpowers/plans/2026-09-01-t5-2-google-sql-small-llm.md`.
+- Code: `src/nl2sparql/models/b12/`, `scripts/17_small_llm_baselines.py`.
