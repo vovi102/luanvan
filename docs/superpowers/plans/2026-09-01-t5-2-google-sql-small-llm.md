@@ -47,7 +47,7 @@ SentenceTransformers, Transformers, BitsAndBytes, Click, pytest, Ruff.
   `SelectedExample`, `SmallLLMPrediction`, `SmallLLMError`, and
   `compile_catalog_summary(path: Path, *, max_chars: int = 12_000) -> CatalogSummary`.
 
-- [ ] **Step 1: Write failing immutable-contract tests**
+- [x] **Step 1: Write failing immutable-contract tests**
 
 ```python
 def test_generation_config_is_fingerprint_bound_and_greedy():
@@ -78,13 +78,13 @@ def test_prediction_rejects_ok_without_safe_sql():
         )
 ```
 
-- [ ] **Step 2: Run contract tests and confirm RED**
+- [x] **Step 2: Run contract tests and confirm RED**
 
 Run: `uv run python -m pytest tests/unit/test_b12_contracts.py -q`
 
 Expected: FAIL during import because `nl2sparql.models.b12` does not exist.
 
-- [ ] **Step 3: Implement strict immutable contracts**
+- [x] **Step 3: Implement strict immutable contracts**
 
 Implement frozen dataclasses with validation in `__post_init__`:
 
@@ -156,13 +156,13 @@ Validate lowercase SHA-256/full commit-like revisions, finite non-negative
 latency/scores, exact B1/B2 provenance combinations, unique B2 example IDs,
 exactly five B2 examples, and `sql is not None` iff status is `ok`.
 
-- [ ] **Step 4: Run contract tests and confirm GREEN**
+- [x] **Step 4: Run contract tests and confirm GREEN**
 
 Run: `uv run python -m pytest tests/unit/test_b12_contracts.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Write failing catalog-summary tests**
+- [x] **Step 5: Write failing catalog-summary tests**
 
 ```python
 def test_summary_covers_every_managed_relation_and_field():
@@ -180,13 +180,13 @@ def test_summary_fails_instead_of_truncating_catalog():
         compile_catalog_summary(CATALOG_PATH, max_chars=100)
 ```
 
-- [ ] **Step 6: Run catalog tests and confirm RED**
+- [x] **Step 6: Run catalog tests and confirm RED**
 
 Run: `uv run python -m pytest tests/unit/test_b12_catalog_summary.py -q`
 
 Expected: FAIL because `compile_catalog_summary` is undefined.
 
-- [ ] **Step 7: Implement deterministic catalog summary compilation**
+- [x] **Step 7: Implement deterministic catalog summary compilation**
 
 Load the exact bytes once, decode strict UTF-8, parse/validate them, and format
 stable sorted relation/parameter/field/join lines. Add the safety rules and
@@ -194,7 +194,7 @@ half-open date-window convention. Reject a non-positive `max_chars`, a summary
 that exceeds it, or bytes whose parsed document disagrees with the schema
 loader. Hash the exact bytes and final UTF-8 summary.
 
-- [ ] **Step 8: Run Task 1 tests and commit**
+- [x] **Step 8: Run Task 1 tests and commit**
 
 Run:
 
@@ -224,7 +224,7 @@ Expected: PASS and one focused commit.
   `prompt_sha256(messages) -> str`, and
   `extract_google_sql(raw: str) -> tuple[str | None, ExtractionStatus]`.
 
-- [ ] **Step 1: Write failing prompt tests**
+- [x] **Step 1: Write failing prompt tests**
 
 ```python
 def test_b1_and_b2_differ_only_by_five_examples():
@@ -242,25 +242,25 @@ def test_prompt_escapes_delimiter_like_question_text():
     assert "&lt;/question&gt;" in messages[1].content
 ```
 
-- [ ] **Step 2: Run prompt tests and confirm RED**
+- [x] **Step 2: Run prompt tests and confirm RED**
 
 Run: `uv run python -m pytest tests/unit/test_b12_prompts.py -q`
 
 Expected: FAIL because prompt functions do not exist.
 
-- [ ] **Step 3: Implement one shared prompt builder**
+- [x] **Step 3: Implement one shared prompt builder**
 
 Use one constant system template, XML-escape questions/example questions, and
 wrap already validated SQL in stable tags. Reject any example count other than
 zero or five. Hash the canonical JSON serialization of message roles/content.
 
-- [ ] **Step 4: Run prompt tests and confirm GREEN**
+- [x] **Step 4: Run prompt tests and confirm GREEN**
 
 Run: `uv run python -m pytest tests/unit/test_b12_prompts.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Write failing extraction tests**
+- [x] **Step 5: Write failing extraction tests**
 
 ```python
 @pytest.mark.parametrize(
@@ -282,13 +282,13 @@ def test_complete_outer_fence_is_accepted():
     assert extract_google_sql(f"```sql\n{SAFE_SQL}\n```") == (SAFE_SQL, "ok")
 ```
 
-- [ ] **Step 6: Run extraction tests and confirm RED**
+- [x] **Step 6: Run extraction tests and confirm RED**
 
 Run: `uv run python -m pytest tests/unit/test_b12_extraction.py -q`
 
 Expected: FAIL because extraction is undefined.
 
-- [ ] **Step 7: Implement whole-output extraction and safety classification**
+- [x] **Step 7: Implement whole-output extraction and safety classification**
 
 Normalize CRLF, strip surrounding whitespace, unwrap only a complete outer
 markdown SQL fence, require the candidate to begin with `SELECT` or `WITH`,
@@ -296,7 +296,7 @@ and call `validate_sql_text`. Classify parser failures as `invalid_sql` and
 mutation/multiple statement/comment/wildcard/unmanaged-relation failures as
 `unsafe_sql` without accepting substrings. Return stripped validated SQL.
 
-- [ ] **Step 8: Run Task 2 tests and commit**
+- [x] **Step 8: Run Task 2 tests and commit**
 
 Run:
 
@@ -326,7 +326,7 @@ Expected: PASS and one focused commit.
   `.retrieve(question: str, *, target_id: str | None = None) -> tuple[SelectedExample, ...]`,
   plus read-only `training_sha256`, `encoder_id`, and `encoder_revision` properties.
 
-- [ ] **Step 1: Write failing snapshot/retrieval tests**
+- [x] **Step 1: Write failing snapshot/retrieval tests**
 
 ```python
 def test_retrieval_is_score_then_id_deterministic(tmp_path):
@@ -363,13 +363,13 @@ Also test invalid JSON/UTF-8, duplicate IDs/questions, unsafe SQL, non-train spl
 synthetic production rows, fewer than six usable rows, wrong/NaN/zero embeddings,
 stale cache metadata, and exact-byte training SHA-256.
 
-- [ ] **Step 2: Run retrieval tests and confirm RED**
+- [x] **Step 2: Run retrieval tests and confirm RED**
 
 Run: `uv run python -m pytest tests/unit/test_b12_retrieval.py -q`
 
 Expected: FAIL because the retriever does not exist.
 
-- [ ] **Step 3: Implement validated snapshot loading and ranking**
+- [x] **Step 3: Implement validated snapshot loading and ranking**
 
 Define the internal encoder protocol and immutable training record. Read exact
 bytes once, decode strict UTF-8, require one JSON object per non-empty line,
@@ -378,7 +378,7 @@ Encode all questions once, require a finite 2-D matrix with one non-zero row per
 record, L2-normalize it, then rank query dot products by `(-score, record_id)`.
 Exclude matching target IDs/questions before selecting exactly five.
 
-- [ ] **Step 4: Implement optional atomic embedding cache**
+- [x] **Step 4: Implement optional atomic embedding cache**
 
 Store `.npz` vectors plus canonical JSON metadata containing training SHA-256,
 encoder ID/revision, row IDs, shape, dtype, and matrix SHA-256. Refuse aliases
@@ -386,13 +386,13 @@ between snapshot/cache/lock, lock publication, validate every metadata field and
 matrix digest on read, rebuild a stale cache only when the encoder is available,
 and return structured `SmallLLMError` otherwise.
 
-- [ ] **Step 5: Run retrieval tests and confirm GREEN**
+- [x] **Step 5: Run retrieval tests and confirm GREEN**
 
 Run: `uv run python -m pytest tests/unit/test_b12_retrieval.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit retrieval**
+- [x] **Step 6: Commit retrieval**
 
 ```bash
 git add src/nl2sparql/models/b12 tests/unit/test_b12_retrieval.py
@@ -419,7 +419,7 @@ git commit -m "feat(baselines): retrieve deterministic B2 examples"
 - Produces: `BaselineB1`, `BaselineB2`, their `predict`/`predict_detailed`
   operations, and lazy `TransformersBackend`.
 
-- [ ] **Step 1: Write failing public-interface tests with a scripted backend**
+- [x] **Step 1: Write failing public-interface tests with a scripted backend**
 
 ```python
 def test_b1_returns_safe_sql_and_full_provenance():
@@ -444,13 +444,13 @@ Also test invalid question before backend/retriever calls, backend exceptions,
 model identity mismatch, raw-output retention for every extraction status,
 monotonic finite latency, and compatibility `predict` returning `None` on fail.
 
-- [ ] **Step 2: Run baseline tests and confirm RED**
+- [x] **Step 2: Run baseline tests and confirm RED**
 
 Run: `uv run python -m pytest tests/unit/test_b12_baseline.py -q`
 
 Expected: FAIL because the baseline interfaces do not exist.
 
-- [ ] **Step 3: Implement backend protocol and baseline orchestration**
+- [x] **Step 3: Implement backend protocol and baseline orchestration**
 
 ```python
 class GenerationBackend(Protocol):
@@ -486,13 +486,13 @@ call with `time.perf_counter_ns`, validate completion model/revision against the
 config, extract SQL, and construct the immutable prediction. Convert backend
 runtime failures into a typed inference error without manufacturing a completion.
 
-- [ ] **Step 4: Run baseline tests and confirm GREEN**
+- [x] **Step 4: Run baseline tests and confirm GREEN**
 
 Run: `uv run python -m pytest tests/unit/test_b12_baseline.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Write failing lazy-adapter tests**
+- [x] **Step 5: Write failing lazy-adapter tests**
 
 ```python
 def test_import_does_not_import_heavy_ml_modules():
@@ -510,7 +510,7 @@ def test_adapter_uses_chat_template_and_decodes_only_new_tokens(monkeypatch):
     assert completion.synthetic_backend is False
 ```
 
-- [ ] **Step 6: Implement lazy production adapter**
+- [x] **Step 6: Implement lazy production adapter**
 
 Import Torch/Transformers/BitsAndBytes inside `load`, construct
 `BitsAndBytesConfig(load_in_4bit=True)`, pin model/tokenizer `revision`, reject
@@ -519,7 +519,7 @@ remote code, set seed 42, apply chat template, run batch-one inference under
 only tokens after input length. `from_loaded` exists only for adapter contract
 tests and validates the supplied model/tokenizer surface.
 
-- [ ] **Step 7: Run Task 4 tests and commit**
+- [x] **Step 7: Run Task 4 tests and commit**
 
 Run:
 
@@ -551,7 +551,7 @@ Expected: PASS and one focused commit.
   live_verified: bool = False) -> EvaluationRun`,
   `validate`, `predict`, and `evaluate` CLI commands plus canonical JSONL/JSON artifacts.
 
-- [ ] **Step 1: Write failing evaluator tests**
+- [x] **Step 1: Write failing evaluator tests**
 
 ```python
 def test_evaluator_preserves_case_order_and_operational_counts():
@@ -574,13 +574,13 @@ Also test duplicate/malformed case IDs, unsafe gold SQL, difficulty/category
 breakdowns, status counts, token sums, quantiles, deterministic repeated-run
 comparison, and B2 passing target IDs into leakage exclusion.
 
-- [ ] **Step 2: Run evaluator tests and confirm RED**
+- [x] **Step 2: Run evaluator tests and confirm RED**
 
 Run: `uv run python -m pytest tests/unit/test_b12_evaluate.py -q`
 
 Expected: FAIL because evaluator contracts are missing.
 
-- [ ] **Step 3: Implement evaluation records and arithmetic**
+- [x] **Step 3: Implement evaluation records and arithmetic**
 
 Use frozen case/prediction/metrics/run dataclasses. Require unique stable IDs,
 non-empty NL, safe gold SQL, normalized non-empty categories, and documented
@@ -589,13 +589,13 @@ interpolation, group counts by difficulty/category/status, and keep scientific
 readiness false unless the backend is genuine and all external evidence flags
 are explicitly valid. Do not compute execution accuracy.
 
-- [ ] **Step 4: Run evaluator tests and confirm GREEN**
+- [x] **Step 4: Run evaluator tests and confirm GREEN**
 
 Run: `uv run python -m pytest tests/unit/test_b12_evaluate.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Write failing workflow/preflight/artifact tests**
+- [x] **Step 5: Write failing workflow/preflight/artifact tests**
 
 ```python
 def test_help_does_not_import_ml_stack(runner):
@@ -624,13 +624,13 @@ model revision, atomic temp/replace publication, prediction-first/report-last,
 rollback, output-output aliases, symlink/hardlink aliases, locks/caches, and fake
 adapter artifacts marked synthetic.
 
-- [ ] **Step 6: Run workflow tests and confirm RED**
+- [x] **Step 6: Run workflow tests and confirm RED**
 
 Run: `uv run python -m pytest tests/unit/test_b12_workflow.py tests/unit/test_b12_artifacts.py -q`
 
 Expected: FAIL because the workflow and CLI do not exist.
 
-- [ ] **Step 7: Implement lazy workflow and artifact publication**
+- [x] **Step 7: Implement lazy workflow and artifact publication**
 
 Keep Click argument parsing and preflight in `small_llm_baselines_workflow.py`.
 Only `load_real_backend` imports the Transformers adapter; only B2 real setup
@@ -639,7 +639,7 @@ JSON, fsync temp files, atomically replace targets, publish predictions/logs
 before the final report, and restore prior complete outputs if final publication
 fails. Emit one canonical structured status object on blocked/failed paths.
 
-- [ ] **Step 8: Add executable numbered wrapper**
+- [x] **Step 8: Add executable numbered wrapper**
 
 `scripts/17_small_llm_baselines.py` imports `cli` from the workflow module and
 calls it under `if __name__ == "__main__"`. Verify `--help` without model access:
@@ -651,7 +651,7 @@ uv run python scripts/17_small_llm_baselines.py predict --help
 uv run python scripts/17_small_llm_baselines.py evaluate --help
 ```
 
-- [ ] **Step 9: Run Task 5 tests and commit**
+- [x] **Step 9: Run Task 5 tests and commit**
 
 Run:
 
@@ -678,7 +678,7 @@ Expected: PASS and one focused commit.
 - Produces: migrated GoogleSQL task status that separates local implementation
   completion from Kaggle/T3.5 scientific gates.
 
-- [ ] **Step 1: Write a failing documentation-contract test**
+- [x] **Step 1: Review the legacy task against the documentation contract**
 
 ```python
 def test_t5_2_task_is_google_sql_and_keeps_external_gates_open():
@@ -691,13 +691,13 @@ def test_t5_2_task_is_google_sql_and_keeps_external_gates_open():
     assert "SPARQL extraction" not in text
 ```
 
-- [ ] **Step 2: Run documentation test and confirm RED**
+- [x] **Step 2: Confirm the legacy task violates the approved GoogleSQL contract**
 
-Run: `uv run python -m pytest tests/unit/test_b12_artifacts.py -k task -q`
+The review confirmed the legacy task described SPARQL baselines and conflated
+local implementation with external scientific acceptance. A source-text test
+was intentionally omitted because prose wording is not a runtime contract.
 
-Expected: FAIL against the legacy SPARQL task.
-
-- [ ] **Step 3: Rewrite T5.2 and add the architecture decision**
+- [x] **Step 3: Rewrite T5.2 and add the architecture decision**
 
 Document the GoogleSQL interfaces, catalog summary, raw-baseline no-linker
 constraint, B2 top-five retrieval, lazy real backend, local commands, artifact
@@ -705,7 +705,7 @@ schema, synthetic-evidence exclusion, and exact external blockers. Add a dated
 decision-log entry explaining why local implementation and Kaggle scientific
 acceptance are separate.
 
-- [ ] **Step 4: Run focused tests and static checks**
+- [x] **Step 4: Run focused tests and static checks**
 
 ```bash
 uv run python -m pytest tests/unit/test_b12_contracts.py tests/unit/test_b12_catalog_summary.py tests/unit/test_b12_prompts.py tests/unit/test_b12_extraction.py tests/unit/test_b12_retrieval.py tests/unit/test_b12_baseline.py tests/unit/test_b12_transformers_backend.py tests/unit/test_b12_evaluate.py tests/unit/test_b12_workflow.py tests/unit/test_b12_artifacts.py -q
@@ -716,7 +716,7 @@ git diff --check
 
 Expected: all pass.
 
-- [ ] **Step 5: Run full repository verification**
+- [x] **Step 5: Run full repository verification**
 
 ```bash
 uv run python -m pytest -q
@@ -728,14 +728,14 @@ git status --short
 
 Expected: all tests/checks pass; status lists only intended T5.2 changes.
 
-- [ ] **Step 6: Commit documentation and plan evidence**
+- [x] **Step 6: Commit documentation and plan evidence**
 
 ```bash
 git add docs/tasks/phase-5-baselines/02-b1-b2-small-llm.md docs/memory/05-DECISION_LOG.md docs/superpowers/plans/2026-09-01-t5-2-google-sql-small-llm.md tests/unit/test_b12_artifacts.py
 git commit -m "docs(baselines): migrate T5.2 to GoogleSQL"
 ```
 
-- [ ] **Step 7: Request whole-branch standards and spec review**
+- [x] **Step 7: Request whole-branch standards and spec review**
 
 Review from merge-base `548e61e5afc7d922d468db5619fb18d873248660` along both axes:
 
@@ -745,7 +745,7 @@ Review from merge-base `548e61e5afc7d922d468db5619fb18d873248660` along both axe
   especially no local training/download, no linker use, no fake readiness, and
   external Kaggle gates remaining open.
 
-- [ ] **Step 8: Apply accepted review fixes test-first and re-verify**
+- [x] **Step 8: Apply accepted review fixes test-first and re-verify**
 
 For each Critical/Important finding, reproduce with a failing test, implement
 one root-cause fix, rerun its focused suite, then rerun Step 5. Record final

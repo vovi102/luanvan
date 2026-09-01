@@ -36,7 +36,8 @@ BaselineB2.predict_detailed(
 Generation backend và text encoder là internal seams. Test dùng adapter
 deterministic; production dùng Transformers/SentenceTransformers được import
 lazy sau input/artifact preflight. Synthetic adapter luôn được đánh dấu và không
-thể tạo scientific readiness.
+thể tạo scientific readiness; chỉ production loader có thể phát genuine
+backend provenance.
 
 ## Phụ thuộc và artifact boundary
 
@@ -70,9 +71,10 @@ Khi external artifacts/model có mặt, workflow publish atomically:
 - `data/eval/logs/b1_run.jsonl`, `b2_run.jsonl`;
 - `reports/b1_inference.json`, `b2_inference.json`.
 
-Mỗi prediction giữ raw output, parsed GoogleSQL, extraction status, model/config,
-catalog/summary/prompt/training fingerprints, token counts, latency và B2 selected
-example identities.
+Mỗi prediction giữ run ID, seed, UTC timestamp, input SHA-256, raw output, parsed
+GoogleSQL, extraction status, model/config/catalog/summary/prompt/training
+fingerprints, token counts, latency, B2 selected-example identities và digest
+của exact selected-example content. Log và report giữ cùng run provenance.
 
 ## Prompt, retrieval và extraction contract
 
@@ -86,6 +88,8 @@ B2 đọc exact UTF-8 JSONL training bytes, yêu cầu unique ID/câu hỏi, `sp
 dùng descending cosine score rồi stable record ID. Target ID và NFKC/casefold
 question trùng test case bị loại trước khi chọn đúng năm examples. Cache bind
 training SHA-256, encoder/revision, ordered IDs, shape/dtype và matrix digest.
+B2 scientific readiness còn yêu cầu `--accepted-training-sha256` khớp exact
+training snapshot; thiếu hoặc sai fingerprint đều fail closed.
 
 Extractor chỉ unwrap một complete outer SQL fence rồi validate toàn response.
 Nó không tìm `SELECT` nằm giữa prose và không cắt bỏ statement/content phía sau.
@@ -131,13 +135,14 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
 
 - Baseline trước implementation: `869 passed, 342 warnings in 44.64s` qua
   `uv run python -m pytest -q`.
-- Focused B1/B2 suite tại workflow checkpoint: `72 passed in 6.05s`.
+- Focused B1/B2 suite sau review fixes: `78 passed in 5.94s`.
 - Focused Ruff lint/format, CLI help, B1 catalog validation và `git diff --check`
   pass tại checkpoint.
-- Full repository suite trước whole-branch review: `941 passed, 342 warnings in
-  41.07s`; Ruff check pass và 193 files đã đúng format.
-- Final review evidence sẽ được cập nhật sau whole-branch review; các kết quả
-  local này không phải Kaggle/scientific acceptance.
+- Full repository suite sau review fixes: `947 passed, 342 warnings in 39.76s`;
+  Ruff check pass và 193 files đã đúng format.
+- Whole-branch Standards và Spec re-review tại `82b3e79` đều không còn
+  Critical/Important finding và kết luận `ready to merge`.
+- Các kết quả local này không phải Kaggle/scientific acceptance.
 
 ### Pending external/scientific acceptance
 
@@ -151,7 +156,7 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
 
 ## Trạng thái
 
-`implementation locally complete — final local review in progress; Kaggle and reviewed-data gates pending`
+`implementation and local review complete — Kaggle and reviewed-data gates pending`
 
 Linked:
 
