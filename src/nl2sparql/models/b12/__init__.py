@@ -14,6 +14,15 @@ from nl2sparql.models.b12.contracts import (
     SmallLLMPrediction,
     validate_question,
 )
+from nl2sparql.models.b12.evaluate import (
+    EvaluationCase,
+    EvaluationMetrics,
+    EvaluationPrediction,
+    EvaluationRun,
+    compare_reproducibility,
+    evaluate_baseline,
+    load_evaluation_cases,
+)
 from nl2sparql.models.b12.extraction import extract_google_sql
 from nl2sparql.models.b12.prompts import build_messages, prompt_sha256
 from nl2sparql.models.b12.retrieval import FewShotRetriever, TextEncoder
@@ -25,6 +34,10 @@ __all__ = [
     "CatalogSummary",
     "ChatMessage",
     "Completion",
+    "EvaluationCase",
+    "EvaluationMetrics",
+    "EvaluationPrediction",
+    "EvaluationRun",
     "GenerationConfig",
     "GenerationBackend",
     "FewShotRetriever",
@@ -33,8 +46,11 @@ __all__ = [
     "SmallLLMPrediction",
     "TextEncoder",
     "compile_catalog_summary",
+    "compare_reproducibility",
     "build_messages",
     "extract_google_sql",
+    "evaluate_baseline",
+    "load_evaluation_cases",
     "prompt_sha256",
     "validate_question",
 ]
