@@ -24,6 +24,29 @@
 
 ## Entries
 
+### 2026-09-01 — T5.1 B0 chọn validated GoogleSQL template và fail closed
+
+- **Context:** B0 legacy match regex rồi fill SPARQL/free-form entity text, trái
+  Pivot #1 và các typed catalog/linker contracts đã hoàn thành ở T3.1/T4.1–T4.3.
+- **Options considered:** Giữ regex/Jaccard và chọn first; generate SQL trực tiếp
+  từ resolver fields; gọi LLM cho fallback; hoặc chọn template deterministic,
+  typed rendering và abstain khi tie/evidence không đủ.
+- **Decision:** `BaselineB0.predict()` trả một managed read-only GoogleSQL hoặc
+  `None`. Seed match đứng trước token-F1 structural fallback; T4.1 chỉ phá tie có
+  unique schema overlap, T4.2/T4.3 chỉ cấp scalar instance/concept slot khi plan
+  resolved và coverage supported. T3.1 renderer và T3.5 SQL safety là authority
+  cuối. Evaluation tách structural khỏi execution accuracy.
+- **Rationale:** Interface nhỏ giữ matching/rendering phức tạp ở một deep module,
+  bảo toàn provenance và tránh tăng coverage bằng silent guesses. Prediction vẫn
+  chạy local, deterministic và không gắn network/billing vào inference.
+- **Consequences:** Synthetic tests kiểm chứng metric math nhưng không thể tạo
+  readiness; finalized T3.5/live result evidence vẫn là gate ngoài local.
+  Publication ghi predictions trước, report cuối và rollback khi report lỗi.
+- **Revisit:** Sau khi finalized T3.5 benchmark có mặt; xem lại structural
+  threshold/ambiguity margin bằng error analysis nhưng không tune trên test set.
+- **Linked:** `docs/tasks/phase-5-baselines/01-b0-rule-based.md`,
+  `src/nl2sparql/models/b0/`, `scripts/16_b0_rule_baseline.py`.
+
 ### 2026-08-31 — T4.3 resolve entity evidence thành typed GoogleSQL constraint plan
 
 - **Context:** T4.3 legacy sinh SPARQL `VALUES`/class triple, trong khi T4.2 Plan
