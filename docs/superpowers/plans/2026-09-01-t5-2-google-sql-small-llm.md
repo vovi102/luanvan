@@ -752,7 +752,7 @@ one root-cause fix, rerun its focused suite, then rerun Step 5. Record final
 review/verification evidence in the task document and commit the fix wave with a
 focused message.
 
-- [ ] **Step 9: Finish branch without claiming external acceptance**
+- [x] **Step 9: Finish branch without claiming external acceptance**
 
 Use `superpowers:verification-before-completion`, then
 `superpowers:finishing-a-development-branch`. Push the branch only after fresh
