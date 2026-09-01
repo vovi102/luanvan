@@ -103,6 +103,17 @@ def test_adapter_rejects_network_enabled_loading_before_import(monkeypatch) -> N
         TransformersBackend.load(GenerationConfig("a" * 40), local_files_only=False)
 
 
+def test_public_constructor_cannot_claim_production_trust() -> None:
+    with pytest.raises(TypeError, match="trusted"):
+        TransformersBackend(
+            object(),
+            object(),
+            model_id="meta-llama/Meta-Llama-3-8B-Instruct",
+            model_revision="a" * 40,
+            trusted=True,  # type: ignore[call-arg]
+        )
+
+
 def test_adapter_rejects_config_identity_mismatch() -> None:
     adapter = TransformersBackend.from_loaded(
         object(),

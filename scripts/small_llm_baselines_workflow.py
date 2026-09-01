@@ -199,6 +199,9 @@ def publish_evaluation_run(
         "seed": run.seed,
         "generated_at_utc": run.generated_at_utc,
         "input_sha256": run.input_sha256,
+        "selected_examples_sha256": [
+            row.prediction.selected_examples_sha256 for row in run.predictions
+        ],
         "metrics": asdict(run.metrics),
         "scientific_ready": run.scientific_ready,
         "blockers": run.blockers,
@@ -234,6 +237,7 @@ def _build_baseline(
     cache_path: Path,
     encoder_id: str,
     encoder_revision: str | None,
+    accepted_training_sha256: str | None,
 ):
     summary = compile_catalog_summary(catalog_path)
     if baseline_name == "b1":
@@ -241,14 +245,19 @@ def _build_baseline(
         return BaselineB1(summary, config, backend)
     if encoder_revision is None:
         raise SmallLLMError("B2 requires --encoder-revision")
+    retriever_args = {
+        "encoder_id": encoder_id,
+        "encoder_revision": encoder_revision,
+        "cache_path": cache_path,
+        "accepted_training_sha256": accepted_training_sha256,
+    }
+    try:
+        FewShotRetriever.from_snapshot(training_path, encoder=None, **retriever_args)
+    except SmallLLMError as exc:
+        if "few-shot cache is invalid and encoder unavailable" not in str(exc):
+            raise
     encoder = load_sentence_encoder(encoder_id, encoder_revision)
-    retriever = FewShotRetriever.from_snapshot(
-        training_path,
-        encoder=encoder,
-        encoder_id=encoder_id,
-        encoder_revision=encoder_revision,
-        cache_path=cache_path,
-    )
+    retriever = FewShotRetriever.from_snapshot(training_path, encoder=encoder, **retriever_args)
     backend = load_real_backend(config)
     return BaselineB2(summary, config, backend, retriever)
 
@@ -267,6 +276,7 @@ def cli() -> None:
 @click.option("--cache", "cache_path", type=click.Path(path_type=Path), default=DEFAULT_CACHE)
 @click.option("--encoder-id", default=DEFAULT_ENCODER_ID)
 @click.option("--encoder-revision", default=None)
+@click.option("--accepted-training-sha256", default=None)
 def validate_command(
     baseline_name: str,
     catalog_path: Path,
@@ -274,6 +284,7 @@ def validate_command(
     cache_path: Path,
     encoder_id: str,
     encoder_revision: str | None,
+    accepted_training_sha256: str | None,
 ) -> None:
     """Validate local prompt/catalog and optional B2 cached retrieval evidence."""
     try:
@@ -293,6 +304,7 @@ def validate_command(
                 encoder_id=encoder_id,
                 encoder_revision=encoder_revision,
                 cache_path=cache_path,
+                accepted_training_sha256=accepted_training_sha256,
             )
             payload["training_sha256"] = retriever.training_sha256
         _emit(payload)
@@ -311,6 +323,7 @@ def validate_command(
 @click.option("--cache", "cache_path", type=click.Path(path_type=Path), default=DEFAULT_CACHE)
 @click.option("--encoder-id", default=DEFAULT_ENCODER_ID)
 @click.option("--encoder-revision", default=None)
+@click.option("--accepted-training-sha256", default=None)
 @click.option("--target-id", default=None)
 @click.option("--real-inference", is_flag=True, default=False)
 def predict_command(
@@ -322,6 +335,7 @@ def predict_command(
     cache_path: Path,
     encoder_id: str,
     encoder_revision: str | None,
+    accepted_training_sha256: str | None,
     target_id: str | None,
     real_inference: bool,
 ) -> None:
@@ -342,6 +356,7 @@ def predict_command(
             cache_path=cache_path,
             encoder_id=encoder_id,
             encoder_revision=encoder_revision,
+            accepted_training_sha256=accepted_training_sha256,
         )
         if isinstance(baseline, BaselineB2):
             prediction = baseline.predict_detailed(question, target_id=target_id)
@@ -364,6 +379,7 @@ def predict_command(
 @click.option("--cache", "cache_path", type=click.Path(path_type=Path), default=DEFAULT_CACHE)
 @click.option("--encoder-id", default=DEFAULT_ENCODER_ID)
 @click.option("--encoder-revision", default=None)
+@click.option("--accepted-training-sha256", default=None)
 @click.option("--predictions", "predictions_path", type=click.Path(path_type=Path), default=None)
 @click.option("--log", "log_path", type=click.Path(path_type=Path), default=None)
 @click.option("--report", "report_path", type=click.Path(path_type=Path), default=None)
@@ -380,6 +396,7 @@ def evaluate_command(
     cache_path: Path,
     encoder_id: str,
     encoder_revision: str | None,
+    accepted_training_sha256: str | None,
     predictions_path: Path | None,
     log_path: Path | None,
     report_path: Path | None,
@@ -420,6 +437,7 @@ def evaluate_command(
             cache_path=cache_path,
             encoder_id=encoder_id,
             encoder_revision=encoder_revision,
+            accepted_training_sha256=accepted_training_sha256,
         )
         run = evaluate_baseline(
             cases,

@@ -117,6 +117,8 @@ def test_publish_writes_canonical_predictions_logs_and_report(tmp_path: Path) ->
     assert report_payload["seed"] == 42
     assert report_payload["generated_at_utc"].endswith("Z")
     assert len(report_payload["input_sha256"]) == 64
+    assert len(report_payload["selected_examples_sha256"]) == 2
+    assert all(len(value) == 64 for value in report_payload["selected_examples_sha256"])
     assert report_payload["scientific_ready"] is False
     assert "synthetic_backend" in report_payload["blockers"]
     assert predictions.read_bytes().endswith(b"\n")

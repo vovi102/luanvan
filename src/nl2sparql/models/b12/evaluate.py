@@ -305,7 +305,8 @@ def evaluate_baseline(
     if metrics.p95_latency_ms >= threshold:
         blockers.append("latency_gate_failed")
     if predictions[0].prediction.baseline == "b2":
-        blockers.append("trusted_training_provenance_missing")
+        if not all(row.prediction.training_accepted for row in predictions):
+            blockers.append("trusted_training_provenance_missing")
     blockers_tuple = tuple(sorted(blockers))
     return EvaluationRun(
         run_id=run_id,

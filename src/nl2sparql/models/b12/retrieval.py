@@ -339,6 +339,7 @@ class FewShotRetriever:
         training_sha256: str,
         encoder_id: str,
         encoder_revision: str,
+        training_accepted: bool,
     ) -> None:
         self._records = records
         self._embeddings = embeddings
@@ -346,6 +347,7 @@ class FewShotRetriever:
         self._training_sha256 = training_sha256
         self._encoder_id = encoder_id
         self._encoder_revision = encoder_revision
+        self._training_accepted = training_accepted
 
     @classmethod
     def from_snapshot(
@@ -356,6 +358,7 @@ class FewShotRetriever:
         encoder_id: str,
         encoder_revision: str,
         cache_path: Path | None = None,
+        accepted_training_sha256: str | None = None,
     ) -> FewShotRetriever:
         """Load exact training bytes and build or validate their embedding index."""
         if not isinstance(path, Path):
@@ -367,6 +370,12 @@ class FewShotRetriever:
             raise SmallLLMError(f"unable to read training snapshot {path}: {exc}") from exc
         records = _load_records(snapshot)
         training_sha256 = _sha256(snapshot)
+        if accepted_training_sha256 is not None:
+            if not re.fullmatch(r"[0-9a-f]{64}", accepted_training_sha256):
+                raise SmallLLMError("accepted training fingerprint must be lowercase SHA-256")
+            if not hmac.compare_digest(accepted_training_sha256, training_sha256):
+                raise SmallLLMError("accepted training fingerprint does not match snapshot")
+        training_accepted = accepted_training_sha256 is not None
 
         if cache_path is None:
             if encoder is None:
@@ -409,6 +418,7 @@ class FewShotRetriever:
             training_sha256=training_sha256,
             encoder_id=encoder_id,
             encoder_revision=encoder_revision,
+            training_accepted=training_accepted,
         )
 
     @staticmethod
@@ -436,6 +446,10 @@ class FewShotRetriever:
     @property
     def encoder_revision(self) -> str:
         return self._encoder_revision
+
+    @property
+    def training_accepted(self) -> bool:
+        return self._training_accepted
 
     def retrieve(
         self,

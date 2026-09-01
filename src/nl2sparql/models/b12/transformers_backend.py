@@ -11,7 +11,6 @@ from nl2sparql.models.b12.contracts import (
     Completion,
     GenerationConfig,
     SmallLLMError,
-    _attest_completion,
 )
 
 
@@ -25,13 +24,12 @@ class TransformersBackend:
         *,
         model_id: str,
         model_revision: str,
-        trusted: bool = False,
     ) -> None:
         self._model = model
         self._tokenizer = tokenizer
         self._model_id = model_id
         self._model_revision = model_revision
-        self._trusted = trusted
+        self.__production_loaded = False
 
     @classmethod
     def from_loaded(
@@ -93,13 +91,14 @@ class TransformersBackend:
             )
         except Exception as exc:
             raise SmallLLMError(f"unable to load pinned Transformers model: {exc}") from exc
-        return cls(
+        backend = cls(
             model,
             tokenizer,
             model_id=config.model_id,
             model_revision=config.model_revision,
-            trusted=True,
         )
+        backend.__production_loaded = True
+        return backend
 
     def generate(
         self,
@@ -160,4 +159,6 @@ class TransformersBackend:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
         )
-        return _attest_completion(completion) if self._trusted else completion
+        if self.__production_loaded:
+            object.__setattr__(completion, "synthetic_backend", False)
+        return completion

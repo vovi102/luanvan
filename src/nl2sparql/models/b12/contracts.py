@@ -123,12 +123,6 @@ class Completion:
             raise SmallLLMError("completion token counts must be non-negative integers")
 
 
-def _attest_completion(completion: Completion) -> Completion:
-    """Mark a completion created by the production-only model loading path."""
-    object.__setattr__(completion, "synthetic_backend", False)
-    return completion
-
-
 @dataclass(frozen=True)
 class CatalogSummary:
     """Compact catalog prompt context bound to its exact source bytes."""
@@ -189,6 +183,7 @@ class SmallLLMPrediction:
     training_sha256: str | None = None
     encoder_id: str | None = None
     encoder_revision: str | None = None
+    training_accepted: bool = False
     selected_examples: tuple[SelectedExample, ...] = ()
     selected_examples_sha256: str = field(init=False)
 
@@ -243,9 +238,16 @@ class SmallLLMPrediction:
 
         provenance = (self.training_sha256, self.encoder_id, self.encoder_revision)
         if self.baseline == "b1":
-            if any(value is not None for value in provenance) or self.selected_examples:
+            if (
+                any(value is not None for value in provenance)
+                or self.training_accepted
+                or self.selected_examples
+            ):
                 raise SmallLLMError("B1 prediction must not contain B2 provenance")
             return
+
+        if not isinstance(self.training_accepted, bool):
+            raise SmallLLMError("B2 training acceptance marker must be boolean")
 
         if self.training_sha256 is None:
             raise SmallLLMError("B2 prediction requires a training fingerprint")

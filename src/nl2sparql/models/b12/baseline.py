@@ -30,6 +30,9 @@ class _Retriever(Protocol):
     @property
     def encoder_revision(self) -> str: ...
 
+    @property
+    def training_accepted(self) -> bool: ...
+
     def retrieve(
         self,
         question: str,
@@ -66,6 +69,7 @@ def _generate(
     training_sha256: str | None = None,
     encoder_id: str | None = None,
     encoder_revision: str | None = None,
+    training_accepted: bool = False,
 ) -> SmallLLMPrediction:
     messages = build_messages(question, summary, examples=examples)
     start = clock_ns()
@@ -104,6 +108,7 @@ def _generate(
         training_sha256=training_sha256,
         encoder_id=encoder_id,
         encoder_revision=encoder_revision,
+        training_accepted=training_accepted,
         selected_examples=examples,
     )
 
@@ -188,4 +193,5 @@ class BaselineB2:
             training_sha256=self._retriever.training_sha256,
             encoder_id=self._retriever.encoder_id,
             encoder_revision=self._retriever.encoder_revision,
+            training_accepted=getattr(self._retriever, "training_accepted", False),
         )

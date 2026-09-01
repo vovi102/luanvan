@@ -6,10 +6,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 import scripts.small_llm_baselines_workflow as workflow
 from nl2sparql.models.b12 import CatalogSummary, Completion
+from nl2sparql.sql.schema import CATALOG_PATH
 
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
 REVISION = "b" * 40
@@ -178,3 +180,28 @@ def test_evaluate_rejects_output_alias_before_model_loading(tmp_path: Path, monk
 
     assert result.exit_code == 2
     assert "alias" in json.loads(result.output)["error"]
+
+
+def test_b2_invalid_training_precedes_encoder_and_model_loading(
+    tmp_path: Path, monkeypatch
+) -> None:
+    training = tmp_path / "invalid.jsonl"
+    training.write_text("{}\n")
+
+    def bomb(*args, **kwargs):
+        raise AssertionError("must stay lazy")
+
+    monkeypatch.setattr(workflow, "load_sentence_encoder", bomb)
+    monkeypatch.setattr(workflow, "load_real_backend", bomb)
+
+    with pytest.raises(workflow.SmallLLMError, match="split=train"):
+        workflow._build_baseline(
+            "b2",
+            config=workflow.GenerationConfig(REVISION),
+            catalog_path=CATALOG_PATH,
+            training_path=training,
+            cache_path=tmp_path / "cache.npz",
+            encoder_id=workflow.DEFAULT_ENCODER_ID,
+            encoder_revision="c" * 40,
+            accepted_training_sha256=None,
+        )

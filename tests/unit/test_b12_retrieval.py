@@ -125,6 +125,29 @@ def test_training_fingerprint_uses_exact_snapshot_bytes(tmp_path: Path) -> None:
     assert retriever.encoder_revision == ENCODER_REVISION
 
 
+def test_training_acceptance_requires_matching_external_fingerprint(tmp_path: Path) -> None:
+    snapshot = _write_rows(tmp_path / "train.jsonl", _rows())
+    digest = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+
+    accepted = FewShotRetriever.from_snapshot(
+        snapshot,
+        encoder=TableEncoder(_vectors()),
+        encoder_id=ENCODER_ID,
+        encoder_revision=ENCODER_REVISION,
+        accepted_training_sha256=digest,
+    )
+
+    assert accepted.training_accepted is True
+    with pytest.raises(SmallLLMError, match="does not match"):
+        FewShotRetriever.from_snapshot(
+            snapshot,
+            encoder=TableEncoder(_vectors()),
+            encoder_id=ENCODER_ID,
+            encoder_revision=ENCODER_REVISION,
+            accepted_training_sha256="0" * 64,
+        )
+
+
 @pytest.mark.parametrize(
     ("mutate", "message"),
     [
