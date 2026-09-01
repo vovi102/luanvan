@@ -14,6 +14,7 @@ from nl2sparql.models.b12.contracts import (
 )
 from nl2sparql.models.b12.extraction import extract_google_sql
 from nl2sparql.models.b12.prompts import build_messages, prompt_sha256
+from nl2sparql.models.b12.retrieval import FewShotRetriever, TextEncoder
 
 __all__ = [
     "MODEL_ID",
@@ -21,9 +22,11 @@ __all__ = [
     "ChatMessage",
     "Completion",
     "GenerationConfig",
+    "FewShotRetriever",
     "SelectedExample",
     "SmallLLMError",
     "SmallLLMPrediction",
+    "TextEncoder",
     "compile_catalog_summary",
     "build_messages",
     "extract_google_sql",
