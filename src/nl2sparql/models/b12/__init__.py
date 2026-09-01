@@ -12,6 +12,8 @@ from nl2sparql.models.b12.contracts import (
     SmallLLMPrediction,
     validate_question,
 )
+from nl2sparql.models.b12.extraction import extract_google_sql
+from nl2sparql.models.b12.prompts import build_messages, prompt_sha256
 
 __all__ = [
     "MODEL_ID",
@@ -23,5 +25,8 @@ __all__ = [
     "SmallLLMError",
     "SmallLLMPrediction",
     "compile_catalog_summary",
+    "build_messages",
+    "extract_google_sql",
+    "prompt_sha256",
     "validate_question",
 ]
