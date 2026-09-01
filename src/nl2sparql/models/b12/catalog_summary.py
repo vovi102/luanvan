@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -27,7 +28,9 @@ def _relation_lines(relation_id: str, raw_relation: object) -> list[str]:
     fields = _mapping(relation.get("fields"), f"relation {relation_id} fields")
     for field_name, raw_field in sorted(fields.items()):
         field = _mapping(raw_field, f"field {relation_id}.{field_name}")
-        lines.append(f"  - {field_name}: {field['type']} {field['mode']}")
+        expression = field.get("expression")
+        suffix = f"; semantics: {expression}" if isinstance(expression, str) else ""
+        lines.append(f"  - {field_name}: {field['type']} {field['mode']}{suffix}")
     return lines
 
 
@@ -87,6 +90,21 @@ def compile_catalog_summary(path: Path, *, max_chars: int = 12_000) -> CatalogSu
     joins = _mapping(catalog["join_paths"], "join_paths")
     for join_id, join in sorted(joins.items()):
         lines.extend(_join_lines(join_id, join))
+
+    lines.extend(["", "ROLE POLICIES"])
+    role_policies = _mapping(catalog.get("role_policies", {}), "role_policies")
+    for role_id, raw_policy in sorted(role_policies.items()):
+        policy = _mapping(raw_policy, f"role policy {role_id}")
+        lines.append(f"- {role_id}: {json.dumps(policy, sort_keys=True, separators=(',', ':'))}")
+
+    lines.extend(["", "SEMANTIC ADJUSTMENTS"])
+    semantic_mappings = catalog.get("semantic_mappings", [])
+    if not isinstance(semantic_mappings, list):
+        raise SmallLLMError("catalog semantic_mappings must be an array")
+    for mapping in semantic_mappings:
+        item = _mapping(mapping, "semantic mapping")
+        if item.get("status") == "semantic_adjustment":
+            lines.append(f"- {item['semantic_id']}: {item.get('reason', 'adjusted semantics')}")
 
     lines.extend(
         [

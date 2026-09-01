@@ -47,7 +47,6 @@ class ScriptedBackend:
             model_revision=self.model_revision,
             input_tokens=17,
             output_tokens=11,
-            synthetic_backend=True,
         )
 
 

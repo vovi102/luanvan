@@ -8,7 +8,8 @@ import math
 import re
 from collections import Counter
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -38,6 +39,7 @@ class EvaluationCase:
     reviewed: bool = False
     live_verified: bool = False
     synthetic: bool = True
+    _trusted_source: bool = field(init=False, default=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.case_id, str) or not _CASE_ID_RE.fullmatch(self.case_id):
@@ -116,6 +118,9 @@ class EvaluationRun:
     metrics: EvaluationMetrics
     scientific_ready: bool
     blockers: tuple[str, ...]
+    seed: int
+    generated_at_utc: str
+    input_sha256: str | None
 
 
 def _quantile(values: Sequence[float], probability: float) -> float:
@@ -218,6 +223,9 @@ def load_evaluation_cases(
         )
         if loaded_identity != trusted_identity:
             raise SmallLLMError("evaluation snapshot identity differs from trusted T3.5 parse")
+    if trusted_cases is not None:
+        for case in cases:
+            object.__setattr__(case, "_trusted_source", True)
     return tuple(cases)
 
 
@@ -282,11 +290,12 @@ def evaluate_baseline(
     if any(case.synthetic for case in accepted):
         blockers.append("synthetic_test_set")
     input_fingerprints = {case.input_sha256 for case in accepted}
-    if None in input_fingerprints or len(input_fingerprints) != 1:
+    trusted_source = all(case._trusted_source for case in accepted)
+    if None in input_fingerprints or len(input_fingerprints) != 1 or not trusted_source:
         blockers.append("trusted_test_set_provenance_missing")
-    if not reviewed or not all(case.reviewed for case in accepted):
+    if not trusted_source or not reviewed or not all(case.reviewed for case in accepted):
         blockers.append("reviewed_test_set_missing")
-    if not live_verified or not all(case.live_verified for case in accepted):
+    if not trusted_source or not live_verified or not all(case.live_verified for case in accepted):
         blockers.append("live_evidence_missing")
     if len(predictions) != 100:
         blockers.append("expected_100_cases")
@@ -295,6 +304,8 @@ def evaluate_baseline(
     threshold = 5_000.0 if predictions[0].prediction.baseline == "b1" else 8_000.0
     if metrics.p95_latency_ms >= threshold:
         blockers.append("latency_gate_failed")
+    if predictions[0].prediction.baseline == "b2":
+        blockers.append("trusted_training_provenance_missing")
     blockers_tuple = tuple(sorted(blockers))
     return EvaluationRun(
         run_id=run_id,
@@ -303,6 +314,9 @@ def evaluate_baseline(
         metrics=metrics,
         scientific_ready=not blockers_tuple,
         blockers=blockers_tuple,
+        seed=42,
+        generated_at_utc=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        input_sha256=(next(iter(input_fingerprints)) if len(input_fingerprints) == 1 else None),
     )
 
 

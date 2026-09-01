@@ -7,7 +7,7 @@ import json
 import math
 import re
 import unicodedata
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Literal
 
 MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
@@ -108,7 +108,7 @@ class Completion:
     model_revision: str
     input_tokens: int
     output_tokens: int
-    synthetic_backend: bool
+    synthetic_backend: bool = field(init=False, default=True)
 
     def __post_init__(self) -> None:
         if not isinstance(self.raw_text, str):
@@ -121,8 +121,12 @@ class Completion:
             for value in (self.input_tokens, self.output_tokens)
         ):
             raise SmallLLMError("completion token counts must be non-negative integers")
-        if not isinstance(self.synthetic_backend, bool):
-            raise SmallLLMError("completion synthetic_backend must be boolean")
+
+
+def _attest_completion(completion: Completion) -> Completion:
+    """Mark a completion created by the production-only model loading path."""
+    object.__setattr__(completion, "synthetic_backend", False)
+    return completion
 
 
 @dataclass(frozen=True)
@@ -186,6 +190,7 @@ class SmallLLMPrediction:
     encoder_id: str | None = None
     encoder_revision: str | None = None
     selected_examples: tuple[SelectedExample, ...] = ()
+    selected_examples_sha256: str = field(init=False)
 
     def __post_init__(self) -> None:
         if self.baseline not in {"b1", "b2"}:
@@ -225,6 +230,16 @@ class SmallLLMPrediction:
             not isinstance(item, SelectedExample) for item in self.selected_examples
         ):
             raise SmallLLMError("selected examples must be an immutable tuple")
+        examples_payload = json.dumps(
+            [asdict(example) for example in self.selected_examples],
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        object.__setattr__(
+            self,
+            "selected_examples_sha256",
+            hashlib.sha256(examples_payload.encode("utf-8")).hexdigest(),
+        )
 
         provenance = (self.training_sha256, self.encoder_id, self.encoder_revision)
         if self.baseline == "b1":

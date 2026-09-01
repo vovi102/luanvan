@@ -33,7 +33,6 @@ class SequenceBackend:
             model_revision=config.model_revision,
             input_tokens=10,
             output_tokens=5,
-            synthetic_backend=True,
         )
 
 
@@ -107,7 +106,17 @@ def test_publish_writes_canonical_predictions_logs_and_report(tmp_path: Path) ->
     log_rows = [json.loads(line) for line in logs.read_text().splitlines()]
     report_payload = json.loads(report.read_text())
     assert [row["case_id"] for row in prediction_rows] == ["test-001", "test-002"]
+    assert all(row["run_id"] == "run-001" for row in prediction_rows)
+    assert all(row["seed"] == 42 for row in prediction_rows)
+    assert all(row["generated_at_utc"].endswith("Z") for row in prediction_rows)
+    assert all(len(row["input_sha256"]) == 64 for row in prediction_rows)
+    assert all(len(row["prediction"]["selected_examples_sha256"]) == 64 for row in prediction_rows)
     assert log_rows[0]["input_tokens"] == 10
+    assert log_rows[0]["seed"] == 42
+    assert len(log_rows[0]["selected_examples_sha256"]) == 64
+    assert report_payload["seed"] == 42
+    assert report_payload["generated_at_utc"].endswith("Z")
+    assert len(report_payload["input_sha256"]) == 64
     assert report_payload["scientific_ready"] is False
     assert "synthetic_backend" in report_payload["blockers"]
     assert predictions.read_bytes().endswith(b"\n")

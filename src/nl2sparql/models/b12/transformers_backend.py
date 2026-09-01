@@ -11,6 +11,7 @@ from nl2sparql.models.b12.contracts import (
     Completion,
     GenerationConfig,
     SmallLLMError,
+    _attest_completion,
 )
 
 
@@ -24,11 +25,13 @@ class TransformersBackend:
         *,
         model_id: str,
         model_revision: str,
+        trusted: bool = False,
     ) -> None:
         self._model = model
         self._tokenizer = tokenizer
         self._model_id = model_id
         self._model_revision = model_revision
+        self._trusted = trusted
 
     @classmethod
     def from_loaded(
@@ -62,6 +65,10 @@ class TransformersBackend:
             raise SmallLLMError("config must be a GenerationConfig")
         if not isinstance(local_files_only, bool):
             raise SmallLLMError("local_files_only must be boolean")
+        if not local_files_only:
+            raise SmallLLMError(
+                "local_files_only must remain true; network downloads are forbidden"
+            )
         try:
             torch = importlib.import_module("torch")
             transformers = importlib.import_module("transformers")
@@ -86,11 +93,12 @@ class TransformersBackend:
             )
         except Exception as exc:
             raise SmallLLMError(f"unable to load pinned Transformers model: {exc}") from exc
-        return cls.from_loaded(
+        return cls(
             model,
             tokenizer,
             model_id=config.model_id,
             model_revision=config.model_revision,
+            trusted=True,
         )
 
     def generate(
@@ -145,11 +153,11 @@ class TransformersBackend:
             raise SmallLLMError(f"Transformers generation failed: {exc}") from exc
         if not isinstance(raw_text, str):
             raise SmallLLMError("tokenizer decode must return text")
-        return Completion(
+        completion = Completion(
             raw_text=raw_text,
             model_id=self._model_id,
             model_revision=self._model_revision,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
-            synthetic_backend=False,
         )
+        return _attest_completion(completion) if self._trusted else completion

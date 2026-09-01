@@ -143,7 +143,16 @@ def _validate_publication_paths(
 
 
 def _prediction_rows(run: EvaluationRun) -> list[dict[str, Any]]:
-    return [asdict(row) for row in run.predictions]
+    return [
+        {
+            "run_id": run.run_id,
+            "seed": run.seed,
+            "generated_at_utc": run.generated_at_utc,
+            "input_sha256": run.input_sha256,
+            **asdict(row),
+        }
+        for row in run.predictions
+    ]
 
 
 def _log_rows(run: EvaluationRun) -> list[dict[str, Any]]:
@@ -151,12 +160,16 @@ def _log_rows(run: EvaluationRun) -> list[dict[str, Any]]:
         {
             "run_id": run.run_id,
             "baseline": run.baseline,
+            "seed": run.seed,
+            "generated_at_utc": run.generated_at_utc,
+            "input_sha256": run.input_sha256,
             "case_id": row.case_id,
             "latency_ms": row.prediction.latency_ms,
             "input_tokens": row.prediction.completion.input_tokens,
             "output_tokens": row.prediction.completion.output_tokens,
             "extraction_status": row.prediction.extraction_status,
             "synthetic_backend": row.prediction.completion.synthetic_backend,
+            "selected_examples_sha256": row.prediction.selected_examples_sha256,
         }
         for row in run.predictions
     ]
@@ -183,6 +196,9 @@ def publish_evaluation_run(
     report_body = {
         "run_id": run.run_id,
         "baseline": run.baseline,
+        "seed": run.seed,
+        "generated_at_utc": run.generated_at_utc,
+        "input_sha256": run.input_sha256,
         "metrics": asdict(run.metrics),
         "scientific_ready": run.scientific_ready,
         "blockers": run.blockers,
@@ -220,8 +236,8 @@ def _build_baseline(
     encoder_revision: str | None,
 ):
     summary = compile_catalog_summary(catalog_path)
-    backend = load_real_backend(config)
     if baseline_name == "b1":
+        backend = load_real_backend(config)
         return BaselineB1(summary, config, backend)
     if encoder_revision is None:
         raise SmallLLMError("B2 requires --encoder-revision")
@@ -233,6 +249,7 @@ def _build_baseline(
         encoder_revision=encoder_revision,
         cache_path=cache_path,
     )
+    backend = load_real_backend(config)
     return BaselineB2(summary, config, backend, retriever)
 
 
@@ -371,7 +388,23 @@ def evaluate_command(
     real_inference: bool,
 ) -> None:
     """Run an explicitly authorized evaluation and publish atomic evidence."""
+    predictions_path = predictions_path or (
+        DEFAULT_B1_PREDICTIONS if baseline_name == "b1" else DEFAULT_B2_PREDICTIONS
+    )
+    log_path = log_path or (DEFAULT_B1_LOG if baseline_name == "b1" else DEFAULT_B2_LOG)
+    report_path = report_path or (DEFAULT_B1_REPORT if baseline_name == "b1" else DEFAULT_B2_REPORT)
+    protected = [test_set, catalog_path]
+    if baseline_name == "b2":
+        protected.extend(
+            [
+                training_path,
+                cache_path,
+                cache_path.with_suffix(cache_path.suffix + ".json"),
+                cache_path.with_suffix(cache_path.suffix + ".lock"),
+            ]
+        )
     try:
+        _validate_publication_paths((predictions_path, log_path, report_path), tuple(protected))
         config = GenerationConfig(model_revision)
         cases = load_evaluation_cases(test_set)
     except SmallLLMError as exc:
@@ -395,23 +428,6 @@ def evaluate_command(
             reviewed=reviewed,
             live_verified=live_verified,
         )
-        predictions_path = predictions_path or (
-            DEFAULT_B1_PREDICTIONS if baseline_name == "b1" else DEFAULT_B2_PREDICTIONS
-        )
-        log_path = log_path or (DEFAULT_B1_LOG if baseline_name == "b1" else DEFAULT_B2_LOG)
-        report_path = report_path or (
-            DEFAULT_B1_REPORT if baseline_name == "b1" else DEFAULT_B2_REPORT
-        )
-        protected = [test_set, catalog_path]
-        if baseline_name == "b2":
-            protected.extend(
-                [
-                    training_path,
-                    cache_path,
-                    cache_path.with_suffix(cache_path.suffix + ".json"),
-                    cache_path.with_suffix(cache_path.suffix + ".lock"),
-                ]
-            )
         publish_evaluation_run(
             run,
             predictions_path=predictions_path,

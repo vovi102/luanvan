@@ -82,7 +82,7 @@ def test_adapter_uses_chat_template_and_decodes_only_new_tokens() -> None:
     assert completion.raw_text == SAFE_SQL
     assert completion.input_tokens == 3
     assert completion.output_tokens == 2
-    assert completion.synthetic_backend is False
+    assert completion.synthetic_backend is True
     assert tokenizer.messages == [
         {"role": "system", "content": "system"},
         {"role": "user", "content": "question"},
@@ -91,6 +91,16 @@ def test_adapter_uses_chat_template_and_decodes_only_new_tokens() -> None:
     assert model.kwargs["max_new_tokens"] == 512
     assert model.kwargs["pad_token_id"] == 2
     assert "temperature" not in model.kwargs
+
+
+def test_adapter_rejects_network_enabled_loading_before_import(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "nl2sparql.models.b12.transformers_backend.importlib.import_module",
+        lambda name: (_ for _ in ()).throw(AssertionError("must not import")),
+    )
+
+    with pytest.raises(SmallLLMError, match="local_files_only"):
+        TransformersBackend.load(GenerationConfig("a" * 40), local_files_only=False)
 
 
 def test_adapter_rejects_config_identity_mismatch() -> None:

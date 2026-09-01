@@ -23,7 +23,6 @@ class ScriptedBackend:
             model_revision=config.model_revision,
             input_tokens=10,
             output_tokens=5,
-            synthetic_backend=True,
         )
 
 
@@ -148,3 +147,34 @@ def test_catalog_summary_fixture_remains_self_authenticating() -> None:
     )
 
     assert summary.text == text
+
+
+def test_evaluate_rejects_output_alias_before_model_loading(tmp_path: Path, monkeypatch) -> None:
+    test_set = tmp_path / "test.jsonl"
+    test_set.write_text("{}\n")
+    monkeypatch.setattr(
+        workflow,
+        "load_real_backend",
+        lambda config: (_ for _ in ()).throw(AssertionError("model must stay unloaded")),
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b1",
+            "--test-set",
+            str(test_set),
+            "--predictions",
+            str(test_set),
+            "--model-revision",
+            REVISION,
+            "--run-id",
+            "run-001",
+            "--real-inference",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "alias" in json.loads(result.output)["error"]

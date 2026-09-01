@@ -14,8 +14,6 @@ from nl2sparql.models.b12 import (
 
 def _completion(
     raw_text: str = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`",
-    *,
-    synthetic: bool = True,
 ) -> Completion:
     return Completion(
         raw_text=raw_text,
@@ -23,7 +21,6 @@ def _completion(
         model_revision="a" * 40,
         input_tokens=17,
         output_tokens=11,
-        synthetic_backend=synthetic,
     )
 
 
@@ -89,5 +86,4 @@ def test_completion_rejects_boolean_token_count() -> None:
             model_revision="a" * 40,
             input_tokens=True,  # type: ignore[arg-type]
             output_tokens=0,
-            synthetic_backend=True,
         )

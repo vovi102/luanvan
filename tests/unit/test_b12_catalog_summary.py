@@ -29,6 +29,11 @@ def test_summary_includes_join_and_bounded_query_rules() -> None:
     assert "half-open [start_date, end_date)" in result.text
     assert "Use explicit projections" in result.text
     assert "managed relations only" in result.text
+    assert "ROLE POLICIES" in result.text
+    assert "treasury" in result.text
+    assert "SEMANTIC ADJUSTMENTS" in result.text
+    assert ":hasConfidenceScore" in result.text
+    assert "SAFE_DIVIDE" in result.text
 
 
 def test_summary_fails_instead_of_truncating_catalog() -> None:

@@ -19,9 +19,8 @@ SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_lab
 
 
 class SequenceBackend:
-    def __init__(self, outputs: list[str], *, synthetic: bool = True) -> None:
+    def __init__(self, outputs: list[str]) -> None:
         self.outputs = iter(outputs)
-        self.synthetic = synthetic
 
     def generate(self, messages, config):
         raw = next(self.outputs)
@@ -31,7 +30,6 @@ class SequenceBackend:
             model_revision=config.model_revision,
             input_tokens=10,
             output_tokens=5,
-            synthetic_backend=self.synthetic,
         )
 
 
@@ -109,15 +107,27 @@ def test_fake_backend_can_never_be_scientifically_ready() -> None:
     assert "expected_100_cases" in run.blockers
 
 
-def test_genuine_backend_cannot_promote_manually_constructed_cases() -> None:
+def test_caller_cannot_claim_a_genuine_completion() -> None:
+    with pytest.raises(TypeError, match="synthetic_backend"):
+        Completion(
+            raw_text=SAFE_SQL,
+            model_id="meta-llama/Meta-Llama-3-8B-Instruct",
+            model_revision="b" * 40,
+            input_tokens=10,
+            output_tokens=5,
+            synthetic_backend=False,  # type: ignore[call-arg]
+        )
+
+
+def test_manually_constructed_cases_cannot_be_promoted() -> None:
     baseline = BaselineB1(
         _summary(),
         GenerationConfig("b" * 40),
-        SequenceBackend([SAFE_SQL, SAFE_SQL], synthetic=False),
+        SequenceBackend([SAFE_SQL, SAFE_SQL]),
         clock_ns=_clock(),
     )
 
-    run = evaluate_baseline(_cases(), baseline, run_id="run-001", reviewed=True, live_verified=True)
+    run = evaluate_baseline(_cases(), baseline, run_id="run-001")
 
     assert run.scientific_ready is False
     assert "synthetic_test_set" in run.blockers
