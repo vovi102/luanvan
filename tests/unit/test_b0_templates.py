@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from nl2sparql.dataset.templates import TEMPLATES_PATH
 from nl2sparql.models.b0 import B0Policy, compile_template_snapshot
 
@@ -18,6 +20,30 @@ def test_compile_snapshot_binds_exact_source_fingerprint(tmp_path: Path) -> None
     expected = hashlib.sha256(source).hexdigest()
     assert len(compiled) == 25
     assert {row.template_sha256 for row in compiled} == {expected}
+
+
+def test_compile_snapshot_parses_the_bytes_that_were_fingerprinted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = TEMPLATES_PATH.read_bytes()
+    path = tmp_path / "templates.json"
+    path.write_bytes(source)
+    replacement = json.loads(source)
+    replacement[0]["nl_seed"] += " changed"
+    original_read_bytes = Path.read_bytes
+
+    def replace_after_read(candidate: Path) -> bytes:
+        snapshot = original_read_bytes(candidate)
+        if candidate == path:
+            candidate.write_text(json.dumps(replacement), encoding="utf-8")
+        return snapshot
+
+    monkeypatch.setattr(Path, "read_bytes", replace_after_read)
+
+    compiled = compile_template_snapshot(path, B0Policy())
+
+    assert compiled[0].template_sha256 == hashlib.sha256(source).hexdigest()
+    assert all(not str(row.raw["nl_seed"]).endswith(" changed") for row in compiled)
 
 
 def test_compile_snapshot_orders_specific_templates_deterministically() -> None:

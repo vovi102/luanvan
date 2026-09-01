@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import unicodedata
 from collections.abc import Mapping
@@ -12,7 +13,7 @@ from re import Pattern
 from types import MappingProxyType
 from typing import Any
 
-from nl2sparql.dataset.templates import load_templates, validate_template_library
+from nl2sparql.dataset.templates import TemplateValidationError, validate_template_library
 from nl2sparql.dataset.templates.validate import PLACEHOLDER_RE
 from nl2sparql.models.b0.contracts import B0Error, B0Policy
 
@@ -48,7 +49,7 @@ class CompiledTemplate:
 
 
 def _literal_pattern(value: str) -> str:
-    value = unicodedata.normalize("NFKC", value)
+    value = unicodedata.normalize("NFKC", value).casefold()
     pieces = re.split(r"(\s+)", value)
     return "".join(r"\s+" if piece.isspace() else re.escape(piece) for piece in pieces if piece)
 
@@ -109,7 +110,14 @@ def compile_template_snapshot(
         snapshot = path.read_bytes()
     except OSError as exc:
         raise B0Error(f"unable to read template snapshot: {exc}") from exc
-    templates = load_templates(path)
+    try:
+        templates = json.loads(snapshot.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        raise TemplateValidationError(f"Invalid template encoding: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise TemplateValidationError(f"Invalid template JSON: {path}") from exc
+    if not isinstance(templates, list):
+        raise TemplateValidationError("Template library must contain a list")
     validate_template_library(templates)
     fingerprint = hashlib.sha256(snapshot).hexdigest()
     compiled: list[CompiledTemplate] = []

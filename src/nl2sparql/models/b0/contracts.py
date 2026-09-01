@@ -67,6 +67,11 @@ class B0Policy:
 
     @property
     def sha256(self) -> str:
+        """Return the deterministic policy fingerprint.
+
+        Returns:
+            Lowercase SHA-256 digest of the canonical policy fields.
+        """
         body = json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(body.encode("utf-8")).hexdigest()
 

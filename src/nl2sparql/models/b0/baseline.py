@@ -78,6 +78,15 @@ def _normalized_tokens(value: str) -> tuple[str, ...]:
     return tuple(_TOKEN_RE.findall(normalized))
 
 
+def _normalized_seed(value: str) -> tuple[str, dict[int, int]]:
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    boundaries: dict[int, int] = {}
+    for original_offset in range(len(value) + 1):
+        prefix = unicodedata.normalize("NFKC", value[:original_offset]).casefold()
+        boundaries[len(prefix)] = original_offset
+    return normalized, boundaries
+
+
 def _token_f1(left: tuple[str, ...], right: tuple[str, ...]) -> float:
     if not left or not right:
         return 0.0
@@ -180,12 +189,21 @@ class BaselineB0:
             B0Error: If the question is invalid.
         """
         self._validate_question(nl)
-        normalized = unicodedata.normalize("NFKC", nl)
-        seed_question = normalized if len(normalized) == len(nl) else nl
+        seed_question, source_boundaries = _normalized_seed(nl)
         seed_predictions: list[B0Prediction] = []
         for template in self._templates:
             match = template.seed_pattern.fullmatch(seed_question)
             if match is None:
+                continue
+            try:
+                source_offsets = {
+                    name: (
+                        source_boundaries[match.start(name)],
+                        source_boundaries[match.end(name)],
+                    )
+                    for name in template.slot_order
+                }
+            except KeyError:
                 continue
             plan: ResolutionPlan | None = None
             if self._requires_resolution(template):
@@ -198,6 +216,7 @@ class BaselineB0:
                 match,
                 plan,
                 expected_provenance=self._linking_provenance,
+                source_offsets=source_offsets,
             )
             prediction = self._render(template, slots, "seed", 1.0, plan)
             if prediction is not None:

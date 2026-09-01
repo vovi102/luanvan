@@ -88,6 +88,22 @@ def test_invalid_question_fails_before_baseline_initialization() -> None:
     assert json.loads(result.output)["cause"] == "invalid_input"
 
 
+def test_invalid_question_precedes_missing_template_evidence(tmp_path: Path) -> None:
+    result = CliRunner().invoke(
+        workflow.create_cli(baseline_factory=_factory),
+        [
+            "predict",
+            "--question",
+            "   ",
+            "--templates",
+            str(tmp_path / "missing.json"),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert json.loads(result.output)["cause"] == "invalid_input"
+
+
 def test_predict_emits_canonical_unmatched_result() -> None:
     result = CliRunner().invoke(
         workflow.create_cli(baseline_factory=_factory),

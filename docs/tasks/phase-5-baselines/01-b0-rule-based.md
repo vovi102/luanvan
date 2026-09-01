@@ -89,8 +89,22 @@ execution accuracy `>=0.60` trên finalized T3.5 benchmark. AST equality không
 - [x] Synthetic fixture không thể tạo readiness giả.
 - [x] Canonical atomic artifacts, report-last publication và rollback.
 - [x] Lazy numbered CLI và notebook report reader.
-- [ ] Final focused/full test, Ruff, CLI, notebook và diff evidence được ghi sau
-  whole-branch review.
+- [x] Final focused/full test, Ruff, CLI, notebook và diff evidence đã được kiểm
+  tra sau whole-branch review.
+
+### Bằng chứng local — 2026-09-01
+
+- Review checkpoint: `a7b8b9a240c028f15a28c4df1588bf89b03e2fc0`.
+- Focused B0 suite: `50 passed in 2.66s`.
+- Full repository suite: `869 passed, 342 warnings in 44.18s`.
+- `ruff check .`: pass; `ruff format --check .`: 169 files already formatted.
+- Numbered CLI `--help`: pass; production `predict` dùng model/cache local trả
+  `ready`, GoogleSQL hợp lệ và đủ template/policy/catalog/dictionary fingerprints.
+- Notebook JSON, executed-cell contract, `git diff --check`: pass.
+- Standards/spec whole-branch review: không còn finding Critical/Important; helper
+  path-alias dùng chung được giữ lại như design debt ngoài phạm vi T5.1.
+- Các metric coverage/accuracy/latency bên dưới chưa được tuyên bố vì chưa có
+  finalized T3.5 reviewed artifact phù hợp.
 
 ### Pending reviewed/live evidence
 
@@ -102,4 +116,4 @@ execution accuracy `>=0.60` trên finalized T3.5 benchmark. AST equality không
 
 ## Trạng thái
 
-`implementation in progress — final local verification pending; reviewed/live evidence pending`
+`implementation locally complete — reviewed/live evaluation evidence pending`

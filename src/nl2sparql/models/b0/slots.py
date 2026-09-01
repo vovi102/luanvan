@@ -177,6 +177,7 @@ def extract_seed_slots(
     resolution_plan: ResolutionPlan | None,
     *,
     expected_provenance: LinkingProvenance | None = None,
+    source_offsets: Mapping[str, tuple[int, int]] | None = None,
 ) -> tuple[SlotValue, ...] | None:
     """Parse named seed groups and validate one complete template fill.
 
@@ -186,6 +187,7 @@ def extract_seed_slots(
         groups: Full seed-pattern match with named slot groups.
         resolution_plan: Optional resolver evidence for linked slots.
         expected_provenance: Required resolver fingerprints when configured.
+        source_offsets: Optional normalized-to-original spans keyed by slot name.
 
     Returns:
         Ordered validated slot values, or ``None`` when evidence is unsafe.
@@ -197,8 +199,12 @@ def extract_seed_slots(
     definitions: Mapping[str, Mapping[str, object]] = template.raw["slots"]
     for name in template.slot_order:
         slot_type = str(definitions[name]["type"])
-        span = (groups.start(name), groups.end(name))
-        direct = _direct_value(slot_type, groups.group(name))
+        span = (
+            source_offsets[name]
+            if source_offsets is not None
+            else (groups.start(name), groups.end(name))
+        )
+        direct = _direct_value(slot_type, question[span[0] : span[1]])
         if direct is not None:
             values.append(SlotValue(name, slot_type, direct, span))
             continue

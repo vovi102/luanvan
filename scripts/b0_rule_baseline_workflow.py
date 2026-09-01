@@ -355,8 +355,8 @@ def create_cli(*, baseline_factory: BaselineFactory = _production_baseline) -> c
     def predict_command(question: str, templates_path: Path) -> None:
         """Predict one safe GoogleSQL query or emit an unmatched result."""
         try:
-            _required_file(templates_path, "templates")
             validate_b0_question(question)
+            _required_file(templates_path, "templates")
             prediction = baseline_factory(templates_path).predict_detailed(question)
             question_sha256 = hashlib.sha256(question.encode()).hexdigest()
             if prediction is None:

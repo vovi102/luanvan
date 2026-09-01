@@ -103,6 +103,41 @@ def test_seed_matching_normalizes_nfkc_compatible_characters() -> None:
     assert result.match_mode == "seed"
 
 
+def test_seed_matching_preserves_offsets_when_normalization_changes_length(
+    tmp_path: Path,
+) -> None:
+    templates = json.loads(TEMPLATES_PATH.read_text(encoding="utf-8"))
+    template = next(row for row in templates if row["id"] == "T_COUNT_TX_IN_RANGE")
+    template["nl_seed"] = "STRASSE transactions between {start_date} and {end_date}?"
+    path = tmp_path / "templates.json"
+    path.write_text(json.dumps(templates), encoding="utf-8")
+    baseline = BaselineB0(path)
+    question = "Straße transactions between 2026-06-15 and 2026-06-16?"
+
+    result = baseline.predict_detailed(question)
+
+    assert result is not None
+    assert result.match_mode == "seed"
+    assert result.slots[0].span_offset == (
+        question.index("2026-06-15"),
+        question.index("2026-06-15") + 10,
+    )
+
+
+def test_seed_matching_uses_full_unicode_casefold(tmp_path: Path) -> None:
+    templates = json.loads(TEMPLATES_PATH.read_text(encoding="utf-8"))
+    template = next(row for row in templates if row["id"] == "T_COUNT_TX_IN_RANGE")
+    template["nl_seed"] = "Straße transactions between {start_date} and {end_date}?"
+    path = tmp_path / "templates.json"
+    path.write_text(json.dumps(templates), encoding="utf-8")
+    baseline = BaselineB0(path)
+
+    result = baseline.predict_detailed("STRASSE transactions between 2026-06-15 and 2026-06-16?")
+
+    assert result is not None
+    assert result.match_mode == "seed"
+
+
 def test_structural_fallback_matches_unique_anchor_set() -> None:
     baseline = BaselineB0(TEMPLATES_PATH)
 
