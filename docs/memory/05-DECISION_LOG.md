@@ -24,6 +24,32 @@
 
 ## Entries
 
+### 2026-09-01 — T5.2 tách local baseline logic khỏi Kaggle Llama inference
+
+- **Context:** T5.2 legacy prompt SPARQL bằng ontology và giả định Llama 3 8B
+  chạy trên Kaggle T4, trong khi Pivot #1 yêu cầu GoogleSQL và workstation chỉ có
+  GTX 1650 4 GiB. Chạy model nhỏ khác hoặc fake completion local sẽ làm sai
+  baseline khoa học.
+- **Options considered:** Giữ SPARQL task; tải/chạy hoặc train Llama 8B local;
+  dùng model nhỏ thay thế; viết notebook Kaggle monolithic; hoặc tách deterministic
+  baseline module khỏi generation adapter.
+- **Decision:** B1/B2 dùng cùng catalog-only GoogleSQL prompt/config, B2 thêm đúng
+  năm nearest training examples. Generation và encoder là injected internal seams;
+  real Transformers/SentenceTransformers load lazy sau explicit opt-in. Local
+  adapters kiểm chứng behavior nhưng mang synthetic marker và không thể mở
+  readiness. Production evaluation reuse finalized T3.5 evidence contract.
+- **Rationale:** Interface nhỏ giữ prompt/retrieval/extraction/artifact behavior
+  test được local mà không giả lập kết quả nghiên cứu. Whole-output SQL validation
+  và complete fingerprints ngăn prose/unsafe output hoặc stale cache trở thành
+  prediction hợp lệ.
+- **Consequences:** Code, CLI, cache và evaluator hoàn thành local mà không tải hay
+  train Llama. Scientific acceptance vẫn cần finalized T3.5/training artifacts,
+  pinned model snapshots và genuine Kaggle T4 latency/OOM evidence.
+- **Revisit:** Khi external artifacts có mặt và trước khi chạy B1/B2 Kaggle; pin
+  exact Hugging Face revisions rồi giữ nguyên prompt/config cho cả hai baseline.
+- **Linked:** `docs/tasks/phase-5-baselines/02-b1-b2-small-llm.md`,
+  `src/nl2sparql/models/b12/`, `scripts/17_small_llm_baselines.py`.
+
 ### 2026-09-01 — T5.1 B0 chọn validated GoogleSQL template và fail closed
 
 - **Context:** B0 legacy match regex rồi fill SPARQL/free-form entity text, trái
