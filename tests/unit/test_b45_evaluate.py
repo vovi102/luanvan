@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+from dataclasses import replace
 from decimal import Decimal
 
 import pytest
@@ -176,6 +177,39 @@ def test_evaluation_preserves_case_order_under_concurrency() -> None:
         assert "synthetic_backend" in run.blockers
         assert "synthetic_test_set" in run.blockers
         assert "missing_model_metadata" in run.blockers
+
+    asyncio.run(scenario())
+
+
+def test_heterogeneous_input_fingerprints_return_a_blocked_ordered_run() -> None:
+    class Journal:
+        def __init__(self) -> None:
+            self.outcomes: list[EvaluationOutcome] = []
+
+        def append(self, outcome: EvaluationOutcome) -> None:
+            self.outcomes.append(outcome)
+
+    async def scenario() -> None:
+        first, second = two_synthetic_cases()
+        cases = (
+            replace(first, input_sha256="1" * 64),
+            replace(second, input_sha256="2" * 64),
+        )
+        journal = Journal()
+        run = await evaluate_large_baseline(
+            cases,
+            DelayedBaseline({"case-1": 0.0, "case-2": 0.0}),
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=metadata(),
+            journal=journal,
+        )
+
+        assert run.input_sha256 is None
+        assert "trusted_test_set_provenance_missing" in run.blockers
+        assert [outcome.case_id for outcome in run.outcomes] == ["case-1", "case-2"]
+        assert {outcome.input_sha256 for outcome in run.outcomes} == {"1" * 64, "2" * 64}
+        assert len(journal.outcomes) == 2
 
     asyncio.run(scenario())
 
@@ -506,7 +540,11 @@ def run_with_sql(
         outcomes=(outcome,),
         metrics=empty_metrics(),
         scientific_ready=False,
-        blockers=("non_three_run_evidence",),
+        blockers=(
+            ("non_three_run_evidence",)
+            if input_sha256 is not None
+            else ("non_three_run_evidence", "trusted_test_set_provenance_missing")
+        ),
         seed=42,
         generated_at_utc="2026-09-07T00:00:00Z",
         input_sha256=input_sha256,

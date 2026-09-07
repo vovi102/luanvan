@@ -368,7 +368,6 @@ class LargeEvaluationRun:
             raise LargeLLMError("evaluation run model metadata fingerprint is invalid")
         run_identity = (
             self.baseline,
-            self.input_sha256,
             self.config_sha256,
             self.catalog_sha256,
             self.summary_sha256,
@@ -379,7 +378,6 @@ class LargeEvaluationRun:
         if any(
             (
                 outcome.baseline,
-                outcome.input_sha256,
                 outcome.config_sha256,
                 outcome.catalog_sha256,
                 outcome.summary_sha256,
@@ -391,6 +389,14 @@ class LargeEvaluationRun:
             for outcome in self.outcomes
         ):
             raise LargeLLMError("evaluation run identity disagrees with an outcome")
+        if self.input_sha256 is not None and any(
+            outcome.input_sha256 != self.input_sha256 for outcome in self.outcomes
+        ):
+            raise LargeLLMError("evaluation run input fingerprint disagrees with an outcome")
+        if self.input_sha256 is None and "trusted_test_set_provenance_missing" not in self.blockers:
+            raise LargeLLMError(
+                "missing aggregate input fingerprint requires a test provenance blocker"
+            )
 
 
 @dataclass(frozen=True)
