@@ -83,6 +83,16 @@ class BudgetLedger:
         self._spent_usd = _ZERO
         self._stop_reason: str | None = None
 
+    @property
+    def config_sha256(self) -> str:
+        """Return the canonical fingerprint of this ledger's configuration.
+
+        Returns:
+            The SHA-256 digest for every run-affecting setting used by this
+            ledger's reservations.
+        """
+        return self._config.sha256
+
     async def reserve(
         self, request_id: str, messages: tuple[ChatMessage, ...]
     ) -> BudgetReservation | None:

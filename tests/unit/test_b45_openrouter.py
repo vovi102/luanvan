@@ -19,6 +19,7 @@ from nl2sparql.models.b45.openrouter import (
 )
 
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
+PROMPT_BYTES = 11
 
 
 @pytest.fixture(autouse=True)
@@ -142,6 +143,22 @@ def run_completion(
     return asyncio.run(
         transport.complete((ChatMessage("user", "List labels"),), config, request_id=request_id)
     )
+
+
+def assert_secret_absent_from_error_chain(error: BaseException, secret: str) -> None:
+    seen: set[int] = set()
+    pending: list[BaseException] = [error]
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        assert secret not in str(current)
+        assert secret not in repr(current)
+        if current.__cause__ is not None:
+            pending.append(current.__cause__)
+        if current.__context__ is not None:
+            pending.append(current.__context__)
 
 
 def test_request_pins_model_provider_and_generation_parameters() -> None:
@@ -395,6 +412,27 @@ def test_errors_never_echo_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert secret not in str(captured.value)
     assert secret not in repr(captured.value)
+    assert_secret_absent_from_error_chain(captured.value, secret)
+
+
+def test_transport_rejects_config_mismatch_before_reservation() -> None:
+    ledger_config = make_config()
+    request_config = LargeLLMConfig(
+        provider=ProviderPolicy(
+            provider_slug="deepinfra",
+            prompt_price_per_million_usd=Decimal("0.75"),
+            completion_price_per_million_usd=Decimal("1.00"),
+        ),
+        max_cost_usd=Decimal("1.00"),
+    )
+    transport, completions, ledger = make_transport([response()], config=ledger_config)
+
+    with pytest.raises(OpenRouterRequestError) as captured:
+        run_completion(transport, request_config)
+
+    assert captured.value.code == "transport_configuration_mismatch"
+    assert completions.requests == []
+    assert asyncio.run(ledger.snapshot()).unresolved_request_ids == ()
 
 
 def test_budget_rejection_prevents_sdk_request() -> None:
@@ -471,6 +509,7 @@ def test_from_env_redacts_sdk_construction_failure(monkeypatch: pytest.MonkeyPat
     assert captured.value.code == "client_initialization_failed"
     assert secret not in str(captured.value)
     assert secret not in repr(captured.value)
+    assert_secret_absent_from_error_chain(captured.value, secret)
 
 
 def metadata_response() -> dict[str, object]:
@@ -490,7 +529,9 @@ def metadata_response() -> dict[str, object]:
 
 
 def test_model_metadata_validates_provider_capabilities_and_is_immutable() -> None:
-    evidence = validate_model_metadata(metadata_response(), make_config())
+    evidence = validate_model_metadata(
+        metadata_response(), make_config(), prompt_bytes=PROMPT_BYTES
+    )
 
     assert evidence.model_id == "meta-llama/llama-3.3-70b-instruct"
     assert evidence.provider_slug == "deepinfra"
@@ -501,7 +542,9 @@ def test_model_metadata_validates_provider_capabilities_and_is_immutable() -> No
     assert len(evidence.metadata_sha256) == 64
     assert (
         evidence.metadata_sha256
-        == validate_model_metadata(metadata_response(), make_config()).metadata_sha256
+        == validate_model_metadata(
+            metadata_response(), make_config(), prompt_bytes=PROMPT_BYTES
+        ).metadata_sha256
     )
     with pytest.raises(FrozenInstanceError):
         evidence.context_length = 1  # type: ignore[misc]
@@ -524,7 +567,60 @@ def test_model_metadata_fails_closed_on_drift(mutate) -> None:
     mutate(raw)
 
     with pytest.raises(OpenRouterRequestError) as captured:
-        validate_model_metadata(raw, make_config())
+        validate_model_metadata(raw, make_config(), prompt_bytes=PROMPT_BYTES)
+
+    assert captured.value.code == "model_metadata_invalid"
+
+
+def test_model_metadata_requires_explicit_prompt_bytes() -> None:
+    with pytest.raises(TypeError):
+        validate_model_metadata(metadata_response(), make_config())
+
+
+@pytest.mark.parametrize("prompt_bytes", [True, -1, 1.5])
+def test_model_metadata_rejects_invalid_prompt_bytes(prompt_bytes: object) -> None:
+    with pytest.raises(OpenRouterRequestError) as captured:
+        validate_model_metadata(
+            metadata_response(),
+            make_config(),
+            prompt_bytes=prompt_bytes,  # type: ignore[arg-type]
+        )
+
+    assert captured.value.code == "model_metadata_invalid"
+
+
+def test_model_metadata_requires_endpoint_local_parameters() -> None:
+    raw = metadata_response()
+    raw["data"]["supported_parameters"] = ["temperature", "seed", "max_tokens"]  # type: ignore[index]
+    del raw["data"]["endpoints"][0]["supported_parameters"]  # type: ignore[index]
+
+    with pytest.raises(OpenRouterRequestError) as captured:
+        validate_model_metadata(raw, make_config(), prompt_bytes=PROMPT_BYTES)
+
+    assert captured.value.code == "model_metadata_invalid"
+
+
+def test_model_metadata_requires_endpoint_local_context_length() -> None:
+    raw = metadata_response()
+    raw["data"]["context_length"] = 131_072  # type: ignore[index]
+    del raw["data"]["endpoints"][0]["context_length"]  # type: ignore[index]
+
+    with pytest.raises(OpenRouterRequestError) as captured:
+        validate_model_metadata(raw, make_config(), prompt_bytes=PROMPT_BYTES)
+
+    assert captured.value.code == "model_metadata_invalid"
+
+
+def test_model_metadata_uses_explicit_prompt_byte_count() -> None:
+    raw = metadata_response()
+    raw["data"]["endpoints"][0]["context_length"] = 512 + PROMPT_BYTES  # type: ignore[index]
+    evidence = validate_model_metadata(raw, make_config(), prompt_bytes=PROMPT_BYTES)
+    assert evidence.context_length == 512 + PROMPT_BYTES
+
+    raw = metadata_response()
+    raw["data"]["endpoints"][0]["context_length"] = 512 + PROMPT_BYTES - 1  # type: ignore[index]
+    with pytest.raises(OpenRouterRequestError) as captured:
+        validate_model_metadata(raw, make_config(), prompt_bytes=PROMPT_BYTES)
 
     assert captured.value.code == "model_metadata_invalid"
 
@@ -534,7 +630,7 @@ def test_model_metadata_rejects_non_finite_fingerprint_input() -> None:
     raw["diagnostic"] = float("nan")
 
     with pytest.raises(OpenRouterRequestError) as captured:
-        validate_model_metadata(raw, make_config())
+        validate_model_metadata(raw, make_config(), prompt_bytes=PROMPT_BYTES)
 
     assert captured.value.code == "model_metadata_invalid"
 

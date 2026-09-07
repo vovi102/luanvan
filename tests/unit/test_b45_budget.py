@@ -27,6 +27,15 @@ def test_conservative_cost_counts_utf8_bytes_and_maximum_output() -> None:
     assert conservative_request_cost(messages, config()) == Decimal("0.000515")
 
 
+def test_ledger_exposes_read_only_config_fingerprint() -> None:
+    selected_config = config()
+    ledger = BudgetLedger(selected_config)
+
+    assert ledger.config_sha256 == selected_config.sha256
+    with pytest.raises(AttributeError):
+        ledger.config_sha256 = "0" * 64  # type: ignore[misc]
+
+
 def test_reservation_reconciles_authoritative_cost() -> None:
     async def scenario() -> None:
         ledger = BudgetLedger(config("0.001"))

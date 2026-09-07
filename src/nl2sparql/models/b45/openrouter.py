@@ -32,9 +32,23 @@ _MAX_RETRY_DELAY_SECONDS = 30.0
 
 
 class OpenRouterRequestError(LargeLLMError):
-    """A secret-safe OpenRouter failure with a stable machine-readable code."""
+    """Secret-safe OpenRouter failure with stable machine-readable evidence.
+
+    Attributes:
+        code: Stable machine-readable failure code.
+        attempt_count: Number of remote attempts completed before the failure.
+    """
 
     def __init__(self, code: str, *, attempt_count: int = 0) -> None:
+        """Create a sanitized OpenRouter error.
+
+        Args:
+            code: Non-empty stable failure code.
+            attempt_count: Non-negative count of completed SDK attempts.
+
+        Raises:
+            ValueError: If ``code`` is empty or ``attempt_count`` is negative.
+        """
         if not isinstance(code, str) or not code:
             raise ValueError("OpenRouter error code must be non-empty")
         if (
@@ -51,7 +65,12 @@ class OpenRouterRequestError(LargeLLMError):
 
 @dataclass(frozen=True)
 class RetryPolicy:
-    """Deterministic retry classification and bounded delay calculation."""
+    """Deterministic retry classification and bounded delay calculation.
+
+    Attributes:
+        max_attempts: Maximum number of SDK attempts before exhaustion.
+        retryable_statuses: HTTP statuses that are safe to retry.
+    """
 
     max_attempts: int = 3
     retryable_statuses: frozenset[int] = _TRANSIENT_STATUSES
@@ -70,7 +89,14 @@ class RetryPolicy:
             raise OpenRouterRequestError("retry_policy_invalid")
 
     def is_retryable(self, error: BaseException) -> bool:
-        """Return whether an SDK exception is safe to retry."""
+        """Return whether an SDK exception is safe to retry.
+
+        Args:
+            error: SDK or transport exception raised by one request attempt.
+
+        Returns:
+            ``True`` when the exception represents a transient condition.
+        """
         status_code = _status_code(error)
         if status_code is not None:
             return status_code in self.retryable_statuses
@@ -85,7 +111,20 @@ class RetryPolicy:
         attempt: int,
         jitter: Callable[[int], float],
     ) -> float:
-        """Return the finite non-negative delay before the next attempt."""
+        """Return the finite non-negative delay before the next attempt.
+
+        Args:
+            error: SDK or transport exception raised by the failed attempt.
+            attempt: One-based attempt number that just failed.
+            jitter: Deterministic jitter callback for exponential backoff.
+
+        Returns:
+            Bounded delay in seconds, capped at thirty seconds.
+
+        Raises:
+            OpenRouterRequestError: If the attempt or injected delay values are
+                negative, non-finite, or otherwise invalid.
+        """
         if not isinstance(attempt, int) or isinstance(attempt, bool) or attempt <= 0:
             raise OpenRouterRequestError("retry_delay_invalid", attempt_count=0)
         retry_after = _retry_after_seconds(error)
@@ -108,7 +147,20 @@ class RetryPolicy:
 
 @dataclass(frozen=True)
 class ModelMetadataEvidence:
-    """Validated, fingerprinted model/provider endpoint capabilities."""
+    """Validated, fingerprinted model/provider endpoint capabilities.
+
+    Attributes:
+        model_id: Exact model identifier accepted from metadata.
+        provider_slug: Configured provider slug accepted from endpoint metadata.
+        context_length: Endpoint-local context length in bytes/tokens as reported
+            by OpenRouter metadata.
+        supported_parameters: Sorted endpoint-local generation parameters.
+        prompt_price_per_million_usd: Endpoint prompt price normalized to a
+            per-million-token USD value.
+        completion_price_per_million_usd: Endpoint completion price normalized
+            to a per-million-token USD value.
+        metadata_sha256: SHA-256 of the canonical raw metadata payload.
+    """
 
     model_id: str
     provider_slug: str
@@ -120,7 +172,11 @@ class ModelMetadataEvidence:
 
     @property
     def sha256(self) -> str:
-        """Return the canonical fingerprint of the accepted raw metadata."""
+        """Return the canonical fingerprint of the accepted raw metadata.
+
+        Returns:
+            The same SHA-256 digest carried by ``metadata_sha256``.
+        """
         return self.metadata_sha256
 
 
@@ -128,8 +184,20 @@ def _zero_jitter(_attempt: int) -> float:
     return 0.0
 
 
+def _ensure_ledger_config_matches(config: LargeLLMConfig, ledger: BudgetLedger) -> None:
+    if not isinstance(config, LargeLLMConfig) or not isinstance(ledger, BudgetLedger):
+        raise OpenRouterRequestError("transport_configuration_invalid")
+    if ledger.config_sha256 != config.sha256:
+        raise OpenRouterRequestError("transport_configuration_mismatch")
+
+
 class OpenRouterTransport:
-    """Issue pinned OpenRouter requests behind a hard budget reservation."""
+    """Issue pinned OpenRouter requests behind a hard budget reservation.
+
+    Attributes:
+        No public mutable attributes. Use ``from_env`` for live construction and
+        ``complete`` to issue validated requests.
+    """
 
     def __init__(
         self,
@@ -140,34 +208,68 @@ class OpenRouterTransport:
         clock_ns: Callable[[], int] = time.perf_counter_ns,
         jitter: Callable[[int], float] = _zero_jitter,
     ) -> None:
+        """Create a transport around injected SDK and timing dependencies.
+
+        Args:
+            sdk: SDK-like object exposing ``chat.completions.create``.
+            ledger: Budget ledger already constructed for this transport's
+                configuration.
+            sleep: Async sleep function used between retry attempts.
+            clock_ns: Monotonic nanosecond clock used for latency evidence.
+            jitter: Deterministic jitter callback used by retry backoff.
+
+        Raises:
+            OpenRouterRequestError: If dependencies are not usable.
+        """
         if not isinstance(ledger, BudgetLedger):
             raise OpenRouterRequestError("transport_configuration_invalid")
         if not callable(sleep) or not callable(clock_ns) or not callable(jitter):
             raise OpenRouterRequestError("transport_configuration_invalid")
         self._sdk = sdk
         self._ledger = ledger
+        self._config_sha256 = ledger.config_sha256
         self._sleep = sleep
         self._clock_ns = clock_ns
         self._jitter = jitter
 
     @classmethod
     def from_env(cls, config: LargeLLMConfig, ledger: BudgetLedger) -> OpenRouterTransport:
-        """Construct the live SDK only after confirming an API key is present."""
+        """Construct the live SDK only after confirming local configuration.
+
+        Args:
+            config: Large-LLM configuration that must match the supplied ledger.
+            ledger: Budget ledger bound to the same configuration.
+
+        Returns:
+            A live OpenRouter transport with SDK retries disabled.
+
+        Raises:
+            OpenRouterRequestError: If the config/ledger fingerprints diverge,
+                the API key is missing, or SDK initialization fails.
+        """
+        _ensure_ledger_config_matches(config, ledger)
         api_key = os.environ.get("OPENROUTER_API_KEY")
         if not api_key:
             raise OpenRouterRequestError("missing_api_key")
 
+        initialization_failed = False
         try:
             from openai import AsyncOpenAI
-
-            sdk = AsyncOpenAI(
-                api_key=api_key,
-                base_url=OPENROUTER_BASE_URL,
-                timeout=float(config.timeout_seconds),
-                max_retries=0,
-            )
         except Exception:
-            raise OpenRouterRequestError("client_initialization_failed") from None
+            initialization_failed = True
+        else:
+            try:
+                sdk = AsyncOpenAI(
+                    api_key=api_key,
+                    base_url=OPENROUTER_BASE_URL,
+                    timeout=float(config.timeout_seconds),
+                    max_retries=0,
+                )
+            except Exception:
+                initialization_failed = True
+
+        if initialization_failed:
+            raise OpenRouterRequestError("client_initialization_failed")
         return cls(sdk=sdk, ledger=ledger)
 
     async def complete(
@@ -177,7 +279,25 @@ class OpenRouterTransport:
         *,
         request_id: str,
     ) -> RemoteCompletion:
-        """Return one validated, authoritative-cost live completion."""
+        """Return one validated, authoritative-cost live completion.
+
+        Args:
+            messages: Ordered chat messages to send without logging their text.
+            config: Large-LLM configuration bound to this transport's ledger.
+            request_id: Unique stable request identifier for budget accounting.
+
+        Returns:
+            A validated live ``RemoteCompletion`` with provider and billing
+            evidence.
+
+        Raises:
+            OpenRouterRequestError: If config binding, budget reservation,
+                request execution, usage, provider identity, or completion
+                validation fails.
+            asyncio.CancelledError: If cancellation interrupts the request or
+                retry wait; the reservation remains held.
+        """
+        self._ensure_config_matches(config)
         reservation = await self._ledger.reserve(request_id, messages)
         if reservation is None:
             raise OpenRouterRequestError("budget_blocked")
@@ -189,6 +309,8 @@ class OpenRouterTransport:
         response: object
         while True:
             attempt += 1
+            terminal_error: OpenRouterRequestError | None = None
+            delay: float | None = None
             try:
                 response = await self._sdk.chat.completions.create(**request)
             except asyncio.CancelledError:
@@ -197,19 +319,29 @@ class OpenRouterTransport:
             except Exception as error:
                 if not retry_policy.is_retryable(error) or attempt >= retry_policy.max_attempts:
                     await self._ledger.hold(reservation, "request_cost_unknown")
-                    raise OpenRouterRequestError(
+                    terminal_error = OpenRouterRequestError(
                         _request_error_code(error, exhausted=attempt >= retry_policy.max_attempts),
                         attempt_count=attempt,
-                    ) from None
+                    )
+                else:
+                    try:
+                        delay = retry_policy.delay_seconds(
+                            error, attempt=attempt, jitter=self._jitter
+                        )
+                    except OpenRouterRequestError as delay_error:
+                        await self._ledger.hold(reservation, "retry_delay_invalid")
+                        terminal_error = OpenRouterRequestError(
+                            delay_error.code, attempt_count=delay_error.attempt_count
+                        )
+            if terminal_error is not None:
+                raise terminal_error
+            if delay is not None:
                 try:
-                    delay = retry_policy.delay_seconds(error, attempt=attempt, jitter=self._jitter)
                     await self._sleep(delay)
                 except asyncio.CancelledError:
                     await self._ledger.hold(reservation, "request_cancelled")
                     raise
-                except OpenRouterRequestError:
-                    await self._ledger.hold(reservation, "retry_delay_invalid")
-                    raise
+                continue
             else:
                 break
 
@@ -237,6 +369,14 @@ class OpenRouterTransport:
             return _openrouter_completion(completion_values, _LIVE_COMPLETION_MARKER)
         except LargeLLMError:
             raise OpenRouterRequestError("invalid_response", attempt_count=attempt) from None
+
+    def _ensure_config_matches(self, config: LargeLLMConfig) -> None:
+        if (
+            not isinstance(config, LargeLLMConfig)
+            or config.sha256 != self._config_sha256
+            or self._ledger.config_sha256 != self._config_sha256
+        ):
+            raise OpenRouterRequestError("transport_configuration_mismatch")
 
 
 def _request_payload(
@@ -441,8 +581,27 @@ def _normalized_provider(value: str) -> str:
     return "".join(character for character in value.casefold() if character.isalnum())
 
 
-def validate_model_metadata(raw: object, config: LargeLLMConfig) -> ModelMetadataEvidence:
-    """Validate an exact model/provider endpoint response and fingerprint it."""
+def validate_model_metadata(
+    raw: object, config: LargeLLMConfig, *, prompt_bytes: int
+) -> ModelMetadataEvidence:
+    """Validate an exact model/provider endpoint response and fingerprint it.
+
+    Args:
+        raw: Raw OpenRouter metadata payload.
+        config: Required model, provider, parameter, and pricing policy.
+        prompt_bytes: Explicit UTF-8 prompt byte count for the request whose
+            metadata is being accepted.
+
+    Returns:
+        Immutable evidence for the exact accepted endpoint capabilities.
+
+    Raises:
+        OpenRouterRequestError: If the metadata lacks endpoint-local capability
+            evidence, the prompt byte count is invalid, or any policy check
+            fails closed.
+    """
+    if not isinstance(prompt_bytes, int) or isinstance(prompt_bytes, bool) or prompt_bytes < 0:
+        raise OpenRouterRequestError("model_metadata_invalid")
     canonical = _canonical_metadata(raw)
     root = _require_mapping(canonical)
     data = root.get("data", root)
@@ -465,18 +624,18 @@ def validate_model_metadata(raw: object, config: LargeLLMConfig) -> ModelMetadat
     if endpoint is None:
         raise OpenRouterRequestError("model_metadata_invalid")
 
-    parameters = endpoint.get("supported_parameters", model.get("supported_parameters"))
+    parameters = endpoint.get("supported_parameters")
     if not isinstance(parameters, list) or any(not isinstance(item, str) for item in parameters):
         raise OpenRouterRequestError("model_metadata_invalid")
     parameter_set = frozenset(parameters)
     if not _REQUIRED_PARAMETERS.issubset(parameter_set):
         raise OpenRouterRequestError("model_metadata_invalid")
 
-    context_length = endpoint.get("context_length", model.get("context_length"))
+    context_length = endpoint.get("context_length")
     if (
         not isinstance(context_length, int)
         or isinstance(context_length, bool)
-        or context_length < config.max_tokens + _required_prompt_bytes(root, model)
+        or context_length < config.max_tokens + prompt_bytes
     ):
         raise OpenRouterRequestError("model_metadata_invalid")
 
@@ -548,13 +707,6 @@ def _metadata_provider_matches(endpoint: dict[str, object], expected: str) -> bo
         if isinstance(value, str) and _normalized_provider(value) == _normalized_provider(expected):
             return True
     return False
-
-
-def _required_prompt_bytes(root: dict[str, object], model: dict[str, object]) -> int:
-    value = root.get("prompt_bytes", model.get("prompt_bytes", 0))
-    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-        raise OpenRouterRequestError("model_metadata_invalid")
-    return value
 
 
 def _metadata_price(pricing: dict[str, object], name: str) -> Decimal:
