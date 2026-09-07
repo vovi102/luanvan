@@ -65,6 +65,22 @@ def test_completion_is_synthetic_by_default_and_cannot_be_relabelled() -> None:
         RemoteCompletion(  # type: ignore[call-arg]
             raw_text="x", synthetic_backend=False
         )
+    with pytest.raises((TypeError, ValueError)):
+        replace(completion, synthetic_backend=False)
+    assert completion.synthetic_backend is True
+
+
+def test_completion_rejects_noncanonical_model_id() -> None:
+    with pytest.raises(LargeLLMError, match="model_id"):
+        RemoteCompletion.synthetic(
+            raw_text="SELECT 1",
+            model_id="openrouter/auto",
+            provider_slug="scripted",
+            input_tokens=1,
+            output_tokens=1,
+            charged_cost_usd=Decimal("0"),
+            latency_ms=1.0,
+        )
 
 
 def test_money_and_config_fingerprint_are_decimal_canonical() -> None:

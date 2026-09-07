@@ -203,7 +203,8 @@ class RemoteCompletion:
         if not isinstance(self.raw_text, str) or _CONTROL_RE.search(self.raw_text) is not None:
             raise LargeLLMError("completion raw_text must be a control-free string")
         _required_text(self.generation_id, "generation_id")
-        _required_text(self.model_id, "completion model_id")
+        if self.model_id != MODEL_ID:
+            raise LargeLLMError(f"completion model_id must be {MODEL_ID!r}")
         _required_text(self.provider_slug, "completion provider_slug")
         _non_negative_int(self.input_tokens, "input token count")
         _non_negative_int(self.output_tokens, "output token count")
