@@ -150,6 +150,8 @@ def test_over_ceiling_cost_stops_all_future_reservations() -> None:
         snapshot = await ledger.reconcile(reservation, Decimal("0.0006"))
         assert snapshot.spent_usd == Decimal("0.0006")
         assert snapshot.reserved_usd == Decimal("0")
+        assert snapshot.stop_reason == "pricing_violation"
+        assert (await ledger.snapshot()).stop_reason == "pricing_violation"
         assert await ledger.reserve("case-2", messages) is None
 
     asyncio.run(scenario())

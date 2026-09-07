@@ -182,6 +182,53 @@ class LargeLLMConfig:
 
 
 @dataclass(frozen=True)
+class LargeBaselineEvidence:
+    """Read-only run identity exposed by a configured B4/B5 baseline.
+
+    Attributes:
+        baseline: Baseline identifier whose prompt strategy will be evaluated.
+        catalog_sha256: Fingerprint of the exact catalog snapshot.
+        summary_sha256: Fingerprint of the compiled catalog prompt summary.
+        config_sha256: Fingerprint of every run-affecting generation setting.
+        training_sha256: B5 training snapshot fingerprint, or ``None`` for B4.
+        training_accepted: Whether B5 training was bound to an accepted fingerprint.
+        model_id: Exact configured remote model identifier.
+        provider_slug: Exact configured provider identity.
+    """
+
+    baseline: Literal["b4", "b5"]
+    catalog_sha256: str
+    summary_sha256: str
+    config_sha256: str
+    training_sha256: str | None
+    training_accepted: bool
+    model_id: str
+    provider_slug: str
+
+    def __post_init__(self) -> None:
+        if self.baseline not in {"b4", "b5"}:
+            raise LargeLLMError("baseline evidence must identify b4 or b5")
+        for label, value in (
+            ("catalog fingerprint", self.catalog_sha256),
+            ("summary fingerprint", self.summary_sha256),
+            ("config fingerprint", self.config_sha256),
+        ):
+            _digest(value, label)
+        if not isinstance(self.training_accepted, bool):
+            raise LargeLLMError("training acceptance marker must be boolean")
+        if self.model_id != MODEL_ID:
+            raise LargeLLMError(f"model_id must be {MODEL_ID!r}")
+        _required_text(self.provider_slug, "provider slug")
+        if self.baseline == "b4":
+            if self.training_sha256 is not None or self.training_accepted:
+                raise LargeLLMError("B4 evidence must not contain training provenance")
+        elif self.training_sha256 is None:
+            raise LargeLLMError("B5 evidence requires a training fingerprint")
+        else:
+            _digest(self.training_sha256, "training fingerprint")
+
+
+@dataclass(frozen=True)
 class RemoteCompletion:
     """One validated remote completion with provider and billing evidence."""
 

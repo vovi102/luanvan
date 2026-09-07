@@ -9,6 +9,7 @@ from nl2sparql.models.b45.budget import (
 )
 from nl2sparql.models.b45.contracts import (
     MODEL_ID,
+    LargeBaselineEvidence,
     LargeLLMConfig,
     LargeLLMError,
     LargeLLMPrediction,
@@ -39,6 +40,7 @@ __all__ = [
     "MODEL_ID",
     "LargeLLMConfig",
     "LargeLLMError",
+    "LargeBaselineEvidence",
     "LargeEvaluationMetrics",
     "LargeEvaluationRun",
     "LargeLLMPrediction",

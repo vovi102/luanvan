@@ -92,6 +92,9 @@ def test_b4_returns_safe_sql_and_keeps_synthetic_marker() -> None:
         prediction = await baseline.predict_detailed("List labels", request_id="case-1")
         assert prediction.sql == SAFE_SQL
         assert prediction.baseline == "b4"
+        assert baseline.config.sha256 == prediction.config_sha256
+        assert baseline.evaluation_evidence.catalog_sha256 == prediction.catalog_sha256
+        assert baseline.evaluation_evidence.training_sha256 is None
         assert prediction.completion.synthetic_backend is True
         assert "<examples>none</examples>" in backend.calls[0][0][1].content
         assert backend.calls[0][2] == "case-1"
@@ -110,6 +113,8 @@ def test_b5_is_identical_except_for_exactly_five_examples() -> None:
         assert prediction.sql is None
         assert prediction.extraction_status == "prose"
         assert len(prediction.selected_examples) == 5
+        assert baseline.evaluation_evidence.training_sha256 == retriever.training_sha256
+        assert baseline.evaluation_evidence.training_accepted is True
         assert [item.record_id for item in prediction.selected_examples] == [
             "train-1",
             "train-2",

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from decimal import Decimal
-from types import SimpleNamespace
 
 import pytest
 
 from nl2sparql.models.b12 import EvaluationCase
 from nl2sparql.models.b45 import BudgetLedger, LargeLLMConfig, ProviderPolicy
 from nl2sparql.models.b45.budget import BudgetSnapshot
-from nl2sparql.models.b45.contracts import LargeLLMPrediction, RemoteCompletion
+from nl2sparql.models.b45.contracts import (
+    LargeBaselineEvidence,
+    LargeLLMPrediction,
+    RemoteCompletion,
+)
 from nl2sparql.models.b45.evaluate import (
     EvaluationOutcome,
     LargeEvaluationMetrics,
@@ -58,11 +62,12 @@ def prediction_for(
     raw_sql: str = SAFE_SQL,
     latency_ms: float = 1.0,
     cost: Decimal = Decimal("0"),
+    provider_slug: str = "deepinfra",
 ) -> LargeLLMPrediction:
     completion = RemoteCompletion.synthetic(
         raw_text=raw_sql,
         model_id="meta-llama/llama-3.3-70b-instruct",
-        provider_slug="deepinfra",
+        provider_slug=provider_slug,
         input_tokens=10,
         output_tokens=5,
         charged_cost_usd=cost,
@@ -85,8 +90,18 @@ def prediction_for(
 
 class DelayedBaseline:
     def __init__(self, delays: dict[str, float]) -> None:
-        self._config = config()
-        self._transport = SimpleNamespace(_ledger=BudgetLedger(self._config))
+        self.config = config()
+        self.budget_ledger = BudgetLedger(self.config)
+        self.evaluation_evidence = LargeBaselineEvidence(
+            baseline="b4",
+            catalog_sha256="a" * 64,
+            summary_sha256="b" * 64,
+            config_sha256=self.config.sha256,
+            training_sha256=None,
+            training_accepted=False,
+            model_id=self.config.model_id,
+            provider_slug=self.config.provider.provider_slug,
+        )
         self.delays = delays
         self.in_flight = 0
         self.max_in_flight = 0
@@ -130,6 +145,21 @@ def metadata() -> ModelMetadataEvidence:
     )
 
 
+def outcome_identity(question: str, *, input_sha256: str | None = None) -> dict[str, object]:
+    selected = config()
+    return {
+        "question_sha256": hashlib.sha256(question.encode("utf-8")).hexdigest(),
+        "baseline": "b4",
+        "input_sha256": input_sha256,
+        "config_sha256": selected.sha256,
+        "catalog_sha256": "a" * 64,
+        "summary_sha256": "b" * 64,
+        "training_sha256": None,
+        "model_id": selected.model_id,
+        "provider_slug": selected.provider.provider_slug,
+    }
+
+
 def test_evaluation_preserves_case_order_under_concurrency() -> None:
     async def scenario() -> None:
         baseline = DelayedBaseline(delays={"case-1": 0.02, "case-2": 0.0})
@@ -162,8 +192,46 @@ def test_request_failure_is_an_outcome_not_a_lost_case() -> None:
         assert len(run.outcomes) == 2
         assert run.outcomes[1].status == "request_failed"
         assert run.outcomes[1].safe_error_code == "rate_limit_exhausted"
+        assert (
+            run.outcomes[1].question_sha256
+            == hashlib.sha256(b"List known addresses again").hexdigest()
+        )
+        assert run.outcomes[1].baseline == "b4"
+        assert run.outcomes[1].catalog_sha256 == "a" * 64
+        assert run.outcomes[1].model_id == config().model_id
+        assert run.outcomes[1].provider_slug == "deepinfra"
         assert run.metrics.request_failed == 1
         assert "incomplete_generation" in run.blockers
+
+    asyncio.run(scenario())
+
+
+def test_resumed_failure_must_match_source_question_identity() -> None:
+    async def scenario() -> None:
+        original_case = two_synthetic_cases()[1]
+        first = await evaluate_large_baseline(
+            (original_case,),
+            FailingSecondBaseline(),
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=metadata(),
+        )
+        changed_case = EvaluationCase(
+            case_id=original_case.case_id,
+            question="A changed source question",
+            gold_sql=original_case.gold_sql,
+            difficulty=original_case.difficulty,
+            categories=original_case.categories,
+        )
+        with pytest.raises(ValueError, match="source case"):
+            await evaluate_large_baseline(
+                (changed_case,),
+                FailingSecondBaseline(),
+                run_id="run-1",
+                concurrency=2,
+                model_metadata=metadata(),
+                completed_outcomes=(first.outcomes[0],),
+            )
 
     asyncio.run(scenario())
 
@@ -200,11 +268,59 @@ def test_metrics_use_exact_prediction_accounting_and_sorted_counts() -> None:
     asyncio.run(scenario())
 
 
+def test_synthetic_provider_drift_is_a_blocker_not_an_evaluation_crash() -> None:
+    class DriftedProviderBaseline(DelayedBaseline):
+        async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+            return prediction_for(question, provider_slug="scripted")
+
+    async def scenario() -> None:
+        run = await evaluate_large_baseline(
+            two_synthetic_cases(),
+            DriftedProviderBaseline({"case-1": 0.0, "case-2": 0.0}),
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=metadata(),
+        )
+
+        assert "provider_drift" in run.blockers
+
+    asyncio.run(scenario())
+
+
+def test_pricing_violation_blocker_comes_from_public_budget_checkpoint() -> None:
+    class SnapshotOnlyLedger(BudgetLedger):
+        async def snapshot(self) -> BudgetSnapshot:
+            return BudgetSnapshot(
+                cap_usd=Decimal("20"),
+                spent_usd=Decimal("0.001"),
+                reserved_usd=Decimal("0"),
+                remaining_usd=Decimal("19.999"),
+                unresolved_request_ids=(),
+                stop_reason="pricing_violation",
+            )
+
+    async def scenario() -> None:
+        baseline = DelayedBaseline({"case-1": 0.0, "case-2": 0.0})
+        baseline.budget_ledger = SnapshotOnlyLedger(baseline.config)
+        run = await evaluate_large_baseline(
+            two_synthetic_cases(),
+            baseline,
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=metadata(),
+        )
+
+        assert "pricing_violation" in run.blockers
+
+    asyncio.run(scenario())
+
+
 def test_completed_outcome_is_validated_and_not_scheduled() -> None:
     async def scenario() -> None:
         cases = two_synthetic_cases()
         completed = EvaluationOutcome(
             case_id="case-1",
+            **outcome_identity(cases[0].question),
             gold_sql=cases[0].gold_sql,
             difficulty=cases[0].difficulty,
             categories=cases[0].categories,
@@ -226,6 +342,7 @@ def test_completed_outcome_is_validated_and_not_scheduled() -> None:
 
         stale = EvaluationOutcome(
             case_id="case-1",
+            **outcome_identity(cases[0].question),
             gold_sql="SELECT 1",
             difficulty="easy",
             categories=("entity_lookup",),
@@ -370,9 +487,12 @@ def empty_metrics() -> LargeEvaluationMetrics:
     )
 
 
-def run_with_sql(run_id: str, sql: str) -> LargeEvaluationRun:
+def run_with_sql(
+    run_id: str, sql: str, *, input_sha256: str | None = "f" * 64
+) -> LargeEvaluationRun:
     outcome = EvaluationOutcome(
         case_id="case-1",
+        **outcome_identity("List known addresses", input_sha256=input_sha256),
         gold_sql=SAFE_SQL,
         difficulty="easy",
         categories=("entity_lookup",),
@@ -389,9 +509,64 @@ def run_with_sql(run_id: str, sql: str) -> LargeEvaluationRun:
         blockers=("non_three_run_evidence",),
         seed=42,
         generated_at_utc="2026-09-07T00:00:00Z",
+        input_sha256=input_sha256,
+        config_sha256=config().sha256,
+        budget=empty_budget(),
+        catalog_sha256="a" * 64,
+        summary_sha256="b" * 64,
+        training_sha256=None,
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256="e" * 64,
+    )
+
+
+def run_with_failure(run_id: str) -> LargeEvaluationRun:
+    outcome = EvaluationOutcome(
+        case_id="case-1",
+        **outcome_identity("List known addresses", input_sha256="f" * 64),
+        gold_sql=SAFE_SQL,
+        difficulty="easy",
+        categories=("entity_lookup",),
+        status="request_failed",
+        prediction=None,
+        safe_error_code="rate_limit_exhausted",
+    )
+    metrics = LargeEvaluationMetrics(
+        total=1,
+        completed=0,
+        extraction_failed=0,
+        request_failed=1,
+        budget_blocked=0,
+        cost_unresolved=0,
+        p50_latency_ms=0.0,
+        p95_latency_ms=0.0,
+        input_tokens=0,
+        output_tokens=0,
+        charged_cost_usd=Decimal("0"),
+        cost_per_1k_queries_usd=Decimal("0"),
+        extraction_status_counts=(),
+        difficulty_counts=(("easy", 1),),
+        category_counts=(("entity_lookup", 1),),
+    )
+    return LargeEvaluationRun(
+        run_id=run_id,
+        baseline="b4",
+        outcomes=(outcome,),
+        metrics=metrics,
+        scientific_ready=False,
+        blockers=("incomplete_generation", "non_three_run_evidence"),
+        seed=42,
+        generated_at_utc="2026-09-07T00:00:00Z",
         input_sha256="f" * 64,
         config_sha256=config().sha256,
         budget=empty_budget(),
+        catalog_sha256="a" * 64,
+        summary_sha256="b" * 64,
+        training_sha256=None,
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256="e" * 64,
     )
 
 
@@ -425,4 +600,24 @@ def test_three_run_report_requires_strict_comparability() -> None:
     with pytest.raises(ValueError, match="input fingerprint"):
         compare_large_reproducibility(
             (run_with_sql("run-1", SAFE_SQL), run_with_sql("run-2", SAFE_SQL), drifted)
+        )
+
+
+def test_three_all_failure_runs_compare_from_run_level_identity() -> None:
+    report = compare_large_reproducibility(
+        (run_with_failure("run-1"), run_with_failure("run-2"), run_with_failure("run-3"))
+    )
+
+    assert report.raw_output_agreement == 1.0
+    assert report.normalized_sql_agreement == 1.0
+
+
+def test_reproducibility_rejects_missing_input_fingerprint() -> None:
+    with pytest.raises(ValueError, match="input fingerprint"):
+        compare_large_reproducibility(
+            (
+                run_with_sql("run-1", SAFE_SQL, input_sha256=None),
+                run_with_sql("run-2", SAFE_SQL, input_sha256=None),
+                run_with_sql("run-3", SAFE_SQL, input_sha256=None),
+            )
         )

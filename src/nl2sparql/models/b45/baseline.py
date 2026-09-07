@@ -14,7 +14,9 @@ from nl2sparql.models.b12.contracts import (
 )
 from nl2sparql.models.b12.extraction import extract_google_sql
 from nl2sparql.models.b12.prompts import build_messages, prompt_sha256
+from nl2sparql.models.b45.budget import BudgetLedger
 from nl2sparql.models.b45.contracts import (
+    LargeBaselineEvidence,
     LargeLLMConfig,
     LargeLLMError,
     LargeLLMPrediction,
@@ -169,6 +171,50 @@ class BaselineB4:
         self._transport = transport
         self._clock_ns = clock_ns
 
+    @property
+    def config(self) -> LargeLLMConfig:
+        """Return the immutable generation configuration.
+
+        Returns:
+            The configuration bound to predictions and budget accounting.
+        """
+        return self._config
+
+    @property
+    def budget_ledger(self) -> BudgetLedger:
+        """Return the transport's budget ledger through a read-only seam.
+
+        Returns:
+            The ledger owned by the configured transport.
+
+        Raises:
+            LargeLLMError: If the transport does not expose a budget ledger.
+        """
+        ledger = getattr(self._transport, "budget_ledger", None)
+        if not isinstance(ledger, BudgetLedger):
+            ledger = getattr(self._transport, "_ledger", None)
+        if not isinstance(ledger, BudgetLedger):
+            raise LargeLLMError("completion transport does not expose a budget ledger")
+        return ledger
+
+    @property
+    def evaluation_evidence(self) -> LargeBaselineEvidence:
+        """Return immutable baseline identity independently of predictions.
+
+        Returns:
+            Catalog, configuration, model, provider, and B4 identity evidence.
+        """
+        return LargeBaselineEvidence(
+            baseline="b4",
+            catalog_sha256=self._summary.catalog_sha256,
+            summary_sha256=self._summary.summary_sha256,
+            config_sha256=self._config.sha256,
+            training_sha256=None,
+            training_accepted=False,
+            model_id=self._config.model_id,
+            provider_slug=self._config.provider.provider_slug,
+        )
+
     async def predict(self, question: str, *, request_id: str) -> str | None:
         """Return extracted safe GoogleSQL, if the response is a whole query."""
         return (await self.predict_detailed(question, request_id=request_id)).sql
@@ -207,6 +253,50 @@ class BaselineB5:
         self._transport = transport
         self._retriever = retriever
         self._clock_ns = clock_ns
+
+    @property
+    def config(self) -> LargeLLMConfig:
+        """Return the immutable generation configuration.
+
+        Returns:
+            The configuration bound to predictions and budget accounting.
+        """
+        return self._config
+
+    @property
+    def budget_ledger(self) -> BudgetLedger:
+        """Return the transport's budget ledger through a read-only seam.
+
+        Returns:
+            The ledger owned by the configured transport.
+
+        Raises:
+            LargeLLMError: If the transport does not expose a budget ledger.
+        """
+        ledger = getattr(self._transport, "budget_ledger", None)
+        if not isinstance(ledger, BudgetLedger):
+            ledger = getattr(self._transport, "_ledger", None)
+        if not isinstance(ledger, BudgetLedger):
+            raise LargeLLMError("completion transport does not expose a budget ledger")
+        return ledger
+
+    @property
+    def evaluation_evidence(self) -> LargeBaselineEvidence:
+        """Return immutable baseline identity independently of predictions.
+
+        Returns:
+            Catalog, configuration, training, model, provider, and B5 identity evidence.
+        """
+        return LargeBaselineEvidence(
+            baseline="b5",
+            catalog_sha256=self._summary.catalog_sha256,
+            summary_sha256=self._summary.summary_sha256,
+            config_sha256=self._config.sha256,
+            training_sha256=self._retriever.training_sha256,
+            training_accepted=self._retriever.training_accepted,
+            model_id=self._config.model_id,
+            provider_slug=self._config.provider.provider_slug,
+        )
 
     async def predict(
         self,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Literal
 
 from nl2sparql.models.b12.contracts import ChatMessage
 from nl2sparql.models.b45.contracts import LargeLLMConfig, LargeLLMError
@@ -38,6 +39,8 @@ class BudgetSnapshot:
             after an externally reported pricing violation.
         unresolved_request_ids: Sorted identifiers of requests without a final
             authoritative cost.
+        stop_reason: Durable public reason that later reservations are disabled,
+            or ``None`` while reservations remain eligible.
     """
 
     cap_usd: Decimal
@@ -45,6 +48,7 @@ class BudgetSnapshot:
     reserved_usd: Decimal
     remaining_usd: Decimal
     unresolved_request_ids: tuple[str, ...]
+    stop_reason: Literal["pricing_violation"] | None = None
 
 
 def conservative_request_cost(messages: tuple[ChatMessage, ...], config: LargeLLMConfig) -> Decimal:
@@ -211,4 +215,5 @@ class BudgetLedger:
             reserved_usd=reserved_usd,
             remaining_usd=self._config.max_cost_usd - self._spent_usd - reserved_usd,
             unresolved_request_ids=tuple(sorted(self._reservations)),
+            stop_reason=self._stop_reason,
         )
