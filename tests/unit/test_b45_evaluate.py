@@ -1,0 +1,428 @@
+from __future__ import annotations
+
+import asyncio
+from decimal import Decimal
+from types import SimpleNamespace
+
+import pytest
+
+from nl2sparql.models.b12 import EvaluationCase
+from nl2sparql.models.b45 import BudgetLedger, LargeLLMConfig, ProviderPolicy
+from nl2sparql.models.b45.budget import BudgetSnapshot
+from nl2sparql.models.b45.contracts import LargeLLMPrediction, RemoteCompletion
+from nl2sparql.models.b45.evaluate import (
+    EvaluationOutcome,
+    LargeEvaluationMetrics,
+    LargeEvaluationRun,
+    compare_large_reproducibility,
+    evaluate_large_baseline,
+)
+from nl2sparql.models.b45.openrouter import ModelMetadataEvidence, OpenRouterRequestError
+
+SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
+
+
+def config(*, concurrency: int = 2) -> LargeLLMConfig:
+    return LargeLLMConfig(
+        provider=ProviderPolicy(
+            provider_slug="deepinfra",
+            prompt_price_per_million_usd=Decimal("0.50"),
+            completion_price_per_million_usd=Decimal("1.00"),
+        ),
+        concurrency=concurrency,
+    )
+
+
+def two_synthetic_cases() -> tuple[EvaluationCase, ...]:
+    return (
+        EvaluationCase(
+            case_id="case-1",
+            question="List known addresses",
+            gold_sql=SAFE_SQL,
+            difficulty="easy",
+            categories=("entity_lookup",),
+        ),
+        EvaluationCase(
+            case_id="case-2",
+            question="List known addresses again",
+            gold_sql=SAFE_SQL,
+            difficulty="medium",
+            categories=("entity_lookup", "ranking"),
+        ),
+    )
+
+
+def prediction_for(
+    question: str,
+    *,
+    raw_sql: str = SAFE_SQL,
+    latency_ms: float = 1.0,
+    cost: Decimal = Decimal("0"),
+) -> LargeLLMPrediction:
+    completion = RemoteCompletion.synthetic(
+        raw_text=raw_sql,
+        model_id="meta-llama/llama-3.3-70b-instruct",
+        provider_slug="deepinfra",
+        input_tokens=10,
+        output_tokens=5,
+        charged_cost_usd=cost,
+        latency_ms=latency_ms,
+    )
+    return LargeLLMPrediction(
+        baseline="b4",
+        question=question,
+        raw_output=raw_sql,
+        sql=raw_sql,
+        extraction_status="ok",
+        completion=completion,
+        catalog_sha256="a" * 64,
+        summary_sha256="b" * 64,
+        prompt_sha256="c" * 64,
+        config_sha256=config().sha256,
+        latency_ms=latency_ms,
+    )
+
+
+class DelayedBaseline:
+    def __init__(self, delays: dict[str, float]) -> None:
+        self._config = config()
+        self._transport = SimpleNamespace(_ledger=BudgetLedger(self._config))
+        self.delays = delays
+        self.in_flight = 0
+        self.max_in_flight = 0
+        self.calls: list[str] = []
+        self.cancelled: list[str] = []
+
+    async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+        self.calls.append(request_id)
+        self.in_flight += 1
+        self.max_in_flight = max(self.max_in_flight, self.in_flight)
+        try:
+            await asyncio.sleep(self.delays[request_id])
+            return prediction_for(question)
+        except asyncio.CancelledError:
+            self.cancelled.append(request_id)
+            raise
+        finally:
+            self.in_flight -= 1
+
+
+class FailingSecondBaseline(DelayedBaseline):
+    def __init__(self) -> None:
+        super().__init__({"case-1": 0.0, "case-2": 0.0})
+
+    async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+        if request_id == "case-2":
+            raise OpenRouterRequestError("rate_limit_exhausted", attempt_count=3)
+        return await super().predict_detailed(question, request_id=request_id)
+
+
+def metadata() -> ModelMetadataEvidence:
+    selected = config()
+    return ModelMetadataEvidence(
+        model_id=selected.model_id,
+        provider_slug=selected.provider.provider_slug,
+        context_length=131_072,
+        supported_parameters=("max_tokens", "seed", "temperature"),
+        prompt_price_per_million_usd=selected.provider.prompt_price_per_million_usd,
+        completion_price_per_million_usd=(selected.provider.completion_price_per_million_usd),
+        metadata_sha256="e" * 64,
+    )
+
+
+def test_evaluation_preserves_case_order_under_concurrency() -> None:
+    async def scenario() -> None:
+        baseline = DelayedBaseline(delays={"case-1": 0.02, "case-2": 0.0})
+        run = await evaluate_large_baseline(
+            two_synthetic_cases(),
+            baseline,
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=None,
+        )
+        assert [item.case_id for item in run.outcomes] == ["case-1", "case-2"]
+        assert baseline.max_in_flight == 2
+        assert run.scientific_ready is False
+        assert "synthetic_backend" in run.blockers
+        assert "synthetic_test_set" in run.blockers
+        assert "missing_model_metadata" in run.blockers
+
+    asyncio.run(scenario())
+
+
+def test_request_failure_is_an_outcome_not_a_lost_case() -> None:
+    async def scenario() -> None:
+        run = await evaluate_large_baseline(
+            two_synthetic_cases(),
+            FailingSecondBaseline(),
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=None,
+        )
+        assert len(run.outcomes) == 2
+        assert run.outcomes[1].status == "request_failed"
+        assert run.outcomes[1].safe_error_code == "rate_limit_exhausted"
+        assert run.metrics.request_failed == 1
+        assert "incomplete_generation" in run.blockers
+
+    asyncio.run(scenario())
+
+
+def test_metrics_use_exact_prediction_accounting_and_sorted_counts() -> None:
+    class AccountingBaseline(DelayedBaseline):
+        async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+            values = {
+                "case-1": (10.0, Decimal("0.001")),
+                "case-2": (30.0, Decimal("0.002")),
+            }
+            latency, cost = values[request_id]
+            return prediction_for(question, latency_ms=latency, cost=cost)
+
+    async def scenario() -> None:
+        run = await evaluate_large_baseline(
+            two_synthetic_cases(),
+            AccountingBaseline({"case-1": 0.0, "case-2": 0.0}),
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=metadata(),
+        )
+        assert run.metrics.completed == 2
+        assert run.metrics.p50_latency_ms == 20.0
+        assert run.metrics.p95_latency_ms == pytest.approx(29.0)
+        assert run.metrics.input_tokens == 20
+        assert run.metrics.output_tokens == 10
+        assert run.metrics.charged_cost_usd == Decimal("0.003")
+        assert run.metrics.cost_per_1k_queries_usd == Decimal("1.5")
+        assert run.metrics.extraction_status_counts == (("ok", 2),)
+        assert run.metrics.difficulty_counts == (("easy", 1), ("medium", 1))
+        assert run.metrics.category_counts == (("entity_lookup", 2), ("ranking", 1))
+
+    asyncio.run(scenario())
+
+
+def test_completed_outcome_is_validated_and_not_scheduled() -> None:
+    async def scenario() -> None:
+        cases = two_synthetic_cases()
+        completed = EvaluationOutcome(
+            case_id="case-1",
+            gold_sql=cases[0].gold_sql,
+            difficulty=cases[0].difficulty,
+            categories=cases[0].categories,
+            status="completed",
+            prediction=prediction_for(cases[0].question),
+            safe_error_code=None,
+        )
+        baseline = DelayedBaseline({"case-2": 0.0})
+        run = await evaluate_large_baseline(
+            cases,
+            baseline,
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=metadata(),
+            completed_outcomes=(completed,),
+        )
+        assert baseline.calls == ["case-2"]
+        assert run.outcomes[0] is completed
+
+        stale = EvaluationOutcome(
+            case_id="case-1",
+            gold_sql="SELECT 1",
+            difficulty="easy",
+            categories=("entity_lookup",),
+            status="completed",
+            prediction=prediction_for(cases[0].question),
+            safe_error_code=None,
+        )
+        with pytest.raises(ValueError, match="source case"):
+            await evaluate_large_baseline(
+                cases,
+                DelayedBaseline({"case-2": 0.0}),
+                run_id="run-1",
+                concurrency=2,
+                model_metadata=metadata(),
+                completed_outcomes=(stale,),
+            )
+
+    asyncio.run(scenario())
+
+
+def test_journal_receives_completion_order_and_failure_cancels_other_work() -> None:
+    class Journal:
+        def __init__(self, *, fail_on: str | None = None) -> None:
+            self.ids: list[str] = []
+            self.fail_on = fail_on
+
+        def append(self, outcome: EvaluationOutcome) -> None:
+            self.ids.append(outcome.case_id)
+            if outcome.case_id == self.fail_on:
+                raise OSError("disk details must not be swallowed")
+
+    async def scenario() -> None:
+        journal = Journal()
+        baseline = DelayedBaseline({"case-1": 0.02, "case-2": 0.0})
+        await evaluate_large_baseline(
+            two_synthetic_cases(),
+            baseline,
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=metadata(),
+            journal=journal,
+        )
+        assert journal.ids == ["case-2", "case-1"]
+
+        failing_journal = Journal(fail_on="case-2")
+        slow_baseline = DelayedBaseline({"case-1": 60.0, "case-2": 0.0})
+        with pytest.raises(OSError, match="disk details"):
+            await evaluate_large_baseline(
+                two_synthetic_cases(),
+                slow_baseline,
+                run_id="run-1",
+                concurrency=2,
+                model_metadata=metadata(),
+                journal=failing_journal,
+            )
+        assert slow_baseline.cancelled == ["case-1"]
+        assert slow_baseline.in_flight == 0
+
+    asyncio.run(scenario())
+
+
+def test_caller_cancellation_cancels_all_workers() -> None:
+    async def scenario() -> None:
+        baseline = DelayedBaseline({"case-1": 60.0, "case-2": 60.0})
+        task = asyncio.create_task(
+            evaluate_large_baseline(
+                two_synthetic_cases(),
+                baseline,
+                run_id="run-1",
+                concurrency=2,
+                model_metadata=metadata(),
+            )
+        )
+        while baseline.in_flight < 2:
+            await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert sorted(baseline.cancelled) == ["case-1", "case-2"]
+        assert baseline.in_flight == 0
+
+    asyncio.run(scenario())
+
+
+def test_evaluation_rejects_config_concurrency_drift_and_duplicate_cases() -> None:
+    async def scenario() -> None:
+        with pytest.raises(ValueError, match="ordered"):
+            await evaluate_large_baseline(
+                set(two_synthetic_cases()),
+                DelayedBaseline({"case-1": 0.0, "case-2": 0.0}),
+                run_id="run-1",
+                concurrency=2,
+                model_metadata=metadata(),
+            )
+        with pytest.raises(ValueError, match="concurrency"):
+            await evaluate_large_baseline(
+                two_synthetic_cases(),
+                DelayedBaseline({"case-1": 0.0, "case-2": 0.0}),
+                run_id="run-1",
+                concurrency=1,
+                model_metadata=metadata(),
+            )
+        with pytest.raises(ValueError, match="duplicate"):
+            await evaluate_large_baseline(
+                (two_synthetic_cases()[0], two_synthetic_cases()[0]),
+                DelayedBaseline({"case-1": 0.0}),
+                run_id="run-1",
+                concurrency=2,
+                model_metadata=metadata(),
+            )
+
+    asyncio.run(scenario())
+
+
+def empty_budget() -> BudgetSnapshot:
+    return BudgetSnapshot(
+        cap_usd=Decimal("20"),
+        spent_usd=Decimal("0"),
+        reserved_usd=Decimal("0"),
+        remaining_usd=Decimal("20"),
+        unresolved_request_ids=(),
+    )
+
+
+def empty_metrics() -> LargeEvaluationMetrics:
+    return LargeEvaluationMetrics(
+        total=1,
+        completed=1,
+        extraction_failed=0,
+        request_failed=0,
+        budget_blocked=0,
+        cost_unresolved=0,
+        p50_latency_ms=1.0,
+        p95_latency_ms=1.0,
+        input_tokens=10,
+        output_tokens=5,
+        charged_cost_usd=Decimal("0"),
+        cost_per_1k_queries_usd=Decimal("0"),
+        extraction_status_counts=(("ok", 1),),
+        difficulty_counts=(("easy", 1),),
+        category_counts=(("entity_lookup", 1),),
+    )
+
+
+def run_with_sql(run_id: str, sql: str) -> LargeEvaluationRun:
+    outcome = EvaluationOutcome(
+        case_id="case-1",
+        gold_sql=SAFE_SQL,
+        difficulty="easy",
+        categories=("entity_lookup",),
+        status="completed",
+        prediction=prediction_for("List known addresses", raw_sql=sql),
+        safe_error_code=None,
+    )
+    return LargeEvaluationRun(
+        run_id=run_id,
+        baseline="b4",
+        outcomes=(outcome,),
+        metrics=empty_metrics(),
+        scientific_ready=False,
+        blockers=("non_three_run_evidence",),
+        seed=42,
+        generated_at_utc="2026-09-07T00:00:00Z",
+        input_sha256="f" * 64,
+        config_sha256=config().sha256,
+        budget=empty_budget(),
+    )
+
+
+def test_three_run_report_measures_raw_and_normalized_sql_agreement() -> None:
+    report = compare_large_reproducibility(
+        (
+            run_with_sql("run-1", "SELECT  address FROM `p.d.t`"),
+            run_with_sql("run-2", "select address from `p.d.t`"),
+            run_with_sql("run-3", "SELECT address FROM `p.d.t`"),
+        )
+    )
+    assert report.run_count == 3
+    assert report.pair_count == 3
+    assert report.normalized_sql_agreement == 1.0
+    assert report.raw_output_agreement < 1.0
+
+
+def test_three_run_report_requires_strict_comparability() -> None:
+    with pytest.raises(ValueError, match="exactly three"):
+        compare_large_reproducibility((run_with_sql("run-1", SAFE_SQL),))
+    with pytest.raises(ValueError, match="distinct"):
+        compare_large_reproducibility(
+            (
+                run_with_sql("run-1", SAFE_SQL),
+                run_with_sql("run-1", SAFE_SQL),
+                run_with_sql("run-3", SAFE_SQL),
+            )
+        )
+    drifted = run_with_sql("run-3", SAFE_SQL)
+    object.__setattr__(drifted, "input_sha256", "0" * 64)
+    with pytest.raises(ValueError, match="input fingerprint"):
+        compare_large_reproducibility(
+            (run_with_sql("run-1", SAFE_SQL), run_with_sql("run-2", SAFE_SQL), drifted)
+        )

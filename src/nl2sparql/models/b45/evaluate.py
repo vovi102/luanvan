@@ -1,0 +1,713 @@
+"""Ordered asynchronous evaluation for the B4/B5 large-LLM baselines."""
+
+from __future__ import annotations
+
+import asyncio
+import inspect
+import math
+import re
+from collections import Counter
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Literal, Protocol
+
+import sqlglot
+from sqlglot.errors import SqlglotError
+
+from nl2sparql.models.b12.evaluate import EvaluationCase, load_evaluation_cases
+from nl2sparql.models.b45.baseline import BaselineB4, BaselineB5
+from nl2sparql.models.b45.budget import BudgetLedger, BudgetSnapshot
+from nl2sparql.models.b45.contracts import (
+    LargeLLMConfig,
+    LargeLLMError,
+    LargeLLMPrediction,
+)
+from nl2sparql.models.b45.openrouter import ModelMetadataEvidence, OpenRouterRequestError
+
+OutcomeStatus = Literal[
+    "completed", "extraction_failed", "request_failed", "budget_blocked", "cost_unresolved"
+]
+Difficulty = Literal["easy", "medium", "hard"]
+BaselineName = Literal["b4", "b5"]
+
+_RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_ERROR_CODE_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+_ZERO = Decimal("0")
+
+
+@dataclass(frozen=True)
+class EvaluationOutcome:
+    """One source case joined to either a prediction or a safe failure code."""
+
+    case_id: str
+    gold_sql: str
+    difficulty: Difficulty
+    categories: tuple[str, ...]
+    status: OutcomeStatus
+    prediction: LargeLLMPrediction | None
+    safe_error_code: str | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.case_id, str) or not self.case_id:
+            raise LargeLLMError("evaluation outcome case ID must not be empty")
+        if not isinstance(self.gold_sql, str) or not self.gold_sql.strip():
+            raise LargeLLMError("evaluation outcome gold SQL must not be empty")
+        if self.difficulty not in {"easy", "medium", "hard"}:
+            raise LargeLLMError("evaluation outcome difficulty is invalid")
+        if (
+            not isinstance(self.categories, tuple)
+            or not self.categories
+            or self.categories != tuple(sorted(set(self.categories)))
+        ):
+            raise LargeLLMError("evaluation outcome categories must be sorted and unique")
+        if self.status not in {
+            "completed",
+            "extraction_failed",
+            "request_failed",
+            "budget_blocked",
+            "cost_unresolved",
+        }:
+            raise LargeLLMError("evaluation outcome status is invalid")
+
+        has_prediction = self.status in {"completed", "extraction_failed"}
+        if has_prediction:
+            if not isinstance(self.prediction, LargeLLMPrediction):
+                raise LargeLLMError("generated evaluation outcome requires a prediction")
+            expected_status = (
+                "completed" if self.prediction.extraction_status == "ok" else "extraction_failed"
+            )
+            if self.status != expected_status:
+                raise LargeLLMError("evaluation outcome status disagrees with SQL extraction")
+            if self.safe_error_code is not None:
+                raise LargeLLMError("generated evaluation outcome must not have an error code")
+        else:
+            if self.prediction is not None:
+                raise LargeLLMError("failed evaluation outcome must not have a prediction")
+            if (
+                not isinstance(self.safe_error_code, str)
+                or _ERROR_CODE_RE.fullmatch(self.safe_error_code) is None
+            ):
+                raise LargeLLMError("failed evaluation outcome requires a safe error code")
+
+
+class OutcomeJournal(Protocol):
+    """Durable append seam called as soon as one new case completes."""
+
+    def append(self, outcome: EvaluationOutcome) -> None: ...
+
+
+@dataclass(frozen=True)
+class LargeEvaluationMetrics:
+    """Operational outcome, latency, token, and exact-cost aggregates."""
+
+    total: int
+    completed: int
+    extraction_failed: int
+    request_failed: int
+    budget_blocked: int
+    cost_unresolved: int
+    p50_latency_ms: float
+    p95_latency_ms: float
+    input_tokens: int
+    output_tokens: int
+    charged_cost_usd: Decimal
+    cost_per_1k_queries_usd: Decimal
+    extraction_status_counts: tuple[tuple[str, int], ...]
+    difficulty_counts: tuple[tuple[str, int], ...]
+    category_counts: tuple[tuple[str, int], ...]
+
+    def __post_init__(self) -> None:
+        count_values = (
+            self.total,
+            self.completed,
+            self.extraction_failed,
+            self.request_failed,
+            self.budget_blocked,
+            self.cost_unresolved,
+            self.input_tokens,
+            self.output_tokens,
+        )
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in count_values
+        ):
+            raise LargeLLMError("evaluation metric counts must be non-negative integers")
+        if sum(count_values[1:6]) != self.total:
+            raise LargeLLMError("evaluation outcome counts must sum to total")
+        if any(
+            not isinstance(value, float) or not math.isfinite(value) or value < 0.0
+            for value in (self.p50_latency_ms, self.p95_latency_ms)
+        ):
+            raise LargeLLMError("evaluation latencies must be finite non-negative floats")
+        if any(
+            not isinstance(value, Decimal) or not value.is_finite() or value < _ZERO
+            for value in (self.charged_cost_usd, self.cost_per_1k_queries_usd)
+        ):
+            raise LargeLLMError("evaluation costs must be finite non-negative Decimals")
+        for counts in (
+            self.extraction_status_counts,
+            self.difficulty_counts,
+            self.category_counts,
+        ):
+            if (
+                not isinstance(counts, tuple)
+                or counts != tuple(sorted(counts))
+                or len({name for name, _count in counts}) != len(counts)
+                or any(
+                    not isinstance(name, str)
+                    or not name
+                    or not isinstance(count, int)
+                    or isinstance(count, bool)
+                    or count <= 0
+                    for name, count in counts
+                )
+            ):
+                raise LargeLLMError("evaluation grouped counts must be sorted and positive")
+
+
+@dataclass(frozen=True)
+class LargeEvaluationRun:
+    """One ordered B4/B5 run with immutable accounting and readiness evidence."""
+
+    run_id: str
+    baseline: BaselineName
+    outcomes: tuple[EvaluationOutcome, ...]
+    metrics: LargeEvaluationMetrics
+    scientific_ready: bool
+    blockers: tuple[str, ...]
+    seed: int
+    generated_at_utc: str
+    input_sha256: str | None
+    config_sha256: str
+    budget: BudgetSnapshot
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.run_id, str) or _RUN_ID_RE.fullmatch(self.run_id) is None:
+            raise LargeLLMError("evaluation run ID is invalid")
+        if self.baseline not in {"b4", "b5"}:
+            raise LargeLLMError("evaluation run baseline must be b4 or b5")
+        if (
+            not isinstance(self.outcomes, tuple)
+            or any(not isinstance(outcome, EvaluationOutcome) for outcome in self.outcomes)
+            or len({outcome.case_id for outcome in self.outcomes}) != len(self.outcomes)
+        ):
+            raise LargeLLMError("evaluation run outcomes must have unique case IDs")
+        if not isinstance(self.metrics, LargeEvaluationMetrics):
+            raise LargeLLMError("evaluation run metrics are invalid")
+        if self.metrics.total != len(self.outcomes):
+            raise LargeLLMError("evaluation run metrics total must match outcomes")
+        if not isinstance(self.scientific_ready, bool):
+            raise LargeLLMError("scientific readiness must be boolean")
+        if (
+            not isinstance(self.blockers, tuple)
+            or self.blockers != tuple(sorted(set(self.blockers)))
+            or any(_ERROR_CODE_RE.fullmatch(value) is None for value in self.blockers)
+            or self.scientific_ready == bool(self.blockers)
+        ):
+            raise LargeLLMError("scientific blockers are invalid or inconsistent")
+        if self.seed != 42 or not isinstance(self.seed, int) or isinstance(self.seed, bool):
+            raise LargeLLMError("evaluation seed must be 42")
+        if not isinstance(self.generated_at_utc, str) or not self.generated_at_utc.endswith("Z"):
+            raise LargeLLMError("evaluation timestamp must be UTC")
+        if self.input_sha256 is not None and _SHA256_RE.fullmatch(self.input_sha256) is None:
+            raise LargeLLMError("evaluation input fingerprint is invalid")
+        if (
+            not isinstance(self.config_sha256, str)
+            or _SHA256_RE.fullmatch(self.config_sha256) is None
+        ):
+            raise LargeLLMError("evaluation config fingerprint is invalid")
+        if not isinstance(self.budget, BudgetSnapshot):
+            raise LargeLLMError("evaluation budget snapshot is invalid")
+
+
+@dataclass(frozen=True)
+class ReproducibilityReport:
+    """Observed pairwise agreement across exactly three comparable runs."""
+
+    run_count: int
+    pair_count: int
+    case_count: int
+    raw_output_agreement: float
+    normalized_sql_agreement: float
+
+
+def _quantile(values: Sequence[float], probability: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = (len(ordered) - 1) * probability
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    fraction = position - lower
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
+
+
+def _counts(values: Sequence[str]) -> tuple[tuple[str, int], ...]:
+    return tuple(sorted(Counter(values).items()))
+
+
+def _baseline_config(baseline: object) -> LargeLLMConfig:
+    selected = getattr(baseline, "config", None)
+    if selected is None:
+        selected = getattr(baseline, "_config", None)
+    if not isinstance(selected, LargeLLMConfig):
+        raise LargeLLMError("baseline must expose its validated large-LLM config")
+    return selected
+
+
+def _budget_ledger(baseline: object) -> BudgetLedger:
+    candidates = [getattr(baseline, "ledger", None), getattr(baseline, "budget", None)]
+    transport = getattr(baseline, "_transport", None)
+    candidates.extend((getattr(transport, "ledger", None), getattr(transport, "_ledger", None)))
+    selected = next(
+        (candidate for candidate in candidates if isinstance(candidate, BudgetLedger)), None
+    )
+    if selected is None:
+        raise LargeLLMError("baseline transport must expose its budget ledger")
+    return selected
+
+
+def _baseline_name(baseline: object) -> BaselineName:
+    if isinstance(baseline, BaselineB5):
+        return "b5"
+    if isinstance(baseline, BaselineB4):
+        return "b4"
+    declared = getattr(baseline, "baseline", getattr(baseline, "baseline_name", "b4"))
+    if declared not in {"b4", "b5"}:
+        raise LargeLLMError("baseline identity must be b4 or b5")
+    return declared
+
+
+def _validate_cases(cases: Sequence[EvaluationCase]) -> tuple[EvaluationCase, ...]:
+    if not isinstance(cases, Sequence) or isinstance(cases, (str, bytes)):
+        raise LargeLLMError("evaluation requires ordered EvaluationCase values")
+    accepted = tuple(cases)
+    if not accepted or any(not isinstance(case, EvaluationCase) for case in accepted):
+        raise LargeLLMError("evaluation requires non-empty ordered EvaluationCase values")
+    identifiers = tuple(case.case_id for case in accepted)
+    if len(identifiers) != len(set(identifiers)):
+        raise LargeLLMError("evaluation cases contain duplicate case IDs")
+    return accepted
+
+
+def _validate_completed(
+    completed_outcomes: Sequence[EvaluationOutcome],
+    cases: tuple[EvaluationCase, ...],
+    *,
+    baseline: BaselineName,
+    config_sha256: str,
+) -> dict[str, EvaluationOutcome]:
+    if not isinstance(completed_outcomes, Sequence) or isinstance(completed_outcomes, (str, bytes)):
+        raise LargeLLMError("completed outcomes must be an ordered sequence")
+    accepted = tuple(completed_outcomes)
+    if any(not isinstance(outcome, EvaluationOutcome) for outcome in accepted):
+        raise LargeLLMError("completed outcomes must be EvaluationOutcome values")
+    by_id = {outcome.case_id: outcome for outcome in accepted}
+    if len(by_id) != len(accepted):
+        raise LargeLLMError("completed outcomes contain duplicate case IDs")
+    sources = {case.case_id: case for case in cases}
+    for outcome in accepted:
+        source = sources.get(outcome.case_id)
+        if source is None or (
+            outcome.gold_sql,
+            outcome.difficulty,
+            outcome.categories,
+        ) != (source.gold_sql, source.difficulty, source.categories):
+            raise LargeLLMError("completed outcome does not match its source case")
+        if outcome.prediction is not None and (
+            outcome.prediction.question != source.question
+            or outcome.prediction.baseline != baseline
+            or outcome.prediction.config_sha256 != config_sha256
+        ):
+            raise LargeLLMError("completed outcome prediction does not match its source case")
+    return by_id
+
+
+def _outcome_from_prediction(
+    case: EvaluationCase,
+    prediction: LargeLLMPrediction,
+    *,
+    baseline: BaselineName,
+    config_sha256: str,
+) -> EvaluationOutcome:
+    if prediction.question != case.question:
+        raise LargeLLMError("prediction question does not match its source case")
+    if prediction.baseline != baseline:
+        raise LargeLLMError("prediction baseline does not match evaluator baseline")
+    if prediction.config_sha256 != config_sha256:
+        raise LargeLLMError("prediction config fingerprint does not match evaluator config")
+    return EvaluationOutcome(
+        case_id=case.case_id,
+        gold_sql=case.gold_sql,
+        difficulty=case.difficulty,
+        categories=case.categories,
+        status="completed" if prediction.extraction_status == "ok" else "extraction_failed",
+        prediction=prediction,
+        safe_error_code=None,
+    )
+
+
+def _failure_outcome(case: EvaluationCase, error: LargeLLMError) -> EvaluationOutcome:
+    code = error.code if isinstance(error, OpenRouterRequestError) else "prediction_failed"
+    status: OutcomeStatus
+    if code == "budget_blocked":
+        status = "budget_blocked"
+    elif code == "cost_unresolved":
+        status = "cost_unresolved"
+    else:
+        status = "request_failed"
+    return EvaluationOutcome(
+        case_id=case.case_id,
+        gold_sql=case.gold_sql,
+        difficulty=case.difficulty,
+        categories=case.categories,
+        status=status,
+        prediction=None,
+        safe_error_code=code,
+    )
+
+
+async def _predict_case(
+    baseline: object,
+    case: EvaluationCase,
+    *,
+    baseline_name: BaselineName,
+    config_sha256: str,
+) -> EvaluationOutcome:
+    predict = getattr(baseline, "predict_detailed", None)
+    if not callable(predict):
+        raise LargeLLMError("baseline must provide async predict_detailed")
+    parameters = inspect.signature(predict).parameters
+    kwargs: dict[str, str] = {"request_id": case.case_id}
+    if baseline_name == "b5" or "target_id" in parameters:
+        kwargs["target_id"] = case.case_id
+    try:
+        prediction = await predict(case.question, **kwargs)
+    except asyncio.CancelledError:
+        raise
+    except LargeLLMError as error:
+        return _failure_outcome(case, error)
+    if not isinstance(prediction, LargeLLMPrediction):
+        raise LargeLLMError("baseline must return LargeLLMPrediction")
+    return _outcome_from_prediction(
+        case, prediction, baseline=baseline_name, config_sha256=config_sha256
+    )
+
+
+def _metrics(outcomes: tuple[EvaluationOutcome, ...]) -> LargeEvaluationMetrics:
+    predictions = tuple(
+        outcome.prediction for outcome in outcomes if outcome.prediction is not None
+    )
+    latencies = [prediction.latency_ms for prediction in predictions]
+    input_tokens = sum(prediction.completion.input_tokens for prediction in predictions)
+    output_tokens = sum(prediction.completion.output_tokens for prediction in predictions)
+    charged_cost = sum(
+        (prediction.completion.charged_cost_usd for prediction in predictions), start=_ZERO
+    )
+    return LargeEvaluationMetrics(
+        total=len(outcomes),
+        completed=sum(outcome.status == "completed" for outcome in outcomes),
+        extraction_failed=sum(outcome.status == "extraction_failed" for outcome in outcomes),
+        request_failed=sum(outcome.status == "request_failed" for outcome in outcomes),
+        budget_blocked=sum(outcome.status == "budget_blocked" for outcome in outcomes),
+        cost_unresolved=sum(outcome.status == "cost_unresolved" for outcome in outcomes),
+        p50_latency_ms=_quantile(latencies, 0.50),
+        p95_latency_ms=_quantile(latencies, 0.95),
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        charged_cost_usd=charged_cost,
+        cost_per_1k_queries_usd=charged_cost * Decimal(1000) / Decimal(len(outcomes)),
+        extraction_status_counts=_counts(
+            [prediction.extraction_status for prediction in predictions]
+        ),
+        difficulty_counts=_counts([outcome.difficulty for outcome in outcomes]),
+        category_counts=_counts(
+            [category for outcome in outcomes for category in outcome.categories]
+        ),
+    )
+
+
+def _blockers(
+    cases: tuple[EvaluationCase, ...],
+    outcomes: tuple[EvaluationOutcome, ...],
+    metrics: LargeEvaluationMetrics,
+    config: LargeLLMConfig,
+    metadata: ModelMetadataEvidence | None,
+    budget: BudgetSnapshot,
+    ledger: BudgetLedger,
+    baseline: BaselineName,
+) -> tuple[str, ...]:
+    predictions = tuple(
+        outcome.prediction for outcome in outcomes if outcome.prediction is not None
+    )
+    blockers: set[str] = {"non_three_run_evidence"}
+    if any(prediction.completion.synthetic_backend for prediction in predictions):
+        blockers.add("synthetic_backend")
+    if any(case.synthetic for case in cases):
+        blockers.add("synthetic_test_set")
+    input_fingerprints = {case.input_sha256 for case in cases}
+    if (
+        None in input_fingerprints
+        or len(input_fingerprints) != 1
+        or not all(case._trusted_source for case in cases)
+    ):
+        blockers.add("trusted_test_set_provenance_missing")
+    if baseline == "b5" and (
+        not predictions or not all(prediction.training_accepted for prediction in predictions)
+    ):
+        blockers.add("trusted_training_provenance_missing")
+    if len(cases) != 100:
+        blockers.add("expected_100_cases")
+    if metrics.completed != len(cases):
+        blockers.add("incomplete_generation")
+    if metrics.cost_unresolved or budget.unresolved_request_ids or budget.reserved_usd > _ZERO:
+        blockers.add("unresolved_cost")
+    if getattr(ledger, "_stop_reason", None) == "pricing_violation":
+        blockers.add("pricing_violation")
+    if budget.spent_usd > budget.cap_usd or metrics.charged_cost_usd > config.max_cost_usd:
+        blockers.add("cost_over_cap")
+    if metadata is None:
+        blockers.add("missing_model_metadata")
+    else:
+        if metadata.model_id != config.model_id:
+            blockers.add("model_drift")
+        if metadata.provider_slug != config.provider.provider_slug:
+            blockers.add("provider_drift")
+        if (
+            metadata.prompt_price_per_million_usd > config.provider.prompt_price_per_million_usd
+            or metadata.completion_price_per_million_usd
+            > config.provider.completion_price_per_million_usd
+        ):
+            blockers.add("pricing_violation")
+    if any(prediction.completion.model_id != config.model_id for prediction in predictions):
+        blockers.add("model_drift")
+    if any(
+        prediction.completion.provider_slug != config.provider.provider_slug
+        for prediction in predictions
+    ):
+        blockers.add("provider_drift")
+    if any(prediction.config_sha256 != config.sha256 for prediction in predictions):
+        blockers.add("config_drift")
+    if len({prediction.catalog_sha256 for prediction in predictions}) > 1:
+        blockers.add("catalog_drift")
+    if baseline == "b5" and len({prediction.training_sha256 for prediction in predictions}) > 1:
+        blockers.add("training_drift")
+    return tuple(sorted(blockers))
+
+
+async def evaluate_large_baseline(
+    cases: Sequence[EvaluationCase],
+    baseline: object,
+    *,
+    run_id: str,
+    concurrency: int,
+    model_metadata: ModelMetadataEvidence | None,
+    journal: OutcomeJournal | None = None,
+    completed_outcomes: Sequence[EvaluationOutcome] = (),
+) -> LargeEvaluationRun:
+    """Evaluate cases concurrently while preserving source order in the final run."""
+    if not isinstance(run_id, str) or _RUN_ID_RE.fullmatch(run_id) is None:
+        raise LargeLLMError("evaluation run ID is invalid")
+    accepted_cases = _validate_cases(cases)
+    selected_config = _baseline_config(baseline)
+    ledger = _budget_ledger(baseline)
+    if ledger.config_sha256 != selected_config.sha256:
+        raise LargeLLMError("baseline config and budget ledger do not match")
+    if (
+        not isinstance(concurrency, int)
+        or isinstance(concurrency, bool)
+        or concurrency != selected_config.concurrency
+    ):
+        raise LargeLLMError("evaluation concurrency must equal config concurrency")
+    if model_metadata is not None and not isinstance(model_metadata, ModelMetadataEvidence):
+        raise LargeLLMError("model metadata evidence is invalid")
+    if journal is not None and not callable(getattr(journal, "append", None)):
+        raise LargeLLMError("outcome journal must provide append")
+    baseline_name = _baseline_name(baseline)
+    completed = _validate_completed(
+        completed_outcomes,
+        accepted_cases,
+        baseline=baseline_name,
+        config_sha256=selected_config.sha256,
+    )
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def worker(index: int, case: EvaluationCase) -> tuple[int, EvaluationOutcome]:
+        async with semaphore:
+            outcome = await _predict_case(
+                baseline,
+                case,
+                baseline_name=baseline_name,
+                config_sha256=selected_config.sha256,
+            )
+            if journal is not None:
+                journal.append(outcome)
+            return index, outcome
+
+    tasks = [
+        asyncio.create_task(worker(index, case))
+        for index, case in enumerate(accepted_cases)
+        if case.case_id not in completed
+    ]
+    try:
+        generated = await asyncio.gather(*tasks)
+    except BaseException:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
+
+    indexed = [
+        (index, completed[case.case_id])
+        for index, case in enumerate(accepted_cases)
+        if case.case_id in completed
+    ]
+    indexed.extend(generated)
+    outcomes = tuple(outcome for _index, outcome in sorted(indexed, key=lambda item: item[0]))
+    metrics = _metrics(outcomes)
+    budget = await ledger.snapshot()
+    blockers = _blockers(
+        accepted_cases,
+        outcomes,
+        metrics,
+        selected_config,
+        model_metadata,
+        budget,
+        ledger,
+        baseline_name,
+    )
+    input_fingerprints = {case.input_sha256 for case in accepted_cases}
+    return LargeEvaluationRun(
+        run_id=run_id,
+        baseline=baseline_name,
+        outcomes=outcomes,
+        metrics=metrics,
+        scientific_ready=not blockers,
+        blockers=blockers,
+        seed=selected_config.seed,
+        generated_at_utc=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        input_sha256=(next(iter(input_fingerprints)) if len(input_fingerprints) == 1 else None),
+        config_sha256=selected_config.sha256,
+        budget=budget,
+    )
+
+
+def _single_prediction_value(run: LargeEvaluationRun, attribute: str, *, required: bool) -> object:
+    predictions = tuple(
+        outcome.prediction for outcome in run.outcomes if outcome.prediction is not None
+    )
+    if attribute == "model_id":
+        values = {prediction.completion.model_id for prediction in predictions}
+    elif attribute == "provider_slug":
+        values = {prediction.completion.provider_slug for prediction in predictions}
+    else:
+        values = {getattr(prediction, attribute) for prediction in predictions}
+    if len(values) > 1 or (required and len(values) != 1):
+        raise LargeLLMError(f"run {attribute.replace('_', ' ')} evidence is not singular")
+    return next(iter(values)) if values else None
+
+
+def _comparison_identity(run: LargeEvaluationRun) -> tuple[object, ...]:
+    catalog = _single_prediction_value(run, "catalog_sha256", required=True)
+    training = _single_prediction_value(run, "training_sha256", required=run.baseline == "b5")
+    model = _single_prediction_value(run, "model_id", required=True)
+    provider = _single_prediction_value(run, "provider_slug", required=True)
+    return (
+        run.baseline,
+        tuple(outcome.case_id for outcome in run.outcomes),
+        run.input_sha256,
+        run.config_sha256,
+        catalog,
+        training,
+        model,
+        provider,
+    )
+
+
+def _normalized_sql(prediction: LargeLLMPrediction) -> str:
+    if prediction.sql is None:
+        raise LargeLLMError("completed prediction is missing safe SQL")
+    try:
+        return sqlglot.parse_one(prediction.sql, read="bigquery").sql(
+            dialect="bigquery", normalize=True, pretty=False
+        )
+    except (SqlglotError, TypeError, ValueError) as error:
+        raise LargeLLMError("completed prediction contains invalid safe SQL") from error
+
+
+def _agrees(left: EvaluationOutcome, right: EvaluationOutcome, *, normalized: bool) -> bool:
+    if left.status != "completed" or right.status != "completed":
+        return left.status == right.status
+    if left.prediction is None or right.prediction is None:
+        return False
+    if normalized:
+        return _normalized_sql(left.prediction) == _normalized_sql(right.prediction)
+    return left.prediction.raw_output == right.prediction.raw_output
+
+
+def compare_large_reproducibility(
+    runs: Sequence[LargeEvaluationRun],
+) -> ReproducibilityReport:
+    """Measure all pairwise per-case agreements across exactly three comparable runs."""
+    if not isinstance(runs, Sequence) or isinstance(runs, (str, bytes)):
+        raise LargeLLMError("reproducibility runs must be an ordered sequence")
+    accepted = tuple(runs)
+    if len(accepted) != 3 or any(not isinstance(run, LargeEvaluationRun) for run in accepted):
+        raise LargeLLMError("reproducibility requires exactly three LargeEvaluationRun values")
+    if len({run.run_id for run in accepted}) != 3:
+        raise LargeLLMError("reproducibility run IDs must be distinct")
+    reference = _comparison_identity(accepted[0])
+    labels = (
+        "baseline",
+        "ordered case IDs",
+        "input fingerprint",
+        "config fingerprint",
+        "catalog fingerprint",
+        "training fingerprint",
+        "model",
+        "provider",
+    )
+    for run in accepted[1:]:
+        identity = _comparison_identity(run)
+        for label, expected, actual in zip(labels, reference, identity, strict=True):
+            if actual != expected:
+                raise LargeLLMError(f"reproducibility {label} mismatch")
+
+    pairs = ((accepted[0], accepted[1]), (accepted[0], accepted[2]), (accepted[1], accepted[2]))
+    comparison_count = len(reference[1]) * len(pairs)
+    if comparison_count == 0:
+        raise LargeLLMError("reproducibility requires at least one ordered case")
+    raw_agreements = 0
+    normalized_agreements = 0
+    for left, right in pairs:
+        for left_outcome, right_outcome in zip(left.outcomes, right.outcomes, strict=True):
+            raw_agreements += _agrees(left_outcome, right_outcome, normalized=False)
+            normalized_agreements += _agrees(left_outcome, right_outcome, normalized=True)
+    return ReproducibilityReport(
+        run_count=3,
+        pair_count=3,
+        case_count=len(reference[1]),
+        raw_output_agreement=raw_agreements / comparison_count,
+        normalized_sql_agreement=normalized_agreements / comparison_count,
+    )
+
+
+__all__ = [
+    "EvaluationOutcome",
+    "LargeEvaluationMetrics",
+    "LargeEvaluationRun",
+    "OutcomeJournal",
+    "OutcomeStatus",
+    "ReproducibilityReport",
+    "compare_large_reproducibility",
+    "evaluate_large_baseline",
+    "load_evaluation_cases",
+]

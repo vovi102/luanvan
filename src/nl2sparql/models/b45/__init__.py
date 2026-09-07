@@ -16,6 +16,16 @@ from nl2sparql.models.b45.contracts import (
     RemoteCompletion,
     canonical_money,
 )
+from nl2sparql.models.b45.evaluate import (
+    EvaluationOutcome,
+    LargeEvaluationMetrics,
+    LargeEvaluationRun,
+    OutcomeJournal,
+    ReproducibilityReport,
+    compare_large_reproducibility,
+    evaluate_large_baseline,
+    load_evaluation_cases,
+)
 from nl2sparql.models.b45.transport import CompletionTransport
 
 __all__ = [
@@ -25,12 +35,20 @@ __all__ = [
     "BaselineB4",
     "BaselineB5",
     "CompletionTransport",
+    "EvaluationOutcome",
     "MODEL_ID",
     "LargeLLMConfig",
     "LargeLLMError",
+    "LargeEvaluationMetrics",
+    "LargeEvaluationRun",
     "LargeLLMPrediction",
+    "OutcomeJournal",
     "ProviderPolicy",
     "RemoteCompletion",
+    "ReproducibilityReport",
     "canonical_money",
+    "compare_large_reproducibility",
     "conservative_request_cost",
+    "evaluate_large_baseline",
+    "load_evaluation_cases",
 ]
