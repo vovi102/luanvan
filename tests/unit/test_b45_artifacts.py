@@ -512,6 +512,134 @@ def test_resume_accepts_unrecorded_inflight_reservation_checkpoint(tmp_path: Pat
     assert asyncio.run(ledger.reserve("case-3", (ChatMessage("user", "x"),))) is None
 
 
+def test_resume_preserves_unattributed_concurrent_spend_and_schedules_missing_case(
+    tmp_path: Path,
+) -> None:
+    cases = (
+        EvaluationCase(
+            case_id="case-1",
+            question="List addresses",
+            gold_sql=SAFE_SQL,
+            difficulty="easy",
+            categories=("entity_lookup",),
+            input_sha256=INPUT_SHA256,
+            reviewed=True,
+            live_verified=True,
+            synthetic=False,
+        ),
+        EvaluationCase(
+            case_id="case-2",
+            question="List addresses again",
+            gold_sql=SAFE_SQL,
+            difficulty="medium",
+            categories=("entity_lookup",),
+            input_sha256=INPUT_SHA256,
+            reviewed=True,
+            live_verified=True,
+            synthetic=False,
+        ),
+    )
+    for case in cases:
+        object.__setattr__(case, "_trusted_source", True)
+    checkpoint = BudgetSnapshot(
+        cap_usd=Decimal("20.00"),
+        spent_usd=Decimal("0.0200"),
+        reserved_usd=Decimal("0"),
+        remaining_usd=Decimal("19.9800"),
+        unresolved_request_ids=(),
+    )
+    journal = artifacts.RequestJournal(
+        tmp_path / "journal.jsonl",
+        run_id="run-1",
+        baseline="b4",
+        input_sha256=INPUT_SHA256,
+        config_sha256=config().sha256,
+        catalog_sha256=CATALOG_SHA256,
+        summary_sha256=SUMMARY_SHA256,
+        training_sha256=None,
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256=METADATA_SHA256,
+    )
+    journal.append(completed_outcome(cost=Decimal("0.0100"), budget_checkpoint=checkpoint))
+
+    resume = artifacts.load_resume_state(
+        tmp_path / "journal.jsonl",
+        expected_input_sha256=INPUT_SHA256,
+        expected_config_sha256=config().sha256,
+        expected_run_id="run-1",
+        expected_model_metadata_sha256=METADATA_SHA256,
+    )
+
+    assert resume.prior_cost_usd == Decimal("0.0100")
+    assert resume.unattributed_spend_usd == Decimal("0.0100")
+    assert resume.budget_checkpoint.spent_usd == Decimal("0.0200")
+    rehydrated = BudgetLedger.from_checkpoint(config(), resume.budget_checkpoint)
+    assert asyncio.run(rehydrated.snapshot()) == checkpoint
+
+    class ResumedBaseline:
+        def __init__(self) -> None:
+            self.config = config()
+            self.budget_ledger = BudgetLedger.from_checkpoint(self.config, checkpoint)
+            self.evaluation_evidence = LargeBaselineEvidence(
+                baseline="b4",
+                catalog_sha256=CATALOG_SHA256,
+                summary_sha256=SUMMARY_SHA256,
+                config_sha256=self.config.sha256,
+                training_sha256=None,
+                training_accepted=False,
+                model_id=self.config.model_id,
+                provider_slug="deepinfra",
+            )
+            self.calls: list[str] = []
+
+        async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+            self.calls.append(request_id)
+            result = prediction(question, cost=Decimal("0.0100"))
+            reservation = await self.budget_ledger.reserve(
+                request_id, (ChatMessage("user", question),)
+            )
+            assert reservation is not None
+            await self.budget_ledger.reconcile(reservation, result.completion.charged_cost_usd)
+            return result
+
+    metadata = ModelMetadataEvidence(
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        context_length=131_072,
+        supported_parameters=("max_tokens", "seed", "temperature"),
+        prompt_price_per_million_usd=Decimal("0.50"),
+        completion_price_per_million_usd=Decimal("1.00"),
+        metadata_sha256=METADATA_SHA256,
+    )
+
+    async def scenario() -> None:
+        baseline = ResumedBaseline()
+        run = await evaluate_large_baseline(
+            cases,
+            baseline,
+            run_id="run-1",
+            concurrency=1,
+            model_metadata=metadata,
+            completed_outcomes=resume.completed_outcomes,
+        )
+        assert baseline.calls == ["case-2"]
+        assert run.budget.spent_usd == Decimal("0.0300")
+        assert run.metrics.attributed_spend_usd == Decimal("0.0200")
+        assert run.metrics.unattributed_spend_usd == Decimal("0.0100")
+        assert "unattributed_spend" in run.blockers
+
+        paths = artifact_paths(tmp_path)
+        artifacts.publish_large_run(run, paths=paths)
+        report = json.loads(paths.report.read_text(encoding="utf-8"))
+        assert report["attributed_spend_usd"] == "0.02"
+        assert report["unattributed_spend_usd"] == "0.01"
+        assert report["total_spent_usd"] == "0.03"
+        assert "unattributed_spend_usd" in paths.cost_csv.read_text(encoding="utf-8")
+
+    asyncio.run(scenario())
+
+
 def test_publication_rejects_tampered_metrics_readiness_and_blockers(
     tmp_path: Path,
 ) -> None:
@@ -750,7 +878,10 @@ def test_billed_malformed_live_response_publishes_and_resumes_exact_spend(
         artifacts.publish_large_run(run, paths=paths)
         row = json.loads(paths.request_log.read_text(encoding="utf-8").splitlines()[1])
         assert row["authoritative_cost_usd"] == "0.01"
-        assert b"request,b4,run-1,case-1,request_failed,,,,0.01,\n" in (paths.cost_csv.read_bytes())
+        assert (
+            b"request,b4,run-1,case-1,request_failed,,,,0.01,,0.01,,\n"
+            in paths.cost_csv.read_bytes()
+        )
         assert (
             json.loads(paths.report.read_text(encoding="utf-8"))["authoritative_total_cost_usd"]
             == "0.01"

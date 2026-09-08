@@ -257,8 +257,10 @@ class LargeEvaluationMetrics:
         p95_latency_ms: Interpolated 95th percentile prediction latency.
         input_tokens: Total provider-reported input tokens.
         output_tokens: Total provider-reported output tokens.
-        charged_cost_usd: Exact authoritative Decimal charges.
+        charged_cost_usd: Exact outcome-attributed authoritative Decimal charges.
         cost_per_1k_queries_usd: Exact cost scaled to one thousand source cases.
+        unattributed_spend_usd: Reconciled budget spend not represented by an
+            accepted outcome, such as a concurrent request lost before append.
         extraction_status_counts: Sorted extraction-status counts.
         difficulty_counts: Sorted source difficulty counts.
         category_counts: Sorted source category counts.
@@ -279,6 +281,17 @@ class LargeEvaluationMetrics:
     extraction_status_counts: tuple[tuple[str, int], ...]
     difficulty_counts: tuple[tuple[str, int], ...]
     category_counts: tuple[tuple[str, int], ...]
+    unattributed_spend_usd: Decimal = _ZERO
+
+    @property
+    def attributed_spend_usd(self) -> Decimal:
+        """Return spend attributed exactly once to accepted outcomes."""
+        return self.charged_cost_usd
+
+    @property
+    def total_spent_usd(self) -> Decimal:
+        """Return attributed plus unattributed reconciled budget spend."""
+        return self.charged_cost_usd + self.unattributed_spend_usd
 
     def __post_init__(self) -> None:
         count_values = (
@@ -305,7 +318,11 @@ class LargeEvaluationMetrics:
             raise LargeLLMError("evaluation latencies must be finite non-negative floats")
         if any(
             not isinstance(value, Decimal) or not value.is_finite() or value < _ZERO
-            for value in (self.charged_cost_usd, self.cost_per_1k_queries_usd)
+            for value in (
+                self.charged_cost_usd,
+                self.cost_per_1k_queries_usd,
+                self.unattributed_spend_usd,
+            )
         ):
             raise LargeLLMError("evaluation costs must be finite non-negative Decimals")
         for counts in (
@@ -412,9 +429,15 @@ class LargeEvaluationRun:
             self.budget.__post_init__()
         except LargeLLMError as error:
             raise LargeLLMError(f"evaluation budget snapshot is invalid: {error}") from error
-        if self.metrics != _metrics(self.outcomes):
+        attributed_spend = sum(
+            (outcome.authoritative_cost_usd for outcome in self.outcomes), start=_ZERO
+        )
+        unattributed_spend = self.budget.spent_usd - attributed_spend
+        if unattributed_spend < _ZERO:
+            raise LargeLLMError("evaluation budget spent is below outcome-attributed cost")
+        if self.metrics != _metrics(self.outcomes, unattributed_spend_usd=unattributed_spend):
             raise LargeLLMError("evaluation run metrics must be derived from outcomes")
-        if self.budget.spent_usd != self.metrics.charged_cost_usd:
+        if self.budget.spent_usd != self.metrics.total_spent_usd:
             raise LargeLLMError("evaluation run budget must match derived metrics")
         for label, value in (
             ("catalog fingerprint", self.catalog_sha256),
@@ -745,7 +768,11 @@ async def _predict_case(
     )
 
 
-def _metrics(outcomes: tuple[EvaluationOutcome, ...]) -> LargeEvaluationMetrics:
+def _metrics(
+    outcomes: tuple[EvaluationOutcome, ...],
+    *,
+    unattributed_spend_usd: Decimal = _ZERO,
+) -> LargeEvaluationMetrics:
     predictions = tuple(
         outcome.prediction for outcome in outcomes if outcome.prediction is not None
     )
@@ -773,6 +800,7 @@ def _metrics(outcomes: tuple[EvaluationOutcome, ...]) -> LargeEvaluationMetrics:
         category_counts=_counts(
             [category for outcome in outcomes for category in outcome.categories]
         ),
+        unattributed_spend_usd=unattributed_spend_usd,
     )
 
 
@@ -799,6 +827,8 @@ def _derived_run_blockers(
         blockers.add("expected_100_cases")
     if metrics.completed != len(run.outcomes):
         blockers.add("incomplete_generation")
+    if metrics.unattributed_spend_usd > _ZERO:
+        blockers.add("unattributed_spend")
     if (
         metrics.cost_unresolved
         or run.budget.unresolved_request_ids
@@ -854,6 +884,8 @@ def _blockers(
         blockers.add("expected_100_cases")
     if metrics.completed != len(cases):
         blockers.add("incomplete_generation")
+    if metrics.unattributed_spend_usd > _ZERO:
+        blockers.add("unattributed_spend")
     if metrics.cost_unresolved or budget.unresolved_request_ids or budget.reserved_usd > _ZERO:
         blockers.add("unresolved_cost")
     if budget.stop_reason == "pricing_violation":
@@ -991,8 +1023,12 @@ async def evaluate_large_baseline(
     ]
     indexed.extend(generated)
     outcomes = tuple(outcome for _index, outcome in sorted(indexed, key=lambda item: item[0]))
-    metrics = _metrics(outcomes)
     budget = await ledger.snapshot()
+    attributed_spend = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=_ZERO)
+    unattributed_spend = budget.spent_usd - attributed_spend
+    if unattributed_spend < _ZERO:
+        raise LargeLLMError("evaluation budget spent is below outcome-attributed cost")
+    metrics = _metrics(outcomes, unattributed_spend_usd=unattributed_spend)
     blockers = _blockers(
         accepted_cases,
         outcomes,

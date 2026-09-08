@@ -150,7 +150,9 @@ class ResumeState:
 
     Attributes:
         completed_case_ids: Case IDs in durable journal acceptance order.
-        prior_cost_usd: Authoritative cost charged by all accepted outcomes.
+        prior_cost_usd: Authoritative cost attributed to all accepted outcomes.
+        unattributed_spend_usd: Reconciled checkpoint spend without an accepted
+            outcome row, such as a concurrent request lost before append.
         prior_records: Canonical validated journal outcome objects.
         budget_checkpoint: Last accepted durable budget checkpoint.
         run_id: Stable evaluation-run identifier.
@@ -167,6 +169,7 @@ class ResumeState:
 
     completed_case_ids: tuple[str, ...]
     prior_cost_usd: Decimal
+    unattributed_spend_usd: Decimal
     prior_records: tuple[dict[str, object], ...]
     budget_checkpoint: BudgetSnapshot
     run_id: str
@@ -198,6 +201,16 @@ class ResumeState:
     def unresolved_request_ids(self) -> tuple[str, ...]:
         """Return sorted request IDs whose authoritative charge is unresolved."""
         return self.budget_checkpoint.unresolved_request_ids
+
+    @property
+    def attributed_spend_usd(self) -> Decimal:
+        """Return spend attributed to accepted journal outcomes."""
+        return self.prior_cost_usd
+
+    @property
+    def total_spent_usd(self) -> Decimal:
+        """Return the exact checkpoint spend retained for resume."""
+        return self.budget_checkpoint.spent_usd
 
 
 def _canonical_value(value: object) -> object:
@@ -750,11 +763,13 @@ def load_resume_state(
         assert outcome.authoritative_cost_usd is not None
         cost += outcome.authoritative_cost_usd
     assert budget_checkpoint is not None
-    if budget_checkpoint.spent_usd != cost:
-        raise LargeLLMError("request journal budget checkpoint spent does not match records")
+    unattributed_spend = budget_checkpoint.spent_usd - cost
+    if unattributed_spend < Decimal("0"):
+        raise LargeLLMError("request journal budget spent is below accepted outcome costs")
     return ResumeState(
         completed_case_ids=tuple(str(record["case_id"]) for record in records),
         prior_cost_usd=cost,
+        unattributed_spend_usd=unattributed_spend,
         prior_records=records,
         budget_checkpoint=budget_checkpoint,
         run_id=str(header["run_id"]),
@@ -825,6 +840,9 @@ def serialize_cost_csv(run: LargeEvaluationRun) -> bytes:
         "output_tokens",
         "charged_cost_usd",
         "upstream_cost_usd",
+        "attributed_spend_usd",
+        "unattributed_spend_usd",
+        "total_spent_usd",
     )
     writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator="\n")
     writer.writeheader()
@@ -853,6 +871,9 @@ def serialize_cost_csv(run: LargeEvaluationRun) -> bytes:
                     if completion is not None and completion.upstream_cost_usd is not None
                     else ""
                 ),
+                "attributed_spend_usd": canonical_money(charged),
+                "unattributed_spend_usd": "",
+                "total_spent_usd": "",
             }
         )
     writer.writerow(
@@ -867,6 +888,9 @@ def serialize_cost_csv(run: LargeEvaluationRun) -> bytes:
             "output_tokens": run.metrics.output_tokens,
             "charged_cost_usd": canonical_money(total),
             "upstream_cost_usd": "",
+            "attributed_spend_usd": canonical_money(run.metrics.attributed_spend_usd),
+            "unattributed_spend_usd": canonical_money(run.metrics.unattributed_spend_usd),
+            "total_spent_usd": canonical_money(run.metrics.total_spent_usd),
         }
     )
     return output.getvalue().encode("utf-8")
@@ -902,6 +926,9 @@ def _report_body(run: LargeEvaluationRun) -> dict[str, object]:
                 (outcome.authoritative_cost_usd for outcome in run.outcomes),
                 start=Decimal("0"),
             ),
+            "attributed_spend_usd": run.metrics.attributed_spend_usd,
+            "unattributed_spend_usd": run.metrics.unattributed_spend_usd,
+            "total_spent_usd": run.metrics.total_spent_usd,
             "metrics": asdict(run.metrics),
             "budget": asdict(run.budget),
         }
@@ -988,10 +1015,14 @@ def summarize_large_runs(runs: Sequence[LargeEvaluationRun]) -> dict[str, object
         for outcome in run.outcomes
     ):
         blockers.add("synthetic_backend")
-    total_cost = sum(
+    attributed_cost = sum(
         (outcome.authoritative_cost_usd for run in accepted for outcome in run.outcomes),
         start=Decimal("0"),
     )
+    unattributed_cost = sum(
+        (run.metrics.unattributed_spend_usd for run in accepted), start=Decimal("0")
+    )
+    total_cost = attributed_cost + unattributed_cost
     if total_cost > accepted[0].budget.cap_usd:
         blockers.add("cost_over_cap")
     reference = accepted[0]
@@ -1008,7 +1039,10 @@ def summarize_large_runs(runs: Sequence[LargeEvaluationRun]) -> dict[str, object
             "provider_slug": reference.provider_slug,
             "model_metadata_sha256": reference.model_metadata_sha256,
             "reproducibility": asdict(reproducibility),
-            "authoritative_total_cost_usd": total_cost,
+            "authoritative_total_cost_usd": attributed_cost,
+            "attributed_spend_usd": attributed_cost,
+            "unattributed_spend_usd": unattributed_cost,
+            "total_spent_usd": total_cost,
             "scientific_ready": not blockers,
             "blockers": sorted(blockers),
         }
