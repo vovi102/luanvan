@@ -397,6 +397,8 @@ def test_malformed_completion_is_rejected(raw: object, code: str) -> None:
     assert captured.value.code == code
     assert len(completions.requests) == 1
     assert asyncio.run(ledger.snapshot()).spent_usd == Decimal("0.0002")
+    assert captured.value.authoritative_cost_usd == Decimal("0.0002")
+    assert captured.value.prompt_sha256 is not None
 
 
 def test_errors_never_echo_api_key(monkeypatch: pytest.MonkeyPatch) -> None:

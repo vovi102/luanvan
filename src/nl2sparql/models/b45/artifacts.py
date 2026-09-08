@@ -31,7 +31,7 @@ from nl2sparql.models.b45.evaluate import (
     compare_large_reproducibility,
 )
 
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _HEADER_KEYS = {
@@ -74,6 +74,7 @@ _OUTCOME_KEYS = {
     "prompt_sha256",
     "attempt_count",
     "budget_checkpoint",
+    "authoritative_cost_usd",
 }
 _PREDICTION_KEYS = {
     "baseline",
@@ -149,7 +150,7 @@ class ResumeState:
 
     Attributes:
         completed_case_ids: Case IDs in durable journal acceptance order.
-        prior_cost_usd: Authoritative cost charged by completed predictions.
+        prior_cost_usd: Authoritative cost charged by all accepted outcomes.
         prior_records: Canonical validated journal outcome objects.
         budget_checkpoint: Last accepted durable budget checkpoint.
         run_id: Stable evaluation-run identifier.
@@ -521,6 +522,9 @@ def _outcome_from_record(
             raise LargeLLMError("journal outcome categories are invalid")
         values["categories"] = tuple(categories)
         values["prediction"] = _prediction_from_record(values["prediction"])
+        values["authoritative_cost_usd"] = _money_from_json(
+            values["authoritative_cost_usd"], "journal authoritative cost"
+        )
         values["budget_checkpoint"] = _budget_from_record(values["budget_checkpoint"])
         return EvaluationOutcome(**values)  # type: ignore[arg-type]
     except (LargeLLMError, TypeError, KeyError) as error:
@@ -743,15 +747,8 @@ def load_resume_state(
     for record in records:
         outcome = _outcome_from_record(record, line_number=None)
         budget_checkpoint = outcome.budget_checkpoint
-        prediction = record["prediction"]
-        if prediction is not None:
-            prediction_record = _require_mapping(prediction, "journal prediction", _PREDICTION_KEYS)
-            completion = _require_mapping(
-                prediction_record["completion"], "journal completion", _COMPLETION_KEYS
-            )
-            charged = _money_from_json(completion["charged_cost_usd"], "journal charged cost")
-            assert charged is not None
-            cost += charged
+        assert outcome.authoritative_cost_usd is not None
+        cost += outcome.authoritative_cost_usd
     assert budget_checkpoint is not None
     if budget_checkpoint.spent_usd != cost:
         raise LargeLLMError("request journal budget checkpoint spent does not match records")
@@ -837,7 +834,8 @@ def serialize_cost_csv(run: LargeEvaluationRun) -> bytes:
         if prediction is None and outcome.status == "budget_blocked":
             continue
         completion = prediction.completion if prediction is not None else None
-        charged = completion.charged_cost_usd if completion is not None else Decimal("0")
+        charged = outcome.authoritative_cost_usd
+        assert charged is not None
         total += charged
         writer.writerow(
             {
@@ -900,7 +898,10 @@ def _report_body(run: LargeEvaluationRun) -> dict[str, object]:
             "blockers": run.blockers,
             "outcome_count": len(run.outcomes),
             "outcome_counts": counts,
-            "authoritative_total_cost_usd": run.metrics.charged_cost_usd,
+            "authoritative_total_cost_usd": sum(
+                (outcome.authoritative_cost_usd for outcome in run.outcomes),
+                start=Decimal("0"),
+            ),
             "metrics": asdict(run.metrics),
             "budget": asdict(run.budget),
         }
@@ -987,7 +988,10 @@ def summarize_large_runs(runs: Sequence[LargeEvaluationRun]) -> dict[str, object
         for outcome in run.outcomes
     ):
         blockers.add("synthetic_backend")
-    total_cost = sum((run.metrics.charged_cost_usd for run in accepted), start=Decimal("0"))
+    total_cost = sum(
+        (outcome.authoritative_cost_usd for run in accepted for outcome in run.outcomes),
+        start=Decimal("0"),
+    )
     if total_cost > accepted[0].budget.cap_usd:
         blockers.add("cost_over_cap")
     reference = accepted[0]

@@ -15,6 +15,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from nl2sparql.models.b12.contracts import ChatMessage
+from nl2sparql.models.b12.prompts import prompt_sha256
 from nl2sparql.models.b45.budget import BudgetLedger
 from nl2sparql.models.b45.contracts import (
     _LIVE_COMPLETION_MARKER,
@@ -39,6 +40,8 @@ class OpenRouterRequestError(LargeLLMError):
         code: Stable machine-readable failure code.
         attempt_count: Number of remote attempts completed before the failure.
         prompt_sha256: Optional non-secret SHA-256 of the exact prompt.
+        authoritative_cost_usd: Billed cost reconciled before this failure, or zero
+            when the failure happened before billing was known.
     """
 
     def __init__(
@@ -47,12 +50,15 @@ class OpenRouterRequestError(LargeLLMError):
         *,
         attempt_count: int = 0,
         prompt_sha256: str | None = None,
+        authoritative_cost_usd: Decimal = Decimal("0"),
     ) -> None:
         """Create a sanitized OpenRouter error.
 
         Args:
             code: Non-empty stable failure code.
             attempt_count: Non-negative count of completed SDK attempts.
+            authoritative_cost_usd: Billed cost already reconciled, or zero when
+                billing was not available.
 
         Raises:
             ValueError: If ``code`` is empty or ``attempt_count`` is negative.
@@ -67,9 +73,16 @@ class OpenRouterRequestError(LargeLLMError):
             raise ValueError("OpenRouter attempt count must be a non-negative integer")
         if prompt_sha256 is not None and not re.fullmatch(r"[0-9a-f]{64}", prompt_sha256):
             raise ValueError("OpenRouter prompt fingerprint must be a lowercase SHA-256 digest")
+        if (
+            not isinstance(authoritative_cost_usd, Decimal)
+            or not authoritative_cost_usd.is_finite()
+            or authoritative_cost_usd < Decimal("0")
+        ):
+            raise ValueError("OpenRouter authoritative cost must be a finite non-negative Decimal")
         self.code = code
         self.attempt_count = attempt_count
         self.prompt_sha256 = prompt_sha256
+        self.authoritative_cost_usd = authoritative_cost_usd
         label = code.replace("_", " ")
         super().__init__(f"OpenRouter {label} after {attempt_count} attempt(s)")
 
@@ -309,11 +322,12 @@ class OpenRouterTransport:
                 retry wait; the reservation remains held.
         """
         self._ensure_config_matches(config)
+        request = _request_payload(messages, config)
+        prompt_fingerprint = prompt_sha256(messages)
         reservation = await self._ledger.reserve(request_id, messages)
         if reservation is None:
-            raise OpenRouterRequestError("budget_blocked")
+            raise OpenRouterRequestError("budget_blocked", prompt_sha256=prompt_fingerprint)
 
-        request = _request_payload(messages, config)
         retry_policy = RetryPolicy(max_attempts=config.max_attempts)
         start_ns = _clock_value(self._clock_ns, "clock_invalid")
         attempt = 0
@@ -333,6 +347,7 @@ class OpenRouterTransport:
                     terminal_error = OpenRouterRequestError(
                         _request_error_code(error, exhausted=attempt >= retry_policy.max_attempts),
                         attempt_count=attempt,
+                        prompt_sha256=prompt_fingerprint,
                     )
                 else:
                     try:
@@ -342,7 +357,9 @@ class OpenRouterTransport:
                     except OpenRouterRequestError as delay_error:
                         await self._ledger.hold(reservation, "retry_delay_invalid")
                         terminal_error = OpenRouterRequestError(
-                            delay_error.code, attempt_count=delay_error.attempt_count
+                            delay_error.code,
+                            attempt_count=delay_error.attempt_count,
+                            prompt_sha256=prompt_fingerprint,
                         )
             if terminal_error is not None:
                 raise terminal_error
@@ -360,26 +377,57 @@ class OpenRouterTransport:
         latency_ms = (end_ns - start_ns) / 1_000_000
         if not math.isfinite(latency_ms) or latency_ms < 0.0:
             await self._ledger.hold(reservation, "clock_invalid")
-            raise OpenRouterRequestError("clock_invalid", attempt_count=attempt)
+            raise OpenRouterRequestError(
+                "clock_invalid", attempt_count=attempt, prompt_sha256=prompt_fingerprint
+            )
 
         try:
             charged_cost = _authoritative_cost(response, attempt_count=attempt)
-        except OpenRouterRequestError:
+        except OpenRouterRequestError as error:
             await self._ledger.hold(reservation, "authoritative_cost_invalid")
-            raise
+            raise OpenRouterRequestError(
+                error.code,
+                attempt_count=error.attempt_count,
+                prompt_sha256=prompt_fingerprint,
+            ) from None
 
         await self._ledger.reconcile(reservation, charged_cost)
-        completion_values = _validated_completion_values(
-            response,
-            config,
-            charged_cost=charged_cost,
-            latency_ms=latency_ms,
-            attempt_count=attempt,
-        )
+        billed_error: OpenRouterRequestError | None = None
+        completion: RemoteCompletion | None = None
         try:
-            return _openrouter_completion(completion_values, _LIVE_COMPLETION_MARKER)
+            completion_values = _validated_completion_values(
+                response,
+                config,
+                charged_cost=charged_cost,
+                latency_ms=latency_ms,
+                attempt_count=attempt,
+            )
+            completion = _openrouter_completion(completion_values, _LIVE_COMPLETION_MARKER)
+        except OpenRouterRequestError as error:
+            billed_error = OpenRouterRequestError(
+                error.code,
+                attempt_count=error.attempt_count,
+                prompt_sha256=prompt_fingerprint,
+                authoritative_cost_usd=charged_cost,
+            )
         except LargeLLMError:
-            raise OpenRouterRequestError("invalid_response", attempt_count=attempt) from None
+            billed_error = OpenRouterRequestError(
+                "invalid_response",
+                attempt_count=attempt,
+                prompt_sha256=prompt_fingerprint,
+                authoritative_cost_usd=charged_cost,
+            )
+        except Exception:
+            billed_error = OpenRouterRequestError(
+                "invalid_response",
+                attempt_count=attempt,
+                prompt_sha256=prompt_fingerprint,
+                authoritative_cost_usd=charged_cost,
+            )
+        if billed_error is not None:
+            raise billed_error
+        assert completion is not None
+        return completion
 
     def _ensure_config_matches(self, config: LargeLLMConfig) -> None:
         if (

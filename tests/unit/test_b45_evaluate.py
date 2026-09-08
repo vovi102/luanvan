@@ -324,6 +324,10 @@ def test_metrics_use_exact_prediction_accounting_and_sorted_counts() -> None:
         assert run.metrics.input_tokens == 20
         assert run.metrics.output_tokens == 10
         assert run.metrics.charged_cost_usd == Decimal("0.0003")
+        assert tuple(outcome.authoritative_cost_usd for outcome in run.outcomes) == (
+            Decimal("0.0001"),
+            Decimal("0.0002"),
+        )
         assert run.metrics.cost_per_1k_queries_usd == Decimal("0.15")
         assert run.metrics.extraction_status_counts == (("ok", 2),)
         assert run.metrics.difficulty_counts == (("easy", 1), ("medium", 1))

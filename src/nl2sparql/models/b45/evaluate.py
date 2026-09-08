@@ -66,6 +66,8 @@ class EvaluationOutcome:
         training_accepted: Whether B5 training provenance was accepted.
         prompt_sha256: Non-secret prompt fingerprint for attempted or blocked requests.
         attempt_count: Number of safe transport attempts completed.
+        authoritative_cost_usd: Exact billed cost for this outcome, independent of
+            whether a prediction was produced.
         budget_checkpoint: Durable budget state after this outcome was accepted.
     """
 
@@ -92,6 +94,7 @@ class EvaluationOutcome:
     prompt_sha256: str | None
     attempt_count: int
     budget_checkpoint: BudgetSnapshot
+    authoritative_cost_usd: Decimal | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.case_id, str) or not self.case_id:
@@ -139,6 +142,23 @@ class EvaluationOutcome:
             raise LargeLLMError("evaluation outcome attempt count is invalid")
         if not isinstance(self.budget_checkpoint, BudgetSnapshot):
             raise LargeLLMError("evaluation outcome budget checkpoint is invalid")
+        expected_cost = (
+            self.prediction.completion.charged_cost_usd
+            if isinstance(self.prediction, LargeLLMPrediction)
+            else _ZERO
+        )
+        if self.authoritative_cost_usd is None:
+            object.__setattr__(self, "authoritative_cost_usd", expected_cost)
+        if (
+            not isinstance(self.authoritative_cost_usd, Decimal)
+            or not self.authoritative_cost_usd.is_finite()
+            or self.authoritative_cost_usd < _ZERO
+        ):
+            raise LargeLLMError(
+                "evaluation outcome authoritative cost must be a finite non-negative Decimal"
+            )
+        if self.prediction is not None and self.authoritative_cost_usd != expected_cost:
+            raise LargeLLMError("evaluation outcome authoritative cost disagrees with prediction")
         if not isinstance(self.gold_sql, str) or not self.gold_sql.strip():
             raise LargeLLMError("evaluation outcome gold SQL must not be empty")
         if self.difficulty not in {"easy", "medium", "hard"}:
@@ -626,6 +646,7 @@ def _outcome_from_prediction(
         prompt_sha256=prediction.prompt_sha256,
         attempt_count=prediction.completion.attempt_count,
         budget_checkpoint=budget_checkpoint,
+        authoritative_cost_usd=prediction.completion.charged_cost_usd,
     )
 
 
@@ -644,6 +665,13 @@ def _failure_outcome(
     attempt_count = getattr(error, "attempt_count", 0)
     if not isinstance(attempt_count, int) or isinstance(attempt_count, bool) or attempt_count < 0:
         attempt_count = 0
+    authoritative_cost = getattr(error, "authoritative_cost_usd", _ZERO)
+    if (
+        not isinstance(authoritative_cost, Decimal)
+        or not authoritative_cost.is_finite()
+        or authoritative_cost < _ZERO
+    ):
+        authoritative_cost = _ZERO
     status: OutcomeStatus
     if code == "budget_blocked":
         status = "budget_blocked"
@@ -675,6 +703,7 @@ def _failure_outcome(
         prompt_sha256=prompt,
         attempt_count=attempt_count,
         budget_checkpoint=budget_checkpoint,
+        authoritative_cost_usd=authoritative_cost,
     )
 
 
@@ -723,9 +752,7 @@ def _metrics(outcomes: tuple[EvaluationOutcome, ...]) -> LargeEvaluationMetrics:
     latencies = [prediction.latency_ms for prediction in predictions]
     input_tokens = sum(prediction.completion.input_tokens for prediction in predictions)
     output_tokens = sum(prediction.completion.output_tokens for prediction in predictions)
-    charged_cost = sum(
-        (prediction.completion.charged_cost_usd for prediction in predictions), start=_ZERO
-    )
+    charged_cost = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=_ZERO)
     return LargeEvaluationMetrics(
         total=len(outcomes),
         completed=sum(outcome.status == "completed" for outcome in outcomes),

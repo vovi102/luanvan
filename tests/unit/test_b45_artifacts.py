@@ -7,6 +7,7 @@ import os
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -28,7 +29,7 @@ from nl2sparql.models.b45.evaluate import (
     LargeEvaluationRun,
     evaluate_large_baseline,
 )
-from nl2sparql.models.b45.openrouter import ModelMetadataEvidence
+from nl2sparql.models.b45.openrouter import ModelMetadataEvidence, OpenRouterTransport
 
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
 INPUT_SHA256 = "f" * 64
@@ -644,6 +645,149 @@ def test_interruption_resumes_without_scheduling_the_accepted_case(tmp_path: Pat
         assert resume.prior_cost_usd == Decimal("0.0001")
         assert second.calls == ["case-2"]
         assert [outcome.case_id for outcome in run.outcomes] == ["case-1", "case-2"]
+
+    asyncio.run(scenario())
+
+
+def test_billed_malformed_live_response_publishes_and_resumes_exact_spend(
+    tmp_path: Path,
+) -> None:
+    cases = (
+        EvaluationCase(
+            case_id="case-1",
+            question="List addresses",
+            gold_sql=SAFE_SQL,
+            difficulty="easy",
+            categories=("entity_lookup",),
+            input_sha256=INPUT_SHA256,
+        ),
+    )
+    malformed_response = SimpleNamespace(
+        id="gen-malformed",
+        model=config().model_id,
+        provider="deepinfra",
+        system_fingerprint="fp-test",
+        choices=[],
+        usage=SimpleNamespace(
+            prompt_tokens=10,
+            completion_tokens=5,
+            cost="0.0100",
+            cost_details=SimpleNamespace(upstream_inference_cost="0.0080"),
+        ),
+    )
+
+    class FakeCompletions:
+        async def create(self, **_kwargs: object) -> object:
+            return malformed_response
+
+    class LiveFailureBaseline:
+        def __init__(self) -> None:
+            self.config = config()
+            self.budget_ledger = BudgetLedger(self.config)
+            self.evaluation_evidence = LargeBaselineEvidence(
+                baseline="b4",
+                catalog_sha256=CATALOG_SHA256,
+                summary_sha256=SUMMARY_SHA256,
+                config_sha256=self.config.sha256,
+                training_sha256=None,
+                training_accepted=False,
+                model_id=self.config.model_id,
+                provider_slug="deepinfra",
+            )
+            sdk = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+            self.transport = OpenRouterTransport(
+                sdk=sdk,
+                ledger=self.budget_ledger,
+                clock_ns=iter([0, 1_000_000]).__next__,
+            )
+            self.calls: list[str] = []
+
+        async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+            self.calls.append(request_id)
+            await self.transport.complete(
+                (ChatMessage("user", question),), self.config, request_id=request_id
+            )
+            raise AssertionError("malformed response unexpectedly produced a prediction")
+
+    paths = artifact_paths(tmp_path)
+    journal = artifacts.RequestJournal(
+        paths.request_log,
+        run_id="run-1",
+        baseline="b4",
+        input_sha256=INPUT_SHA256,
+        config_sha256=config().sha256,
+        catalog_sha256=CATALOG_SHA256,
+        summary_sha256=SUMMARY_SHA256,
+        training_sha256=None,
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256=METADATA_SHA256,
+    )
+
+    async def scenario() -> None:
+        baseline = LiveFailureBaseline()
+        run = await evaluate_large_baseline(
+            cases,
+            baseline,
+            run_id="run-1",
+            concurrency=1,
+            model_metadata=ModelMetadataEvidence(
+                model_id=config().model_id,
+                provider_slug="deepinfra",
+                context_length=131_072,
+                supported_parameters=("max_tokens", "seed", "temperature"),
+                prompt_price_per_million_usd=Decimal("0.50"),
+                completion_price_per_million_usd=Decimal("1.00"),
+                metadata_sha256=METADATA_SHA256,
+            ),
+            journal=journal,
+        )
+        assert run.outcomes[0].status == "request_failed"
+        assert run.outcomes[0].authoritative_cost_usd == Decimal("0.0100")
+        assert run.metrics.charged_cost_usd == Decimal("0.0100")
+        assert run.budget.spent_usd == Decimal("0.0100")
+
+        artifacts.publish_large_run(run, paths=paths)
+        row = json.loads(paths.request_log.read_text(encoding="utf-8").splitlines()[1])
+        assert row["authoritative_cost_usd"] == "0.01"
+        assert b"request,b4,run-1,case-1,request_failed,,,,0.01,\n" in (paths.cost_csv.read_bytes())
+        assert (
+            json.loads(paths.report.read_text(encoding="utf-8"))["authoritative_total_cost_usd"]
+            == "0.01"
+        )
+        resume = artifacts.load_resume_state(
+            paths.request_log,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=config().sha256,
+            expected_run_id="run-1",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+        assert resume.prior_cost_usd == Decimal("0.0100")
+        assert resume.budget_checkpoint.spent_usd == Decimal("0.0100")
+
+        resumed = LiveFailureBaseline()
+        resumed.budget_ledger = BudgetLedger.from_checkpoint(
+            resumed.config, resume.budget_checkpoint
+        )
+        resumed_run = await evaluate_large_baseline(
+            cases,
+            resumed,
+            run_id="run-1",
+            concurrency=1,
+            model_metadata=ModelMetadataEvidence(
+                model_id=config().model_id,
+                provider_slug="deepinfra",
+                context_length=131_072,
+                supported_parameters=("max_tokens", "seed", "temperature"),
+                prompt_price_per_million_usd=Decimal("0.50"),
+                completion_price_per_million_usd=Decimal("1.00"),
+                metadata_sha256=METADATA_SHA256,
+            ),
+            completed_outcomes=resume.completed_outcomes,
+        )
+        assert resumed.calls == []
+        assert resumed_run.budget.spent_usd == Decimal("0.0100")
+        assert resumed_run.metrics.charged_cost_usd == Decimal("0.0100")
 
     asyncio.run(scenario())
 
