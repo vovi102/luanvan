@@ -115,11 +115,14 @@ async def _predict(
         messages = build_messages(question, summary, examples=examples)
     except SmallLLMError as exc:
         raise LargeLLMError(str(exc)) from exc
+    prompt_fingerprint = prompt_sha256(messages)
 
     start = clock_ns()
     try:
         completion = await transport.complete(messages, config, request_id=request_id)
-    except LargeLLMError:
+    except LargeLLMError as exc:
+        if getattr(exc, "prompt_sha256", None) is None:
+            exc.prompt_sha256 = prompt_fingerprint
         raise
     except Exception as exc:
         raise LargeLLMError(f"remote completion failed ({type(exc).__name__})") from exc
@@ -143,7 +146,7 @@ async def _predict(
         completion=completion,
         catalog_sha256=summary.catalog_sha256,
         summary_sha256=summary.summary_sha256,
-        prompt_sha256=prompt_sha256(messages),
+        prompt_sha256=prompt_fingerprint,
         config_sha256=config.sha256,
         latency_ms=latency_ms,
         training_sha256=training_sha256,

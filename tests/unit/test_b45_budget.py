@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from decimal import Decimal
 
 import pytest
 
 from nl2sparql.models.b12.contracts import ChatMessage
 from nl2sparql.models.b45 import LargeLLMConfig, LargeLLMError, ProviderPolicy
-from nl2sparql.models.b45.budget import BudgetLedger, BudgetReservation, conservative_request_cost
+from nl2sparql.models.b45.budget import (
+    BudgetLedger,
+    BudgetReservation,
+    BudgetSnapshot,
+    conservative_request_cost,
+)
 
 
 def config(cap: str = "0.001") -> LargeLLMConfig:
@@ -77,6 +83,44 @@ def test_unknown_cost_holds_reservation_and_blocks_future_spend() -> None:
         snapshot = await ledger.hold(reservation, "missing_usage_cost")
         assert snapshot.unresolved_request_ids == ("case-1",)
         assert await ledger.reserve("case-2", messages) is None
+
+    asyncio.run(scenario())
+
+
+def test_checkpoint_rehydrates_spent_unresolved_ceilings_and_stop_reason() -> None:
+    async def scenario() -> None:
+        selected_config = config("0.001")
+        checkpoint = BudgetSnapshot(
+            cap_usd=selected_config.max_cost_usd,
+            spent_usd=Decimal("0.00055"),
+            reserved_usd=Decimal("0.0004"),
+            remaining_usd=Decimal("0.00005"),
+            unresolved_request_ids=("case-1",),
+            unresolved_reservations=(BudgetReservation("case-1", Decimal("0.0004")),),
+        )
+
+        ledger = BudgetLedger.from_checkpoint(selected_config, checkpoint)
+        snapshot = await ledger.snapshot()
+
+        assert snapshot.spent_usd == Decimal("0.00055")
+        assert snapshot.reserved_usd == Decimal("0.0004")
+        assert snapshot.unresolved_request_ids == ("case-1",)
+        assert snapshot.unresolved_reservations == (BudgetReservation("case-1", Decimal("0.0004")),)
+        assert await ledger.reserve("case-2", (ChatMessage("user", "x"),)) is None
+
+        stopped = BudgetLedger.from_checkpoint(
+            selected_config,
+            replace(
+                checkpoint,
+                reserved_usd=Decimal("0"),
+                remaining_usd=Decimal("0.00045"),
+                unresolved_request_ids=(),
+                unresolved_reservations=(),
+                stop_reason="pricing_violation",
+            ),
+        )
+        assert (await stopped.snapshot()).stop_reason == "pricing_violation"
+        assert await stopped.reserve("case-2", (ChatMessage("user", "x"),)) is None
 
     asyncio.run(scenario())
 

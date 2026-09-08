@@ -8,8 +8,9 @@ from decimal import Decimal
 import pytest
 
 from nl2sparql.models.b12 import EvaluationCase
+from nl2sparql.models.b12.contracts import ChatMessage
 from nl2sparql.models.b45 import BudgetLedger, LargeLLMConfig, ProviderPolicy
-from nl2sparql.models.b45.budget import BudgetSnapshot
+from nl2sparql.models.b45.budget import BudgetReservation, BudgetSnapshot
 from nl2sparql.models.b45.contracts import (
     LargeBaselineEvidence,
     LargeLLMPrediction,
@@ -129,7 +130,11 @@ class FailingSecondBaseline(DelayedBaseline):
 
     async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
         if request_id == "case-2":
-            raise OpenRouterRequestError("rate_limit_exhausted", attempt_count=3)
+            raise OpenRouterRequestError(
+                "rate_limit_exhausted",
+                attempt_count=3,
+                prompt_sha256="c" * 64,
+            )
         return await super().predict_detailed(question, request_id=request_id)
 
 
@@ -159,6 +164,26 @@ def outcome_identity(question: str, *, input_sha256: str | None = None) -> dict[
         "model_id": selected.model_id,
         "provider_slug": selected.provider.provider_slug,
     }
+
+
+def budget_checkpoint(
+    *,
+    spent_usd: Decimal = Decimal("0"),
+    reserved_usd: Decimal = Decimal("0"),
+    unresolved_reservations: tuple[BudgetReservation, ...] = (),
+    stop_reason: str | None = None,
+) -> BudgetSnapshot:
+    return BudgetSnapshot(
+        cap_usd=Decimal("20.00"),
+        spent_usd=spent_usd,
+        reserved_usd=reserved_usd,
+        remaining_usd=Decimal("20.00") - spent_usd - reserved_usd,
+        unresolved_request_ids=tuple(
+            reservation.request_id for reservation in unresolved_reservations
+        ),
+        stop_reason=stop_reason,
+        unresolved_reservations=unresolved_reservations,
+    )
 
 
 def test_evaluation_preserves_case_order_under_concurrency() -> None:
@@ -274,10 +299,15 @@ def test_metrics_use_exact_prediction_accounting_and_sorted_counts() -> None:
     class AccountingBaseline(DelayedBaseline):
         async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
             values = {
-                "case-1": (10.0, Decimal("0.001")),
-                "case-2": (30.0, Decimal("0.002")),
+                "case-1": (10.0, Decimal("0.0001")),
+                "case-2": (30.0, Decimal("0.0002")),
             }
             latency, cost = values[request_id]
+            reservation = await self.budget_ledger.reserve(
+                request_id, (ChatMessage("user", question),)
+            )
+            assert reservation is not None
+            await self.budget_ledger.reconcile(reservation, cost)
             return prediction_for(question, latency_ms=latency, cost=cost)
 
     async def scenario() -> None:
@@ -293,8 +323,8 @@ def test_metrics_use_exact_prediction_accounting_and_sorted_counts() -> None:
         assert run.metrics.p95_latency_ms == pytest.approx(29.0)
         assert run.metrics.input_tokens == 20
         assert run.metrics.output_tokens == 10
-        assert run.metrics.charged_cost_usd == Decimal("0.003")
-        assert run.metrics.cost_per_1k_queries_usd == Decimal("1.5")
+        assert run.metrics.charged_cost_usd == Decimal("0.0003")
+        assert run.metrics.cost_per_1k_queries_usd == Decimal("0.15")
         assert run.metrics.extraction_status_counts == (("ok", 2),)
         assert run.metrics.difficulty_counts == (("easy", 1), ("medium", 1))
         assert run.metrics.category_counts == (("entity_lookup", 2), ("ranking", 1))
@@ -326,9 +356,9 @@ def test_pricing_violation_blocker_comes_from_public_budget_checkpoint() -> None
         async def snapshot(self) -> BudgetSnapshot:
             return BudgetSnapshot(
                 cap_usd=Decimal("20"),
-                spent_usd=Decimal("0.001"),
+                spent_usd=Decimal("0"),
                 reserved_usd=Decimal("0"),
-                remaining_usd=Decimal("19.999"),
+                remaining_usd=Decimal("20"),
                 unresolved_request_ids=(),
                 stop_reason="pricing_violation",
             )
@@ -361,6 +391,13 @@ def test_completed_outcome_is_validated_and_not_scheduled() -> None:
             status="completed",
             prediction=prediction_for(cases[0].question),
             safe_error_code=None,
+            model_metadata_sha256=metadata().metadata_sha256,
+            source_synthetic=cases[0].synthetic,
+            source_trusted=cases[0]._trusted_source,
+            training_accepted=False,
+            prompt_sha256="c" * 64,
+            attempt_count=1,
+            budget_checkpoint=budget_checkpoint(),
         )
         baseline = DelayedBaseline({"case-2": 0.0})
         run = await evaluate_large_baseline(
@@ -383,6 +420,13 @@ def test_completed_outcome_is_validated_and_not_scheduled() -> None:
             status="completed",
             prediction=prediction_for(cases[0].question),
             safe_error_code=None,
+            model_metadata_sha256=metadata().metadata_sha256,
+            source_synthetic=cases[0].synthetic,
+            source_trusted=cases[0]._trusted_source,
+            training_accepted=False,
+            prompt_sha256="c" * 64,
+            attempt_count=1,
+            budget_checkpoint=budget_checkpoint(),
         )
         with pytest.raises(ValueError, match="source case"):
             await evaluate_large_baseline(
@@ -393,6 +437,78 @@ def test_completed_outcome_is_validated_and_not_scheduled() -> None:
                 model_metadata=metadata(),
                 completed_outcomes=(stale,),
             )
+
+    asyncio.run(scenario())
+
+
+def test_resume_requires_rehydrated_budget_before_scheduling() -> None:
+    class BudgetAwareBaseline(DelayedBaseline):
+        async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+            reservation = await self.budget_ledger.reserve(
+                request_id, (ChatMessage("user", question),)
+            )
+            if reservation is None:
+                raise OpenRouterRequestError(
+                    "budget_blocked",
+                    attempt_count=0,
+                    prompt_sha256="c" * 64,
+                )
+            self.calls.append(request_id)
+            return prediction_for(question)
+
+    async def scenario() -> None:
+        cases = two_synthetic_cases()
+        prior_checkpoint = BudgetSnapshot(
+            cap_usd=config().max_cost_usd,
+            spent_usd=Decimal("19.9990"),
+            reserved_usd=Decimal("0.0005"),
+            remaining_usd=Decimal("0.0005"),
+            unresolved_request_ids=("case-x",),
+            unresolved_reservations=(BudgetReservation("case-x", Decimal("0.0005")),),
+        )
+        completed = EvaluationOutcome(
+            case_id="case-1",
+            **outcome_identity(cases[0].question),
+            gold_sql=cases[0].gold_sql,
+            difficulty=cases[0].difficulty,
+            categories=cases[0].categories,
+            status="completed",
+            prediction=prediction_for(cases[0].question, cost=Decimal("19.9990")),
+            safe_error_code=None,
+            model_metadata_sha256=metadata().metadata_sha256,
+            source_synthetic=cases[0].synthetic,
+            source_trusted=cases[0]._trusted_source,
+            training_accepted=False,
+            prompt_sha256="c" * 64,
+            attempt_count=1,
+            budget_checkpoint=prior_checkpoint,
+        )
+
+        stale_budget = BudgetAwareBaseline({"case-2": 0.0})
+        with pytest.raises(ValueError, match="budget checkpoint"):
+            await evaluate_large_baseline(
+                cases,
+                stale_budget,
+                run_id="run-1",
+                concurrency=2,
+                model_metadata=metadata(),
+                completed_outcomes=(completed,),
+            )
+        assert stale_budget.calls == []
+
+        resumed = BudgetAwareBaseline({"case-2": 0.0})
+        resumed.budget_ledger = BudgetLedger.from_checkpoint(resumed.config, prior_checkpoint)
+        run = await evaluate_large_baseline(
+            cases,
+            resumed,
+            run_id="run-1",
+            concurrency=2,
+            model_metadata=metadata(),
+            completed_outcomes=(completed,),
+        )
+        assert resumed.calls == []
+        assert run.outcomes[1].status == "budget_blocked"
+        assert run.budget == prior_checkpoint
 
     asyncio.run(scenario())
 
@@ -524,6 +640,7 @@ def empty_metrics() -> LargeEvaluationMetrics:
 def run_with_sql(
     run_id: str, sql: str, *, input_sha256: str | None = "f" * 64
 ) -> LargeEvaluationRun:
+    checkpoint = empty_budget()
     outcome = EvaluationOutcome(
         case_id="case-1",
         **outcome_identity("List known addresses", input_sha256=input_sha256),
@@ -533,23 +650,29 @@ def run_with_sql(
         status="completed",
         prediction=prediction_for("List known addresses", raw_sql=sql),
         safe_error_code=None,
+        model_metadata_sha256="e" * 64,
+        source_synthetic=False,
+        source_trusted=input_sha256 is not None,
+        training_accepted=False,
+        prompt_sha256="c" * 64,
+        attempt_count=1,
+        budget_checkpoint=checkpoint,
     )
+    blockers = ["expected_100_cases", "non_three_run_evidence", "synthetic_backend"]
+    if input_sha256 is None:
+        blockers.append("trusted_test_set_provenance_missing")
     return LargeEvaluationRun(
         run_id=run_id,
         baseline="b4",
         outcomes=(outcome,),
         metrics=empty_metrics(),
         scientific_ready=False,
-        blockers=(
-            ("non_three_run_evidence",)
-            if input_sha256 is not None
-            else ("non_three_run_evidence", "trusted_test_set_provenance_missing")
-        ),
+        blockers=tuple(sorted(blockers)),
         seed=42,
         generated_at_utc="2026-09-07T00:00:00Z",
         input_sha256=input_sha256,
         config_sha256=config().sha256,
-        budget=empty_budget(),
+        budget=checkpoint,
         catalog_sha256="a" * 64,
         summary_sha256="b" * 64,
         training_sha256=None,
@@ -560,6 +683,7 @@ def run_with_sql(
 
 
 def run_with_failure(run_id: str) -> LargeEvaluationRun:
+    checkpoint = empty_budget()
     outcome = EvaluationOutcome(
         case_id="case-1",
         **outcome_identity("List known addresses", input_sha256="f" * 64),
@@ -569,6 +693,13 @@ def run_with_failure(run_id: str) -> LargeEvaluationRun:
         status="request_failed",
         prediction=None,
         safe_error_code="rate_limit_exhausted",
+        model_metadata_sha256="e" * 64,
+        source_synthetic=False,
+        source_trusted=True,
+        training_accepted=False,
+        prompt_sha256="c" * 64,
+        attempt_count=3,
+        budget_checkpoint=checkpoint,
     )
     metrics = LargeEvaluationMetrics(
         total=1,
@@ -593,12 +724,12 @@ def run_with_failure(run_id: str) -> LargeEvaluationRun:
         outcomes=(outcome,),
         metrics=metrics,
         scientific_ready=False,
-        blockers=("incomplete_generation", "non_three_run_evidence"),
+        blockers=("expected_100_cases", "incomplete_generation", "non_three_run_evidence"),
         seed=42,
         generated_at_utc="2026-09-07T00:00:00Z",
         input_sha256="f" * 64,
         config_sha256=config().sha256,
-        budget=empty_budget(),
+        budget=checkpoint,
         catalog_sha256="a" * 64,
         summary_sha256="b" * 64,
         training_sha256=None,

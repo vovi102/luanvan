@@ -16,6 +16,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from nl2sparql.models.b12.contracts import SelectedExample, SmallLLMError
+from nl2sparql.models.b45.budget import BudgetReservation, BudgetSnapshot
 from nl2sparql.models.b45.contracts import (
     _LIVE_COMPLETION_MARKER,
     LargeLLMError,
@@ -50,7 +51,6 @@ _HEADER_KEYS = {
 _OUTCOME_KEYS = {
     "record_type",
     "run_id",
-    "model_metadata_sha256",
     "case_id",
     "question_sha256",
     "gold_sql",
@@ -67,6 +67,13 @@ _OUTCOME_KEYS = {
     "training_sha256",
     "model_id",
     "provider_slug",
+    "model_metadata_sha256",
+    "source_synthetic",
+    "source_trusted",
+    "training_accepted",
+    "prompt_sha256",
+    "attempt_count",
+    "budget_checkpoint",
 }
 _PREDICTION_KEYS = {
     "baseline",
@@ -102,6 +109,16 @@ _COMPLETION_KEYS = {
     "synthetic_backend",
 }
 _EXAMPLE_KEYS = {"record_id", "question", "sql", "score"}
+_BUDGET_KEYS = {
+    "cap_usd",
+    "spent_usd",
+    "reserved_usd",
+    "remaining_usd",
+    "unresolved_request_ids",
+    "stop_reason",
+    "unresolved_reservations",
+}
+_RESERVATION_KEYS = {"request_id", "maximum_cost_usd"}
 
 
 @dataclass(frozen=True)
@@ -134,11 +151,33 @@ class ResumeState:
         completed_case_ids: Case IDs in durable journal acceptance order.
         prior_cost_usd: Authoritative cost charged by completed predictions.
         prior_records: Canonical validated journal outcome objects.
+        budget_checkpoint: Last accepted durable budget checkpoint.
+        run_id: Stable evaluation-run identifier.
+        baseline: Baseline identity.
+        input_sha256: Exact input snapshot fingerprint.
+        config_sha256: Exact generation-configuration fingerprint.
+        catalog_sha256: Exact catalog snapshot fingerprint.
+        summary_sha256: Exact compiled catalog-summary fingerprint.
+        training_sha256: Exact B5 training fingerprint, or ``None`` for B4.
+        model_id: Exact configured model identifier.
+        provider_slug: Exact configured provider.
+        model_metadata_sha256: Accepted endpoint metadata fingerprint.
     """
 
     completed_case_ids: tuple[str, ...]
     prior_cost_usd: Decimal
     prior_records: tuple[dict[str, object], ...]
+    budget_checkpoint: BudgetSnapshot
+    run_id: str
+    baseline: str
+    input_sha256: str | None
+    config_sha256: str
+    catalog_sha256: str
+    summary_sha256: str
+    training_sha256: str | None
+    model_id: str
+    provider_slug: str
+    model_metadata_sha256: str | None
 
     @property
     def completed_outcomes(self) -> tuple[EvaluationOutcome, ...]:
@@ -157,13 +196,7 @@ class ResumeState:
     @property
     def unresolved_request_ids(self) -> tuple[str, ...]:
         """Return sorted request IDs whose authoritative charge is unresolved."""
-        return tuple(
-            sorted(
-                str(record["case_id"])
-                for record in self.prior_records
-                if record["status"] == "cost_unresolved"
-            )
-        )
+        return self.budget_checkpoint.unresolved_request_ids
 
 
 def _canonical_value(value: object) -> object:
@@ -355,12 +388,15 @@ def _outcome_record(
 ) -> dict[str, object]:
     if not isinstance(outcome, EvaluationOutcome):
         raise LargeLLMError("request journal requires an EvaluationOutcome")
-    return {
+    record = {
         "record_type": "outcome",
         "run_id": run_id,
         "model_metadata_sha256": model_metadata_sha256,
         **_canonical_value(asdict(outcome)),
     }
+    if record["model_metadata_sha256"] != model_metadata_sha256:
+        raise LargeLLMError("request journal model metadata fingerprint mismatch")
+    return record
 
 
 def _money_from_json(value: object, label: str, *, optional: bool = False) -> Decimal | None:
@@ -375,6 +411,53 @@ def _money_from_json(value: object, label: str, *, optional: bool = False) -> De
     if not accepted.is_finite() or canonical_money(accepted) != value:
         raise LargeLLMError(f"{label} must be a canonical Decimal string")
     return accepted
+
+
+def _reservation_from_record(value: object) -> BudgetReservation:
+    raw = _require_mapping(value, "journal unresolved reservation", _RESERVATION_KEYS)
+    maximum = _money_from_json(raw["maximum_cost_usd"], "journal unresolved reservation ceiling")
+    assert maximum is not None
+    try:
+        return BudgetReservation(
+            request_id=raw["request_id"],  # type: ignore[arg-type]
+            maximum_cost_usd=maximum,
+        )
+    except (LargeLLMError, TypeError) as error:
+        raise LargeLLMError(f"journal unresolved reservation is invalid: {error}") from error
+
+
+def _budget_from_record(value: object) -> BudgetSnapshot:
+    raw = _require_mapping(value, "journal budget checkpoint", _BUDGET_KEYS)
+    unresolved_ids = raw["unresolved_request_ids"]
+    if not isinstance(unresolved_ids, list) or any(
+        not isinstance(request_id, str) for request_id in unresolved_ids
+    ):
+        raise LargeLLMError("journal budget unresolved request IDs are invalid")
+    reservations = raw["unresolved_reservations"]
+    if not isinstance(reservations, list):
+        raise LargeLLMError("journal budget unresolved reservations are invalid")
+    cap = _money_from_json(raw["cap_usd"], "journal budget cap")
+    spent = _money_from_json(raw["spent_usd"], "journal budget spent")
+    reserved = _money_from_json(raw["reserved_usd"], "journal budget reserved")
+    remaining = _money_from_json(raw["remaining_usd"], "journal budget remaining")
+    assert cap is not None
+    assert spent is not None
+    assert reserved is not None
+    assert remaining is not None
+    try:
+        return BudgetSnapshot(
+            cap_usd=cap,
+            spent_usd=spent,
+            reserved_usd=reserved,
+            remaining_usd=remaining,
+            unresolved_request_ids=tuple(unresolved_ids),
+            stop_reason=raw["stop_reason"],  # type: ignore[arg-type]
+            unresolved_reservations=tuple(
+                _reservation_from_record(reservation) for reservation in reservations
+            ),
+        )
+    except (LargeLLMError, TypeError) as error:
+        raise LargeLLMError(f"journal budget checkpoint is invalid: {error}") from error
 
 
 def _require_mapping(value: object, label: str, keys: set[str]) -> dict[str, object]:
@@ -432,16 +515,13 @@ def _outcome_from_record(
         raw = _require_mapping(record, prefix, _OUTCOME_KEYS)
         if raw["record_type"] != "outcome":
             raise LargeLLMError("journal outcome record type is invalid")
-        values = {
-            key: item
-            for key, item in raw.items()
-            if key not in {"record_type", "run_id", "model_metadata_sha256"}
-        }
+        values = {key: item for key, item in raw.items() if key not in {"record_type", "run_id"}}
         categories = values["categories"]
         if not isinstance(categories, list):
             raise LargeLLMError("journal outcome categories are invalid")
         values["categories"] = tuple(categories)
         values["prediction"] = _prediction_from_record(values["prediction"])
+        values["budget_checkpoint"] = _budget_from_record(values["budget_checkpoint"])
         return EvaluationOutcome(**values)  # type: ignore[arg-type]
     except (LargeLLMError, TypeError, KeyError) as error:
         raise LargeLLMError(f"{prefix} is invalid: {error}") from error
@@ -590,6 +670,7 @@ class RequestJournal:
                 "training_sha256",
                 "model_id",
                 "provider_slug",
+                "model_metadata_sha256",
             ):
                 if record[key] != header[key]:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
@@ -611,6 +692,7 @@ def load_resume_state(
     expected_input_sha256: str,
     expected_config_sha256: str,
     expected_run_id: str,
+    expected_model_metadata_sha256: str | None,
 ) -> ResumeState:
     """Load a journal only after every row and requested identity validates.
 
@@ -619,6 +701,7 @@ def load_resume_state(
         expected_input_sha256: Exact current input snapshot fingerprint.
         expected_config_sha256: Exact current generation-config fingerprint.
         expected_run_id: Exact current run identifier.
+        expected_model_metadata_sha256: Exact accepted endpoint-metadata fingerprint.
 
     Returns:
         Validated completed IDs, prior authoritative cost, and immutable records.
@@ -630,6 +713,11 @@ def load_resume_state(
         raise LargeLLMError("request journal path must be a pathlib.Path")
     _validate_digest(expected_input_sha256, "expected input fingerprint")
     _validate_digest(expected_config_sha256, "expected config fingerprint")
+    _validate_digest(
+        expected_model_metadata_sha256,
+        "expected model metadata fingerprint",
+        optional=True,
+    )
     if not isinstance(expected_run_id, str) or _RUN_ID_RE.fullmatch(expected_run_id) is None:
         raise LargeLLMError("expected run ID is invalid")
     payload = _existing_bytes(request_log)
@@ -640,11 +728,21 @@ def load_resume_state(
         ("input_sha256", expected_input_sha256, "input fingerprint"),
         ("config_sha256", expected_config_sha256, "config fingerprint"),
         ("run_id", expected_run_id, "run ID"),
+        (
+            "model_metadata_sha256",
+            expected_model_metadata_sha256,
+            "model metadata fingerprint",
+        ),
     ):
         if header[key] != expected:
             raise LargeLLMError(f"request journal {label} mismatch")
+    if not records:
+        raise LargeLLMError("request journal has no resumable records")
     cost = Decimal("0")
+    budget_checkpoint: BudgetSnapshot | None = None
     for record in records:
+        outcome = _outcome_from_record(record, line_number=None)
+        budget_checkpoint = outcome.budget_checkpoint
         prediction = record["prediction"]
         if prediction is not None:
             prediction_record = _require_mapping(prediction, "journal prediction", _PREDICTION_KEYS)
@@ -654,10 +752,24 @@ def load_resume_state(
             charged = _money_from_json(completion["charged_cost_usd"], "journal charged cost")
             assert charged is not None
             cost += charged
+    assert budget_checkpoint is not None
+    if budget_checkpoint.spent_usd != cost:
+        raise LargeLLMError("request journal budget checkpoint spent does not match records")
     return ResumeState(
         completed_case_ids=tuple(str(record["case_id"]) for record in records),
         prior_cost_usd=cost,
         prior_records=records,
+        budget_checkpoint=budget_checkpoint,
+        run_id=str(header["run_id"]),
+        baseline=str(header["baseline"]),
+        input_sha256=header["input_sha256"],  # type: ignore[arg-type]
+        config_sha256=str(header["config_sha256"]),
+        catalog_sha256=str(header["catalog_sha256"]),
+        summary_sha256=str(header["summary_sha256"]),
+        training_sha256=header["training_sha256"],  # type: ignore[arg-type]
+        model_id=str(header["model_id"]),
+        provider_slug=str(header["provider_slug"]),
+        model_metadata_sha256=header["model_metadata_sha256"],  # type: ignore[arg-type]
     )
 
 
@@ -803,6 +915,13 @@ def serialize_report(run: LargeEvaluationRun) -> bytes:
     )
 
 
+def _validate_publication_run(run: LargeEvaluationRun) -> None:
+    try:
+        run.__post_init__()
+    except LargeLLMError as error:
+        raise LargeLLMError(f"publication evidence is not derived: {error}") from error
+
+
 def publish_large_run(
     run: LargeEvaluationRun,
     *,
@@ -821,6 +940,7 @@ def publish_large_run(
     """
     if not isinstance(run, LargeEvaluationRun):
         raise LargeLLMError("publication requires a LargeEvaluationRun")
+    _validate_publication_run(run)
     validate_artifact_paths(paths, protected_paths=protected_paths)
     previous = {path: _existing_bytes(path) for path in paths.all_outputs}
     payloads = (

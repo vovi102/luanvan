@@ -60,6 +60,13 @@ class EvaluationOutcome:
         training_sha256: Exact B5 training fingerprint, or ``None`` for B4.
         model_id: Exact configured remote model identifier.
         provider_slug: Exact configured remote provider.
+        model_metadata_sha256: Exact accepted endpoint metadata fingerprint.
+        source_synthetic: Whether the source case was synthetic.
+        source_trusted: Whether the source case came from trusted reviewed live evidence.
+        training_accepted: Whether B5 training provenance was accepted.
+        prompt_sha256: Non-secret prompt fingerprint for attempted or blocked requests.
+        attempt_count: Number of safe transport attempts completed.
+        budget_checkpoint: Durable budget state after this outcome was accepted.
     """
 
     case_id: str
@@ -78,6 +85,13 @@ class EvaluationOutcome:
     training_sha256: str | None
     model_id: str
     provider_slug: str
+    model_metadata_sha256: str | None
+    source_synthetic: bool
+    source_trusted: bool
+    training_accepted: bool
+    prompt_sha256: str | None
+    attempt_count: int
+    budget_checkpoint: BudgetSnapshot
 
     def __post_init__(self) -> None:
         if not isinstance(self.case_id, str) or not self.case_id:
@@ -104,6 +118,27 @@ class EvaluationOutcome:
             raise LargeLLMError("evaluation outcome model ID must not be empty")
         if not isinstance(self.provider_slug, str) or not self.provider_slug:
             raise LargeLLMError("evaluation outcome provider must not be empty")
+        if (
+            self.model_metadata_sha256 is not None
+            and _SHA256_RE.fullmatch(self.model_metadata_sha256) is None
+        ):
+            raise LargeLLMError("evaluation outcome model metadata fingerprint is invalid")
+        if not isinstance(self.source_synthetic, bool) or not isinstance(self.source_trusted, bool):
+            raise LargeLLMError("evaluation outcome source provenance is invalid")
+        if not isinstance(self.training_accepted, bool):
+            raise LargeLLMError("evaluation outcome training acceptance is invalid")
+        if self.baseline == "b4" and self.training_accepted:
+            raise LargeLLMError("B4 evaluation outcome must not accept training provenance")
+        if self.prompt_sha256 is not None and _SHA256_RE.fullmatch(self.prompt_sha256) is None:
+            raise LargeLLMError("evaluation outcome prompt fingerprint is invalid")
+        if (
+            not isinstance(self.attempt_count, int)
+            or isinstance(self.attempt_count, bool)
+            or self.attempt_count < 0
+        ):
+            raise LargeLLMError("evaluation outcome attempt count is invalid")
+        if not isinstance(self.budget_checkpoint, BudgetSnapshot):
+            raise LargeLLMError("evaluation outcome budget checkpoint is invalid")
         if not isinstance(self.gold_sql, str) or not self.gold_sql.strip():
             raise LargeLLMError("evaluation outcome gold SQL must not be empty")
         if self.difficulty not in {"easy", "medium", "hard"}:
@@ -154,6 +189,10 @@ class EvaluationOutcome:
             )
             if prediction_identity != outcome_identity:
                 raise LargeLLMError("evaluation outcome identity disagrees with prediction")
+            if self.prompt_sha256 != self.prediction.prompt_sha256:
+                raise LargeLLMError("evaluation outcome prompt disagrees with prediction")
+            if self.attempt_count != self.prediction.completion.attempt_count:
+                raise LargeLLMError("evaluation outcome attempt count disagrees with prediction")
         else:
             if self.prediction is not None:
                 raise LargeLLMError("failed evaluation outcome must not have a prediction")
@@ -162,6 +201,10 @@ class EvaluationOutcome:
                 or _ERROR_CODE_RE.fullmatch(self.safe_error_code) is None
             ):
                 raise LargeLLMError("failed evaluation outcome requires a safe error code")
+            if (
+                self.status in {"budget_blocked", "cost_unresolved"} or self.attempt_count > 0
+            ) and self.prompt_sha256 is None:
+                raise LargeLLMError("attempted evaluation outcome requires prompt fingerprint")
 
 
 class OutcomeJournal(Protocol):
@@ -345,6 +388,14 @@ class LargeEvaluationRun:
             raise LargeLLMError("evaluation config fingerprint is invalid")
         if not isinstance(self.budget, BudgetSnapshot):
             raise LargeLLMError("evaluation budget snapshot is invalid")
+        try:
+            self.budget.__post_init__()
+        except LargeLLMError as error:
+            raise LargeLLMError(f"evaluation budget snapshot is invalid: {error}") from error
+        if self.metrics != _metrics(self.outcomes):
+            raise LargeLLMError("evaluation run metrics must be derived from outcomes")
+        if self.budget.spent_usd != self.metrics.charged_cost_usd:
+            raise LargeLLMError("evaluation run budget must match derived metrics")
         for label, value in (
             ("catalog fingerprint", self.catalog_sha256),
             ("summary fingerprint", self.summary_sha256),
@@ -374,6 +425,7 @@ class LargeEvaluationRun:
             self.training_sha256,
             self.model_id,
             self.provider_slug,
+            self.model_metadata_sha256,
         )
         if any(
             (
@@ -384,6 +436,7 @@ class LargeEvaluationRun:
                 outcome.training_sha256,
                 outcome.model_id,
                 outcome.provider_slug,
+                outcome.model_metadata_sha256,
             )
             != run_identity
             for outcome in self.outcomes
@@ -396,6 +449,11 @@ class LargeEvaluationRun:
         if self.input_sha256 is None and "trusted_test_set_provenance_missing" not in self.blockers:
             raise LargeLLMError(
                 "missing aggregate input fingerprint requires a test provenance blocker"
+            )
+        expected_blockers = _derived_run_blockers(self, self.metrics)
+        if self.blockers != expected_blockers or self.scientific_ready != (not expected_blockers):
+            raise LargeLLMError(
+                "evaluation run readiness and blockers must be derived from outcomes"
             )
 
 
@@ -480,6 +538,7 @@ def _validate_completed(
     cases: tuple[EvaluationCase, ...],
     *,
     evidence: LargeBaselineEvidence,
+    model_metadata_sha256: str | None,
 ) -> dict[str, EvaluationOutcome]:
     if not isinstance(completed_outcomes, Sequence) or isinstance(completed_outcomes, (str, bytes)):
         raise LargeLLMError("completed outcomes must be an ordered sequence")
@@ -505,6 +564,10 @@ def _validate_completed(
             outcome.training_sha256,
             outcome.model_id,
             outcome.provider_slug,
+            outcome.model_metadata_sha256,
+            outcome.source_synthetic,
+            outcome.source_trusted,
+            outcome.training_accepted,
         ) != (
             _question_sha256(source.question),
             source.gold_sql,
@@ -518,6 +581,10 @@ def _validate_completed(
             evidence.training_sha256,
             evidence.model_id,
             evidence.provider_slug,
+            model_metadata_sha256,
+            source.synthetic,
+            source._trusted_source,
+            evidence.training_accepted,
         ):
             raise LargeLLMError("completed outcome does not match its source case")
     return by_id
@@ -528,6 +595,8 @@ def _outcome_from_prediction(
     prediction: LargeLLMPrediction,
     *,
     evidence: LargeBaselineEvidence,
+    model_metadata_sha256: str | None,
+    budget_checkpoint: BudgetSnapshot,
 ) -> EvaluationOutcome:
     if prediction.question != case.question:
         raise LargeLLMError("prediction question does not match its source case")
@@ -550,13 +619,31 @@ def _outcome_from_prediction(
         training_sha256=evidence.training_sha256,
         model_id=evidence.model_id,
         provider_slug=evidence.provider_slug,
+        model_metadata_sha256=model_metadata_sha256,
+        source_synthetic=case.synthetic,
+        source_trusted=case._trusted_source,
+        training_accepted=evidence.training_accepted,
+        prompt_sha256=prediction.prompt_sha256,
+        attempt_count=prediction.completion.attempt_count,
+        budget_checkpoint=budget_checkpoint,
     )
 
 
 def _failure_outcome(
-    case: EvaluationCase, error: LargeLLMError, evidence: LargeBaselineEvidence
+    case: EvaluationCase,
+    error: LargeLLMError,
+    evidence: LargeBaselineEvidence,
+    *,
+    model_metadata_sha256: str | None,
+    budget_checkpoint: BudgetSnapshot,
 ) -> EvaluationOutcome:
     code = error.code if isinstance(error, OpenRouterRequestError) else "prediction_failed"
+    prompt = getattr(error, "prompt_sha256", None)
+    if prompt is not None and not isinstance(prompt, str):
+        prompt = None
+    attempt_count = getattr(error, "attempt_count", 0)
+    if not isinstance(attempt_count, int) or isinstance(attempt_count, bool) or attempt_count < 0:
+        attempt_count = 0
     status: OutcomeStatus
     if code == "budget_blocked":
         status = "budget_blocked"
@@ -581,6 +668,13 @@ def _failure_outcome(
         training_sha256=evidence.training_sha256,
         model_id=evidence.model_id,
         provider_slug=evidence.provider_slug,
+        model_metadata_sha256=model_metadata_sha256,
+        source_synthetic=case.synthetic,
+        source_trusted=case._trusted_source,
+        training_accepted=evidence.training_accepted,
+        prompt_sha256=prompt,
+        attempt_count=attempt_count,
+        budget_checkpoint=budget_checkpoint,
     )
 
 
@@ -589,6 +683,8 @@ async def _predict_case(
     case: EvaluationCase,
     *,
     evidence: LargeBaselineEvidence,
+    ledger: BudgetLedger,
+    model_metadata_sha256: str | None,
 ) -> EvaluationOutcome:
     predict = getattr(baseline, "predict_detailed", None)
     if not callable(predict):
@@ -602,10 +698,22 @@ async def _predict_case(
     except asyncio.CancelledError:
         raise
     except LargeLLMError as error:
-        return _failure_outcome(case, error, evidence)
+        return _failure_outcome(
+            case,
+            error,
+            evidence,
+            model_metadata_sha256=model_metadata_sha256,
+            budget_checkpoint=await ledger.snapshot(),
+        )
     if not isinstance(prediction, LargeLLMPrediction):
         raise LargeLLMError("baseline must return LargeLLMPrediction")
-    return _outcome_from_prediction(case, prediction, evidence=evidence)
+    return _outcome_from_prediction(
+        case,
+        prediction,
+        evidence=evidence,
+        model_metadata_sha256=model_metadata_sha256,
+        budget_checkpoint=await ledger.snapshot(),
+    )
 
 
 def _metrics(outcomes: tuple[EvaluationOutcome, ...]) -> LargeEvaluationMetrics:
@@ -639,6 +747,54 @@ def _metrics(outcomes: tuple[EvaluationOutcome, ...]) -> LargeEvaluationMetrics:
             [category for outcome in outcomes for category in outcome.categories]
         ),
     )
+
+
+def _derived_run_blockers(
+    run: LargeEvaluationRun, metrics: LargeEvaluationMetrics
+) -> tuple[str, ...]:
+    predictions = tuple(
+        outcome.prediction for outcome in run.outcomes if outcome.prediction is not None
+    )
+    blockers: set[str] = {"non_three_run_evidence"}
+    if any(prediction.completion.synthetic_backend for prediction in predictions):
+        blockers.add("synthetic_backend")
+    if any(outcome.source_synthetic for outcome in run.outcomes):
+        blockers.add("synthetic_test_set")
+    if (
+        run.input_sha256 is None
+        or any(outcome.input_sha256 != run.input_sha256 for outcome in run.outcomes)
+        or any(not outcome.source_trusted for outcome in run.outcomes)
+    ):
+        blockers.add("trusted_test_set_provenance_missing")
+    if run.baseline == "b5" and any(not outcome.training_accepted for outcome in run.outcomes):
+        blockers.add("trusted_training_provenance_missing")
+    if len(run.outcomes) != 100:
+        blockers.add("expected_100_cases")
+    if metrics.completed != len(run.outcomes):
+        blockers.add("incomplete_generation")
+    if (
+        metrics.cost_unresolved
+        or run.budget.unresolved_request_ids
+        or run.budget.reserved_usd > _ZERO
+    ):
+        blockers.add("unresolved_cost")
+    if run.budget.stop_reason == "pricing_violation":
+        blockers.add("pricing_violation")
+    if run.budget.spent_usd > run.budget.cap_usd or metrics.charged_cost_usd > run.budget.cap_usd:
+        blockers.add("cost_over_cap")
+    if run.model_metadata_sha256 is None:
+        blockers.add("missing_model_metadata")
+    if any(prediction.completion.model_id != run.model_id for prediction in predictions):
+        blockers.add("model_drift")
+    if any(prediction.completion.provider_slug != run.provider_slug for prediction in predictions):
+        blockers.add("provider_drift")
+    if any(prediction.config_sha256 != run.config_sha256 for prediction in predictions):
+        blockers.add("config_drift")
+    if len({prediction.catalog_sha256 for prediction in predictions}) > 1:
+        blockers.add("catalog_drift")
+    if run.baseline == "b5" and len({prediction.training_sha256 for prediction in predictions}) > 1:
+        blockers.add("training_drift")
+    return tuple(sorted(blockers))
 
 
 def _blockers(
@@ -758,13 +914,20 @@ async def evaluate_large_baseline(
         raise LargeLLMError("evaluation concurrency must equal config concurrency")
     if model_metadata is not None and not isinstance(model_metadata, ModelMetadataEvidence):
         raise LargeLLMError("model metadata evidence is invalid")
+    model_metadata_sha256 = model_metadata.metadata_sha256 if model_metadata is not None else None
     if journal is not None and not callable(getattr(journal, "append", None)):
         raise LargeLLMError("outcome journal must provide append")
     completed = _validate_completed(
         completed_outcomes,
         accepted_cases,
         evidence=evidence,
+        model_metadata_sha256=model_metadata_sha256,
     )
+    accepted_completed = tuple(completed_outcomes)
+    if accepted_completed:
+        expected_checkpoint = accepted_completed[-1].budget_checkpoint
+        if await ledger.snapshot() != expected_checkpoint:
+            raise LargeLLMError("budget checkpoint must be restored before resume")
     semaphore = asyncio.Semaphore(concurrency)
 
     async def worker(index: int, case: EvaluationCase) -> tuple[int, EvaluationOutcome]:
@@ -773,6 +936,8 @@ async def evaluate_large_baseline(
                 baseline,
                 case,
                 evidence=evidence,
+                ledger=ledger,
+                model_metadata_sha256=model_metadata_sha256,
             )
             if journal is not None:
                 journal.append(outcome)
@@ -828,9 +993,7 @@ async def evaluate_large_baseline(
         training_sha256=evidence.training_sha256,
         model_id=evidence.model_id,
         provider_slug=evidence.provider_slug,
-        model_metadata_sha256=(
-            model_metadata.metadata_sha256 if model_metadata is not None else None
-        ),
+        model_metadata_sha256=model_metadata_sha256,
     )
 
 

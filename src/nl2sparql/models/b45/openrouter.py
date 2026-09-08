@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -37,9 +38,16 @@ class OpenRouterRequestError(LargeLLMError):
     Attributes:
         code: Stable machine-readable failure code.
         attempt_count: Number of remote attempts completed before the failure.
+        prompt_sha256: Optional non-secret SHA-256 of the exact prompt.
     """
 
-    def __init__(self, code: str, *, attempt_count: int = 0) -> None:
+    def __init__(
+        self,
+        code: str,
+        *,
+        attempt_count: int = 0,
+        prompt_sha256: str | None = None,
+    ) -> None:
         """Create a sanitized OpenRouter error.
 
         Args:
@@ -57,8 +65,11 @@ class OpenRouterRequestError(LargeLLMError):
             or attempt_count < 0
         ):
             raise ValueError("OpenRouter attempt count must be a non-negative integer")
+        if prompt_sha256 is not None and not re.fullmatch(r"[0-9a-f]{64}", prompt_sha256):
+            raise ValueError("OpenRouter prompt fingerprint must be a lowercase SHA-256 digest")
         self.code = code
         self.attempt_count = attempt_count
+        self.prompt_sha256 = prompt_sha256
         label = code.replace("_", " ")
         super().__init__(f"OpenRouter {label} after {attempt_count} attempt(s)")
 

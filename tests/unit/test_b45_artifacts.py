@@ -12,6 +12,7 @@ import pytest
 
 import nl2sparql.models.b45.artifacts as artifacts
 from nl2sparql.models.b12 import EvaluationCase
+from nl2sparql.models.b12.contracts import ChatMessage
 from nl2sparql.models.b45 import (
     BudgetLedger,
     LargeBaselineEvidence,
@@ -19,7 +20,7 @@ from nl2sparql.models.b45 import (
     LargeLLMError,
     ProviderPolicy,
 )
-from nl2sparql.models.b45.budget import BudgetSnapshot
+from nl2sparql.models.b45.budget import BudgetReservation, BudgetSnapshot
 from nl2sparql.models.b45.contracts import LargeLLMPrediction, RemoteCompletion
 from nl2sparql.models.b45.evaluate import (
     EvaluationOutcome,
@@ -83,8 +84,21 @@ def prediction(question: str, *, cost: Decimal = Decimal("0.0100")) -> LargeLLMP
 
 
 def completed_outcome(
-    case_id: str = "case-1", question: str = "List addresses"
+    case_id: str = "case-1",
+    question: str = "List addresses",
+    *,
+    cost: Decimal = Decimal("0.0100"),
+    budget_checkpoint: BudgetSnapshot | None = None,
 ) -> EvaluationOutcome:
+    if budget_checkpoint is None:
+        budget_checkpoint = BudgetSnapshot(
+            cap_usd=Decimal("20.00"),
+            spent_usd=cost,
+            reserved_usd=Decimal("0"),
+            remaining_usd=Decimal("20.00") - cost,
+            unresolved_request_ids=(),
+            stop_reason="pricing_violation",
+        )
     return EvaluationOutcome(
         case_id=case_id,
         question_sha256=hashlib.sha256(question.encode()).hexdigest(),
@@ -92,7 +106,7 @@ def completed_outcome(
         difficulty="easy",
         categories=("entity_lookup",),
         status="completed",
-        prediction=prediction(question),
+        prediction=prediction(question, cost=cost),
         safe_error_code=None,
         baseline="b4",
         input_sha256=INPUT_SHA256,
@@ -102,11 +116,20 @@ def completed_outcome(
         training_sha256=None,
         model_id=config().model_id,
         provider_slug="deepinfra",
+        model_metadata_sha256=METADATA_SHA256,
+        source_synthetic=False,
+        source_trusted=True,
+        training_accepted=False,
+        prompt_sha256=PROMPT_SHA256,
+        attempt_count=1,
+        budget_checkpoint=budget_checkpoint,
     )
 
 
-def complete_synthetic_run(run_id: str = "run-1") -> LargeEvaluationRun:
-    outcome = completed_outcome()
+def complete_synthetic_run(
+    run_id: str = "run-1", *, cost: Decimal = Decimal("0.0100")
+) -> LargeEvaluationRun:
+    outcome = completed_outcome(cost=cost)
     metrics = LargeEvaluationMetrics(
         total=1,
         completed=1,
@@ -118,8 +141,8 @@ def complete_synthetic_run(run_id: str = "run-1") -> LargeEvaluationRun:
         p95_latency_ms=12.5,
         input_tokens=10,
         output_tokens=5,
-        charged_cost_usd=Decimal("0.0100"),
-        cost_per_1k_queries_usd=Decimal("10.0"),
+        charged_cost_usd=cost,
+        cost_per_1k_queries_usd=cost * Decimal("1000"),
         extraction_status_counts=(("ok", 1),),
         difficulty_counts=(("easy", 1),),
         category_counts=(("entity_lookup", 1),),
@@ -130,19 +153,17 @@ def complete_synthetic_run(run_id: str = "run-1") -> LargeEvaluationRun:
         outcomes=(outcome,),
         metrics=metrics,
         scientific_ready=False,
-        blockers=("non_three_run_evidence", "synthetic_backend"),
+        blockers=(
+            "expected_100_cases",
+            "non_three_run_evidence",
+            "pricing_violation",
+            "synthetic_backend",
+        ),
         seed=42,
         generated_at_utc="2026-09-07T00:00:00Z",
         input_sha256=INPUT_SHA256,
         config_sha256=config().sha256,
-        budget=BudgetSnapshot(
-            cap_usd=Decimal("20.00"),
-            spent_usd=Decimal("0.0100"),
-            reserved_usd=Decimal("0"),
-            remaining_usd=Decimal("19.9900"),
-            unresolved_request_ids=(),
-            stop_reason="pricing_violation",
-        ),
+        budget=outcome.budget_checkpoint,
         catalog_sha256=CATALOG_SHA256,
         summary_sha256=SUMMARY_SHA256,
         training_sha256=None,
@@ -192,6 +213,20 @@ def test_resume_rejects_changed_configuration(tmp_path: Path) -> None:
             expected_input_sha256=INPUT_SHA256,
             expected_config_sha256="0" * 64,
             expected_run_id="run-1",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+
+
+def test_resume_rejects_changed_model_metadata(tmp_path: Path) -> None:
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    with pytest.raises(LargeLLMError, match="model metadata fingerprint"):
+        artifacts.load_resume_state(
+            paths.request_log,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=config().sha256,
+            expected_run_id="run-1",
+            expected_model_metadata_sha256="0" * 64,
         )
 
 
@@ -282,6 +317,61 @@ def test_journal_rejects_duplicate_and_mismatched_outcomes(tmp_path: Path) -> No
         journal.append(drifted)
 
 
+def test_failed_request_journal_row_preserves_prompt_hash(tmp_path: Path) -> None:
+    journal = artifacts.RequestJournal(
+        tmp_path / "journal.jsonl",
+        run_id="run-1",
+        baseline="b4",
+        input_sha256=INPUT_SHA256,
+        config_sha256=config().sha256,
+        catalog_sha256=CATALOG_SHA256,
+        summary_sha256=SUMMARY_SHA256,
+        training_sha256=None,
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256=METADATA_SHA256,
+    )
+    failed = EvaluationOutcome(
+        case_id="case-1",
+        question_sha256=hashlib.sha256(b"List addresses").hexdigest(),
+        gold_sql=SAFE_SQL,
+        difficulty="easy",
+        categories=("entity_lookup",),
+        status="request_failed",
+        prediction=None,
+        safe_error_code="rate_limit_exhausted",
+        baseline="b4",
+        input_sha256=INPUT_SHA256,
+        config_sha256=config().sha256,
+        catalog_sha256=CATALOG_SHA256,
+        summary_sha256=SUMMARY_SHA256,
+        training_sha256=None,
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256=METADATA_SHA256,
+        source_synthetic=False,
+        source_trusted=True,
+        training_accepted=False,
+        prompt_sha256=PROMPT_SHA256,
+        attempt_count=3,
+        budget_checkpoint=BudgetSnapshot(
+            cap_usd=Decimal("20.00"),
+            spent_usd=Decimal("0"),
+            reserved_usd=Decimal("0.0005"),
+            remaining_usd=Decimal("19.9995"),
+            unresolved_request_ids=("case-1",),
+            unresolved_reservations=(BudgetReservation("case-1", Decimal("0.0005")),),
+        ),
+    )
+
+    journal.append(failed)
+
+    row = json.loads((tmp_path / "journal.jsonl").read_text().splitlines()[1])
+    assert row["prompt_sha256"] == PROMPT_SHA256
+    assert row["attempt_count"] == 3
+    assert "messages" not in row
+
+
 def test_resume_rejects_non_outcome_journal_rows(tmp_path: Path) -> None:
     paths = artifact_paths(tmp_path)
     artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
@@ -297,7 +387,150 @@ def test_resume_rejects_non_outcome_journal_rows(tmp_path: Path) -> None:
             expected_input_sha256=INPUT_SHA256,
             expected_config_sha256=config().sha256,
             expected_run_id="run-1",
+            expected_model_metadata_sha256=METADATA_SHA256,
         )
+
+
+def test_resume_state_returns_rehydratable_budget_checkpoint(tmp_path: Path) -> None:
+    journal = artifacts.RequestJournal(
+        tmp_path / "journal.jsonl",
+        run_id="run-1",
+        baseline="b4",
+        input_sha256=INPUT_SHA256,
+        config_sha256=config().sha256,
+        catalog_sha256=CATALOG_SHA256,
+        summary_sha256=SUMMARY_SHA256,
+        training_sha256=None,
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256=METADATA_SHA256,
+    )
+    spent_checkpoint = BudgetSnapshot(
+        cap_usd=Decimal("20.00"),
+        spent_usd=Decimal("19.9990"),
+        reserved_usd=Decimal("0"),
+        remaining_usd=Decimal("0.0010"),
+        unresolved_request_ids=(),
+    )
+    journal.append(
+        completed_outcome(
+            cost=Decimal("19.9990"),
+            budget_checkpoint=spent_checkpoint,
+        )
+    )
+    held_checkpoint = BudgetSnapshot(
+        cap_usd=Decimal("20.00"),
+        spent_usd=Decimal("19.9990"),
+        reserved_usd=Decimal("0.0005"),
+        remaining_usd=Decimal("0.0005"),
+        unresolved_request_ids=("case-2",),
+        unresolved_reservations=(BudgetReservation("case-2", Decimal("0.0005")),),
+    )
+    journal.append(
+        EvaluationOutcome(
+            case_id="case-2",
+            question_sha256=hashlib.sha256(b"List addresses again").hexdigest(),
+            gold_sql=SAFE_SQL,
+            difficulty="medium",
+            categories=("entity_lookup",),
+            status="request_failed",
+            prediction=None,
+            safe_error_code="rate_limit_exhausted",
+            baseline="b4",
+            input_sha256=INPUT_SHA256,
+            config_sha256=config().sha256,
+            catalog_sha256=CATALOG_SHA256,
+            summary_sha256=SUMMARY_SHA256,
+            training_sha256=None,
+            model_id=config().model_id,
+            provider_slug="deepinfra",
+            model_metadata_sha256=METADATA_SHA256,
+            source_synthetic=False,
+            source_trusted=True,
+            training_accepted=False,
+            prompt_sha256=PROMPT_SHA256,
+            attempt_count=3,
+            budget_checkpoint=held_checkpoint,
+        )
+    )
+
+    resume = artifacts.load_resume_state(
+        tmp_path / "journal.jsonl",
+        expected_input_sha256=INPUT_SHA256,
+        expected_config_sha256=config().sha256,
+        expected_run_id="run-1",
+        expected_model_metadata_sha256=METADATA_SHA256,
+    )
+
+    assert resume.prior_cost_usd == Decimal("19.999")
+    assert resume.budget_checkpoint == held_checkpoint
+    ledger = BudgetLedger.from_checkpoint(config(), resume.budget_checkpoint)
+    assert asyncio.run(ledger.reserve("case-3", (ChatMessage("user", "x"),))) is None
+
+
+def test_resume_accepts_unrecorded_inflight_reservation_checkpoint(tmp_path: Path) -> None:
+    journal = artifacts.RequestJournal(
+        tmp_path / "journal.jsonl",
+        run_id="run-1",
+        baseline="b4",
+        input_sha256=INPUT_SHA256,
+        config_sha256=config().sha256,
+        catalog_sha256=CATALOG_SHA256,
+        summary_sha256=SUMMARY_SHA256,
+        training_sha256=None,
+        model_id=config().model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256=METADATA_SHA256,
+    )
+    checkpoint = BudgetSnapshot(
+        cap_usd=Decimal("20.00"),
+        spent_usd=Decimal("19.9990"),
+        reserved_usd=Decimal("0.0005"),
+        remaining_usd=Decimal("0.0005"),
+        unresolved_request_ids=("case-2",),
+        unresolved_reservations=(BudgetReservation("case-2", Decimal("0.0005")),),
+    )
+    journal.append(
+        completed_outcome(
+            cost=Decimal("19.9990"),
+            budget_checkpoint=checkpoint,
+        )
+    )
+
+    resume = artifacts.load_resume_state(
+        tmp_path / "journal.jsonl",
+        expected_input_sha256=INPUT_SHA256,
+        expected_config_sha256=config().sha256,
+        expected_run_id="run-1",
+        expected_model_metadata_sha256=METADATA_SHA256,
+    )
+
+    assert resume.completed_case_ids == ("case-1",)
+    assert resume.unresolved_request_ids == ("case-2",)
+    ledger = BudgetLedger.from_checkpoint(config(), resume.budget_checkpoint)
+    assert asyncio.run(ledger.reserve("case-3", (ChatMessage("user", "x"),))) is None
+
+
+def test_publication_rejects_tampered_metrics_readiness_and_blockers(
+    tmp_path: Path,
+) -> None:
+    paths = artifact_paths(tmp_path)
+    run = complete_synthetic_run()
+    object.__setattr__(run.metrics, "charged_cost_usd", Decimal("0"))
+    object.__setattr__(run, "scientific_ready", True)
+    object.__setattr__(run, "blockers", ())
+
+    with pytest.raises(LargeLLMError, match="derived"):
+        artifacts.publish_large_run(run, paths=paths)
+
+
+def test_publication_rejects_tampered_budget_snapshot(tmp_path: Path) -> None:
+    paths = artifact_paths(tmp_path)
+    run = complete_synthetic_run()
+    object.__setattr__(run.budget, "remaining_usd", Decimal("0"))
+
+    with pytest.raises(LargeLLMError, match="derived"):
+        artifacts.publish_large_run(run, paths=paths)
 
 
 def test_interruption_resumes_without_scheduling_the_accepted_case(tmp_path: Path) -> None:
@@ -340,8 +573,14 @@ def test_interruption_resumes_without_scheduling_the_accepted_case(tmp_path: Pat
         async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
             if self.block_case_two and request_id == "case-2":
                 await asyncio.sleep(60)
+            result = prediction(question, cost=Decimal("0.0001"))
+            reservation = await self.budget_ledger.reserve(
+                request_id, (ChatMessage("user", question),)
+            )
+            assert reservation is not None
+            await self.budget_ledger.reconcile(reservation, result.completion.charged_cost_usd)
             self.calls.append(request_id)
-            return prediction(question)
+            return result
 
     metadata = ModelMetadataEvidence(
         model_id=config().model_id,
@@ -389,8 +628,10 @@ def test_interruption_resumes_without_scheduling_the_accepted_case(tmp_path: Pat
             expected_input_sha256=INPUT_SHA256,
             expected_config_sha256=config().sha256,
             expected_run_id="run-1",
+            expected_model_metadata_sha256=METADATA_SHA256,
         )
         second = Baseline()
+        second.budget_ledger = BudgetLedger.from_checkpoint(second.config, resume.budget_checkpoint)
         run = await evaluate_large_baseline(
             cases,
             second,
@@ -400,7 +641,7 @@ def test_interruption_resumes_without_scheduling_the_accepted_case(tmp_path: Pat
             completed_outcomes=resume.completed_outcomes,
         )
         assert resume.completed_case_ids == ("case-1",)
-        assert resume.prior_cost_usd == Decimal("0.01")
+        assert resume.prior_cost_usd == Decimal("0.0001")
         assert second.calls == ["case-2"]
         assert [outcome.case_id for outcome in run.outcomes] == ["case-1", "case-2"]
 
@@ -412,6 +653,10 @@ def test_summarize_three_runs_keeps_synthetic_evidence_blocking() -> None:
         tuple(complete_synthetic_run(f"run-{index}") for index in range(1, 4))
     )
     assert summary["scientific_ready"] is False
-    assert summary["blockers"] == ["pricing_violation", "synthetic_backend"]
+    assert summary["blockers"] == [
+        "expected_100_cases",
+        "pricing_violation",
+        "synthetic_backend",
+    ]
     assert summary["authoritative_total_cost_usd"] == "0.03"
     assert summary["reproducibility"]["run_count"] == 3
