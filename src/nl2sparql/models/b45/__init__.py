@@ -1,5 +1,18 @@
 """Public interface for the B4/B5 GoogleSQL large-LLM baselines."""
 
+from nl2sparql.models.b45.artifacts import (
+    ArtifactPaths,
+    RequestJournal,
+    ResumeState,
+    load_resume_state,
+    publish_large_run,
+    serialize_cost_csv,
+    serialize_predictions,
+    serialize_report,
+    serialize_request_log,
+    summarize_large_runs,
+    validate_artifact_paths,
+)
 from nl2sparql.models.b45.baseline import BaselineB4, BaselineB5
 from nl2sparql.models.b45.budget import (
     BudgetLedger,
@@ -30,6 +43,7 @@ from nl2sparql.models.b45.evaluate import (
 from nl2sparql.models.b45.transport import CompletionTransport
 
 __all__ = [
+    "ArtifactPaths",
     "BudgetLedger",
     "BudgetReservation",
     "BudgetSnapshot",
@@ -46,11 +60,21 @@ __all__ = [
     "LargeLLMPrediction",
     "OutcomeJournal",
     "ProviderPolicy",
+    "RequestJournal",
     "RemoteCompletion",
     "ReproducibilityReport",
+    "ResumeState",
     "canonical_money",
     "compare_large_reproducibility",
     "conservative_request_cost",
     "evaluate_large_baseline",
+    "load_resume_state",
     "load_evaluation_cases",
+    "publish_large_run",
+    "serialize_cost_csv",
+    "serialize_predictions",
+    "serialize_report",
+    "serialize_request_log",
+    "summarize_large_runs",
+    "validate_artifact_paths",
 ]
