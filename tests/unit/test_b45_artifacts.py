@@ -218,6 +218,29 @@ def test_resume_rejects_changed_configuration(tmp_path: Path) -> None:
         )
 
 
+def test_load_large_run_artifacts_reconstructs_typed_run(tmp_path: Path) -> None:
+    """Dropping journal/report identity checks would make this loader unsafe."""
+    paths = artifact_paths(tmp_path)
+    expected = complete_synthetic_run()
+    artifacts.publish_large_run(expected, paths=paths)
+
+    loaded = artifacts.load_large_run_artifacts(paths.report, paths.request_log)
+
+    assert loaded == expected
+
+
+def test_load_large_run_artifacts_rejects_tampered_report(tmp_path: Path) -> None:
+    """Ignoring the report body fingerprint would make this tampering pass."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    payload = json.loads(paths.report.read_text())
+    payload["run_id"] = "tampered"
+    paths.report.write_bytes(canonical_test_json(payload))
+
+    with pytest.raises(LargeLLMError, match="fingerprint"):
+        artifacts.load_large_run_artifacts(paths.report, paths.request_log)
+
+
 def test_resume_rejects_changed_model_metadata(tmp_path: Path) -> None:
     paths = artifact_paths(tmp_path)
     artifacts.publish_large_run(complete_synthetic_run(), paths=paths)

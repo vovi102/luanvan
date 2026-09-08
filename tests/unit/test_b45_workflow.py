@@ -375,17 +375,23 @@ def test_summarize_accepts_three_local_reports_without_a_client(
 ) -> None:
     """Any client construction in summarize would make this test fail."""
     reports = []
+    request_logs = []
     for index in range(3):
         report = tmp_path / f"run-{index}.json"
         report.write_text(json.dumps({"run_id": f"run-{index}"}), encoding="utf-8")
         reports.append(report)
+        request_log = tmp_path / f"run-{index}.jsonl"
+        request_log.write_text("{}\n", encoding="utf-8")
+        request_logs.append(request_log)
     monkeypatch.setattr(
         workflow,
         "load_openrouter_transport",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("must stay local")),
     )
     monkeypatch.setattr(
-        workflow, "load_large_run_report", lambda path: type("Run", (), {"outcomes": ()})()
+        workflow,
+        "load_large_run_report",
+        lambda _report, _log: type("Run", (), {"outcomes": ()})(),
     )
     monkeypatch.setattr(workflow, "summarize_large_runs", lambda runs: {"run_count": len(runs)})
 
@@ -399,8 +405,259 @@ def test_summarize_accepts_three_local_reports_without_a_client(
             str(reports[1]),
             "--report",
             str(reports[2]),
+            "--request-log",
+            str(request_logs[0]),
+            "--request-log",
+            str(request_logs[1]),
+            "--request-log",
+            str(request_logs[2]),
         ],
     )
 
     assert result.exit_code == 0, result.output
     assert json.loads(result.output) == {"run_count": 3, "status": "ready"}
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["predict", "--baseline", "not-a-baseline"],
+        ["validate", "--baseline", "b4"],
+    ],
+)
+def test_click_parse_errors_are_one_compact_json_object(arguments: list[str]) -> None:
+    """Restoring Click's usage output would make this JSON-only contract fail."""
+    result = CliRunner().invoke(workflow.cli, arguments)
+
+    assert result.exit_code == 2
+    assert result.output.count("\n") == 0
+    assert json.loads(result.output)["status"] == "failed"
+
+
+def test_invalid_run_id_precedes_filesystem_key_metadata_and_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Moving primitive validation behind preflight dependencies would fail this test."""
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("primitive validation must stop first")
+
+    monkeypatch.setattr(workflow, "load_evaluation_cases", bomb)
+    monkeypatch.setattr(workflow, "compile_catalog_summary", bomb)
+    monkeypatch.setattr(workflow, "load_model_metadata", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--run-id",
+            "bad id",
+            "--provider",
+            "deepinfra",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "run ID" in json.loads(result.output)["error"]
+
+
+def test_invalid_metadata_sha_precedes_catalog_key_and_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Deferring accepted metadata SHA validation would fail this ordering check."""
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("primitive validation must stop first")
+
+    monkeypatch.setattr(workflow, "compile_catalog_summary", bomb)
+    monkeypatch.setattr(workflow, "load_model_metadata", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "predict",
+            "--baseline",
+            "b4",
+            "--question",
+            "List labels",
+            "--provider",
+            "deepinfra",
+            "--accepted-model-metadata-sha256",
+            "invalid",
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "metadata fingerprint" in json.loads(result.output)["error"]
+
+
+def test_b5_cache_hit_never_loads_encoder(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Loading an encoder for a valid cache would fail this cache-hit regression."""
+    cached = object()
+    monkeypatch.setattr(
+        workflow.FewShotRetriever,
+        "from_snapshot",
+        lambda *_args, **_kwargs: cached,
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_sentence_encoder",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("cache hit")),
+    )
+
+    preflight = workflow._b5_cache_preflight(
+        tmp_path / "train.jsonl", tmp_path / "cache.npz", "encoder", "a" * 40, "b" * 64
+    )
+    result = workflow._b5_retriever(
+        tmp_path / "train.jsonl",
+        tmp_path / "cache.npz",
+        "encoder",
+        "a" * 40,
+        "b" * 64,
+        preflight,
+    )
+
+    assert result is cached
+
+
+def test_b5_stale_cache_rebuilds_only_after_preflight(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Skipping the post-preflight rebuild would fail this stale-cache regression."""
+    rebuilt = object()
+    calls = []
+
+    def from_snapshot(*_args, **kwargs):
+        calls.append(kwargs["encoder"])
+        if kwargs["encoder"] is None:
+            raise workflow.SmallLLMError("few-shot cache is invalid and encoder unavailable")
+        return rebuilt
+
+    monkeypatch.setattr(workflow.FewShotRetriever, "from_snapshot", from_snapshot)
+    monkeypatch.setattr(workflow, "load_sentence_encoder", lambda *_args: "encoder")
+
+    preflight = workflow._b5_cache_preflight(
+        tmp_path / "train.jsonl", tmp_path / "cache.npz", "encoder", "a" * 40, "b" * 64
+    )
+    result = workflow._b5_retriever(
+        tmp_path / "train.jsonl",
+        tmp_path / "cache.npz",
+        "encoder",
+        "a" * 40,
+        "b" * 64,
+        preflight,
+    )
+
+    assert preflight is None
+    assert result is rebuilt
+    assert calls == [None, "encoder"]
+
+
+@pytest.mark.parametrize("sidecar", [".json", ".lock"])
+def test_evaluate_protects_b5_cache_sidecars(sidecar: str, tmp_path: Path) -> None:
+    """Dropping cache sidecars from protected paths would allow this alias."""
+    cache = tmp_path / "b5-cache.npz"
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--run-id",
+            "run-1",
+            "--provider",
+            "deepinfra",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--cache",
+            str(cache),
+            "--predictions",
+            str(cache.with_suffix(cache.suffix + sidecar)),
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "alias" in json.loads(result.output)["error"]
+
+
+def test_summarize_round_trips_three_typed_local_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Replacing typed artifact loading with report dictionaries would fail this test."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(workflow, "load_model_metadata", lambda *_args: {"stub": True})
+    monkeypatch.setattr(
+        workflow,
+        "validate_model_metadata",
+        lambda _raw, config, **_kwargs: ModelMetadataEvidence(
+            model_id=config.model_id,
+            provider_slug="deepinfra",
+            context_length=10_000,
+            supported_parameters=("max_tokens", "seed", "temperature"),
+            prompt_price_per_million_usd=Decimal("0.50"),
+            completion_price_per_million_usd=Decimal("1.00"),
+            metadata_sha256=METADATA_SHA,
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_openrouter_transport",
+        lambda config, _ledger: _SyntheticTransport(config),
+    )
+    reports: list[Path] = []
+    request_logs: list[Path] = []
+    for index in range(3):
+        report = tmp_path / f"report-{index}.json"
+        request_log = tmp_path / f"request-{index}.jsonl"
+        result = CliRunner().invoke(
+            workflow.cli,
+            [
+                "evaluate",
+                "--baseline",
+                "b4",
+                "--test-set",
+                str(tmp_path / "test.jsonl"),
+                "--run-id",
+                f"run-{index}",
+                "--provider",
+                "deepinfra",
+                "--allow-network",
+                "--accepted-model-metadata-sha256",
+                METADATA_SHA,
+                "--predictions",
+                str(tmp_path / f"prediction-{index}.jsonl"),
+                "--request-log",
+                str(request_log),
+                "--cost-log",
+                str(tmp_path / f"cost-{index}.csv"),
+                "--report",
+                str(report),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        reports.append(report)
+        request_logs.append(request_log)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "summarize",
+            *(item for report in reports for item in ("--report", str(report))),
+            *(item for request_log in request_logs for item in ("--request-log", str(request_log))),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["run_ids"] == ["run-0", "run-1", "run-2"]

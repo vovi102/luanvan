@@ -28,6 +28,7 @@ from nl2sparql.models.b45.contracts import (
 from nl2sparql.models.b45.evaluate import (
     EvaluationOutcome,
     LargeEvaluationRun,
+    _metrics,
     compare_large_reproducibility,
 )
 
@@ -991,6 +992,92 @@ def publish_large_run(
         raise LargeLLMError(f"unable to publish large-run artifacts: {error}{suffix}") from error
 
 
+def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> LargeEvaluationRun:
+    """Load one typed run only when its report and durable journal agree.
+
+    Args:
+        report_path: Canonical JSON report written by :func:`publish_large_run`.
+        request_log_path: Canonical request journal written for the same run.
+
+    Returns:
+        A fully validated immutable evaluation run suitable for local summaries.
+
+    Raises:
+        LargeLLMError: If either artifact is missing, non-canonical, tampered, or
+            disagrees with the run derived from durable outcome evidence.
+    """
+    if not isinstance(report_path, Path) or not isinstance(request_log_path, Path):
+        raise LargeLLMError("large-run artifact paths must be pathlib.Path values")
+    report_bytes = _existing_bytes(report_path)
+    if report_bytes is None:
+        raise LargeLLMError("large-run report does not exist")
+    try:
+        report = json.loads(report_bytes)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise LargeLLMError("large-run report is invalid JSON") from error
+    if not isinstance(report, dict) or "report_sha256" not in report:
+        raise LargeLLMError("large-run report fields are invalid")
+    reported_sha = report.pop("report_sha256")
+    if not isinstance(reported_sha, str) or _SHA256_RE.fullmatch(reported_sha) is None:
+        raise LargeLLMError("large-run report fingerprint is invalid")
+    canonical_body = _canonical_json(report)
+    if report_bytes != _canonical_json({**report, "report_sha256": reported_sha}):
+        raise LargeLLMError("large-run report is not canonical")
+    if hashlib.sha256(canonical_body).hexdigest() != reported_sha:
+        raise LargeLLMError("large-run report fingerprint does not match body")
+
+    header, records = _parse_request_log(_existing_bytes(request_log_path) or b"")
+    outcomes = tuple(_outcome_from_record(record, line_number=None) for record in records)
+    if not outcomes:
+        raise LargeLLMError("large-run request journal has no outcomes")
+    budget = _budget_from_record(report.get("budget"))
+    attributed = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=Decimal("0"))
+    unattributed = budget.spent_usd - attributed
+    if unattributed < Decimal("0"):
+        raise LargeLLMError("large-run budget spent is below outcome costs")
+    metrics = _metrics(outcomes, unattributed_spend_usd=unattributed)
+    for key in (
+        "run_id",
+        "baseline",
+        "input_sha256",
+        "config_sha256",
+        "catalog_sha256",
+        "summary_sha256",
+        "training_sha256",
+        "model_id",
+        "provider_slug",
+        "model_metadata_sha256",
+    ):
+        if report.get(key) != header.get(key):
+            raise LargeLLMError(f"large-run report {key} disagrees with request journal")
+    if report.get("metrics") != _canonical_value(asdict(metrics)):
+        raise LargeLLMError("large-run report metrics are not derived from outcomes")
+    if report.get("budget") != _canonical_value(asdict(budget)):
+        raise LargeLLMError("large-run report budget is invalid")
+    try:
+        return LargeEvaluationRun(
+            run_id=header["run_id"],  # type: ignore[arg-type]
+            baseline=header["baseline"],  # type: ignore[arg-type]
+            outcomes=outcomes,
+            metrics=metrics,
+            scientific_ready=report["scientific_ready"],  # type: ignore[arg-type]
+            blockers=tuple(report["blockers"]),  # type: ignore[arg-type]
+            seed=report["seed"],  # type: ignore[arg-type]
+            generated_at_utc=report["generated_at_utc"],  # type: ignore[arg-type]
+            input_sha256=header["input_sha256"],  # type: ignore[arg-type]
+            config_sha256=header["config_sha256"],  # type: ignore[arg-type]
+            budget=budget,
+            catalog_sha256=header["catalog_sha256"],  # type: ignore[arg-type]
+            summary_sha256=header["summary_sha256"],  # type: ignore[arg-type]
+            training_sha256=header["training_sha256"],  # type: ignore[arg-type]
+            model_id=header["model_id"],  # type: ignore[arg-type]
+            provider_slug=header["provider_slug"],  # type: ignore[arg-type]
+            model_metadata_sha256=header["model_metadata_sha256"],  # type: ignore[arg-type]
+        )
+    except (KeyError, TypeError, LargeLLMError) as error:
+        raise LargeLLMError("large-run report is invalid") from error
+
+
 def summarize_large_runs(runs: Sequence[LargeEvaluationRun]) -> dict[str, object]:
     """Build a three-run local summary without contacting a remote provider.
 
@@ -1053,6 +1140,7 @@ __all__ = [
     "ArtifactPaths",
     "RequestJournal",
     "ResumeState",
+    "load_large_run_artifacts",
     "load_resume_state",
     "publish_large_run",
     "serialize_cost_csv",
