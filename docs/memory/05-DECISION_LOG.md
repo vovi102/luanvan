@@ -24,6 +24,38 @@
 
 ## Entries
 
+### 2026-09-07 — T5.3 dùng GoogleSQL B4/B5 remote large-LLM với acceptance hai tầng
+
+- **Context:** Sau Pivot #1, mô tả T5.3 cũ vẫn dùng target và model đã retired,
+  trong khi B1/B2 đã có catalog, prompt, retrieval và extraction GoogleSQL được
+  chấp nhận. Inference lớn qua provider còn có rủi ro fallback, billing,
+  retry, privacy và resume artifact nếu không ràng buộc rõ.
+- **Options considered:** Giữ mô tả cũ; đưa OpenRouter vào B1/B2; dùng một
+  framework chung cho mọi baseline; hoặc tách module remote B4/B5, giữ seam
+  B1/B2 ổn định và ghi rõ hai ngưỡng acceptance.
+- **Decision:** T5.3 dùng module riêng `models/b45`: B4 zero-shot và B5 đúng
+  năm examples từ B2, model chính xác
+  `meta-llama/llama-3.3-70b-instruct`, một provider được pin với
+  `allow_fallbacks=false`, `require_parameters=true`, và
+  `data_collection="deny"`. Ledger đặt reservation bảo thủ trước request,
+  giới hạn hard cap tối đa USD 20, retry chỉ lỗi transient và không có network
+  mặc định. Journal v3 có terminal evidence sealed; journal v2 chỉ được migrate
+  một chiều khi resume. Hash không được coi là chữ ký xác thực.
+- **Rationale:** Tách remote billing/retry khỏi B1/B2 giữ so sánh prompt và
+  extraction có kiểm soát, trong khi provenance, cost, privacy và resume đều
+  fail closed. Readiness local và scientific được báo cáo riêng để test offline
+  không trở thành claim nghiên cứu.
+- **Consequences:** CLI có `validate`, `predict`, `evaluate`, `summarize`; live
+  request cần explicit opt-in, key, metadata fingerprint và external evidence.
+  Các report local có thể kiểm tra cấu trúc nhưng không tạo live accuracy,
+  latency, cost hay reproducibility result. Giá và availability phải lấy từ
+  metadata tại thời điểm chạy, không đóng đinh trong tài liệu.
+- **Revisit:** Sau khi có test set T3.5 finalized/reviewed, training artifact,
+  account được cấp phép và đủ ba run genuine cho mỗi baseline; khi đó xem xét
+  scientific gates bằng artifact hashes và authoritative usage.
+- **Linked:** `docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md`,
+  `src/nl2sparql/models/b45/`, `scripts/18_large_llm_baselines.py`.
+
 ### 2026-09-01 — T5.2 tách local baseline logic khỏi Kaggle Llama inference
 
 - **Context:** T5.2 legacy prompt SPARQL bằng ontology và giả định Llama 3 8B

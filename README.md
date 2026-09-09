@@ -1,8 +1,8 @@
-# NL2SPARQL Blockchain KG
+# NL2SQL Blockchain KG
 
 > **Trang thai:** Pivot #1 da chuyen target active sang NL2SQL tren BigQuery (2026-08-09).
 >
-> **De tai ban dau:** NL2SPARQL cho Blockchain Knowledge Graph Analytics
+> **De tai ban dau:** Natural-language blockchain analytics trên Knowledge Graph
 >
 > **Thoi luong:** 6.5 thang  
 > **Dau ra active:** luan van thac si, dataset NL-SQL, source code pipeline, demo Gradio/HF Spaces
@@ -30,6 +30,45 @@ Neu can tach cache/Python managed vao trong repo khi chay local:
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv sync
 ```
+
+## T5.3 B4/B5 GoogleSQL large-LLM
+
+T5.3 dùng model `meta-llama/llama-3.3-70b-instruct`: B4 zero-shot và B5
+few-shot đúng năm examples do B2 retriever chọn. Hai baseline dùng chung
+catalog/prompt/extraction GoogleSQL của B1/B2. Provider được pin và không
+fallback; hard budget là USD 20 tối đa theo reservation trước request. Xem
+chi tiết acceptance và artifact tại
+`docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md`.
+
+Lệnh preflight offline sau đây chỉ kiểm tra catalog/config local, không đọc API
+key, không khởi tạo client và không mở network:
+
+```bash
+uv run python scripts/18_large_llm_baselines.py validate \
+  --baseline b4 \
+  --provider deepinfra \
+  --max-cost-usd 20
+```
+
+Ví dụ live dưới đây chỉ là thao tác thủ công có chủ đích; nó **không bao giờ
+được chạy tự động**. Cần tự cấp key, metadata fingerprint đã chấp nhận và
+đồng ý phát sinh chi phí trước khi thêm `--allow-network`:
+
+```bash
+export OPENROUTER_API_KEY
+uv run python scripts/18_large_llm_baselines.py predict \
+  --baseline b4 \
+  --question "List known Ethereum addresses" \
+  --provider deepinfra \
+  --max-cost-usd 20 \
+  --accepted-model-metadata-sha256 <64-lowercase-hex-sha256> \
+  --allow-network
+```
+
+`predict` không publish artifact. Evaluation dùng `evaluate --run-id ...`
+với `--test-set`, `--predictions`, `--request-log`, `--cost-log`, `--report`
+và `--resume`; `summarize` nhận đúng ba cặp `--report`/`--request-log` và vẫn
+offline. Không có lệnh README nào tự chạy live inference.
 
 Du lieu lon va artifact train/KG khong commit vao git. Xem `.gitignore` va `docs/memory/04-CONVENTIONS.md`.
 
@@ -68,7 +107,7 @@ Du lieu lon va artifact train/KG khong commit vao git. Xem `.gitignore` va `docs
 │   ├── dataset/                # Template, synthetic, paraphrase, noise
 │   ├── models/                 # Baselines, fine-tuned model, full system
 │   ├── decoding/               # Grammar/constrained decoding
-│   ├── validation/             # SPARQL validation va recovery
+│   ├── validation/             # Legacy graph validation va recovery
 │   ├── evaluation/             # Metrics, runner, analysis
 │   └── demo/                   # Gradio app
 └── tests/

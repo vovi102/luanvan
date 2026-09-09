@@ -1,177 +1,171 @@
-# T5.3 — B4 + B5: Large LLM Zero-Shot & Few-Shot (Llama 3 70B / Mistral Large)
+# T5.3 — B4 + B5: GoogleSQL Large-LLM Baselines
 
-## Mục tiêu
+local implementation complete
+scientific acceptance pending
 
-Triển khai 2 baselines dùng LLM lớn qua API (OpenRouter):
-- **B4:** Llama 3 70B Instruct, zero-shot.
-- **B5:** Llama 3 70B Instruct, few-shot 5 examples.
+## Scope
 
-(Có thể dùng Mistral Large hoặc Qwen 2.5 72B làm alternative; chọn 1 nhất quán.)
+T5.3 provides two raw-model NL-to-GoogleSQL controls over the managed BigQuery
+analytical catalog:
 
-## Bối cảnh & lý do
+- **B4 zero-shot:** the question and the compiled catalog summary only.
+- **B5 few-shot:** the same prompt and generation policy, plus exactly five
+  accepted examples selected by the B2 retriever.
 
-B4/B5 là **upper bound** trong bảng baseline. Nếu B3 (small fine-tuned) gần B4/B5 trên accuracy → finding quan trọng cho RQ1: small LLM fine-tuned đủ dùng.
+B4 and B5 do not consume T4 schema, entity, or class-linking evidence. They
+reuse the accepted B1/B2 catalog summary, `b12.prompts.build_messages`, and
+`b12.extraction.extract_google_sql`. Extraction validates the whole model
+output and returns only a read-only, managed GoogleSQL statement; prose,
+multiple statements, invalid SQL, and unsafe SQL fail closed. B5 retains the
+B2 training/cache leakage and provenance checks.
 
-API-based, không train, không host — kiểm tra capability "có sẵn" của LLM lớn.
+The canonical model is exactly
+`meta-llama/llama-3.3-70b-instruct`. Every run fixes `temperature=0`, `seed=42`,
+`max_tokens=512`, and one returned choice. The model identifier is a run
+contract, not a claim that the provider will keep the model or its pricing
+available forever.
 
-## Phụ thuộc
+## Provider and request policy
 
-- T5.2 — B1/B2 đã có (reuse SPARQL extraction logic).
-- OpenRouter account + API key.
-- T3.5 — Test set 100 câu.
+The live adapter is OpenRouter-compatible and is constructed lazily only after
+all local checks and explicit network opt-in. `--provider` is required and
+identifies one pinned provider. Requests set `allow_fallbacks=false`,
+`require_parameters=true`, and `data_collection="deny"`; provider switching or
+silent fallback is not allowed. The workflow currently constructs policy
+ceilings of `0.50` USD per million prompt tokens and `1.00` USD per million
+completion tokens. These are run-policy ceilings, not timeless market prices;
+the accepted live model metadata and response usage remain authoritative.
 
-## Đầu vào
+Only transient transport failures are retried: HTTP 408, 409, 429, 500, 502,
+503, and 504, connection failures, and timeouts. Retry attempts are bounded by
+the configured maximum (default three), use exponential backoff with injected
+jitter, and honor a valid bounded `Retry-After`. Authentication, payment,
+malformed-request, unsupported-parameter, moderation, and other non-transient
+errors stop immediately. Logs retain safe error codes and fingerprints, never
+API keys or full prompts.
 
-- `OPENROUTER_API_KEY` (env var).
-- Model identifier: `meta-llama/llama-3-70b-instruct` (hoặc Mistral / Qwen).
-- Test set.
+The hard budget is a positive `Decimal` cap no greater than USD 20. Before a
+request, a lock-protected ledger reserves a conservative maximum based on the
+UTF-8 prompt size, 512 output tokens, and the configured provider ceilings. A
+case is `budget_blocked` before network I/O when the complete reservation does
+not fit. Returned authoritative usage cost reconciles the reservation; a
+missing/invalid charge remains unresolved, and a charge above the reservation
+or cap records a pricing violation and stops further work. Concurrent workers
+cannot collectively oversubscribe the cap, and interrupted runs retain
+unresolved reservations and unattributed spend in their checkpoint.
 
-## Đầu ra
+## Privacy and evidence boundary
 
-- Module `src/nl2sparql/models/large_llm.py`.
-- Predictions `data/eval/predictions/b4_test.jsonl`, `b5_test.jsonl`.
-- Cost log `data/eval/logs/openrouter_cost.csv`.
+Live requests require both `--allow-network` and a non-empty
+`OPENROUTER_API_KEY`. Help, validation, local tests, and `summarize` do not
+construct an OpenRouter client or open a socket. The key is read only at the
+live boundary and is never serialized, echoed, or logged. Questions and
+catalog context leave the workstation and may be processed by the pinned
+provider; `data_collection="deny"` is a requested routing policy, not a
+guarantee of zero retention. The accepted test snapshot must contain no
+secrets or personal data.
 
-## Acceptance criteria
+Injected/synthetic transports are useful for local tests but are permanently
+marked synthetic and cannot make a run scientifically ready. The report keeps
+separate local implementation readiness and scientific readiness; a caller
+boolean cannot override either one.
 
-- [ ] B4/B5 chạy hoàn tất trên 100 test cases mà không exceed $20 cost.
-- [ ] Latency log per query.
-- [ ] Tất cả requests có retry logic (429/5xx).
-- [ ] Tổng cost report cuối.
-- [ ] Reproducibility: temperature=0, seed nếu API support.
+## Artifacts and resumption
 
-## Hướng dẫn triển khai
+The default outputs are:
 
-### OpenRouter client
+- `data/eval/predictions/b4_test.jsonl` or `b5_test.jsonl`;
+- `data/eval/logs/b4_openrouter.jsonl` or `b5_openrouter.jsonl`;
+- `data/eval/logs/openrouter_cost.csv`;
+- `reports/b4_inference.json` or `b5_inference.json`.
 
-```python
-import httpx, time
-from typing import Optional
+Each prediction records the case/question identity, raw output, safe SQL or
+extraction status, model/provider/generation identity, token counts, charged
+cost, attempts, latency, and catalog, summary, prompt, configuration, and (for
+B5) training/encoder/example fingerprints. Failure outcomes retain a safe
+error code, prompt fingerprint, attempt count, authoritative cost when known,
+and the durable budget checkpoint.
 
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+Request journals are schema **v3**: header and per-case records are
+SHA-256-chained, and the final terminal record seals outcome count, derived
+metrics, budget, blockers, and readiness. Reports are published last and are
+cross-bound to that terminal record; a sealed terminal checkpoint forbids later
+append. Hashes detect corruption and bind artifacts relative to an accepted
+digest, but unkeyed hashes do not authenticate a coordinated rewrite of every
+artifact. An external accepted digest or signature would be required for that
+threat model and is outside T5.3.
 
-class OpenRouterClient:
-    def __init__(self, api_key, model="meta-llama/llama-3-70b-instruct"):
-        self.api_key = api_key
-        self.model = model
+For compatibility, an authentic terminal-free schema-v2 journal may be loaded
+**only for resume**, after exact identity and budget validation. Before the next
+append it is atomically migrated one-way to schema v3. Publication and summary
+loading require sealed v3 evidence; v2 cannot be used as a final result.
 
-    def complete(self, system: str, user: str, max_tokens=512, retries=3):
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "HTTP-Referer": "https://github.com/<your-repo>",
-            "X-Title": "NL2SPARQL-Thesis",
-            "Content-Type": "application/json",
-        }
-        body = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "max_tokens": max_tokens,
-            "temperature": 0.0,
-        }
-        for attempt in range(retries):
-            try:
-                with httpx.Client(timeout=60) as client:
-                    resp = client.post(OPENROUTER_URL, headers=headers, json=body)
-                    if resp.status_code == 429:
-                        time.sleep(2 ** attempt)
-                        continue
-                    resp.raise_for_status()
-                    return resp.json()
-            except httpx.HTTPError as e:
-                if attempt == retries - 1:
-                    raise
-                time.sleep(2 ** attempt)
+## CLI
+
+The numbered entry point is `scripts/18_large_llm_baselines.py`. Use `--help`
+for the authoritative Click rendering. All commands emit compact JSON on
+non-help paths.
+
+Offline validation never needs a key, model, encoder, or network:
+
+```bash
+uv run python scripts/18_large_llm_baselines.py validate \
+  --baseline b4 \
+  --provider deepinfra \
+  --max-cost-usd 20
 ```
 
-### B4 / B5 code
+`validate` accepts `--baseline {b4,b5}`, required `--provider`,
+`--max-cost-usd`, `--catalog`, `--training`, `--cache`, `--encoder-id`,
+`--encoder-revision`, and `--accepted-training-sha256`; B5 additionally
+requires a valid accepted training digest and pinned encoder revision.
 
-Reuse prompt từ T5.2 (B1/B2). Chỉ đổi backend từ local model sang OpenRouter.
+`predict` requires `--baseline`, `--question`, and the common options. A live
+request additionally requires `--allow-network` and
+`--accepted-model-metadata-sha256`; B5 may use `--target-id` and requires the
+same accepted training/cache options. `predict` has no artifact publication.
 
-```python
-class BaselineB4:
-    def __init__(self, ontology_summary, client):
-        self.ontology = ontology_summary
-        self.client = client
+`evaluate` requires `--baseline` and `--run-id`, and accepts `--test-set`,
+`--predictions`, `--request-log`, `--cost-log`, `--report`, `--resume`,
+`--allow-network`, and `--accepted-model-metadata-sha256` in addition to the
+common options. It performs local path protection before the live loader,
+keeps ordered durable outcomes, and publishes atomically.
 
-    def predict(self, nl):
-        system = B1_SYSTEM.format(ontology_summary=self.ontology)
-        user = f"Question: {nl}\n\nSPARQL:"
-        resp = self.client.complete(system, user)
-        raw = resp["choices"][0]["message"]["content"]
-        return extract_sparql(raw), {
-            "tokens_in": resp["usage"]["prompt_tokens"],
-            "tokens_out": resp["usage"]["completion_tokens"],
-            "cost": estimate_cost(resp),
-        }
-```
+`summarize` is offline and requires exactly three repeated `--report PATH` and
+three repeated `--request-log PATH` options. It loads only sealed local runs and
+reports observed pairwise normalized-SQL and raw-output agreement; it does not
+invent missing predictions or claim determinism.
 
-### Cost tracking
+## Acceptance boundary
 
-OpenRouter pricing (varies, check current):
-- Llama 3 70B: ~$0.7-0.9/M input + $0.8-1.0/M output.
-- Mistral Large: ~$3/M input + $9/M output (đắt hơn).
+The local implementation gate covers contracts, B4/B5 prompt parity, B2
+retrieval reuse, fail-closed GoogleSQL extraction, lazy provider loading,
+retry/error policy, hard-cap accounting, protected atomic artifacts, v3
+terminal evidence, v2 resume migration, CLI preflight, focused tests, the full
+test suite, and lint/format checks. Local completion does not produce research
+results.
 
-```python
-def estimate_cost(resp, prices):
-    usage = resp["usage"]
-    cost_in = (usage["prompt_tokens"] / 1_000_000) * prices["in"]
-    cost_out = (usage["completion_tokens"] / 1_000_000) * prices["out"]
-    return cost_in + cost_out
-```
+Scientific acceptance remains blocked until all of the following are supplied
+and independently reviewed:
 
-Cap tổng: nếu sum cost vượt $20 → abort, log unfinished cases.
+- finalized T3.5 test-set evidence with 100 trusted cases and no secrets;
+- an accepted non-test B5 training snapshot, cache, and pinned encoder
+  revision;
+- accepted live OpenRouter model metadata for the exact model and one provider
+  supporting every pinned parameter;
+- explicit human permission, valid account/key, and sufficient funds for live
+  requests;
+- three complete genuine B4 runs and three complete genuine B5 runs;
+- authoritative total cost at or below USD 20, no unresolved or unattributed
+  spend, and complete provider/latency/token/reproducibility evidence.
 
-### Concurrency
+Until those external gates pass, this task makes no claim about live accuracy,
+latency, cost, or scientific comparison. Current provider prices and model
+availability must be captured at live preflight rather than copied into a
+timeless document.
 
-OpenRouter rate limits: thường 60 req/min cho free, 600 req/min cho paid. Dùng `asyncio.Semaphore(5)` để parallel mà không bị rate limit:
+Linked:
 
-```python
-import asyncio
-
-async def run_async(test_set, client, semaphore):
-    async def one(case):
-        async with semaphore:
-            sparql, meta = await client.complete_async(case["nl"])
-            return {"id": case["id"], "predicted_sparql": sparql, **meta}
-    sem = asyncio.Semaphore(5)
-    return await asyncio.gather(*(one(c) for c in test_set))
-```
-
-### Variance check
-
-Run 3 lần với cùng input (temperature=0). Compute:
-- Exact match between runs (should be 100% if API deterministic).
-- Nếu khác → log, có thể model server stochastic dù temp=0.
-
-Đây là dimension "Reproducibility" trong evaluation framework (T5.4).
-
-### Logging schema
-
-```jsonl
-{"id":"test-001","baseline":"b4","run":1,"raw":"...","sparql":"...","tokens_in":850,"tokens_out":120,"cost":0.0008,"latency_ms":2300,"timestamp":"..."}
-```
-
-### Privacy note
-
-OpenRouter forwards prompts đến model providers. **Không gửi PII**. Test set chỉ chứa câu hỏi public Ethereum data → OK.
-
-Document limitation này trong thesis privacy chapter (đối lập với local Llama 8B).
-
-## Rủi ro & note
-
-- **OpenRouter outage:** plan B = Together AI hoặc Replicate. Code abstraction để swap.
-- **Cost overrun:** monitor mỗi 20 calls, hard stop $20.
-- **Rate limit unexpected:** retry với backoff, log unfinished cases.
-- **Model deprecation:** OpenRouter có thể đổi tên model. Pin specific version (e.g. `llama-3-70b-instruct:nitro` cho fast variant).
-- **Different model results khác nhau:** chọn 1 (Llama 3 70B) làm chính, mention alternatives đã thử trong thesis.
-
-## Estimated effort
-
-1.5 ngày.
-
-## Trạng thái
-
-todo
+- Spec: `docs/superpowers/specs/2026-09-07-t5-3-google-sql-large-llm-design.md`.
+- Plan: `docs/superpowers/plans/2026-09-07-t5-3-google-sql-large-llm.md`.
+- Code: `src/nl2sparql/models/b45/`, `scripts/18_large_llm_baselines.py`.

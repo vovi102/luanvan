@@ -21,6 +21,15 @@ SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_lab
 METADATA_SHA = "c" * 64
 
 
+def test_task_document_matches_google_sql_acceptance_boundary() -> None:
+    text = Path("docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md").read_text()
+    assert "GoogleSQL" in text
+    assert "meta-llama/llama-3.3-70b-instruct" in text
+    assert "local implementation complete" in text
+    assert "scientific acceptance pending" in text
+    assert "SPARQL extraction" not in text
+
+
 def _policy() -> ProviderPolicy:
     return ProviderPolicy(
         provider_slug="deepinfra",
