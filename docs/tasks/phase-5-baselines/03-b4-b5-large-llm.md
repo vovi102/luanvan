@@ -48,11 +48,18 @@ The hard budget is a positive `Decimal` cap no greater than USD 20. Before a
 request, a lock-protected ledger reserves a conservative maximum based on the
 UTF-8 prompt size, 512 output tokens, and the configured provider ceilings. A
 case is `budget_blocked` before network I/O when the complete reservation does
-not fit. Returned authoritative usage cost reconciles the reservation; a
-missing/invalid charge remains unresolved, and a charge above the reservation
+not fit. Every network attempt has its own reservation ID. A retryable failure
+holds that attempt's full ceiling as unresolved liability, so a later attempt
+must reserve another ceiling and can never oversubscribe the cap. Returned
+authoritative usage cost reconciles only the current attempt; earlier unknown
+liabilities stay in the checkpoint. A missing/invalid charge remains unresolved,
+and a charge above the reservation
 or cap records a pricing violation and stops further work. Concurrent workers
 cannot collectively oversubscribe the cap, and interrupted runs retain
-unresolved reservations and unattributed spend in their checkpoint.
+unresolved reservations and unattributed spend in their checkpoint. Cooperative
+cancellation shields the hold/reconcile and durable failure append before
+propagating; an abrupt process kill can only preserve the last durable journal
+checkpoint.
 
 ## Privacy and evidence boundary
 
@@ -63,7 +70,14 @@ live boundary and is never serialized, echoed, or logged. Questions and
 catalog context leave the workstation and may be processed by the pinned
 provider; `data_collection="deny"` is a requested routing policy, not a
 guarantee of zero retention. The accepted test snapshot must contain no
-secrets or personal data.
+secrets or personal data. The canonical local marker `<test-set>.privacy.json`
+(or `--privacy-review`) records the exact input SHA and affirmative
+`reviewed`, `no_secrets`, and `no_personal_data` assertions. Live `evaluate`
+refuses key/metadata/client construction until
+`--accepted-privacy-review-sha256` matches the marker's exact bytes. Its
+privacy fingerprint is retained in every outcome, journal header/terminal,
+report, and resume identity. Offline `validate` remains networkless and
+reports a missing or invalid privacy gate instead of inventing acceptance.
 
 Injected/synthetic transports are useful for local tests but are permanently
 marked synthetic and cannot make a run scientifically ready. The report keeps
@@ -84,7 +98,8 @@ extraction status, model/provider/generation identity, token counts, charged
 cost, attempts, latency, and catalog, summary, prompt, configuration, and (for
 B5) training/encoder/example fingerprints. Failure outcomes retain a safe
 error code, prompt fingerprint, attempt count, authoritative cost when known,
-and the durable budget checkpoint.
+and the durable budget checkpoint. Run/outcome/report identities also retain
+the provider-policy and accepted privacy fingerprints.
 
 Request journals are schema **v3**: header and per-case records are
 SHA-256-chained, and the final terminal record seals outcome count, derived
@@ -116,25 +131,34 @@ uv run python scripts/18_large_llm_baselines.py validate \
 ```
 
 `validate` accepts `--baseline {b4,b5}`, required `--provider`,
-`--max-cost-usd`, `--catalog`, `--training`, `--cache`, `--encoder-id`,
-`--encoder-revision`, and `--accepted-training-sha256`; B5 additionally
-requires a valid accepted training digest and pinned encoder revision.
+`--max-cost-usd`, `--test-set`, `--privacy-review`,
+`--accepted-privacy-review-sha256`, `--catalog`, `--training`, `--cache`,
+`--encoder-id`, `--encoder-revision`, and `--accepted-training-sha256`; B5
+additionally requires a valid accepted training digest and pinned encoder
+revision. Missing privacy evidence is reported as an offline blocker.
 
 `predict` requires `--baseline`, `--question`, and the common options. A live
-request additionally requires `--allow-network` and
-`--accepted-model-metadata-sha256`; B5 may use `--target-id` and requires the
-same accepted training/cache options. `predict` has no artifact publication.
+request additionally requires explicit `--max-cost-usd`, `--allow-network`,
+and `--accepted-model-metadata-sha256`; B5 may use `--target-id` and requires
+the same accepted training/cache options. `predict` has no artifact
+publication.
 
 `evaluate` requires `--baseline` and `--run-id`, and accepts `--test-set`,
-`--predictions`, `--request-log`, `--cost-log`, `--report`, `--resume`,
-`--allow-network`, and `--accepted-model-metadata-sha256` in addition to the
-common options. It performs local path protection before the live loader,
-keeps ordered durable outcomes, and publishes atomically.
+`--privacy-review`, `--accepted-privacy-review-sha256`, `--predictions`,
+`--request-log`, `--cost-log`, `--report`, `--resume`, `--allow-network`, and
+`--accepted-model-metadata-sha256` in addition to the common options. Live
+evaluation requires explicit `--max-cost-usd`; it computes all local identity
+fingerprints and validates resume state before API key, metadata, encoder, or
+client access. It performs local path protection before the live loader, keeps
+ordered durable outcomes, and publishes atomically.
 
 `summarize` is offline and requires exactly three repeated `--report PATH` and
 three repeated `--request-log PATH` options. It loads only sealed local runs and
 reports observed pairwise normalized-SQL and raw-output agreement; it does not
-invent missing predictions or claim determinism.
+invent missing predictions or claim determinism. A per-baseline three-run
+summary always reports `counterpart_baseline_missing` and
+`combined_budget_unverified`, keeps `scientific_ready=false`, and separately
+emits derived `local_implementation_ready`.
 
 ## Acceptance boundary
 

@@ -41,6 +41,12 @@ from nl2sparql.models.b45.evaluate import (
     evaluate_large_baseline,
     load_evaluation_cases,
 )
+from nl2sparql.models.b45.privacy import (
+    PrivacyReviewEvidence,
+    load_privacy_review,
+    privacy_review_path,
+    serialize_privacy_review,
+)
 from nl2sparql.models.b45.transport import CompletionTransport
 
 __all__ = [
@@ -61,6 +67,7 @@ __all__ = [
     "LargeLLMPrediction",
     "OutcomeJournal",
     "ProviderPolicy",
+    "PrivacyReviewEvidence",
     "RequestJournal",
     "RemoteCompletion",
     "ReproducibilityReport",
@@ -72,11 +79,14 @@ __all__ = [
     "load_resume_state",
     "load_large_run_artifacts",
     "load_evaluation_cases",
+    "load_privacy_review",
+    "privacy_review_path",
     "publish_large_run",
     "serialize_cost_csv",
     "serialize_predictions",
     "serialize_report",
     "serialize_request_log",
+    "serialize_privacy_review",
     "summarize_large_runs",
     "validate_artifact_paths",
 ]

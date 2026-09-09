@@ -208,6 +208,61 @@ def _zero_jitter(_attempt: int) -> float:
     return 0.0
 
 
+async def _shield_operation(operation: Awaitable[Any]) -> Any:
+    """Finish one accounting operation even when its caller is cancelled."""
+    task = asyncio.ensure_future(operation)
+    cancelled = False
+    try:
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                cancelled = True
+                continue
+        result = task.result()
+    except asyncio.CancelledError:
+        cancelled = True
+        result = None
+    if cancelled:
+        raise asyncio.CancelledError
+    return result
+
+
+def _annotate_cancellation(
+    error: asyncio.CancelledError,
+    *,
+    prompt_sha256: str,
+    attempt_count: int,
+    authoritative_cost_usd: Decimal = Decimal("0"),
+    reservation_id: str | None = None,
+) -> None:
+    """Attach non-secret accounting evidence to a propagated cancellation."""
+    error.code = "request_cancelled"  # type: ignore[attr-defined]
+    error.prompt_sha256 = prompt_sha256  # type: ignore[attr-defined]
+    error.attempt_count = attempt_count  # type: ignore[attr-defined]
+    error.authoritative_cost_usd = authoritative_cost_usd  # type: ignore[attr-defined]
+    if reservation_id is not None:
+        error.reservation_id = reservation_id  # type: ignore[attr-defined]
+
+
+def _conservative_json_number(value: Decimal) -> float:
+    """Convert a Decimal to JSON number form without rounding above its ceiling."""
+    if not isinstance(value, Decimal) or not value.is_finite() or value < Decimal("0"):
+        raise OpenRouterRequestError("request_invalid")
+    converted = float(value)
+    if not math.isfinite(converted):
+        raise OpenRouterRequestError("request_invalid")
+    # Decimal.from_float exposes the exact binary value represented by the
+    # outgoing JSON number.  Move down one representable float when conversion
+    # rounded upward, preserving a conservative provider ceiling.
+    while Decimal.from_float(converted) > value:
+        lower = math.nextafter(converted, -math.inf)
+        if lower == converted:
+            break
+        converted = lower
+    return converted
+
+
 def _ensure_ledger_config_matches(config: LargeLLMConfig, ledger: BudgetLedger) -> None:
     if not isinstance(config, LargeLLMConfig) or not isinstance(ledger, BudgetLedger):
         raise OpenRouterRequestError("transport_configuration_invalid")
@@ -324,38 +379,82 @@ class OpenRouterTransport:
         self._ensure_config_matches(config)
         request = _request_payload(messages, config)
         prompt_fingerprint = prompt_sha256(messages)
-        reservation = await self._ledger.reserve(request_id, messages)
-        if reservation is None:
-            raise OpenRouterRequestError("budget_blocked", prompt_sha256=prompt_fingerprint)
-
         retry_policy = RetryPolicy(max_attempts=config.max_attempts)
         start_ns = _clock_value(self._clock_ns, "clock_invalid")
         attempt = 0
         response: object
+
+        async def hold_reservation(reservation: object, reason: str) -> None:
+            try:
+                await _shield_operation(self._ledger.hold(reservation, reason))  # type: ignore[arg-type]
+            except asyncio.CancelledError as cancelled:
+                _annotate_cancellation(
+                    cancelled,
+                    prompt_sha256=prompt_fingerprint,
+                    attempt_count=attempt,
+                    reservation_id=getattr(reservation, "request_id", None),
+                )
+                raise
+
         while True:
             attempt += 1
+            reservation_id = f"{request_id}:attempt-{attempt}"
+            duplicate_number = 0
+            while True:
+                try:
+                    reservation = await self._ledger.reserve(reservation_id, messages)
+                    break
+                except asyncio.CancelledError as cancelled:
+                    _annotate_cancellation(
+                        cancelled,
+                        prompt_sha256=prompt_fingerprint,
+                        attempt_count=attempt - 1,
+                        reservation_id=reservation_id,
+                    )
+                    raise
+                except LargeLLMError as error:
+                    # A resumed run may retain an earlier liability under the
+                    # deterministic base ID.  Never reuse that ID: allocate a
+                    # distinct reservation while keeping the prior one intact.
+                    if not str(error).startswith("duplicate budget request ID"):
+                        raise
+                    duplicate_number += 1
+                    reservation_id = f"{request_id}:attempt-{attempt}:resume-{duplicate_number}"
+            if reservation is None:
+                raise OpenRouterRequestError(
+                    "budget_blocked",
+                    attempt_count=attempt - 1,
+                    prompt_sha256=prompt_fingerprint,
+                )
             terminal_error: OpenRouterRequestError | None = None
             delay: float | None = None
             try:
                 response = await self._sdk.chat.completions.create(**request)
-            except asyncio.CancelledError:
-                await self._ledger.hold(reservation, "request_cancelled")
+            except asyncio.CancelledError as cancelled:
+                await hold_reservation(reservation, "request_cancelled")
+                _annotate_cancellation(
+                    cancelled,
+                    prompt_sha256=prompt_fingerprint,
+                    attempt_count=attempt,
+                    reservation_id=reservation.request_id,
+                )
                 raise
             except Exception as error:
                 if not retry_policy.is_retryable(error) or attempt >= retry_policy.max_attempts:
-                    await self._ledger.hold(reservation, "request_cost_unknown")
+                    await hold_reservation(reservation, "request_cost_unknown")
                     terminal_error = OpenRouterRequestError(
                         _request_error_code(error, exhausted=attempt >= retry_policy.max_attempts),
                         attempt_count=attempt,
                         prompt_sha256=prompt_fingerprint,
                     )
                 else:
+                    await hold_reservation(reservation, "retryable_request_failure")
                     try:
                         delay = retry_policy.delay_seconds(
                             error, attempt=attempt, jitter=self._jitter
                         )
                     except OpenRouterRequestError as delay_error:
-                        await self._ledger.hold(reservation, "retry_delay_invalid")
+                        await hold_reservation(reservation, "retry_delay_invalid")
                         terminal_error = OpenRouterRequestError(
                             delay_error.code,
                             attempt_count=delay_error.attempt_count,
@@ -366,8 +465,14 @@ class OpenRouterTransport:
             if delay is not None:
                 try:
                     await self._sleep(delay)
-                except asyncio.CancelledError:
-                    await self._ledger.hold(reservation, "request_cancelled")
+                except asyncio.CancelledError as cancelled:
+                    await hold_reservation(reservation, "request_cancelled")
+                    _annotate_cancellation(
+                        cancelled,
+                        prompt_sha256=prompt_fingerprint,
+                        attempt_count=attempt,
+                        reservation_id=reservation.request_id,
+                    )
                     raise
                 continue
             else:
@@ -376,7 +481,7 @@ class OpenRouterTransport:
         end_ns = _clock_value(self._clock_ns, "clock_invalid")
         latency_ms = (end_ns - start_ns) / 1_000_000
         if not math.isfinite(latency_ms) or latency_ms < 0.0:
-            await self._ledger.hold(reservation, "clock_invalid")
+            await hold_reservation(reservation, "clock_invalid")
             raise OpenRouterRequestError(
                 "clock_invalid", attempt_count=attempt, prompt_sha256=prompt_fingerprint
             )
@@ -384,14 +489,26 @@ class OpenRouterTransport:
         try:
             charged_cost = _authoritative_cost(response, attempt_count=attempt)
         except OpenRouterRequestError as error:
-            await self._ledger.hold(reservation, "authoritative_cost_invalid")
+            await hold_reservation(reservation, "authoritative_cost_invalid")
             raise OpenRouterRequestError(
                 error.code,
                 attempt_count=error.attempt_count,
                 prompt_sha256=prompt_fingerprint,
             ) from None
 
-        await self._ledger.reconcile(reservation, charged_cost)
+        try:
+            await _shield_operation(self._ledger.reconcile(reservation, charged_cost))
+        except asyncio.CancelledError as cancelled:
+            snapshot = await _shield_operation(self._ledger.snapshot())
+            reconciled = reservation.request_id not in snapshot.unresolved_request_ids
+            _annotate_cancellation(
+                cancelled,
+                prompt_sha256=prompt_fingerprint,
+                attempt_count=attempt,
+                authoritative_cost_usd=charged_cost if reconciled else Decimal("0"),
+                reservation_id=reservation.request_id,
+            )
+            raise
         billed_error: OpenRouterRequestError | None = None
         completion: RemoteCompletion | None = None
         try:
@@ -458,8 +575,10 @@ def _request_payload(
             "require_parameters": config.provider.require_parameters,
             "data_collection": config.provider.data_collection,
             "max_price": {
-                "prompt": float(config.provider.prompt_price_per_million_usd),
-                "completion": float(config.provider.completion_price_per_million_usd),
+                "prompt": _conservative_json_number(config.provider.prompt_price_per_million_usd),
+                "completion": _conservative_json_number(
+                    config.provider.completion_price_per_million_usd
+                ),
             },
         },
         "extra_headers": {

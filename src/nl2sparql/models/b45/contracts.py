@@ -130,6 +130,12 @@ class ProviderPolicy:
         if self.data_collection != "deny":
             raise LargeLLMError("data_collection must be deny")
 
+    @property
+    def sha256(self) -> str:
+        """Return a fingerprint of the complete provider routing policy."""
+        payload = json.dumps(_canonical_json(asdict(self)), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
 
 @dataclass(frozen=True)
 class LargeLLMConfig:
@@ -204,6 +210,7 @@ class LargeBaselineEvidence:
     training_accepted: bool
     model_id: str
     provider_slug: str
+    provider_policy_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if self.baseline not in {"b4", "b5"}:
@@ -219,6 +226,8 @@ class LargeBaselineEvidence:
         if self.model_id != MODEL_ID:
             raise LargeLLMError(f"model_id must be {MODEL_ID!r}")
         _required_text(self.provider_slug, "provider slug")
+        if self.provider_policy_sha256 is not None:
+            _digest(self.provider_policy_sha256, "provider policy fingerprint")
         if self.baseline == "b4":
             if self.training_sha256 is not None or self.training_accepted:
                 raise LargeLLMError("B4 evidence must not contain training provenance")

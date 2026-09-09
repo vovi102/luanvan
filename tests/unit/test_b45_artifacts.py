@@ -1567,6 +1567,8 @@ def test_summarize_three_runs_keeps_synthetic_evidence_blocking() -> None:
     )
     assert summary["scientific_ready"] is False
     assert summary["blockers"] == [
+        "combined_budget_unverified",
+        "counterpart_baseline_missing",
         "expected_100_cases",
         "pricing_violation",
         "synthetic_backend",

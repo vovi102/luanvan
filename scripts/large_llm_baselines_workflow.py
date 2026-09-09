@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -29,7 +30,9 @@ from nl2sparql.models.b45 import (
     evaluate_large_baseline,
     load_evaluation_cases,
     load_large_run_artifacts,
+    load_privacy_review,
     load_resume_state,
+    privacy_review_path,
     publish_large_run,
     summarize_large_runs,
     validate_artifact_paths,
@@ -116,6 +119,12 @@ def _require_api_key() -> None:
         raise LargeLLMError("OPENROUTER_API_KEY is required for live operations")
 
 
+def _require_privacy_sha(value: str | None) -> str:
+    if not isinstance(value, str) or _SHA256_RE.fullmatch(value) is None:
+        raise LargeLLMError("accepted privacy-review fingerprint must be a lowercase SHA-256")
+    return value
+
+
 def _require_metadata_sha(value: str | None) -> str:
     if not isinstance(value, str) or _SHA256_RE.fullmatch(value) is None:
         raise LargeLLMError("accepted model metadata fingerprint must be a lowercase SHA-256")
@@ -135,7 +144,11 @@ def _validate_primitives(options: dict[str, Any], *, evaluation: bool) -> LargeL
     Raises:
         LargeLLMError: If a primitive value is malformed or scientifically invalid.
     """
-    config = _config(options["provider"], options["max_cost_usd"])
+    max_cost = options.get("max_cost_usd")
+    live_without_cap = max_cost is None and bool(options.get("allow_network"))
+    if max_cost is None:
+        max_cost = "20"
+    config = _config(options["provider"], max_cost)
     if evaluation and _RUN_ID_RE.fullmatch(options["run_id"]) is None:
         raise LargeLLMError("evaluation run ID is invalid")
     accepted_metadata = options.get("accepted_model_metadata_sha256")
@@ -145,6 +158,9 @@ def _validate_primitives(options: dict[str, Any], *, evaluation: bool) -> LargeL
         raise LargeLLMError("evaluate requires --accepted-model-metadata-sha256")
     if not evaluation and options.get("allow_network") and accepted_metadata is None:
         raise LargeLLMError("predict requires --accepted-model-metadata-sha256")
+    accepted_privacy = options.get("accepted_privacy_review_sha256")
+    if accepted_privacy is not None:
+        _require_privacy_sha(accepted_privacy)
     target_id = options.get("target_id")
     if target_id is not None and (
         not isinstance(target_id, str) or _RUN_ID_RE.fullmatch(target_id) is None
@@ -167,6 +183,8 @@ def _validate_primitives(options: dict[str, Any], *, evaluation: bool) -> LargeL
         revision = options["encoder_revision"]
         if not isinstance(revision, str) or _REVISION_RE.fullmatch(revision) is None:
             raise LargeLLMError("B5 requires a pinned --encoder-revision")
+    if live_without_cap:
+        raise click.UsageError("live predict/evaluate requires --max-cost-usd")
     return config
 
 
@@ -384,6 +402,9 @@ def _protected_paths(options: dict[str, Any]) -> tuple[Path, ...]:
         Paths that B4/B5 publication must never overwrite or alias.
     """
     cache_path = options["cache_path"]
+    privacy_path = options.get("privacy_review")
+    if privacy_path is None and options.get("test_set") is not None:
+        privacy_path = privacy_review_path(options["test_set"])
     return (
         options["test_set"],
         options["catalog_path"],
@@ -391,8 +412,52 @@ def _protected_paths(options: dict[str, Any]) -> tuple[Path, ...]:
         cache_path,
         cache_path.with_suffix(cache_path.suffix + ".json"),
         cache_path.with_suffix(cache_path.suffix + ".lock"),
+        *(tuple() if privacy_path is None else (privacy_path,)),
         *_B12_PROTECTED_PATHS,
     )
+
+
+def _privacy_preflight(
+    test_set: Path,
+    configured_path: Path | None,
+    accepted_sha256: str | None,
+    *,
+    require_accepted: bool,
+    expected_input_sha256: str | None = None,
+):
+    """Load the canonical local privacy marker without any network access.
+
+    ``evaluate`` passes the fingerprint captured while parsing its snapshot so
+    a replacement of the file between local checks cannot authorize a request
+    constructed from earlier in-memory cases. Offline ``validate`` has no
+    parsed snapshot and therefore derives its fingerprint directly from bytes.
+    """
+    path = configured_path or privacy_review_path(test_set)
+    if require_accepted:
+        _require_privacy_sha(accepted_sha256)
+    if expected_input_sha256 is not None and _SHA256_RE.fullmatch(expected_input_sha256) is None:
+        raise LargeLLMError("evaluation snapshot fingerprint is invalid")
+    if not path.exists() or (
+        expected_input_sha256 is None and (not test_set.exists() or not test_set.is_file())
+    ):
+        if require_accepted:
+            raise LargeLLMError("privacy review sidecar is required for live evaluation")
+        return None, "privacy_review_missing", path
+    if expected_input_sha256 is None:
+        expected_input_sha256 = hashlib.sha256(test_set.read_bytes()).hexdigest()
+    try:
+        evidence = load_privacy_review(
+            path,
+            expected_input_sha256=expected_input_sha256,
+            accepted_sha256=accepted_sha256,
+        )
+    except LargeLLMError:
+        if require_accepted:
+            raise
+        return None, "privacy_review_invalid", path
+    if accepted_sha256 is None:
+        return evidence, "privacy_review_unaccepted", path
+    return evidence, None, path
 
 
 class _JsonGroup(click.Group):
@@ -429,7 +494,7 @@ def cli() -> None:
 
 def _common_options(command):
     command = click.option("--provider", required=True)(command)
-    command = click.option("--max-cost-usd", default="20")(command)
+    command = click.option("--max-cost-usd", default=None)(command)
     command = click.option(
         "--catalog", "catalog_path", type=click.Path(path_type=Path), default=CATALOG_PATH
     )(command)
@@ -442,17 +507,35 @@ def _common_options(command):
     command = click.option("--encoder-id", default=DEFAULT_ENCODER_ID)(command)
     command = click.option("--encoder-revision", default=None)(command)
     command = click.option("--accepted-training-sha256", default=None)(command)
+    command = click.option(
+        "--privacy-review",
+        type=click.Path(path_type=Path),
+        default=None,
+        help="Canonical local privacy-review sidecar (defaults to TEST_SET.privacy.json).",
+    )(command)
+    command = click.option(
+        "--accepted-privacy-review-sha256",
+        default=None,
+        help="Externally accepted SHA-256 of the privacy-review sidecar for live evaluate.",
+    )(command)
     return command
 
 
 @cli.command("validate")
 @click.option("--baseline", "baseline_name", type=click.Choice(["b4", "b5"]), required=True)
+@click.option("--test-set", type=click.Path(path_type=Path), default=DEFAULT_TEST_SET)
 @_common_options
 def validate_command(**options: Any) -> None:
     """Validate local catalog and B5 cache evidence without network access."""
     try:
         config = _validate_primitives(options, evaluation=False)
         summary = compile_catalog_summary(options["catalog_path"])
+        privacy, privacy_blocker, privacy_path = _privacy_preflight(
+            options["test_set"],
+            options.get("privacy_review"),
+            options.get("accepted_privacy_review_sha256"),
+            require_accepted=False,
+        )
         if options["baseline_name"] == "b5":
             _b5_cache_preflight(
                 options["training_path"],
@@ -468,6 +551,10 @@ def validate_command(**options: Any) -> None:
                 "catalog_sha256": summary.catalog_sha256,
                 "summary_sha256": summary.summary_sha256,
                 "config_sha256": config.sha256,
+                "local_implementation_ready": True,
+                "privacy_review": privacy_path,
+                "privacy_sha256": privacy.privacy_sha256 if privacy is not None else None,
+                "blockers": [] if privacy_blocker is None else [privacy_blocker],
             }
         )
     except (LargeLLMError, SmallLLMError) as error:
@@ -567,15 +654,6 @@ def evaluate_command(**options: Any) -> None:
         config = _validate_primitives(options, evaluation=True)
         cases = load_evaluation_cases(options["test_set"])
         summary = compile_catalog_summary(options["catalog_path"])
-        cached_retriever = None
-        if options["baseline_name"] == "b5":
-            cached_retriever = _b5_cache_preflight(
-                options["training_path"],
-                options["cache_path"],
-                options["encoder_id"],
-                options["encoder_revision"],
-                options["accepted_training_sha256"],
-            )
         paths = _artifact_paths(
             options["baseline_name"],
             options["predictions"],
@@ -585,21 +663,51 @@ def evaluate_command(**options: Any) -> None:
         )
         protected = _protected_paths(options)
         validate_artifact_paths(paths, protected_paths=protected)
+        snapshot_sha256 = cases[0].input_sha256
+        if snapshot_sha256 is None:
+            raise LargeLLMError("evaluation snapshot fingerprint is missing")
+        privacy, _privacy_blocker, privacy_path = _privacy_preflight(
+            options["test_set"],
+            options.get("privacy_review"),
+            options.get("accepted_privacy_review_sha256"),
+            require_accepted=bool(options.get("allow_network")),
+            expected_input_sha256=snapshot_sha256,
+        )
+        options["privacy_review"] = privacy_path
+        privacy_sha256 = privacy.privacy_sha256 if privacy is not None else None
+        cached_retriever = None
+        if options["baseline_name"] == "b5":
+            cached_retriever = _b5_cache_preflight(
+                options["training_path"],
+                options["cache_path"],
+                options["encoder_id"],
+                options["encoder_revision"],
+                options["accepted_training_sha256"],
+            )
         completed_outcomes = ()
         resume_budget_checkpoint = None
         legacy_resume_authorized = False
         ledger = BudgetLedger(config)
         if options["resume"]:
             expected_metadata_sha = _require_metadata_sha(options["accepted_model_metadata_sha256"])
-            input_sha = cases[0].input_sha256
-            if input_sha is None:
-                raise LargeLLMError("evaluation snapshot fingerprint is missing")
             resume = load_resume_state(
                 paths.request_log,
-                expected_input_sha256=input_sha,
+                expected_input_sha256=snapshot_sha256,
                 expected_config_sha256=config.sha256,
                 expected_run_id=options["run_id"],
                 expected_model_metadata_sha256=expected_metadata_sha,
+                expected_catalog_sha256=summary.catalog_sha256,
+                expected_summary_sha256=summary.summary_sha256,
+                expected_training_sha256=(
+                    options["accepted_training_sha256"]
+                    if options["baseline_name"] == "b5"
+                    else None
+                ),
+                expected_model_id=config.model_id,
+                expected_provider_slug=config.provider.provider_slug,
+                expected_provider_policy_sha256=config.provider.sha256,
+                expected_privacy_sha256=privacy_sha256,
+                expected_baseline=options["baseline_name"],
             )
             ledger = BudgetLedger.from_checkpoint(config, resume.budget_checkpoint)
             completed_outcomes = resume.completed_outcomes
@@ -650,6 +758,8 @@ def evaluate_command(**options: Any) -> None:
             model_id=evidence.model_id,
             provider_slug=evidence.provider_slug,
             model_metadata_sha256=metadata.metadata_sha256,
+            provider_policy_sha256=evidence.provider_policy_sha256,
+            privacy_sha256=privacy_sha256,
         )
         run = asyncio.run(
             evaluate_large_baseline(
@@ -658,6 +768,8 @@ def evaluate_command(**options: Any) -> None:
                 run_id=options["run_id"],
                 concurrency=config.concurrency,
                 model_metadata=metadata,
+                provider_policy_sha256=evidence.provider_policy_sha256,
+                privacy_sha256=privacy_sha256,
                 journal=journal,
                 completed_outcomes=completed_outcomes,
                 resume_budget_checkpoint=resume_budget_checkpoint,
@@ -668,6 +780,8 @@ def evaluate_command(**options: Any) -> None:
             {
                 "status": "ready",
                 "scientific_ready": run.scientific_ready,
+                "local_implementation_ready": run.local_implementation_ready,
+                "privacy_sha256": run.privacy_sha256,
                 "blockers": run.blockers,
                 "predictions": paths.predictions,
                 "request_log": paths.request_log,

@@ -8,11 +8,11 @@ import inspect
 import math
 import re
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Awaitable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Literal, Protocol
+from typing import Literal, Protocol, TypeVar
 
 import sqlglot
 from sqlglot.errors import SqlglotError
@@ -37,6 +37,7 @@ _RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _ERROR_CODE_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _ZERO = Decimal("0")
+_ResultT = TypeVar("_ResultT")
 
 
 @dataclass(frozen=True)
@@ -60,7 +61,9 @@ class EvaluationOutcome:
         training_sha256: Exact B5 training fingerprint, or ``None`` for B4.
         model_id: Exact configured remote model identifier.
         provider_slug: Exact configured remote provider.
+        provider_policy_sha256: Exact provider routing and price-policy fingerprint.
         model_metadata_sha256: Exact accepted endpoint metadata fingerprint.
+        privacy_sha256: Exact accepted local privacy-review sidecar fingerprint.
         source_synthetic: Whether the source case was synthetic.
         source_trusted: Whether the source case came from trusted reviewed live evidence.
         training_accepted: Whether B5 training provenance was accepted.
@@ -95,6 +98,8 @@ class EvaluationOutcome:
     attempt_count: int
     budget_checkpoint: BudgetSnapshot
     authoritative_cost_usd: Decimal | None = None
+    provider_policy_sha256: str | None = None
+    privacy_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.case_id, str) or not self.case_id:
@@ -126,6 +131,13 @@ class EvaluationOutcome:
             and _SHA256_RE.fullmatch(self.model_metadata_sha256) is None
         ):
             raise LargeLLMError("evaluation outcome model metadata fingerprint is invalid")
+        if (
+            self.provider_policy_sha256 is not None
+            and _SHA256_RE.fullmatch(self.provider_policy_sha256) is None
+        ):
+            raise LargeLLMError("evaluation outcome provider policy fingerprint is invalid")
+        if self.privacy_sha256 is not None and _SHA256_RE.fullmatch(self.privacy_sha256) is None:
+            raise LargeLLMError("evaluation outcome privacy fingerprint is invalid")
         if not isinstance(self.source_synthetic, bool) or not isinstance(self.source_trusted, bool):
             raise LargeLLMError("evaluation outcome source provenance is invalid")
         if not isinstance(self.training_accepted, bool):
@@ -367,7 +379,9 @@ class LargeEvaluationRun:
         training_sha256: Exact B5 training fingerprint, or ``None`` for B4.
         model_id: Exact configured remote model identifier.
         provider_slug: Exact configured provider.
+        provider_policy_sha256: Exact provider routing and price-policy fingerprint.
         model_metadata_sha256: Accepted endpoint metadata fingerprint, if supplied.
+        privacy_sha256: Accepted local privacy-review sidecar fingerprint, if supplied.
     """
 
     run_id: str
@@ -387,6 +401,19 @@ class LargeEvaluationRun:
     model_id: str
     provider_slug: str
     model_metadata_sha256: str | None
+    provider_policy_sha256: str | None = None
+    privacy_sha256: str | None = None
+
+    @property
+    def local_implementation_ready(self) -> bool:
+        """Return derived local readiness for this validated run.
+
+        A run can be locally valid while remaining scientifically blocked by
+        synthetic inputs, missing endpoint evidence, or the lack of a matching
+        counterpart baseline.  The property is intentionally not a dataclass
+        field: callers cannot assert readiness by supplying a boolean.
+        """
+        return True
 
     def __post_init__(self) -> None:
         if not isinstance(self.run_id, str) or _RUN_ID_RE.fullmatch(self.run_id) is None:
@@ -460,6 +487,13 @@ class LargeEvaluationRun:
             and _SHA256_RE.fullmatch(self.model_metadata_sha256) is None
         ):
             raise LargeLLMError("evaluation run model metadata fingerprint is invalid")
+        if (
+            self.provider_policy_sha256 is not None
+            and _SHA256_RE.fullmatch(self.provider_policy_sha256) is None
+        ):
+            raise LargeLLMError("evaluation run provider policy fingerprint is invalid")
+        if self.privacy_sha256 is not None and _SHA256_RE.fullmatch(self.privacy_sha256) is None:
+            raise LargeLLMError("evaluation run privacy fingerprint is invalid")
         run_identity = (
             self.baseline,
             self.config_sha256,
@@ -469,6 +503,8 @@ class LargeEvaluationRun:
             self.model_id,
             self.provider_slug,
             self.model_metadata_sha256,
+            self.provider_policy_sha256,
+            self.privacy_sha256,
         )
         if any(
             (
@@ -480,6 +516,8 @@ class LargeEvaluationRun:
                 outcome.model_id,
                 outcome.provider_slug,
                 outcome.model_metadata_sha256,
+                outcome.provider_policy_sha256,
+                outcome.privacy_sha256,
             )
             != run_identity
             for outcome in self.outcomes
@@ -564,6 +602,47 @@ def _question_sha256(question: str) -> str:
     return hashlib.sha256(question.encode("utf-8")).hexdigest()
 
 
+async def _shield_operation(operation: Awaitable[_ResultT]) -> _ResultT:
+    """Finish one local accounting or journal operation after cancellation."""
+    task = asyncio.ensure_future(operation)
+    cancelled = False
+    try:
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                cancelled = True
+                continue
+        result = task.result()
+    except asyncio.CancelledError:
+        cancelled = True
+        result = None  # type: ignore[assignment]
+    if cancelled:
+        raise asyncio.CancelledError
+    return result
+
+
+def _cancellation_evidence(
+    error: asyncio.CancelledError,
+    *,
+    case: EvaluationCase,
+) -> tuple[str, int, Decimal]:
+    """Read transport-attached cancellation evidence without exposing secrets."""
+    prompt = getattr(error, "prompt_sha256", None)
+    if not isinstance(prompt, str) or _SHA256_RE.fullmatch(prompt) is None:
+        # A custom baseline may propagate bare CancelledError.  Keep a stable
+        # non-secret case-derived fingerprint so the durable failure remains
+        # resumable and auditable.
+        prompt = _question_sha256(case.question)
+    attempts = getattr(error, "attempt_count", 0)
+    if not isinstance(attempts, int) or isinstance(attempts, bool) or attempts < 0:
+        attempts = 0
+    cost = getattr(error, "authoritative_cost_usd", _ZERO)
+    if not isinstance(cost, Decimal) or not cost.is_finite() or cost < _ZERO:
+        cost = _ZERO
+    return prompt, attempts, cost
+
+
 def _validate_cases(cases: Sequence[EvaluationCase]) -> tuple[EvaluationCase, ...]:
     if not isinstance(cases, Sequence) or isinstance(cases, (str, bytes)):
         raise LargeLLMError("evaluation requires ordered EvaluationCase values")
@@ -582,6 +661,8 @@ def _validate_completed(
     *,
     evidence: LargeBaselineEvidence,
     model_metadata_sha256: str | None,
+    provider_policy_sha256: str | None = None,
+    privacy_sha256: str | None = None,
 ) -> dict[str, EvaluationOutcome]:
     if not isinstance(completed_outcomes, Sequence) or isinstance(completed_outcomes, (str, bytes)):
         raise LargeLLMError("completed outcomes must be an ordered sequence")
@@ -608,6 +689,8 @@ def _validate_completed(
             outcome.model_id,
             outcome.provider_slug,
             outcome.model_metadata_sha256,
+            outcome.provider_policy_sha256,
+            outcome.privacy_sha256,
             outcome.source_synthetic,
             outcome.source_trusted,
             outcome.training_accepted,
@@ -625,6 +708,8 @@ def _validate_completed(
             evidence.model_id,
             evidence.provider_slug,
             model_metadata_sha256,
+            provider_policy_sha256,
+            privacy_sha256,
             source.synthetic,
             source._trusted_source,
             evidence.training_accepted,
@@ -639,6 +724,8 @@ def _outcome_from_prediction(
     *,
     evidence: LargeBaselineEvidence,
     model_metadata_sha256: str | None,
+    provider_policy_sha256: str | None,
+    privacy_sha256: str | None,
     budget_checkpoint: BudgetSnapshot,
 ) -> EvaluationOutcome:
     if prediction.question != case.question:
@@ -670,6 +757,8 @@ def _outcome_from_prediction(
         attempt_count=prediction.completion.attempt_count,
         budget_checkpoint=budget_checkpoint,
         authoritative_cost_usd=prediction.completion.charged_cost_usd,
+        provider_policy_sha256=provider_policy_sha256,
+        privacy_sha256=privacy_sha256,
     )
 
 
@@ -679,6 +768,8 @@ def _failure_outcome(
     evidence: LargeBaselineEvidence,
     *,
     model_metadata_sha256: str | None,
+    provider_policy_sha256: str | None,
+    privacy_sha256: str | None,
     budget_checkpoint: BudgetSnapshot,
 ) -> EvaluationOutcome:
     code = error.code if isinstance(error, OpenRouterRequestError) else "prediction_failed"
@@ -727,6 +818,8 @@ def _failure_outcome(
         attempt_count=attempt_count,
         budget_checkpoint=budget_checkpoint,
         authoritative_cost_usd=authoritative_cost,
+        provider_policy_sha256=provider_policy_sha256,
+        privacy_sha256=privacy_sha256,
     )
 
 
@@ -737,6 +830,8 @@ async def _predict_case(
     evidence: LargeBaselineEvidence,
     ledger: BudgetLedger,
     model_metadata_sha256: str | None,
+    provider_policy_sha256: str | None,
+    privacy_sha256: str | None,
 ) -> EvaluationOutcome:
     predict = getattr(baseline, "predict_detailed", None)
     if not callable(predict):
@@ -755,6 +850,8 @@ async def _predict_case(
             error,
             evidence,
             model_metadata_sha256=model_metadata_sha256,
+            provider_policy_sha256=provider_policy_sha256,
+            privacy_sha256=privacy_sha256,
             budget_checkpoint=await ledger.snapshot(),
         )
     if not isinstance(prediction, LargeLLMPrediction):
@@ -764,6 +861,8 @@ async def _predict_case(
         prediction,
         evidence=evidence,
         model_metadata_sha256=model_metadata_sha256,
+        provider_policy_sha256=provider_policy_sha256,
+        privacy_sha256=privacy_sha256,
         budget_checkpoint=await ledger.snapshot(),
     )
 
@@ -862,6 +961,7 @@ def _blockers(
     metadata: ModelMetadataEvidence | None,
     budget: BudgetSnapshot,
     evidence: LargeBaselineEvidence,
+    privacy_sha256: str | None,
 ) -> tuple[str, ...]:
     predictions = tuple(
         outcome.prediction for outcome in outcomes if outcome.prediction is not None
@@ -931,6 +1031,8 @@ async def evaluate_large_baseline(
     run_id: str,
     concurrency: int,
     model_metadata: ModelMetadataEvidence | None,
+    provider_policy_sha256: str | None = None,
+    privacy_sha256: str | None = None,
     journal: OutcomeJournal | None = None,
     completed_outcomes: Sequence[EvaluationOutcome] = (),
     resume_budget_checkpoint: BudgetSnapshot | None = None,
@@ -944,6 +1046,9 @@ async def evaluate_large_baseline(
         run_id: Stable identifier for this single evaluation run.
         concurrency: Worker bound, which must equal the pinned configuration.
         model_metadata: Accepted endpoint metadata or ``None`` to retain a blocker.
+        provider_policy_sha256: Fingerprint of the configured provider routing and
+            price policy, when available.
+        privacy_sha256: Accepted local privacy-review fingerprint, when available.
         journal: Optional durable append implementation called after each new outcome.
         completed_outcomes: Previously journaled outcomes eligible for strict resume.
         resume_budget_checkpoint: Explicit authoritative checkpoint for resumed
@@ -977,6 +1082,17 @@ async def evaluate_large_baseline(
     if model_metadata is not None and not isinstance(model_metadata, ModelMetadataEvidence):
         raise LargeLLMError("model metadata evidence is invalid")
     model_metadata_sha256 = model_metadata.metadata_sha256 if model_metadata is not None else None
+    if provider_policy_sha256 is None:
+        provider_policy_sha256 = evidence.provider_policy_sha256
+    if provider_policy_sha256 is not None and _SHA256_RE.fullmatch(provider_policy_sha256) is None:
+        raise LargeLLMError("provider policy fingerprint is invalid")
+    if (
+        evidence.provider_policy_sha256 is not None
+        and provider_policy_sha256 != evidence.provider_policy_sha256
+    ):
+        raise LargeLLMError("provider policy fingerprint does not match baseline evidence")
+    if privacy_sha256 is not None and _SHA256_RE.fullmatch(privacy_sha256) is None:
+        raise LargeLLMError("privacy fingerprint is invalid")
     if journal is not None and not callable(getattr(journal, "append", None)):
         raise LargeLLMError("outcome journal must provide append")
     completed = _validate_completed(
@@ -984,6 +1100,8 @@ async def evaluate_large_baseline(
         accepted_cases,
         evidence=evidence,
         model_metadata_sha256=model_metadata_sha256,
+        provider_policy_sha256=provider_policy_sha256,
+        privacy_sha256=privacy_sha256,
     )
     accepted_completed = tuple(completed_outcomes)
     if accepted_completed:
@@ -993,18 +1111,54 @@ async def evaluate_large_baseline(
     elif resume_budget_checkpoint is not None:
         raise LargeLLMError("resume budget checkpoint requires completed outcomes")
     semaphore = asyncio.Semaphore(concurrency)
+    journal_lock = asyncio.Lock()
+    record_cancellation = True
+
+    async def append_durable(outcome: EvaluationOutcome) -> None:
+        if journal is None:
+            return
+
+        async def operation() -> None:
+            async with journal_lock:
+                journal.append(outcome)
+
+        await _shield_operation(operation())
 
     async def worker(index: int, case: EvaluationCase) -> tuple[int, EvaluationOutcome]:
         async with semaphore:
-            outcome = await _predict_case(
-                baseline,
-                case,
-                evidence=evidence,
-                ledger=ledger,
-                model_metadata_sha256=model_metadata_sha256,
-            )
-            if journal is not None:
-                journal.append(outcome)
+            try:
+                outcome = await _predict_case(
+                    baseline,
+                    case,
+                    evidence=evidence,
+                    ledger=ledger,
+                    model_metadata_sha256=model_metadata_sha256,
+                    provider_policy_sha256=provider_policy_sha256,
+                    privacy_sha256=privacy_sha256,
+                )
+            except asyncio.CancelledError as cancelled:
+                if not record_cancellation:
+                    raise
+                prompt, attempts, cost = _cancellation_evidence(cancelled, case=case)
+                cancellation_error = OpenRouterRequestError(
+                    "request_cancelled",
+                    attempt_count=attempts,
+                    prompt_sha256=prompt,
+                    authoritative_cost_usd=cost,
+                )
+                checkpoint = await _shield_operation(ledger.snapshot())
+                failure = _failure_outcome(
+                    case,
+                    cancellation_error,
+                    evidence,
+                    model_metadata_sha256=model_metadata_sha256,
+                    provider_policy_sha256=provider_policy_sha256,
+                    privacy_sha256=privacy_sha256,
+                    budget_checkpoint=checkpoint,
+                )
+                await append_durable(failure)
+                raise
+            await append_durable(outcome)
             return index, outcome
 
     tasks = [
@@ -1014,11 +1168,25 @@ async def evaluate_large_baseline(
     ]
     try:
         generated = await asyncio.gather(*tasks)
-    except BaseException:
+    except asyncio.CancelledError:
+        # ``gather`` propagates caller cancellation to every child.  Keep the
+        # cancellation-recording path enabled while those children shield their
+        # ledger snapshot and journal append; otherwise the outer task could
+        # flip the flag first and silently lose a reserved request.
         for task in tasks:
             if not task.done():
                 task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        await _shield_operation(asyncio.gather(*tasks, return_exceptions=True))
+        raise
+    except BaseException:
+        # A durability or validation failure is not caller cancellation.  Stop
+        # sibling workers and preserve the original exception rather than
+        # manufacturing cancellation outcomes after the journal has failed.
+        record_cancellation = False
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await _shield_operation(asyncio.gather(*tasks, return_exceptions=True))
         raise
 
     indexed = [
@@ -1042,6 +1210,7 @@ async def evaluate_large_baseline(
         model_metadata,
         budget,
         evidence,
+        privacy_sha256,
     )
     input_fingerprints = {case.input_sha256 for case in accepted_cases}
     return LargeEvaluationRun(
@@ -1062,6 +1231,8 @@ async def evaluate_large_baseline(
         model_id=evidence.model_id,
         provider_slug=evidence.provider_slug,
         model_metadata_sha256=model_metadata_sha256,
+        provider_policy_sha256=provider_policy_sha256,
+        privacy_sha256=privacy_sha256,
     )
 
 
@@ -1079,6 +1250,8 @@ def _comparison_identity(run: LargeEvaluationRun) -> tuple[object, ...]:
         run.model_id,
         run.provider_slug,
         run.model_metadata_sha256,
+        run.provider_policy_sha256,
+        run.privacy_sha256,
     )
 
 
@@ -1138,6 +1311,8 @@ def compare_large_reproducibility(
         "model",
         "provider",
         "model metadata fingerprint",
+        "provider policy fingerprint",
+        "privacy fingerprint",
     )
     for run in accepted[1:]:
         identity = _comparison_identity(run)

@@ -216,6 +216,7 @@ class BaselineB4:
             training_accepted=False,
             model_id=self._config.model_id,
             provider_slug=self._config.provider.provider_slug,
+            provider_policy_sha256=self._config.provider.sha256,
         )
 
     async def predict(self, question: str, *, request_id: str) -> str | None:
@@ -299,6 +300,7 @@ class BaselineB5:
             training_accepted=self._retriever.training_accepted,
             model_id=self._config.model_id,
             provider_slug=self._config.provider.provider_slug,
+            provider_policy_sha256=self._config.provider.sha256,
         )
 
     async def predict(

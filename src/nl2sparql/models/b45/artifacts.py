@@ -11,7 +11,7 @@ import re
 import stat
 import tempfile
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -51,7 +51,10 @@ _HEADER_KEYS = {
     "model_id",
     "provider_slug",
     "model_metadata_sha256",
+    "provider_policy_sha256",
+    "privacy_sha256",
 }
+_LEGACY_HEADER_KEYS = _HEADER_KEYS - {"provider_policy_sha256", "privacy_sha256"}
 _OUTCOME_KEYS = {
     "record_type",
     "run_id",
@@ -79,10 +82,14 @@ _OUTCOME_KEYS = {
     "attempt_count",
     "budget_checkpoint",
     "authoritative_cost_usd",
+    "provider_policy_sha256",
+    "privacy_sha256",
     "previous_record_sha256",
     "record_sha256",
 }
 _LEGACY_OUTCOME_KEYS = _OUTCOME_KEYS - {
+    "provider_policy_sha256",
+    "privacy_sha256",
     "previous_record_sha256",
     "record_sha256",
 }
@@ -94,6 +101,9 @@ _TERMINAL_KEYS = {
     "metrics",
     "scientific_ready",
     "blockers",
+    "local_implementation_ready",
+    "provider_policy_sha256",
+    "privacy_sha256",
     "report_body_sha256",
     "previous_record_sha256",
     "record_sha256",
@@ -160,6 +170,7 @@ _METRICS_KEYS = {
     "category_counts",
     "unattributed_spend_usd",
 }
+_UNSET = object()
 
 
 @dataclass(frozen=True)
@@ -226,6 +237,8 @@ class ResumeState:
     provider_slug: str
     model_metadata_sha256: str | None
     schema_version: int
+    provider_policy_sha256: str | None = None
+    privacy_sha256: str | None = None
 
     @property
     def completed_outcomes(self) -> tuple[EvaluationOutcome, ...]:
@@ -242,14 +255,26 @@ class ResumeState:
         if self.schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
             # The immediately preceding format had no record hashes. It is accepted
             # only for typed resume validation, then RequestJournal upgrades it.
-            return tuple(
-                _outcome_from_record(
+            outcomes: list[EvaluationOutcome] = []
+            for record in self.prior_records:
+                outcome = _outcome_from_record(
                     record,
                     line_number=None,
                     schema_version=_LEGACY_RESUME_SCHEMA_VERSION,
                 )
-                for record in self.prior_records
-            )
+                # Schema v2 predates the provider-policy/privacy fields.  The
+                # resume loader binds the current, independently validated local
+                # identities to those legacy outcomes before the evaluator checks
+                # its complete identity tuple.
+                if self.provider_policy_sha256 is not None:
+                    outcome = replace(
+                        outcome,
+                        provider_policy_sha256=self.provider_policy_sha256,
+                    )
+                if self.privacy_sha256 is not None:
+                    outcome = replace(outcome, privacy_sha256=self.privacy_sha256)
+                outcomes.append(outcome)
+            return tuple(outcomes)
         if self.schema_version != _SCHEMA_VERSION:
             raise LargeLLMError("resume journal schema version is invalid")
         header = _journal_header(
@@ -263,6 +288,8 @@ class ResumeState:
             model_id=self.model_id,
             provider_slug=self.provider_slug,
             model_metadata_sha256=self.model_metadata_sha256,
+            provider_policy_sha256=self.provider_policy_sha256,
+            privacy_sha256=self.privacy_sha256,
         )
         previous_record_sha256 = _header_sha256(header)
         outcomes: list[EvaluationOutcome] = []
@@ -433,9 +460,13 @@ def _validate_header(
     *,
     allowed_versions: frozenset[int] = frozenset({_SCHEMA_VERSION}),
 ) -> int:
-    if set(header) != _HEADER_KEYS:
+    raw_schema_version = header.get("schema_version")
+    expected_keys = (
+        _LEGACY_HEADER_KEYS if raw_schema_version == _LEGACY_RESUME_SCHEMA_VERSION else _HEADER_KEYS
+    )
+    if set(header) != expected_keys:
         raise LargeLLMError("request journal header fields are invalid")
-    schema_version = header["schema_version"]
+    schema_version = raw_schema_version
     if (
         not isinstance(schema_version, int)
         or isinstance(schema_version, bool)
@@ -458,6 +489,17 @@ def _validate_header(
         "request journal model metadata fingerprint",
         optional=True,
     )
+    if schema_version != _LEGACY_RESUME_SCHEMA_VERSION:
+        _validate_digest(
+            header["provider_policy_sha256"],
+            "request journal provider policy fingerprint",
+            optional=True,
+        )
+        _validate_digest(
+            header["privacy_sha256"],
+            "request journal privacy fingerprint",
+            optional=True,
+        )
     training = header["training_sha256"]
     if baseline == "b4" and training is not None:
         raise LargeLLMError("B4 request journal must not contain training provenance")
@@ -482,6 +524,8 @@ def _journal_header(
     model_id: str,
     provider_slug: str,
     model_metadata_sha256: str | None,
+    provider_policy_sha256: str | None = None,
+    privacy_sha256: str | None = None,
 ) -> dict[str, object]:
     header: dict[str, object] = {
         "schema_version": _SCHEMA_VERSION,
@@ -496,6 +540,8 @@ def _journal_header(
         "model_id": model_id,
         "provider_slug": provider_slug,
         "model_metadata_sha256": model_metadata_sha256,
+        "provider_policy_sha256": provider_policy_sha256,
+        "privacy_sha256": privacy_sha256,
     }
     _validate_header(header)
     return header
@@ -506,6 +552,8 @@ def _outcome_record(
     *,
     run_id: str,
     model_metadata_sha256: str | None,
+    provider_policy_sha256: str | None,
+    privacy_sha256: str | None,
     previous_record_sha256: str,
 ) -> dict[str, object]:
     if not isinstance(outcome, EvaluationOutcome):
@@ -514,10 +562,16 @@ def _outcome_record(
         "record_type": "outcome",
         "run_id": run_id,
         "model_metadata_sha256": model_metadata_sha256,
+        "provider_policy_sha256": provider_policy_sha256,
+        "privacy_sha256": privacy_sha256,
         **_canonical_value(asdict(outcome)),
     }
     if body["model_metadata_sha256"] != model_metadata_sha256:
         raise LargeLLMError("request journal model metadata fingerprint mismatch")
+    if body["provider_policy_sha256"] != provider_policy_sha256:
+        raise LargeLLMError("request journal provider policy fingerprint mismatch")
+    if body["privacy_sha256"] != privacy_sha256:
+        raise LargeLLMError("request journal privacy fingerprint mismatch")
     return _chained_record(body, previous_record_sha256=previous_record_sha256)
 
 
@@ -722,6 +776,18 @@ def _terminal_evidence(
             blockers
         ):
             raise LargeLLMError("journal terminal readiness is invalid")
+        if not isinstance(raw["local_implementation_ready"], bool):
+            raise LargeLLMError("journal terminal local readiness is invalid")
+        _validate_digest(
+            raw["provider_policy_sha256"],
+            "journal terminal provider policy fingerprint",
+            optional=True,
+        )
+        _validate_digest(
+            raw["privacy_sha256"],
+            "journal terminal privacy fingerprint",
+            optional=True,
+        )
         _validate_digest(raw["report_body_sha256"], "journal terminal report fingerprint")
         return _budget_from_record(raw["budget_checkpoint"]), _metrics_from_record(raw["metrics"])
     except (LargeLLMError, TypeError) as error:
@@ -782,6 +848,8 @@ def _parse_request_log(
         "model_id",
         "provider_slug",
         "model_metadata_sha256",
+        "provider_policy_sha256",
+        "privacy_sha256",
     )
     for line_number, raw_line in enumerate(lines[1:], start=2):
         record = _decode_json_line(raw_line, line_number)
@@ -801,6 +869,10 @@ def _parse_request_log(
                 raise LargeLLMError("request journal terminal run ID mismatch")
             if record["outcome_count"] != len(records):
                 raise LargeLLMError("request journal terminal outcome count mismatch")
+            for key in ("provider_policy_sha256", "privacy_sha256"):
+                if record[key] != header.get(key):
+                    label = key.replace("_sha256", " fingerprint").replace("_", " ")
+                    raise LargeLLMError(f"request journal terminal {label} mismatch")
             terminal = record
             previous_record_sha256 = str(record["record_sha256"])
             continue
@@ -818,8 +890,8 @@ def _parse_request_log(
                 line_number=line_number,
             )
         for key in identity_keys:
-            actual = record[key] if key in record else getattr(outcome, key)
-            if actual != header[key]:
+            actual = record[key] if key in record else getattr(outcome, key, None)
+            if actual != header.get(key):
                 label = key.replace("_sha256", " fingerprint").replace("_", " ")
                 raise LargeLLMError(f"request journal {label} mismatch")
         if outcome.case_id in identifiers:
@@ -832,7 +904,11 @@ def _parse_request_log(
 
 
 def _upgrade_legacy_resume_log(
-    header: Mapping[str, object], records: Sequence[Mapping[str, object]]
+    header: Mapping[str, object],
+    records: Sequence[Mapping[str, object]],
+    *,
+    provider_policy_sha256: str | None = None,
+    privacy_sha256: str | None = None,
 ) -> bytes:
     """Return a terminal-free v3 journal from a validated legacy v2 resume log.
 
@@ -840,7 +916,18 @@ def _upgrade_legacy_resume_log(
     unchained, so their values receive full typed validation before this one-way
     migration; the v3 hash chain detects later corruption but is not authentication.
     """
-    upgraded_header = {**header, "schema_version": _SCHEMA_VERSION}
+    upgraded_header = {
+        **header,
+        "schema_version": _SCHEMA_VERSION,
+        "provider_policy_sha256": (
+            provider_policy_sha256
+            if provider_policy_sha256 is not None
+            else header.get("provider_policy_sha256")
+        ),
+        "privacy_sha256": privacy_sha256
+        if privacy_sha256 is not None
+        else header.get("privacy_sha256"),
+    }
     _validate_header(upgraded_header)
     previous_record_sha256 = _header_sha256(upgraded_header)
     upgraded_records: list[dict[str, object]] = []
@@ -852,10 +939,19 @@ def _upgrade_legacy_resume_log(
             line_number=None,
             schema_version=_LEGACY_RESUME_SCHEMA_VERSION,
         )
+        if upgraded_header["provider_policy_sha256"] is not None:
+            outcome = replace(
+                outcome,
+                provider_policy_sha256=upgraded_header["provider_policy_sha256"],
+            )
+        if upgraded_header["privacy_sha256"] is not None:
+            outcome = replace(outcome, privacy_sha256=upgraded_header["privacy_sha256"])
         upgraded = _outcome_record(
             outcome,
             run_id=str(upgraded_header["run_id"]),
             model_metadata_sha256=upgraded_header["model_metadata_sha256"],  # type: ignore[arg-type]
+            provider_policy_sha256=upgraded_header.get("provider_policy_sha256"),  # type: ignore[arg-type]
+            privacy_sha256=upgraded_header.get("privacy_sha256"),  # type: ignore[arg-type]
             previous_record_sha256=previous_record_sha256,
         )
         upgraded_records.append(upgraded)
@@ -886,6 +982,8 @@ class RequestJournal:
         model_id: str,
         provider_slug: str,
         model_metadata_sha256: str | None = None,
+        provider_policy_sha256: str | None = None,
+        privacy_sha256: str | None = None,
     ) -> None:
         """Create or validate the durable journal header.
 
@@ -922,6 +1020,8 @@ class RequestJournal:
             model_id=model_id,
             provider_slug=provider_slug,
             model_metadata_sha256=model_metadata_sha256,
+            provider_policy_sha256=provider_policy_sha256,
+            privacy_sha256=privacy_sha256,
         )
         existing = _existing_bytes(path)
         if existing is None:
@@ -939,12 +1039,28 @@ class RequestJournal:
             for key, expected in header.items():
                 if key == "schema_version":
                     continue
-                if accepted[key] != expected:
+                # Legacy v2 has no policy/privacy fields.  Their values are
+                # supplied by the current, pre-network resume identity and are
+                # bound while performing the one-way migration below.
+                if accepted["schema_version"] == _LEGACY_RESUME_SCHEMA_VERSION and key in {
+                    "provider_policy_sha256",
+                    "privacy_sha256",
+                }:
+                    continue
+                if accepted.get(key) != expected:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
                     raise LargeLLMError(f"request journal {label} mismatch")
             if accepted["schema_version"] == _LEGACY_RESUME_SCHEMA_VERSION:
                 try:
-                    _atomic_write(path, _upgrade_legacy_resume_log(accepted, records))
+                    _atomic_write(
+                        path,
+                        _upgrade_legacy_resume_log(
+                            accepted,
+                            records,
+                            provider_policy_sha256=header["provider_policy_sha256"],
+                            privacy_sha256=header["privacy_sha256"],
+                        ),
+                    )
                 except Exception as error:
                     raise LargeLLMError(
                         f"unable to upgrade schema v2 request journal: {error}"
@@ -977,6 +1093,8 @@ class RequestJournal:
                 outcome,
                 run_id=str(self._header["run_id"]),
                 model_metadata_sha256=self._header["model_metadata_sha256"],  # type: ignore[arg-type]
+                provider_policy_sha256=self._header["provider_policy_sha256"],  # type: ignore[arg-type]
+                privacy_sha256=self._header["privacy_sha256"],  # type: ignore[arg-type]
                 previous_record_sha256=previous_record_sha256,
             )
             _outcome_from_record(record, line_number=None)
@@ -990,6 +1108,8 @@ class RequestJournal:
                 "model_id",
                 "provider_slug",
                 "model_metadata_sha256",
+                "provider_policy_sha256",
+                "privacy_sha256",
             ):
                 if record[key] != header[key]:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
@@ -1012,6 +1132,14 @@ def load_resume_state(
     expected_config_sha256: str,
     expected_run_id: str,
     expected_model_metadata_sha256: str | None,
+    expected_catalog_sha256: str | object = _UNSET,
+    expected_summary_sha256: str | object = _UNSET,
+    expected_training_sha256: str | None | object = _UNSET,
+    expected_model_id: str | object = _UNSET,
+    expected_provider_slug: str | object = _UNSET,
+    expected_provider_policy_sha256: str | None | object = _UNSET,
+    expected_privacy_sha256: str | None | object = _UNSET,
+    expected_baseline: str | object = _UNSET,
 ) -> ResumeState:
     """Load a journal only after every row and requested identity validates.
 
@@ -1021,6 +1149,14 @@ def load_resume_state(
         expected_config_sha256: Exact current generation-config fingerprint.
         expected_run_id: Exact current run identifier.
         expected_model_metadata_sha256: Exact accepted endpoint-metadata fingerprint.
+        expected_catalog_sha256: Exact current catalog fingerprint.
+        expected_summary_sha256: Exact current compiled-summary fingerprint.
+        expected_training_sha256: Exact accepted B5 training fingerprint, or ``None``.
+        expected_model_id: Exact configured remote model identifier.
+        expected_provider_slug: Exact configured provider identity.
+        expected_provider_policy_sha256: Exact provider policy fingerprint.
+        expected_privacy_sha256: Exact accepted local privacy-review fingerprint.
+        expected_baseline: Exact B4/B5 baseline identity.
 
     Returns:
         Validated completed IDs, prior authoritative cost, and immutable records.
@@ -1037,6 +1173,24 @@ def load_resume_state(
         "expected model metadata fingerprint",
         optional=True,
     )
+    for expected, label in (
+        (expected_catalog_sha256, "expected catalog fingerprint"),
+        (expected_summary_sha256, "expected summary fingerprint"),
+        (expected_provider_policy_sha256, "expected provider policy fingerprint"),
+        (expected_privacy_sha256, "expected privacy fingerprint"),
+    ):
+        if expected is not _UNSET:
+            _validate_digest(expected, label, optional=True)
+    if expected_training_sha256 is not _UNSET:
+        _validate_digest(expected_training_sha256, "expected training fingerprint", optional=True)
+    for expected, label in (
+        (expected_model_id, "expected model ID"),
+        (expected_provider_slug, "expected provider"),
+    ):
+        if expected is not _UNSET and (not isinstance(expected, str) or not expected):
+            raise LargeLLMError(f"{label} is invalid")
+    if expected_baseline is not _UNSET and expected_baseline not in {"b4", "b5"}:
+        raise LargeLLMError("expected baseline is invalid")
     if not isinstance(expected_run_id, str) or _RUN_ID_RE.fullmatch(expected_run_id) is None:
         raise LargeLLMError("expected run ID is invalid")
     payload = _existing_bytes(request_log)
@@ -1060,6 +1214,24 @@ def load_resume_state(
         ),
     ):
         if header[key] != expected:
+            raise LargeLLMError(f"request journal {label} mismatch")
+    optional_identity = (
+        ("catalog_sha256", expected_catalog_sha256, "catalog fingerprint"),
+        ("summary_sha256", expected_summary_sha256, "summary fingerprint"),
+        ("training_sha256", expected_training_sha256, "training fingerprint"),
+        ("model_id", expected_model_id, "model ID"),
+        ("provider_slug", expected_provider_slug, "provider"),
+        ("provider_policy_sha256", expected_provider_policy_sha256, "provider policy fingerprint"),
+        ("privacy_sha256", expected_privacy_sha256, "privacy fingerprint"),
+        ("baseline", expected_baseline, "baseline"),
+    )
+    for key, expected, label in optional_identity:
+        legacy_identity_gap = (
+            schema_version == _LEGACY_RESUME_SCHEMA_VERSION
+            and key in {"provider_policy_sha256", "privacy_sha256"}
+            and key not in header
+        )
+        if expected is not _UNSET and not legacy_identity_gap and header.get(key) != expected:
             raise LargeLLMError(f"request journal {label} mismatch")
     if not records:
         raise LargeLLMError("request journal has no resumable records")
@@ -1092,6 +1264,12 @@ def load_resume_state(
         )
         if terminal_metrics != _metrics(outcomes, unattributed_spend_usd=unattributed_spend):
             raise LargeLLMError("request journal terminal metrics are not derived")
+    provider_policy_sha256 = header.get("provider_policy_sha256")
+    if provider_policy_sha256 is None and expected_provider_policy_sha256 is not _UNSET:
+        provider_policy_sha256 = expected_provider_policy_sha256
+    privacy_sha256 = header.get("privacy_sha256")
+    if privacy_sha256 is None and expected_privacy_sha256 is not _UNSET:
+        privacy_sha256 = expected_privacy_sha256
     return ResumeState(
         completed_case_ids=tuple(str(record["case_id"]) for record in records),
         prior_cost_usd=cost,
@@ -1109,6 +1287,8 @@ def load_resume_state(
         provider_slug=str(header["provider_slug"]),
         model_metadata_sha256=header["model_metadata_sha256"],  # type: ignore[arg-type]
         schema_version=schema_version,
+        provider_policy_sha256=provider_policy_sha256,  # type: ignore[arg-type]
+        privacy_sha256=privacy_sha256,  # type: ignore[arg-type]
     )
 
 
@@ -1141,6 +1321,8 @@ def _request_log_parts(
         model_id=run.model_id,
         provider_slug=run.provider_slug,
         model_metadata_sha256=run.model_metadata_sha256,
+        provider_policy_sha256=run.provider_policy_sha256,
+        privacy_sha256=run.privacy_sha256,
     )
     previous_record_sha256 = _header_sha256(header)
     records: list[dict[str, object]] = []
@@ -1149,6 +1331,8 @@ def _request_log_parts(
             outcome,
             run_id=run.run_id,
             model_metadata_sha256=run.model_metadata_sha256,
+            provider_policy_sha256=run.provider_policy_sha256,
+            privacy_sha256=run.privacy_sha256,
             previous_record_sha256=previous_record_sha256,
         )
         records.append(record)
@@ -1163,6 +1347,9 @@ def _request_log_parts(
             "metrics": _canonical_value(asdict(run.metrics)),
             "scientific_ready": run.scientific_ready,
             "blockers": list(run.blockers),
+            "local_implementation_ready": run.local_implementation_ready,
+            "provider_policy_sha256": run.provider_policy_sha256,
+            "privacy_sha256": run.privacy_sha256,
             "report_body_sha256": hashlib.sha256(_canonical_json(report_body)).hexdigest(),
         },
         previous_record_sha256=previous_record_sha256,
@@ -1269,6 +1456,9 @@ def _report_body(run: LargeEvaluationRun) -> dict[str, object]:
             "model_id": run.model_id,
             "provider_slug": run.provider_slug,
             "model_metadata_sha256": run.model_metadata_sha256,
+            "provider_policy_sha256": run.provider_policy_sha256,
+            "privacy_sha256": run.privacy_sha256,
+            "local_implementation_ready": run.local_implementation_ready,
             "scientific_ready": run.scientific_ready,
             "blockers": run.blockers,
             "outcome_count": len(run.outcomes),
@@ -1423,6 +1613,8 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
         "model_id",
         "provider_slug",
         "model_metadata_sha256",
+        "provider_policy_sha256",
+        "privacy_sha256",
     ):
         if report.get(key) != header.get(key):
             raise LargeLLMError(f"large-run report {key} disagrees with request journal")
@@ -1433,6 +1625,7 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
     if (
         report.get("scientific_ready") != terminal["scientific_ready"]
         or report.get("blockers") != terminal["blockers"]
+        or report.get("local_implementation_ready") != terminal["local_implementation_ready"]
     ):
         raise LargeLLMError("large-run report readiness disagrees with terminal checkpoint")
     expected_totals = {
@@ -1472,6 +1665,8 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
             model_id=header["model_id"],  # type: ignore[arg-type]
             provider_slug=header["provider_slug"],  # type: ignore[arg-type]
             model_metadata_sha256=header["model_metadata_sha256"],  # type: ignore[arg-type]
+            provider_policy_sha256=header.get("provider_policy_sha256"),  # type: ignore[arg-type]
+            privacy_sha256=header.get("privacy_sha256"),  # type: ignore[arg-type]
         )
     except (KeyError, TypeError, LargeLLMError) as error:
         raise LargeLLMError("large-run report is invalid") from error
@@ -1493,6 +1688,9 @@ def summarize_large_runs(runs: Sequence[LargeEvaluationRun]) -> dict[str, object
     reproducibility = compare_large_reproducibility(accepted)
     blockers = {blocker for run in accepted for blocker in run.blockers}
     blockers.discard("non_three_run_evidence")
+    # A three-run summary is evidence for only one baseline.  It must not be
+    # mistaken for the combined B4/B5 scientific comparison or USD 20 envelope.
+    blockers.update({"counterpart_baseline_missing", "combined_budget_unverified"})
     if any(run.budget.stop_reason == "pricing_violation" for run in accepted):
         blockers.add("pricing_violation")
     if any(
@@ -1524,12 +1722,15 @@ def summarize_large_runs(runs: Sequence[LargeEvaluationRun]) -> dict[str, object
             "model_id": reference.model_id,
             "provider_slug": reference.provider_slug,
             "model_metadata_sha256": reference.model_metadata_sha256,
+            "provider_policy_sha256": reference.provider_policy_sha256,
+            "privacy_sha256": reference.privacy_sha256,
             "reproducibility": asdict(reproducibility),
             "authoritative_total_cost_usd": attributed_cost,
             "attributed_spend_usd": attributed_cost,
             "unattributed_spend_usd": unattributed_cost,
             "total_spent_usd": total_cost,
-            "scientific_ready": not blockers,
+            "local_implementation_ready": all(run.local_implementation_ready for run in accepted),
+            "scientific_ready": False,
             "blockers": sorted(blockers),
         }
     )  # type: ignore[return-value]

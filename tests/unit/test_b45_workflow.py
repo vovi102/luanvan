@@ -8,13 +8,21 @@ import subprocess
 import sys
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from click.testing import CliRunner
 
 import scripts.large_llm_baselines_workflow as workflow
 from nl2sparql.models.b12 import CatalogSummary, EvaluationCase, SelectedExample
-from nl2sparql.models.b45 import BudgetLedger, LargeLLMConfig, ProviderPolicy, RemoteCompletion
+from nl2sparql.models.b45 import (
+    BudgetLedger,
+    LargeLLMConfig,
+    PrivacyReviewEvidence,
+    ProviderPolicy,
+    RemoteCompletion,
+    serialize_privacy_review,
+)
 from nl2sparql.models.b45.openrouter import ModelMetadataEvidence
 
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
@@ -143,6 +151,15 @@ def _legacy_v2_case() -> EvaluationCase:
 
 def _stub_live_evaluation(monkeypatch: pytest.MonkeyPatch) -> None:
     config = LargeLLMConfig(provider=_policy())
+    monkeypatch.setattr(
+        workflow,
+        "_privacy_preflight",
+        lambda *_args, **_kwargs: (
+            SimpleNamespace(privacy_sha256="d" * 64),
+            None,
+            Path("stub.privacy.json"),
+        ),
+    )
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_legacy_v2_case(),))
     monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
@@ -318,6 +335,8 @@ def test_b5_training_cache_preflight_precedes_encoder_and_client(
             "a" * 64,
             "--provider",
             "deepinfra",
+            "--max-cost-usd",
+            "20",
             "--allow-network",
             "--accepted-model-metadata-sha256",
             METADATA_SHA,
@@ -345,6 +364,8 @@ def test_missing_key_follows_local_preflight(monkeypatch: pytest.MonkeyPatch) ->
             "missing-catalog.json",
             "--provider",
             "deepinfra",
+            "--max-cost-usd",
+            "20",
             "--allow-network",
             "--accepted-model-metadata-sha256",
             METADATA_SHA,
@@ -403,6 +424,8 @@ def test_metadata_drift_blocks_client_construction(monkeypatch: pytest.MonkeyPat
             "List labels",
             "--provider",
             "deepinfra",
+            "--max-cost-usd",
+            "20",
             "--allow-network",
             "--accepted-model-metadata-sha256",
             "a" * 64,
@@ -439,6 +462,15 @@ def test_injected_synthetic_transport_can_run_but_is_not_scientifically_ready(
     )
     monkeypatch.setattr(
         workflow, "load_openrouter_transport", lambda *_args, **_kwargs: _SyntheticTransport(config)
+    )
+    monkeypatch.setattr(
+        workflow,
+        "_privacy_preflight",
+        lambda *_args, **_kwargs: (
+            SimpleNamespace(privacy_sha256="d" * 64),
+            None,
+            Path("stub.privacy.json"),
+        ),
     )
 
     result = CliRunner().invoke(
@@ -493,6 +525,8 @@ def test_evaluate_resume_authorizes_v2_migration_after_validation(
             "run-v2",
             "--provider",
             "deepinfra",
+            "--max-cost-usd",
+            "20",
             "--allow-network",
             "--resume",
             "--accepted-model-metadata-sha256",
@@ -538,6 +572,8 @@ def test_evaluate_without_resume_rejects_v2_and_preserves_journal(
             "run-v2",
             "--provider",
             "deepinfra",
+            "--max-cost-usd",
+            "20",
             "--allow-network",
             "--accepted-model-metadata-sha256",
             METADATA_SHA,
@@ -799,6 +835,225 @@ def test_live_predict_requires_metadata_sha_before_key_or_catalog(
     assert "accepted-model-metadata" in json.loads(result.output)["error"]
 
 
+@pytest.mark.parametrize(
+    ("command", "arguments"),
+    [
+        ("predict", ["--question", "List labels"]),
+        ("evaluate", ["--run-id", "run-1"]),
+    ],
+)
+def test_live_commands_require_explicit_cost_cap_before_dependencies(
+    command: str, arguments: list[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Defaulting a live cap would permit spending without an explicit operator choice."""
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("live cap must stop before dependencies")
+
+    monkeypatch.setattr(workflow, "load_evaluation_cases", bomb)
+    monkeypatch.setattr(workflow, "compile_catalog_summary", bomb)
+    monkeypatch.setattr(workflow, "load_model_metadata", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            command,
+            "--baseline",
+            "b4",
+            *arguments,
+            "--provider",
+            "deepinfra",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "--max-cost-usd" in json.loads(result.output)["error"]
+
+
+@pytest.mark.parametrize(
+    ("marker_input_sha", "accepted_sha", "expected_error"),
+    [
+        ("f" * 64, "e" * 64, "accepted evidence"),
+        ("f" * 64, None, "evaluation snapshot"),
+    ],
+)
+def test_live_evaluate_privacy_marker_blocks_metadata_and_client(
+    marker_input_sha: str,
+    accepted_sha: str | None,
+    expected_error: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Privacy acceptance must bind the exact test bytes before a live dependency."""
+    test_set = tmp_path / "test.jsonl"
+    snapshot = b'{"id":"case-1"}\n'
+    test_set.write_bytes(snapshot)
+    privacy_path = tmp_path / "test.jsonl.privacy.json"
+    marker = PrivacyReviewEvidence(
+        input_sha256=marker_input_sha,
+        reviewed=True,
+        no_secrets=True,
+        no_personal_data=True,
+    )
+    privacy_path.write_bytes(serialize_privacy_review(marker))
+    accepted = accepted_sha or hashlib.sha256(privacy_path.read_bytes()).hexdigest()
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("privacy acceptance must stop before live dependencies")
+
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(workflow, "load_model_metadata", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--test-set",
+            str(test_set),
+            "--privacy-review",
+            str(privacy_path),
+            "--accepted-privacy-review-sha256",
+            accepted,
+            "--run-id",
+            "run-1",
+            "--provider",
+            "deepinfra",
+            "--max-cost-usd",
+            "20",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert expected_error in json.loads(result.output)["error"]
+
+
+def test_live_evaluate_privacy_binds_the_loaded_snapshot_before_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Re-reading a changed path cannot authorize previously loaded test cases."""
+    test_set = tmp_path / "test.jsonl"
+    test_set.write_bytes(b'{"id":"replacement"}\n')
+    privacy_path = tmp_path / "test.jsonl.privacy.json"
+    marker = PrivacyReviewEvidence(
+        input_sha256=hashlib.sha256(test_set.read_bytes()).hexdigest(),
+        reviewed=True,
+        no_secrets=True,
+        no_personal_data=True,
+    )
+    privacy_path.write_bytes(serialize_privacy_review(marker))
+    accepted = hashlib.sha256(privacy_path.read_bytes()).hexdigest()
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("snapshot/privacy drift must stop before live dependencies")
+
+    # The loader has already captured these cases from an earlier snapshot.
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(workflow, "load_model_metadata", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--test-set",
+            str(test_set),
+            "--privacy-review",
+            str(privacy_path),
+            "--accepted-privacy-review-sha256",
+            accepted,
+            "--run-id",
+            "run-1",
+            "--provider",
+            "deepinfra",
+            "--max-cost-usd",
+            "20",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "evaluation snapshot" in json.loads(result.output)["error"]
+
+
+def test_live_evaluate_requires_loaded_snapshot_identity_before_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A live evaluation cannot fall back to a later filesystem fingerprint."""
+    test_set = tmp_path / "test.jsonl"
+    test_set.write_bytes(b'{"id":"case-1"}\n')
+    privacy_path = tmp_path / "test.jsonl.privacy.json"
+    marker = PrivacyReviewEvidence(
+        input_sha256=hashlib.sha256(test_set.read_bytes()).hexdigest(),
+        reviewed=True,
+        no_secrets=True,
+        no_personal_data=True,
+    )
+    privacy_path.write_bytes(serialize_privacy_review(marker))
+    accepted = hashlib.sha256(privacy_path.read_bytes()).hexdigest()
+    unidentified_case = EvaluationCase(
+        case_id="case-1",
+        question="List labels",
+        gold_sql=SAFE_SQL,
+        difficulty="easy",
+        categories=("lookup",),
+    )
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("missing snapshot identity must stop before live dependencies")
+
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (unidentified_case,))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(workflow, "load_model_metadata", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--test-set",
+            str(test_set),
+            "--privacy-review",
+            str(privacy_path),
+            "--accepted-privacy-review-sha256",
+            accepted,
+            "--run-id",
+            "run-1",
+            "--provider",
+            "deepinfra",
+            "--max-cost-usd",
+            "20",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "snapshot fingerprint is missing" in json.loads(result.output)["error"]
+
+
 def test_evaluate_snapshot_precedes_output_path_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Validating outputs before the snapshot would violate the phase contract."""
 
@@ -953,6 +1208,8 @@ def test_b5_prediction_prepares_query_encoder_before_transport(
             "List labels",
             "--provider",
             "deepinfra",
+            "--max-cost-usd",
+            "20",
             "--training",
             str(tmp_path / "train.jsonl"),
             "--cache",
@@ -1012,6 +1269,15 @@ def test_summarize_round_trips_three_typed_local_runs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Replacing typed artifact loading with report dictionaries would fail this test."""
+    monkeypatch.setattr(
+        workflow,
+        "_privacy_preflight",
+        lambda *_args, **_kwargs: (
+            SimpleNamespace(privacy_sha256="d" * 64),
+            None,
+            Path("stub.privacy.json"),
+        ),
+    )
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
     monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
@@ -1051,6 +1317,8 @@ def test_summarize_round_trips_three_typed_local_runs(
                 f"run-{index}",
                 "--provider",
                 "deepinfra",
+                "--max-cost-usd",
+                "20",
                 "--allow-network",
                 "--accepted-model-metadata-sha256",
                 METADATA_SHA,

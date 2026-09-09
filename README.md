@@ -50,6 +50,11 @@ uv run python scripts/18_large_llm_baselines.py validate \
   --max-cost-usd 20
 ```
 
+`validate` cũng kiểm tra sidecar privacy cục bộ nếu có; khi sidecar chưa có,
+JSON kết quả giữ blocker `privacy_review_missing` để nhắc gate bên ngoài mà
+không chặn preflight offline. Sidecar mặc định là
+`<test-set>.privacy.json`; có thể chọn bằng `--privacy-review`.
+
 Ví dụ live dưới đây chỉ là thao tác thủ công có chủ đích; nó **không bao giờ
 được chạy tự động**. Cần tự cấp key, metadata fingerprint đã chấp nhận và
 đồng ý phát sinh chi phí trước khi thêm `--allow-network`:
@@ -68,7 +73,12 @@ uv run python scripts/18_large_llm_baselines.py predict \
 `predict` không publish artifact. Evaluation dùng `evaluate --run-id ...`
 với `--test-set`, `--predictions`, `--request-log`, `--cost-log`, `--report`
 và `--resume`; `summarize` nhận đúng ba cặp `--report`/`--request-log` và vẫn
-offline. Không có lệnh README nào tự chạy live inference.
+offline. Live `predict` và `evaluate` bắt buộc truyền tường minh
+`--max-cost-usd` (không có mặc định USD 20), và live `evaluate` bắt buộc
+`--accepted-privacy-review-sha256` khớp chính xác sidecar với snapshot test.
+Mỗi lần retry giữ liability reservation riêng; failure/cancellation được ghi
+vào checkpoint để resume không bỏ mất chi phí chưa rõ. Không có lệnh README
+nào tự chạy live inference.
 
 Du lieu lon va artifact train/KG khong commit vao git. Xem `.gitignore` va `docs/memory/04-CONVENTIONS.md`.
 

@@ -264,7 +264,7 @@ def test_non_retryable_http_status_fails_after_one_attempt(status_code: int) -> 
     assert captured.value.code == "request_failed"
     assert captured.value.attempt_count == 1
     assert len(completions.requests) == 1
-    assert asyncio.run(ledger.snapshot()).unresolved_request_ids == ("case-1",)
+    assert asyncio.run(ledger.snapshot()).unresolved_request_ids == ("case-1:attempt-1",)
 
 
 def test_bounded_retry_after_takes_precedence() -> None:
@@ -312,7 +312,10 @@ def test_exhausted_transient_error_has_stable_code() -> None:
     assert captured.value.code == "rate_limit_exhausted"
     assert captured.value.attempt_count == 2
     assert len(completions.requests) == 2
-    assert asyncio.run(ledger.snapshot()).unresolved_request_ids == ("case-1",)
+    assert asyncio.run(ledger.snapshot()).unresolved_request_ids == (
+        "case-1:attempt-1",
+        "case-1:attempt-2",
+    )
 
 
 @pytest.mark.parametrize("cost", [None, "", "NaN", "Infinity", "-0.1", object()])
@@ -327,7 +330,7 @@ def test_malformed_authoritative_cost_holds_reservation(cost: object) -> None:
     assert captured.value.attempt_count == 1
     snapshot = asyncio.run(ledger.snapshot())
     assert snapshot.spent_usd == Decimal("0")
-    assert snapshot.unresolved_request_ids == ("case-1",)
+    assert snapshot.unresolved_request_ids == ("case-1:attempt-1",)
 
 
 @pytest.mark.parametrize(
