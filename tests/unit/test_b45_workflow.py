@@ -19,6 +19,7 @@ from nl2sparql.models.b45.openrouter import ModelMetadataEvidence
 
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
 METADATA_SHA = "c" * 64
+V2_JOURNAL_FIXTURE = Path("tests/fixtures/b45/request-journal-v2-in-progress.jsonl")
 
 
 def test_task_document_matches_google_sql_acceptance_boundary() -> None:
@@ -62,8 +63,8 @@ def _case() -> EvaluationCase:
 
 
 class _SyntheticTransport:
-    def __init__(self, config: LargeLLMConfig) -> None:
-        self._ledger = BudgetLedger(config)
+    def __init__(self, config: LargeLLMConfig, ledger: BudgetLedger | None = None) -> None:
+        self._ledger = ledger if ledger is not None else BudgetLedger(config)
 
     @property
     def budget_ledger(self) -> BudgetLedger:
@@ -99,6 +100,71 @@ class _QueryRetriever:
             )
             for index in range(1, 6)
         )
+
+
+def _legacy_v2_workflow_payload() -> bytes:
+    """Adapt the authentic v2 fixture only to this workflow test's identities."""
+    rows = [json.loads(line) for line in V2_JOURNAL_FIXTURE.read_text().splitlines()]
+    summary = _summary()
+    config = LargeLLMConfig(provider=_policy())
+    rows[0]["config_sha256"] = config.sha256
+    rows[0]["summary_sha256"] = summary.summary_sha256
+    rows[0]["model_metadata_sha256"] = METADATA_SHA
+    rows[1]["config_sha256"] = config.sha256
+    rows[1]["summary_sha256"] = summary.summary_sha256
+    rows[1]["model_metadata_sha256"] = METADATA_SHA
+    prediction = rows[1]["prediction"]
+    assert isinstance(prediction, dict)
+    prediction["config_sha256"] = config.sha256
+    prediction["summary_sha256"] = summary.summary_sha256
+    return b"".join(
+        (json.dumps(row, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode(
+            "utf-8"
+        )
+        for row in rows
+    )
+
+
+def _legacy_v2_case() -> EvaluationCase:
+    case = EvaluationCase(
+        case_id="case-1",
+        question="List addresses",
+        gold_sql=SAFE_SQL,
+        difficulty="easy",
+        categories=("entity_lookup",),
+        input_sha256="f" * 64,
+        reviewed=True,
+        live_verified=True,
+        synthetic=False,
+    )
+    object.__setattr__(case, "_trusted_source", True)
+    return case
+
+
+def _stub_live_evaluation(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = LargeLLMConfig(provider=_policy())
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_legacy_v2_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(workflow, "load_model_metadata", lambda *_args, **_kwargs: {"stub": True})
+    monkeypatch.setattr(
+        workflow,
+        "validate_model_metadata",
+        lambda *_args, **_kwargs: ModelMetadataEvidence(
+            model_id=config.model_id,
+            provider_slug="deepinfra",
+            context_length=10_000,
+            supported_parameters=("max_tokens", "seed", "temperature"),
+            prompt_price_per_million_usd=Decimal("0.50"),
+            completion_price_per_million_usd=Decimal("1.00"),
+            metadata_sha256=METADATA_SHA,
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_openrouter_transport",
+        lambda _config, ledger: _SyntheticTransport(config, ledger),
+    )
 
 
 def test_help_does_not_import_openai() -> None:
@@ -405,6 +471,90 @@ def test_injected_synthetic_transport_can_run_but_is_not_scientifically_ready(
 
     assert result.exit_code == 0, result.output
     assert json.loads(result.output)["scientific_ready"] is False
+
+
+def test_evaluate_resume_authorizes_v2_migration_after_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Omitting explicit resume authority would strand a validated v2 journal."""
+    _stub_live_evaluation(monkeypatch)
+    request_log = tmp_path / "requests.jsonl"
+    request_log.write_bytes(_legacy_v2_workflow_payload())
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--test-set",
+            str(tmp_path / "test.jsonl"),
+            "--run-id",
+            "run-v2",
+            "--provider",
+            "deepinfra",
+            "--allow-network",
+            "--resume",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--predictions",
+            str(tmp_path / "predictions.jsonl"),
+            "--request-log",
+            str(request_log),
+            "--cost-log",
+            str(tmp_path / "cost.csv"),
+            "--report",
+            str(tmp_path / "report.json"),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    rows = [json.loads(line) for line in request_log.read_text().splitlines()]
+    assert rows[0]["schema_version"] == 3
+    assert [row["record_type"] for row in rows] == ["header", "outcome", "terminal"]
+    assert rows[-1]["budget_checkpoint"]["cap_usd"] == "20"
+    assert rows[-1]["budget_checkpoint"]["spent_usd"] == "0.02"
+    assert rows[-1]["metrics"]["unattributed_spend_usd"] == "0.01"
+
+
+def test_evaluate_without_resume_rejects_v2_and_preserves_journal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Granting migration authority to a new run would rewrite legacy evidence."""
+    _stub_live_evaluation(monkeypatch)
+    request_log = tmp_path / "requests.jsonl"
+    original = _legacy_v2_workflow_payload()
+    request_log.write_bytes(original)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--test-set",
+            str(tmp_path / "test.jsonl"),
+            "--run-id",
+            "run-v2",
+            "--provider",
+            "deepinfra",
+            "--allow-network",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--predictions",
+            str(tmp_path / "predictions.jsonl"),
+            "--request-log",
+            str(request_log),
+            "--cost-log",
+            str(tmp_path / "cost.csv"),
+            "--report",
+            str(tmp_path / "report.json"),
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "version" in json.loads(result.output)["error"]
+    assert request_log.read_bytes() == original
 
 
 def test_summarize_accepts_three_local_reports_without_a_client(

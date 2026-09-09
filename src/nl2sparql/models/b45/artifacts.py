@@ -875,6 +875,7 @@ class RequestJournal:
         self,
         path: Path,
         *,
+        allow_legacy_resume: bool = False,
         run_id: str,
         baseline: str,
         input_sha256: str | None,
@@ -890,6 +891,8 @@ class RequestJournal:
 
         Args:
             path: Journal JSONL path.
+            allow_legacy_resume: Explicit authority to accept and atomically
+                migrate a validated terminal-free schema v2 resume journal.
             run_id: Stable evaluation-run identifier.
             baseline: ``b4`` or ``b5``.
             input_sha256: Exact input snapshot fingerprint, if available.
@@ -906,6 +909,8 @@ class RequestJournal:
         """
         if not isinstance(path, Path):
             raise LargeLLMError("request journal path must be a pathlib.Path")
+        if not isinstance(allow_legacy_resume, bool):
+            raise LargeLLMError("legacy resume authority must be boolean")
         header = _journal_header(
             run_id=run_id,
             baseline=baseline,
@@ -925,9 +930,11 @@ class RequestJournal:
             except Exception as error:
                 raise LargeLLMError(f"unable to initialize request journal: {error}") from error
         else:
+            allowed_versions = (
+                _RESUME_SCHEMA_VERSIONS if allow_legacy_resume else frozenset({_SCHEMA_VERSION})
+            )
             accepted, records, _terminal = _parse_request_log(
-                existing,
-                allowed_versions=_RESUME_SCHEMA_VERSIONS,
+                existing, allowed_versions=allowed_versions
             )
             for key, expected in header.items():
                 if key == "schema_version":

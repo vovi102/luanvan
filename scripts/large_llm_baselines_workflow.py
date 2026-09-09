@@ -587,6 +587,7 @@ def evaluate_command(**options: Any) -> None:
         validate_artifact_paths(paths, protected_paths=protected)
         completed_outcomes = ()
         resume_budget_checkpoint = None
+        legacy_resume_authorized = False
         ledger = BudgetLedger(config)
         if options["resume"]:
             expected_metadata_sha = _require_metadata_sha(options["accepted_model_metadata_sha256"])
@@ -603,6 +604,7 @@ def evaluate_command(**options: Any) -> None:
             ledger = BudgetLedger.from_checkpoint(config, resume.budget_checkpoint)
             completed_outcomes = resume.completed_outcomes
             resume_budget_checkpoint = resume.budget_checkpoint
+            legacy_resume_authorized = True
         _require_network(options["allow_network"])
         _require_api_key()
         metadata = _metadata_evidence(
@@ -637,6 +639,7 @@ def evaluate_command(**options: Any) -> None:
         evidence = baseline.evaluation_evidence
         journal = RequestJournal(
             paths.request_log,
+            allow_legacy_resume=legacy_resume_authorized,
             run_id=options["run_id"],
             baseline=options["baseline_name"],
             input_sha256=cases[0].input_sha256,

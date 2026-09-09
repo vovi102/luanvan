@@ -295,6 +295,7 @@ def test_v2_in_progress_journal_resumes_scheduling_and_preserves_budget(
 
     journal = artifacts.RequestJournal(
         request_log,
+        allow_legacy_resume=True,
         run_id="run-v2",
         baseline="b4",
         input_sha256=INPUT_SHA256,
@@ -337,6 +338,32 @@ def test_v2_in_progress_journal_resumes_scheduling_and_preserves_budget(
     assert run.metrics.attributed_spend_usd == Decimal("0.02")
     assert run.metrics.unattributed_spend_usd == Decimal("0.01")
     assert run.metrics.total_spent_usd == Decimal("0.03")
+
+
+def test_v2_journal_requires_explicit_resume_authority_and_preserves_bytes(
+    tmp_path: Path,
+) -> None:
+    """Removing the default-deny gate would silently migrate a non-resume run."""
+    request_log = tmp_path / "request.jsonl"
+    original = V2_JOURNAL_FIXTURE.read_bytes()
+    request_log.write_bytes(original)
+
+    with pytest.raises(LargeLLMError, match="version"):
+        artifacts.RequestJournal(
+            request_log,
+            run_id="run-v2",
+            baseline="b4",
+            input_sha256=INPUT_SHA256,
+            config_sha256=config().sha256,
+            catalog_sha256=CATALOG_SHA256,
+            summary_sha256=SUMMARY_SHA256,
+            training_sha256=None,
+            model_id=config().model_id,
+            provider_slug="deepinfra",
+            model_metadata_sha256=METADATA_SHA256,
+        )
+
+    assert request_log.read_bytes() == original
 
 
 def test_v2_resume_rejects_malformed_outcome_and_terminal_attempt(tmp_path: Path) -> None:
@@ -389,6 +416,7 @@ def test_v2_resume_rejects_malformed_outcome_and_terminal_attempt(tmp_path: Path
     with pytest.raises(LargeLLMError, match="below accepted outcome costs"):
         artifacts.RequestJournal(
             underfunded_path,
+            allow_legacy_resume=True,
             run_id="run-v2",
             baseline="b4",
             input_sha256=INPUT_SHA256,
