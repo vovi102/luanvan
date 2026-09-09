@@ -34,6 +34,8 @@ from nl2sparql.models.b45.evaluate import (
 )
 
 _SCHEMA_VERSION = 3
+_LEGACY_RESUME_SCHEMA_VERSION = 2
+_RESUME_SCHEMA_VERSIONS = frozenset({_LEGACY_RESUME_SCHEMA_VERSION, _SCHEMA_VERSION})
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _HEADER_KEYS = {
@@ -77,6 +79,10 @@ _OUTCOME_KEYS = {
     "attempt_count",
     "budget_checkpoint",
     "authoritative_cost_usd",
+    "previous_record_sha256",
+    "record_sha256",
+}
+_LEGACY_OUTCOME_KEYS = _OUTCOME_KEYS - {
     "previous_record_sha256",
     "record_sha256",
 }
@@ -199,6 +205,9 @@ class ResumeState:
         model_id: Exact configured model identifier.
         provider_slug: Exact configured provider.
         model_metadata_sha256: Accepted endpoint metadata fingerprint.
+        schema_version: Journal schema used by the immutable prior records. Schema
+            v2 is accepted only as an in-progress resume source; new and published
+            journals use schema v3.
     """
 
     completed_case_ids: tuple[str, ...]
@@ -216,6 +225,7 @@ class ResumeState:
     model_id: str
     provider_slug: str
     model_metadata_sha256: str | None
+    schema_version: int
 
     @property
     def completed_outcomes(self) -> tuple[EvaluationOutcome, ...]:
@@ -225,8 +235,23 @@ class ResumeState:
             Immutable outcomes preserving synthetic/live provenance from each row.
 
         Raises:
-            LargeLLMError: If a previously returned record was mutated by the caller.
+            LargeLLMError: If a record is invalid or a schema v3 hash detects
+                corruption. Legacy schema v2 has no record hashes and therefore
+                receives typed validation only.
         """
+        if self.schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
+            # The immediately preceding format had no record hashes. It is accepted
+            # only for typed resume validation, then RequestJournal upgrades it.
+            return tuple(
+                _outcome_from_record(
+                    record,
+                    line_number=None,
+                    schema_version=_LEGACY_RESUME_SCHEMA_VERSION,
+                )
+                for record in self.prior_records
+            )
+        if self.schema_version != _SCHEMA_VERSION:
+            raise LargeLLMError("resume journal schema version is invalid")
         header = _journal_header(
             run_id=self.run_id,
             baseline=self.baseline,
@@ -403,10 +428,20 @@ def _validate_digest(value: object, label: str, *, optional: bool = False) -> No
         raise LargeLLMError(f"{label} is invalid")
 
 
-def _validate_header(header: Mapping[str, object]) -> None:
+def _validate_header(
+    header: Mapping[str, object],
+    *,
+    allowed_versions: frozenset[int] = frozenset({_SCHEMA_VERSION}),
+) -> int:
     if set(header) != _HEADER_KEYS:
         raise LargeLLMError("request journal header fields are invalid")
-    if header["schema_version"] != _SCHEMA_VERSION or header["record_type"] != "header":
+    schema_version = header["schema_version"]
+    if (
+        not isinstance(schema_version, int)
+        or isinstance(schema_version, bool)
+        or schema_version not in allowed_versions
+        or header["record_type"] != "header"
+    ):
         raise LargeLLMError("request journal header version is invalid")
     run_id = header["run_id"]
     if not isinstance(run_id, str) or _RUN_ID_RE.fullmatch(run_id) is None:
@@ -432,6 +467,7 @@ def _validate_header(header: Mapping[str, object]) -> None:
         value = header[key]
         if not isinstance(value, str) or not value:
             raise LargeLLMError(f"request journal {label} is invalid")
+    return schema_version
 
 
 def _journal_header(
@@ -616,11 +652,20 @@ def _prediction_from_record(value: object) -> LargeLLMPrediction | None:
 
 
 def _outcome_from_record(
-    record: Mapping[str, object], *, line_number: int | None
+    record: Mapping[str, object],
+    *,
+    line_number: int | None,
+    schema_version: int = _SCHEMA_VERSION,
 ) -> EvaluationOutcome:
     prefix = f"request journal line {line_number}" if line_number is not None else "resume record"
     try:
-        raw = _require_mapping(record, prefix, _OUTCOME_KEYS)
+        if schema_version == _SCHEMA_VERSION:
+            outcome_keys = _OUTCOME_KEYS
+        elif schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
+            outcome_keys = _LEGACY_OUTCOME_KEYS
+        else:
+            raise LargeLLMError("journal outcome schema version is invalid")
+        raw = _require_mapping(record, prefix, outcome_keys)
         if raw["record_type"] != "outcome":
             raise LargeLLMError("journal outcome record type is invalid")
         values = {
@@ -710,6 +755,8 @@ def _decode_json_line(raw_line: bytes, line_number: int) -> dict[str, object]:
 
 def _parse_request_log(
     payload: bytes,
+    *,
+    allowed_versions: frozenset[int] = frozenset({_SCHEMA_VERSION}),
 ) -> tuple[
     dict[str, object],
     tuple[dict[str, object], ...],
@@ -719,7 +766,7 @@ def _parse_request_log(
         raise LargeLLMError("request journal must not be empty")
     lines = payload.splitlines(keepends=True)
     header = _decode_json_line(lines[0], 1)
-    _validate_header(header)
+    schema_version = _validate_header(header, allowed_versions=allowed_versions)
     records: list[dict[str, object]] = []
     identifiers: set[str] = set()
     terminal: dict[str, object] | None = None
@@ -742,6 +789,8 @@ def _parse_request_log(
             raise LargeLLMError("request journal contains a record after its terminal checkpoint")
         record_type = record.get("record_type")
         if record_type == "terminal":
+            if schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
+                raise LargeLLMError("request journal schema v2 must not contain terminal records")
             _terminal_evidence(record, line_number=line_number)
             _validate_record_chain(
                 record,
@@ -757,12 +806,17 @@ def _parse_request_log(
             continue
         if record_type != "outcome":
             raise LargeLLMError(f"request journal line {line_number} record type is invalid")
-        outcome = _outcome_from_record(record, line_number=line_number)
-        _validate_record_chain(
+        outcome = _outcome_from_record(
             record,
-            expected_previous=previous_record_sha256,
             line_number=line_number,
+            schema_version=schema_version,
         )
+        if schema_version == _SCHEMA_VERSION:
+            _validate_record_chain(
+                record,
+                expected_previous=previous_record_sha256,
+                line_number=line_number,
+            )
         for key in identity_keys:
             actual = record[key] if key in record else getattr(outcome, key)
             if actual != header[key]:
@@ -772,12 +826,50 @@ def _parse_request_log(
             raise LargeLLMError(f"request journal contains duplicate case ID: {outcome.case_id}")
         identifiers.add(outcome.case_id)
         records.append(record)
-        previous_record_sha256 = str(record["record_sha256"])
+        if schema_version == _SCHEMA_VERSION:
+            previous_record_sha256 = str(record["record_sha256"])
     return header, tuple(records), terminal
 
 
+def _upgrade_legacy_resume_log(
+    header: Mapping[str, object], records: Sequence[Mapping[str, object]]
+) -> bytes:
+    """Return a terminal-free v3 journal from a validated legacy v2 resume log.
+
+    Schema v2 is deliberately a read-only compatibility boundary. Its records are
+    unchained, so their values receive full typed validation before this one-way
+    migration; the v3 hash chain detects later corruption but is not authentication.
+    """
+    upgraded_header = {**header, "schema_version": _SCHEMA_VERSION}
+    _validate_header(upgraded_header)
+    previous_record_sha256 = _header_sha256(upgraded_header)
+    upgraded_records: list[dict[str, object]] = []
+    attributed_spend = Decimal("0")
+    budget_checkpoint: BudgetSnapshot | None = None
+    for record in records:
+        outcome = _outcome_from_record(
+            record,
+            line_number=None,
+            schema_version=_LEGACY_RESUME_SCHEMA_VERSION,
+        )
+        upgraded = _outcome_record(
+            outcome,
+            run_id=str(upgraded_header["run_id"]),
+            model_metadata_sha256=upgraded_header["model_metadata_sha256"],  # type: ignore[arg-type]
+            previous_record_sha256=previous_record_sha256,
+        )
+        upgraded_records.append(upgraded)
+        previous_record_sha256 = str(upgraded["record_sha256"])
+        assert outcome.authoritative_cost_usd is not None
+        attributed_spend += outcome.authoritative_cost_usd
+        budget_checkpoint = outcome.budget_checkpoint
+    if budget_checkpoint is not None and budget_checkpoint.spent_usd < attributed_spend:
+        raise LargeLLMError("request journal budget spent is below accepted outcome costs")
+    return b"".join(_canonical_json(record) for record in (upgraded_header, *upgraded_records))
+
+
 class RequestJournal:
-    """Atomic per-case JSONL journal with a fixed validated run identity."""
+    """Atomic v3 per-case journal, upgrading a valid terminal-free v2 resume log."""
 
     def __init__(
         self,
@@ -833,11 +925,23 @@ class RequestJournal:
             except Exception as error:
                 raise LargeLLMError(f"unable to initialize request journal: {error}") from error
         else:
-            accepted, _records, _terminal = _parse_request_log(existing)
+            accepted, records, _terminal = _parse_request_log(
+                existing,
+                allowed_versions=_RESUME_SCHEMA_VERSIONS,
+            )
             for key, expected in header.items():
+                if key == "schema_version":
+                    continue
                 if accepted[key] != expected:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
                     raise LargeLLMError(f"request journal {label} mismatch")
+            if accepted["schema_version"] == _LEGACY_RESUME_SCHEMA_VERSION:
+                try:
+                    _atomic_write(path, _upgrade_legacy_resume_log(accepted, records))
+                except Exception as error:
+                    raise LargeLLMError(
+                        f"unable to upgrade schema v2 request journal: {error}"
+                    ) from error
         self._path = path
         self._header = header
 
@@ -931,7 +1035,13 @@ def load_resume_state(
     payload = _existing_bytes(request_log)
     if payload is None:
         raise LargeLLMError("request journal does not exist")
-    header, records, terminal = _parse_request_log(payload)
+    # Only resume accepts the immediately preceding, terminal-free v2 format.
+    # Publication loaders intentionally retain the parser's v3-only default.
+    header, records, terminal = _parse_request_log(
+        payload,
+        allowed_versions=_RESUME_SCHEMA_VERSIONS,
+    )
+    schema_version = int(header["schema_version"])
     for key, expected, label in (
         ("input_sha256", expected_input_sha256, "input fingerprint"),
         ("config_sha256", expected_config_sha256, "config fingerprint"),
@@ -950,7 +1060,11 @@ def load_resume_state(
     budget_checkpoint: BudgetSnapshot | None = None
     terminal_metrics: LargeEvaluationMetrics | None = None
     for record in records:
-        outcome = _outcome_from_record(record, line_number=None)
+        outcome = _outcome_from_record(
+            record,
+            line_number=None,
+            schema_version=schema_version,
+        )
         budget_checkpoint = outcome.budget_checkpoint
         assert outcome.authoritative_cost_usd is not None
         cost += outcome.authoritative_cost_usd
@@ -961,7 +1075,14 @@ def load_resume_state(
     if unattributed_spend < Decimal("0"):
         raise LargeLLMError("request journal budget spent is below accepted outcome costs")
     if terminal_metrics is not None:
-        outcomes = tuple(_outcome_from_record(record, line_number=None) for record in records)
+        outcomes = tuple(
+            _outcome_from_record(
+                record,
+                line_number=None,
+                schema_version=schema_version,
+            )
+            for record in records
+        )
         if terminal_metrics != _metrics(outcomes, unattributed_spend_usd=unattributed_spend):
             raise LargeLLMError("request journal terminal metrics are not derived")
     return ResumeState(
@@ -980,6 +1101,7 @@ def load_resume_state(
         model_id=str(header["model_id"]),
         provider_slug=str(header["provider_slug"]),
         model_metadata_sha256=header["model_metadata_sha256"],  # type: ignore[arg-type]
+        schema_version=schema_version,
     )
 
 

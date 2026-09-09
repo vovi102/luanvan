@@ -37,6 +37,7 @@ CATALOG_SHA256 = "a" * 64
 SUMMARY_SHA256 = "b" * 64
 PROMPT_SHA256 = "c" * 64
 METADATA_SHA256 = "e" * 64
+V2_JOURNAL_FIXTURE = Path("tests/fixtures/b45/request-journal-v2-in-progress.jsonl")
 
 
 def canonical_test_json(value: object) -> bytes:
@@ -216,6 +217,213 @@ def test_resume_rejects_changed_configuration(tmp_path: Path) -> None:
             expected_run_id="run-1",
             expected_model_metadata_sha256=METADATA_SHA256,
         )
+
+
+def test_v2_in_progress_journal_resumes_scheduling_and_preserves_budget(
+    tmp_path: Path,
+) -> None:
+    """Dropping the v2 resume reader would discard already billed durable work."""
+    request_log = tmp_path / "request.jsonl"
+    request_log.write_bytes(V2_JOURNAL_FIXTURE.read_bytes())
+    selected_config = config()
+    resume = artifacts.load_resume_state(
+        request_log,
+        expected_input_sha256=INPUT_SHA256,
+        expected_config_sha256=selected_config.sha256,
+        expected_run_id="run-v2",
+        expected_model_metadata_sha256=METADATA_SHA256,
+    )
+    assert resume.prior_cost_usd == Decimal("0.01")
+    assert resume.unattributed_spend_usd == Decimal("0.01")
+    assert resume.budget_checkpoint.spent_usd == Decimal("0.02")
+    assert resume.budget_checkpoint.cap_usd == Decimal("20")
+
+    cases = (
+        EvaluationCase(
+            case_id="case-1",
+            question="List addresses",
+            gold_sql=SAFE_SQL,
+            difficulty="easy",
+            categories=("entity_lookup",),
+            input_sha256=INPUT_SHA256,
+            reviewed=True,
+            live_verified=True,
+            synthetic=False,
+        ),
+        EvaluationCase(
+            case_id="case-2",
+            question="List addresses again",
+            gold_sql=SAFE_SQL,
+            difficulty="medium",
+            categories=("entity_lookup",),
+            input_sha256=INPUT_SHA256,
+            reviewed=True,
+            live_verified=True,
+            synthetic=False,
+        ),
+    )
+    for case in cases:
+        object.__setattr__(case, "_trusted_source", True)
+
+    class ResumedBaseline:
+        def __init__(self) -> None:
+            self.config = selected_config
+            self.budget_ledger = BudgetLedger.from_checkpoint(
+                selected_config, resume.budget_checkpoint
+            )
+            self.evaluation_evidence = LargeBaselineEvidence(
+                baseline="b4",
+                catalog_sha256=CATALOG_SHA256,
+                summary_sha256=SUMMARY_SHA256,
+                config_sha256=selected_config.sha256,
+                training_sha256=None,
+                training_accepted=False,
+                model_id=selected_config.model_id,
+                provider_slug="deepinfra",
+            )
+            self.calls: list[str] = []
+
+        async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+            self.calls.append(request_id)
+            reservation = await self.budget_ledger.reserve(
+                request_id, (ChatMessage("user", question),)
+            )
+            assert reservation is not None
+            result = prediction(question, cost=Decimal("0.01"))
+            await self.budget_ledger.reconcile(reservation, result.completion.charged_cost_usd)
+            return result
+
+    journal = artifacts.RequestJournal(
+        request_log,
+        run_id="run-v2",
+        baseline="b4",
+        input_sha256=INPUT_SHA256,
+        config_sha256=selected_config.sha256,
+        catalog_sha256=CATALOG_SHA256,
+        summary_sha256=SUMMARY_SHA256,
+        training_sha256=None,
+        model_id=selected_config.model_id,
+        provider_slug="deepinfra",
+        model_metadata_sha256=METADATA_SHA256,
+    )
+    migrated_rows = [json.loads(line) for line in request_log.read_text().splitlines()]
+    assert migrated_rows[0]["schema_version"] == 3
+    assert [row["record_type"] for row in migrated_rows] == ["header", "outcome"]
+    assert "record_sha256" in migrated_rows[1]
+
+    baseline = ResumedBaseline()
+    run = asyncio.run(
+        evaluate_large_baseline(
+            cases,
+            baseline,
+            run_id="run-v2",
+            concurrency=1,
+            model_metadata=ModelMetadataEvidence(
+                model_id=selected_config.model_id,
+                provider_slug="deepinfra",
+                context_length=131_072,
+                supported_parameters=("max_tokens", "seed", "temperature"),
+                prompt_price_per_million_usd=Decimal("0.50"),
+                completion_price_per_million_usd=Decimal("1.00"),
+                metadata_sha256=METADATA_SHA256,
+            ),
+            journal=journal,
+            completed_outcomes=resume.completed_outcomes,
+            resume_budget_checkpoint=resume.budget_checkpoint,
+        )
+    )
+    assert baseline.calls == ["case-2"]
+    assert run.budget.spent_usd == Decimal("0.03")
+    assert run.metrics.attributed_spend_usd == Decimal("0.02")
+    assert run.metrics.unattributed_spend_usd == Decimal("0.01")
+    assert run.metrics.total_spent_usd == Decimal("0.03")
+
+
+def test_v2_resume_rejects_malformed_outcome_and_terminal_attempt(tmp_path: Path) -> None:
+    """A compatibility reader must not broaden the exact terminal-free v2 shape."""
+    rows = [json.loads(line) for line in V2_JOURNAL_FIXTURE.read_text().splitlines()]
+    malformed = [dict(row) for row in rows]
+    malformed[1].pop("budget_checkpoint")
+    malformed_path = tmp_path / "malformed.jsonl"
+    malformed_path.write_bytes(b"".join(canonical_test_json(row) for row in malformed))
+    with pytest.raises(LargeLLMError, match="fields"):
+        artifacts.load_resume_state(
+            malformed_path,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=config().sha256,
+            expected_run_id="run-v2",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+
+    identity_drift = [dict(row) for row in rows]
+    identity_drift[1]["provider_slug"] = "other"
+    identity_path = tmp_path / "identity.jsonl"
+    identity_path.write_bytes(b"".join(canonical_test_json(row) for row in identity_drift))
+    with pytest.raises(LargeLLMError, match="provider slug mismatch"):
+        artifacts.load_resume_state(
+            identity_path,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=config().sha256,
+            expected_run_id="run-v2",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+
+    underfunded = [dict(row) for row in rows]
+    underfunded_budget = underfunded[1]["budget_checkpoint"]
+    assert isinstance(underfunded_budget, dict)
+    underfunded[1]["budget_checkpoint"] = {
+        **underfunded_budget,
+        "spent_usd": "0",
+        "remaining_usd": "20",
+    }
+    underfunded_path = tmp_path / "underfunded.jsonl"
+    underfunded_path.write_bytes(b"".join(canonical_test_json(row) for row in underfunded))
+    with pytest.raises(LargeLLMError, match="below accepted outcome costs"):
+        artifacts.load_resume_state(
+            underfunded_path,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=config().sha256,
+            expected_run_id="run-v2",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+    with pytest.raises(LargeLLMError, match="below accepted outcome costs"):
+        artifacts.RequestJournal(
+            underfunded_path,
+            run_id="run-v2",
+            baseline="b4",
+            input_sha256=INPUT_SHA256,
+            config_sha256=config().sha256,
+            catalog_sha256=CATALOG_SHA256,
+            summary_sha256=SUMMARY_SHA256,
+            training_sha256=None,
+            model_id=config().model_id,
+            provider_slug="deepinfra",
+            model_metadata_sha256=METADATA_SHA256,
+        )
+
+    terminal_path = tmp_path / "terminal.jsonl"
+    terminal_path.write_bytes(
+        V2_JOURNAL_FIXTURE.read_bytes() + canonical_test_json({"record_type": "terminal"})
+    )
+    with pytest.raises(LargeLLMError, match="schema v2.*terminal"):
+        artifacts.load_resume_state(
+            terminal_path,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=config().sha256,
+            expected_run_id="run-v2",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+
+
+def test_v2_journal_is_never_accepted_as_published_report_evidence(tmp_path: Path) -> None:
+    """Allowing v2 in the publication loader would bypass the terminal boundary."""
+    paths = artifact_paths(tmp_path)
+    run = replace(complete_synthetic_run(), run_id="run-v2")
+    paths.report.write_bytes(artifacts.serialize_report(run))
+    paths.request_log.write_bytes(V2_JOURNAL_FIXTURE.read_bytes())
+
+    with pytest.raises(LargeLLMError, match="version"):
+        artifacts.load_large_run_artifacts(paths.report, paths.request_log)
 
 
 def test_load_large_run_artifacts_reconstructs_typed_run(tmp_path: Path) -> None:
