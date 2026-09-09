@@ -1031,6 +1031,8 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
     if not outcomes:
         raise LargeLLMError("large-run request journal has no outcomes")
     budget = _budget_from_record(report.get("budget"))
+    if budget != outcomes[-1].budget_checkpoint:
+        raise LargeLLMError("large-run report budget disagrees with final durable checkpoint")
     attributed = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=Decimal("0"))
     unattributed = budget.spent_usd - attributed
     if unattributed < Decimal("0"):
@@ -1054,6 +1056,15 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
         raise LargeLLMError("large-run report metrics are not derived from outcomes")
     if report.get("budget") != _canonical_value(asdict(budget)):
         raise LargeLLMError("large-run report budget is invalid")
+    expected_totals = {
+        "outcome_count": len(outcomes),
+        "authoritative_total_cost_usd": _canonical_value(attributed),
+        "attributed_spend_usd": _canonical_value(metrics.attributed_spend_usd),
+        "unattributed_spend_usd": _canonical_value(metrics.unattributed_spend_usd),
+        "total_spent_usd": _canonical_value(metrics.total_spent_usd),
+    }
+    if any(report.get(key) != value for key, value in expected_totals.items()):
+        raise LargeLLMError("large-run report totals are not derived from final durable checkpoint")
     try:
         return LargeEvaluationRun(
             run_id=header["run_id"],  # type: ignore[arg-type]

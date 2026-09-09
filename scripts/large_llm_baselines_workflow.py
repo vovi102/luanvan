@@ -143,6 +143,8 @@ def _validate_primitives(options: dict[str, Any], *, evaluation: bool) -> LargeL
         _require_metadata_sha(accepted_metadata)
     if evaluation and accepted_metadata is None:
         raise LargeLLMError("evaluate requires --accepted-model-metadata-sha256")
+    if not evaluation and options.get("allow_network") and accepted_metadata is None:
+        raise LargeLLMError("predict requires --accepted-model-metadata-sha256")
     if options["baseline_name"] == "b5":
         accepted_training = options["accepted_training_sha256"]
         if (
@@ -278,8 +280,6 @@ def _b5_retriever(
     Returns:
         A B2-compatible retriever with accepted training provenance.
     """
-    if cached_retriever is not None:
-        return cached_retriever
     encoder = load_sentence_encoder(encoder_id, encoder_revision)
     try:
         return FewShotRetriever.from_snapshot(
@@ -306,6 +306,7 @@ def build_large_baseline(
     encoder_revision: str | None,
     accepted_training_sha256: str | None,
     cached_retriever: FewShotRetriever | None = None,
+    retriever: FewShotRetriever | None = None,
 ) -> BaselineB4 | BaselineB5:
     """Build one B4/B5 baseline after every local and live dependency is ready.
 
@@ -320,6 +321,7 @@ def build_large_baseline(
         encoder_revision: Pinned B5 encoder revision.
         accepted_training_sha256: Accepted B5 training snapshot digest.
         cached_retriever: Cache-backed B5 retriever from local preflight.
+        retriever: B5 retriever prepared after live metadata and before transport.
 
     Returns:
         An immutable B4 or B5 baseline ready for asynchronous generation.
@@ -329,21 +331,9 @@ def build_large_baseline(
     """
     if baseline_name == "b4":
         return BaselineB4(summary, config, transport)
-    if baseline_name != "b5" or encoder_revision is None:
+    if baseline_name != "b5" or retriever is None:
         raise LargeLLMError("baseline must be b4 or B5 requires --encoder-revision")
-    return BaselineB5(
-        summary,
-        config,
-        transport,
-        _b5_retriever(
-            training_path,
-            cache_path,
-            encoder_id,
-            encoder_revision,
-            accepted_training_sha256,
-            cached_retriever,
-        ),
-    )
+    return BaselineB5(summary, config, transport, retriever)
 
 
 def _metadata_evidence(config: LargeLLMConfig, prompt_bytes: int, accepted_sha: str | None):
@@ -501,6 +491,16 @@ def predict_command(**options: Any) -> None:
             len(summary.text.encode("utf-8")) + len(options["question"].encode("utf-8")),
             options["accepted_model_metadata_sha256"],
         )
+        retriever = None
+        if options["baseline_name"] == "b5":
+            retriever = _b5_retriever(
+                options["training_path"],
+                options["cache_path"],
+                options["encoder_id"],
+                options["encoder_revision"],
+                options["accepted_training_sha256"],
+                cached_retriever,
+            )
         ledger = BudgetLedger(config)
         transport = load_openrouter_transport(config, ledger)
         baseline = build_large_baseline(
@@ -514,6 +514,7 @@ def predict_command(**options: Any) -> None:
             encoder_revision=options["encoder_revision"],
             accepted_training_sha256=options["accepted_training_sha256"],
             cached_retriever=cached_retriever,
+            retriever=retriever,
         )
         if options["baseline_name"] == "b5":
             prediction = asyncio.run(
@@ -552,17 +553,6 @@ def evaluate_command(**options: Any) -> None:
     """Run and atomically publish one opted-in B4/B5 evaluation."""
     try:
         config = _validate_primitives(options, evaluation=True)
-        paths = _artifact_paths(
-            options["baseline_name"],
-            options["predictions"],
-            options["request_log"],
-            options["cost_log"],
-            options["report"],
-        )
-        protected = _protected_paths(options)
-        # An unsafe destination is rejected before parsing it as an input, so a
-        # malformed snapshot can never mask a destructive output alias.
-        validate_artifact_paths(paths, protected_paths=protected)
         cases = load_evaluation_cases(options["test_set"])
         summary = compile_catalog_summary(options["catalog_path"])
         cached_retriever = None
@@ -574,6 +564,15 @@ def evaluate_command(**options: Any) -> None:
                 options["encoder_revision"],
                 options["accepted_training_sha256"],
             )
+        paths = _artifact_paths(
+            options["baseline_name"],
+            options["predictions"],
+            options["request_log"],
+            options["cost_log"],
+            options["report"],
+        )
+        protected = _protected_paths(options)
+        validate_artifact_paths(paths, protected_paths=protected)
         completed_outcomes = ()
         ledger = BudgetLedger(config)
         if options["resume"]:
@@ -597,6 +596,16 @@ def evaluate_command(**options: Any) -> None:
             len(summary.text.encode("utf-8")) + 2000,
             options["accepted_model_metadata_sha256"],
         )
+        retriever = None
+        if options["baseline_name"] == "b5":
+            retriever = _b5_retriever(
+                options["training_path"],
+                options["cache_path"],
+                options["encoder_id"],
+                options["encoder_revision"],
+                options["accepted_training_sha256"],
+                cached_retriever,
+            )
         transport = load_openrouter_transport(config, ledger)
         baseline = build_large_baseline(
             options["baseline_name"],
@@ -609,6 +618,7 @@ def evaluate_command(**options: Any) -> None:
             encoder_revision=options["encoder_revision"],
             accepted_training_sha256=options["accepted_training_sha256"],
             cached_retriever=cached_retriever,
+            retriever=retriever,
         )
         evidence = baseline.evaluation_evidence
         journal = RequestJournal(

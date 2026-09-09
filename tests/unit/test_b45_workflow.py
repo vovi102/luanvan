@@ -13,7 +13,7 @@ import pytest
 from click.testing import CliRunner
 
 import scripts.large_llm_baselines_workflow as workflow
-from nl2sparql.models.b12 import CatalogSummary, EvaluationCase
+from nl2sparql.models.b12 import CatalogSummary, EvaluationCase, SelectedExample
 from nl2sparql.models.b45 import BudgetLedger, LargeLLMConfig, ProviderPolicy, RemoteCompletion
 from nl2sparql.models.b45.openrouter import ModelMetadataEvidence
 
@@ -69,6 +69,26 @@ class _SyntheticTransport:
             output_tokens=5,
             charged_cost_usd=Decimal("0"),
             latency_ms=1.0,
+        )
+
+
+class _QueryRetriever:
+    training_sha256 = "d" * 64
+    encoder_id = "encoder"
+    encoder_revision = "a" * 40
+    training_accepted = True
+
+    def retrieve(
+        self, _question: str, *, target_id: str | None = None
+    ) -> tuple[SelectedExample, ...]:
+        return tuple(
+            SelectedExample(
+                record_id=f"train-{index}",
+                question=f"Question {index}",
+                sql=SAFE_SQL,
+                score=0.5,
+            )
+            for index in range(1, 6)
         )
 
 
@@ -155,6 +175,8 @@ def test_evaluate_rejects_output_alias_before_network_loader(
     """Allowing an output to overwrite a snapshot would fail this test."""
     test_set = tmp_path / "test.jsonl"
     test_set.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
     monkeypatch.setattr(
         workflow,
         "load_openrouter_transport",
@@ -177,9 +199,9 @@ def test_evaluate_rejects_output_alias_before_network_loader(
             "deepinfra",
             "--max-cost-usd",
             "20",
-            "--accepted-model-metadata-sha256",
-            "a" * 64,
             "--allow-network",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
         ],
     )
 
@@ -222,6 +244,10 @@ def test_b5_training_cache_preflight_precedes_encoder_and_client(
             "--provider",
             "deepinfra",
             "--allow-network",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
         ],
     )
 
@@ -245,6 +271,8 @@ def test_missing_key_follows_local_preflight(monkeypatch: pytest.MonkeyPatch) ->
             "--provider",
             "deepinfra",
             "--allow-network",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
         ],
     )
 
@@ -501,18 +529,87 @@ def test_invalid_metadata_sha_precedes_catalog_key_and_transport(
     assert "metadata fingerprint" in json.loads(result.output)["error"]
 
 
-def test_b5_cache_hit_never_loads_encoder(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Loading an encoder for a valid cache would fail this cache-hit regression."""
+def test_live_predict_requires_metadata_sha_before_key_or_catalog(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Allowing a live prediction without accepted metadata would bypass evidence binding."""
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("required primitive must stop first")
+
+    monkeypatch.setattr(workflow, "compile_catalog_summary", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "predict",
+            "--baseline",
+            "b4",
+            "--question",
+            "List labels",
+            "--provider",
+            "deepinfra",
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "accepted-model-metadata" in json.loads(result.output)["error"]
+
+
+def test_evaluate_snapshot_precedes_output_path_validation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Validating outputs before the snapshot would violate the phase contract."""
+
+    def invalid_snapshot(_path: Path):
+        raise workflow.SmallLLMError("snapshot is invalid")
+
+    monkeypatch.setattr(workflow, "load_evaluation_cases", invalid_snapshot)
+    monkeypatch.setattr(
+        workflow,
+        "validate_artifact_paths",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("output too early")),
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--run-id",
+            "run-1",
+            "--provider",
+            "deepinfra",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "snapshot" in json.loads(result.output)["error"]
+
+
+def test_b5_cache_hit_attaches_query_encoder(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Returning an encoder-less cached retriever would break B5 prediction."""
     cached = object()
+    calls = []
+
+    def from_snapshot(*_args, **kwargs):
+        calls.append(kwargs["encoder"])
+        return cached
+
     monkeypatch.setattr(
         workflow.FewShotRetriever,
         "from_snapshot",
-        lambda *_args, **_kwargs: cached,
+        from_snapshot,
     )
     monkeypatch.setattr(
         workflow,
         "load_sentence_encoder",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("cache hit")),
+        lambda *_args, **_kwargs: "encoder",
     )
 
     preflight = workflow._b5_cache_preflight(
@@ -528,6 +625,7 @@ def test_b5_cache_hit_never_loads_encoder(monkeypatch: pytest.MonkeyPatch, tmp_p
     )
 
     assert result is cached
+    assert calls == [None, "encoder"]
 
 
 def test_b5_stale_cache_rebuilds_only_after_preflight(
@@ -563,10 +661,89 @@ def test_b5_stale_cache_rebuilds_only_after_preflight(
     assert calls == [None, "encoder"]
 
 
+@pytest.mark.parametrize("stale", [False, True])
+def test_b5_prediction_prepares_query_encoder_before_transport(
+    stale: bool, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Creating transport before B5 query retrieval is ready would fail this test."""
+    events: list[str] = []
+    config = LargeLLMConfig(provider=_policy())
+    retriever = _QueryRetriever()
+
+    def from_snapshot(*_args, **kwargs):
+        events.append("cache" if kwargs["encoder"] is None else "retriever")
+        if stale and kwargs["encoder"] is None:
+            raise workflow.SmallLLMError("few-shot cache is invalid and encoder unavailable")
+        return retriever
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(workflow.FewShotRetriever, "from_snapshot", from_snapshot)
+    monkeypatch.setattr(
+        workflow, "load_sentence_encoder", lambda *_args: events.append("encoder") or "encoder"
+    )
+    monkeypatch.setattr(workflow, "load_model_metadata", lambda *_args: {"stub": True})
+    monkeypatch.setattr(
+        workflow,
+        "validate_model_metadata",
+        lambda _raw, config, **_kwargs: ModelMetadataEvidence(
+            model_id=config.model_id,
+            provider_slug="deepinfra",
+            context_length=10_000,
+            supported_parameters=("max_tokens", "seed", "temperature"),
+            prompt_price_per_million_usd=Decimal("0.50"),
+            completion_price_per_million_usd=Decimal("1.00"),
+            metadata_sha256=METADATA_SHA,
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_openrouter_transport",
+        lambda *_args: events.append("transport") or _SyntheticTransport(config),
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "predict",
+            "--baseline",
+            "b5",
+            "--question",
+            "List labels",
+            "--provider",
+            "deepinfra",
+            "--training",
+            str(tmp_path / "train.jsonl"),
+            "--cache",
+            str(tmp_path / "cache.npz"),
+            "--encoder-revision",
+            "a" * 40,
+            "--accepted-training-sha256",
+            "d" * 64,
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["prediction"]["sql"] == SAFE_SQL
+    assert events.index("encoder") < events.index("transport")
+    assert events == (
+        ["cache", "encoder", "retriever", "transport"]
+        if stale
+        else ["cache", "encoder", "retriever", "transport"]
+    )
+
+
 @pytest.mark.parametrize("sidecar", [".json", ".lock"])
-def test_evaluate_protects_b5_cache_sidecars(sidecar: str, tmp_path: Path) -> None:
+def test_evaluate_protects_b5_cache_sidecars(
+    sidecar: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Dropping cache sidecars from protected paths would allow this alias."""
     cache = tmp_path / "b5-cache.npz"
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
     result = CliRunner().invoke(
         workflow.cli,
         [

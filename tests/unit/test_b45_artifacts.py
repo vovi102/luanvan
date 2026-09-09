@@ -241,6 +241,77 @@ def test_load_large_run_artifacts_rejects_tampered_report(tmp_path: Path) -> Non
         artifacts.load_large_run_artifacts(paths.report, paths.request_log)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("stop_reason", None),
+    ],
+)
+def test_load_large_run_artifacts_binds_rehashed_budget_to_final_checkpoint(
+    field: str, value: object, tmp_path: Path
+) -> None:
+    """Trusting a rehashed report budget would hide a journal/checkpoint split."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    payload = json.loads(paths.report.read_text())
+    body = {key: item for key, item in payload.items() if key != "report_sha256"}
+    body["budget"][field] = value
+    payload = {
+        **body,
+        "report_sha256": hashlib.sha256(canonical_test_json(body)).hexdigest(),
+    }
+    paths.report.write_bytes(canonical_test_json(payload))
+
+    with pytest.raises(LargeLLMError, match="final durable checkpoint"):
+        artifacts.load_large_run_artifacts(paths.report, paths.request_log)
+
+
+def test_load_large_run_artifacts_rejects_rehashed_unresolved_reservation(
+    tmp_path: Path,
+) -> None:
+    """A report-only unresolved reservation must not replace the durable checkpoint."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    payload = json.loads(paths.report.read_text())
+    body = {key: item for key, item in payload.items() if key != "report_sha256"}
+    body["budget"].update(
+        {
+            "reserved_usd": "0.1",
+            "remaining_usd": "19.89",
+            "unresolved_request_ids": ["lost-request"],
+            "unresolved_reservations": [{"request_id": "lost-request", "maximum_cost_usd": "0.1"}],
+        }
+    )
+    payload = {
+        **body,
+        "report_sha256": hashlib.sha256(canonical_test_json(body)).hexdigest(),
+    }
+    paths.report.write_bytes(canonical_test_json(payload))
+
+    with pytest.raises(LargeLLMError, match="final durable checkpoint"):
+        artifacts.load_large_run_artifacts(paths.report, paths.request_log)
+
+
+@pytest.mark.parametrize("field", ["unattributed_spend_usd", "total_spent_usd"])
+def test_load_large_run_artifacts_rejects_rehashed_derived_totals(
+    field: str, tmp_path: Path
+) -> None:
+    """Top-level report totals must derive from the final journal checkpoint."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    payload = json.loads(paths.report.read_text())
+    body = {key: item for key, item in payload.items() if key != "report_sha256"}
+    body[field] = "9.99"
+    payload = {
+        **body,
+        "report_sha256": hashlib.sha256(canonical_test_json(body)).hexdigest(),
+    }
+    paths.report.write_bytes(canonical_test_json(payload))
+
+    with pytest.raises(LargeLLMError, match="totals"):
+        artifacts.load_large_run_artifacts(paths.report, paths.request_log)
+
+
 def test_resume_rejects_changed_model_metadata(tmp_path: Path) -> None:
     paths = artifact_paths(tmp_path)
     artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
