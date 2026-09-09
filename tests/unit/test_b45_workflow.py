@@ -21,6 +21,7 @@ from nl2sparql.models.b45 import (
     PrivacyReviewEvidence,
     ProviderPolicy,
     RemoteCompletion,
+    preview_b4_prompt,
     serialize_privacy_review,
 )
 from nl2sparql.models.b45.openrouter import ModelMetadataEvidence
@@ -123,6 +124,9 @@ def _legacy_v2_workflow_payload() -> bytes:
     rows[1]["model_metadata_sha256"] = METADATA_SHA
     prediction = rows[1]["prediction"]
     assert isinstance(prediction, dict)
+    prompt_hash = preview_b4_prompt("List addresses", summary).prompt_sha256
+    rows[1]["prompt_sha256"] = prompt_hash
+    prediction["prompt_sha256"] = prompt_hash
     prediction["config_sha256"] = config.sha256
     prediction["summary_sha256"] = summary.summary_sha256
     return b"".join(
@@ -238,6 +242,73 @@ print(int("openai" in sys.modules))
         [sys.executable, "-c", code], check=True, capture_output=True, text=True
     )
     assert result.stdout.strip().endswith("0")
+
+
+def test_validate_rejects_malformed_snapshot_before_live_seams(tmp_path: Path) -> None:
+    snapshot = tmp_path / "test.jsonl"
+    snapshot.write_text("{malformed}\n", encoding="utf-8")
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+        monkeypatch.setattr(
+            workflow,
+            "load_openrouter_transport",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("validate must stay offline")
+            ),
+        )
+        result = CliRunner().invoke(
+            workflow.cli,
+            [
+                "validate",
+                "--baseline",
+                "b4",
+                "--test-set",
+                str(snapshot),
+                "--provider",
+                "deepinfra",
+                "--max-cost-usd",
+                "20",
+            ],
+        )
+    finally:
+        monkeypatch.undo()
+    assert result.exit_code == 2
+    assert "evaluation snapshot" in json.loads(result.output)["error"]
+
+
+def test_validate_rejects_publication_alias_before_live_seams(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    snapshot = tmp_path / "test.jsonl"
+    snapshot.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(
+        workflow,
+        "load_openrouter_transport",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("validate must stay offline")
+        ),
+    )
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "validate",
+            "--baseline",
+            "b4",
+            "--test-set",
+            str(snapshot),
+            "--predictions",
+            str(snapshot),
+            "--provider",
+            "deepinfra",
+            "--max-cost-usd",
+            "20",
+        ],
+    )
+    assert result.exit_code == 2
+    assert "alias" in json.loads(result.output)["error"]
 
 
 def test_predict_requires_network_opt_in_before_key_or_client(

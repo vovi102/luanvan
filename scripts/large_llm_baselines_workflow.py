@@ -32,7 +32,10 @@ from nl2sparql.models.b45 import (
     load_large_run_artifacts,
     load_privacy_review,
     load_resume_state,
+    preview_b4_prompt,
+    preview_b5_prompt,
     privacy_review_path,
+    prompt_set_sha256,
     publish_large_run,
     summarize_large_runs,
     validate_artifact_paths,
@@ -524,26 +527,48 @@ def _common_options(command):
 @cli.command("validate")
 @click.option("--baseline", "baseline_name", type=click.Choice(["b4", "b5"]), required=True)
 @click.option("--test-set", type=click.Path(path_type=Path), default=DEFAULT_TEST_SET)
+@click.option("--predictions", type=click.Path(path_type=Path), default=None)
+@click.option("--request-log", type=click.Path(path_type=Path), default=None)
+@click.option("--cost-log", type=click.Path(path_type=Path), default=None)
+@click.option("--report", type=click.Path(path_type=Path), default=None)
 @_common_options
 def validate_command(**options: Any) -> None:
     """Validate local catalog and B5 cache evidence without network access."""
     try:
         config = _validate_primitives(options, evaluation=False)
+        snapshot_blocker = None
+        snapshot_sha256 = None
+        if options["test_set"].exists():
+            cases = load_evaluation_cases(options["test_set"])
+            snapshot_sha256 = cases[0].input_sha256 if cases else None
+        else:
+            snapshot_blocker = "evaluation_snapshot_missing"
         summary = compile_catalog_summary(options["catalog_path"])
+        paths = _artifact_paths(
+            options["baseline_name"],
+            options["predictions"],
+            options["request_log"],
+            options["cost_log"],
+            options["report"],
+        )
+        validate_artifact_paths(paths, protected_paths=_protected_paths(options))
         privacy, privacy_blocker, privacy_path = _privacy_preflight(
             options["test_set"],
             options.get("privacy_review"),
             options.get("accepted_privacy_review_sha256"),
             require_accepted=False,
         )
+        training_sha256 = None
         if options["baseline_name"] == "b5":
-            _b5_cache_preflight(
+            retriever = _b5_cache_preflight(
                 options["training_path"],
                 options["cache_path"],
                 options["encoder_id"],
                 options["encoder_revision"],
                 options["accepted_training_sha256"],
             )
+            if retriever is not None:
+                training_sha256 = retriever.training_sha256
         _emit(
             {
                 "status": "ready",
@@ -551,10 +576,16 @@ def validate_command(**options: Any) -> None:
                 "catalog_sha256": summary.catalog_sha256,
                 "summary_sha256": summary.summary_sha256,
                 "config_sha256": config.sha256,
+                "input_sha256": snapshot_sha256,
+                "training_sha256": training_sha256,
                 "local_implementation_ready": True,
                 "privacy_review": privacy_path,
                 "privacy_sha256": privacy.privacy_sha256 if privacy is not None else None,
-                "blockers": [] if privacy_blocker is None else [privacy_blocker],
+                "blockers": [
+                    blocker
+                    for blocker in (snapshot_blocker, privacy_blocker)
+                    if blocker is not None
+                ],
             }
         )
     except (LargeLLMError, SmallLLMError) as error:
@@ -583,13 +614,6 @@ def predict_command(**options: Any) -> None:
                 options["encoder_revision"],
                 options["accepted_training_sha256"],
             )
-        _require_network(options["allow_network"])
-        _require_api_key()
-        metadata = _metadata_evidence(
-            config,
-            len(summary.text.encode("utf-8")) + len(options["question"].encode("utf-8")),
-            options["accepted_model_metadata_sha256"],
-        )
         retriever = None
         if options["baseline_name"] == "b5":
             retriever = _b5_retriever(
@@ -600,6 +624,13 @@ def predict_command(**options: Any) -> None:
                 options["accepted_training_sha256"],
                 cached_retriever,
             )
+        _require_network(options["allow_network"])
+        _require_api_key()
+        metadata = _metadata_evidence(
+            config,
+            len(summary.text.encode("utf-8")) + len(options["question"].encode("utf-8")),
+            options["accepted_model_metadata_sha256"],
+        )
         ledger = BudgetLedger(config)
         transport = load_openrouter_transport(config, ledger)
         baseline = build_large_baseline(
@@ -684,6 +715,28 @@ def evaluate_command(**options: Any) -> None:
                 options["encoder_revision"],
                 options["accepted_training_sha256"],
             )
+        retriever = None
+        if options["baseline_name"] == "b5":
+            retriever = _b5_retriever(
+                options["training_path"],
+                options["cache_path"],
+                options["encoder_id"],
+                options["encoder_revision"],
+                options["accepted_training_sha256"],
+                cached_retriever,
+            )
+        previews = {}
+        for case in cases:
+            if options["baseline_name"] == "b5":
+                preview = preview_b5_prompt(
+                    case.question, summary, retriever, target_id=case.case_id
+                )
+            else:
+                preview = preview_b4_prompt(case.question, summary)
+            previews[case.case_id] = preview.prompt_sha256
+        prompt_set = prompt_set_sha256(
+            tuple((case.case_id, previews[case.case_id]) for case in cases)
+        )
         completed_outcomes = ()
         resume_budget_checkpoint = None
         legacy_resume_authorized = False
@@ -708,6 +761,8 @@ def evaluate_command(**options: Any) -> None:
                 expected_provider_policy_sha256=config.provider.sha256,
                 expected_privacy_sha256=privacy_sha256,
                 expected_baseline=options["baseline_name"],
+                expected_prompt_sha256_by_case=previews,
+                expected_prompt_set_sha256=prompt_set,
             )
             ledger = BudgetLedger.from_checkpoint(config, resume.budget_checkpoint)
             completed_outcomes = resume.completed_outcomes
@@ -720,16 +775,6 @@ def evaluate_command(**options: Any) -> None:
             len(summary.text.encode("utf-8")) + 2000,
             options["accepted_model_metadata_sha256"],
         )
-        retriever = None
-        if options["baseline_name"] == "b5":
-            retriever = _b5_retriever(
-                options["training_path"],
-                options["cache_path"],
-                options["encoder_id"],
-                options["encoder_revision"],
-                options["accepted_training_sha256"],
-                cached_retriever,
-            )
         transport = load_openrouter_transport(config, ledger)
         baseline = build_large_baseline(
             options["baseline_name"],
@@ -760,6 +805,7 @@ def evaluate_command(**options: Any) -> None:
             model_metadata_sha256=metadata.metadata_sha256,
             provider_policy_sha256=evidence.provider_policy_sha256,
             privacy_sha256=privacy_sha256,
+            prompt_set_sha256=prompt_set,
         )
         run = asyncio.run(
             evaluate_large_baseline(
@@ -773,6 +819,8 @@ def evaluate_command(**options: Any) -> None:
                 journal=journal,
                 completed_outcomes=completed_outcomes,
                 resume_budget_checkpoint=resume_budget_checkpoint,
+                expected_prompt_sha256_by_case=previews,
+                expected_prompt_set_sha256=prompt_set,
             )
         )
         publish_large_run(run, paths=paths, protected_paths=protected)

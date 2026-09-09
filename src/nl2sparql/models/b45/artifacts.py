@@ -31,6 +31,7 @@ from nl2sparql.models.b45.evaluate import (
     LargeEvaluationRun,
     _metrics,
     compare_large_reproducibility,
+    prompt_set_sha256,
 )
 
 _SCHEMA_VERSION = 3
@@ -53,8 +54,13 @@ _HEADER_KEYS = {
     "model_metadata_sha256",
     "provider_policy_sha256",
     "privacy_sha256",
+    "prompt_set_sha256",
 }
-_LEGACY_HEADER_KEYS = _HEADER_KEYS - {"provider_policy_sha256", "privacy_sha256"}
+_LEGACY_HEADER_KEYS = _HEADER_KEYS - {
+    "provider_policy_sha256",
+    "privacy_sha256",
+    "prompt_set_sha256",
+}
 _OUTCOME_KEYS = {
     "record_type",
     "run_id",
@@ -86,13 +92,16 @@ _OUTCOME_KEYS = {
     "privacy_sha256",
     "previous_record_sha256",
     "record_sha256",
+    "prompt_set_sha256",
 }
 _LEGACY_OUTCOME_KEYS = _OUTCOME_KEYS - {
     "provider_policy_sha256",
     "privacy_sha256",
     "previous_record_sha256",
     "record_sha256",
+    "prompt_set_sha256",
 }
+_LEGACY_V3_OUTCOME_KEYS = _OUTCOME_KEYS - {"prompt_set_sha256"}
 _TERMINAL_KEYS = {
     "record_type",
     "run_id",
@@ -107,6 +116,7 @@ _TERMINAL_KEYS = {
     "report_body_sha256",
     "previous_record_sha256",
     "record_sha256",
+    "prompt_set_sha256",
 }
 _PREDICTION_KEYS = {
     "baseline",
@@ -239,6 +249,7 @@ class ResumeState:
     schema_version: int
     provider_policy_sha256: str | None = None
     privacy_sha256: str | None = None
+    prompt_set_sha256: str | None = None
 
     @property
     def completed_outcomes(self) -> tuple[EvaluationOutcome, ...]:
@@ -273,6 +284,8 @@ class ResumeState:
                     )
                 if self.privacy_sha256 is not None:
                     outcome = replace(outcome, privacy_sha256=self.privacy_sha256)
+                if self.prompt_set_sha256 is not None:
+                    outcome = replace(outcome, prompt_set_sha256=self.prompt_set_sha256)
                 outcomes.append(outcome)
             return tuple(outcomes)
         if self.schema_version != _SCHEMA_VERSION:
@@ -299,7 +312,10 @@ class ResumeState:
                 expected_previous=previous_record_sha256,
                 line_number=line_number,
             )
-            outcomes.append(_outcome_from_record(record, line_number=None))
+            outcome = _outcome_from_record(record, line_number=None)
+            if self.prompt_set_sha256 is not None:
+                outcome = replace(outcome, prompt_set_sha256=self.prompt_set_sha256)
+            outcomes.append(outcome)
             previous_record_sha256 = str(record["record_sha256"])
         return tuple(outcomes)
 
@@ -461,9 +477,12 @@ def _validate_header(
     allowed_versions: frozenset[int] = frozenset({_SCHEMA_VERSION}),
 ) -> int:
     raw_schema_version = header.get("schema_version")
-    expected_keys = (
-        _LEGACY_HEADER_KEYS if raw_schema_version == _LEGACY_RESUME_SCHEMA_VERSION else _HEADER_KEYS
-    )
+    if raw_schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
+        expected_keys = _LEGACY_HEADER_KEYS
+    elif "prompt_set_sha256" in header:
+        expected_keys = _HEADER_KEYS
+    else:
+        expected_keys = _LEGACY_HEADER_KEYS | {"provider_policy_sha256", "privacy_sha256"}
     if set(header) != expected_keys:
         raise LargeLLMError("request journal header fields are invalid")
     schema_version = raw_schema_version
@@ -500,6 +519,8 @@ def _validate_header(
             "request journal privacy fingerprint",
             optional=True,
         )
+        if "prompt_set_sha256" in header:
+            _validate_digest(header["prompt_set_sha256"], "request journal prompt-set fingerprint")
     training = header["training_sha256"]
     if baseline == "b4" and training is not None:
         raise LargeLLMError("B4 request journal must not contain training provenance")
@@ -526,6 +547,7 @@ def _journal_header(
     model_metadata_sha256: str | None,
     provider_policy_sha256: str | None = None,
     privacy_sha256: str | None = None,
+    prompt_set_sha256: str | None = None,
 ) -> dict[str, object]:
     header: dict[str, object] = {
         "schema_version": _SCHEMA_VERSION,
@@ -543,6 +565,8 @@ def _journal_header(
         "provider_policy_sha256": provider_policy_sha256,
         "privacy_sha256": privacy_sha256,
     }
+    if prompt_set_sha256 is not None:
+        header["prompt_set_sha256"] = prompt_set_sha256
     _validate_header(header)
     return header
 
@@ -566,6 +590,8 @@ def _outcome_record(
         "privacy_sha256": privacy_sha256,
         **_canonical_value(asdict(outcome)),
     }
+    if outcome.prompt_set_sha256 is None:
+        body.pop("prompt_set_sha256", None)
     if body["model_metadata_sha256"] != model_metadata_sha256:
         raise LargeLLMError("request journal model metadata fingerprint mismatch")
     if body["provider_policy_sha256"] != provider_policy_sha256:
@@ -714,7 +740,9 @@ def _outcome_from_record(
     prefix = f"request journal line {line_number}" if line_number is not None else "resume record"
     try:
         if schema_version == _SCHEMA_VERSION:
-            outcome_keys = _OUTCOME_KEYS
+            outcome_keys = (
+                _OUTCOME_KEYS if "prompt_set_sha256" in record else _LEGACY_V3_OUTCOME_KEYS
+            )
         elif schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
             outcome_keys = _LEGACY_OUTCOME_KEYS
         else:
@@ -742,6 +770,7 @@ def _outcome_from_record(
             values["authoritative_cost_usd"], "journal authoritative cost"
         )
         values["budget_checkpoint"] = _budget_from_record(values["budget_checkpoint"])
+        values.setdefault("prompt_set_sha256", None)
         return EvaluationOutcome(**values)  # type: ignore[arg-type]
     except (LargeLLMError, TypeError, KeyError) as error:
         raise LargeLLMError(f"{prefix} is invalid: {error}") from error
@@ -752,7 +781,12 @@ def _terminal_evidence(
 ) -> tuple[BudgetSnapshot, LargeEvaluationMetrics]:
     prefix = f"request journal line {line_number}" if line_number is not None else "terminal record"
     try:
-        raw = _require_mapping(record, prefix, _TERMINAL_KEYS)
+        terminal_keys = (
+            _TERMINAL_KEYS
+            if "prompt_set_sha256" in record
+            else _TERMINAL_KEYS - {"prompt_set_sha256"}
+        )
+        raw = _require_mapping(record, prefix, terminal_keys)
         if raw["record_type"] != "terminal":
             raise LargeLLMError("journal terminal record type is invalid")
         run_id = raw["run_id"]
@@ -788,6 +822,8 @@ def _terminal_evidence(
             "journal terminal privacy fingerprint",
             optional=True,
         )
+        if "prompt_set_sha256" in raw:
+            _validate_digest(raw["prompt_set_sha256"], "journal terminal prompt-set fingerprint")
         _validate_digest(raw["report_body_sha256"], "journal terminal report fingerprint")
         return _budget_from_record(raw["budget_checkpoint"]), _metrics_from_record(raw["metrics"])
     except (LargeLLMError, TypeError) as error:
@@ -850,6 +886,7 @@ def _parse_request_log(
         "model_metadata_sha256",
         "provider_policy_sha256",
         "privacy_sha256",
+        "prompt_set_sha256",
     )
     for line_number, raw_line in enumerate(lines[1:], start=2):
         record = _decode_json_line(raw_line, line_number)
@@ -873,6 +910,10 @@ def _parse_request_log(
                 if record[key] != header.get(key):
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
                     raise LargeLLMError(f"request journal terminal {label} mismatch")
+            if "prompt_set_sha256" in record and record["prompt_set_sha256"] != header.get(
+                "prompt_set_sha256"
+            ):
+                raise LargeLLMError("request journal terminal prompt-set fingerprint mismatch")
             terminal = record
             previous_record_sha256 = str(record["record_sha256"])
             continue
@@ -891,6 +932,8 @@ def _parse_request_log(
             )
         for key in identity_keys:
             actual = record[key] if key in record else getattr(outcome, key, None)
+            if key == "prompt_set_sha256" and key not in header:
+                continue
             if actual != header.get(key):
                 label = key.replace("_sha256", " fingerprint").replace("_", " ")
                 raise LargeLLMError(f"request journal {label} mismatch")
@@ -903,12 +946,31 @@ def _parse_request_log(
     return header, tuple(records), terminal
 
 
+def _prompt_set_from_records(records: Sequence[Mapping[str, object]]) -> str | None:
+    """Derive a prompt-set digest from legacy records when every hash exists."""
+    pairs = []
+    for record in records:
+        prompt = record.get("prompt_sha256")
+        case_id = record.get("case_id")
+        if not isinstance(case_id, str) or not isinstance(prompt, str):
+            return None
+        pairs.append((case_id, prompt))
+    if not pairs:
+        return None
+    try:
+        return prompt_set_sha256(tuple(pairs))
+    except LargeLLMError:
+        return None
+
+
 def _upgrade_legacy_resume_log(
     header: Mapping[str, object],
     records: Sequence[Mapping[str, object]],
     *,
     provider_policy_sha256: str | None = None,
     privacy_sha256: str | None = None,
+    prompt_set_sha256: str | None = None,
+    source_schema_version: int = _LEGACY_RESUME_SCHEMA_VERSION,
 ) -> bytes:
     """Return a terminal-free v3 journal from a validated legacy v2 resume log.
 
@@ -928,6 +990,10 @@ def _upgrade_legacy_resume_log(
         if privacy_sha256 is not None
         else header.get("privacy_sha256"),
     }
+    if prompt_set_sha256 is None:
+        prompt_set_sha256 = _prompt_set_from_records(records)
+    if prompt_set_sha256 is not None:
+        upgraded_header["prompt_set_sha256"] = prompt_set_sha256
     _validate_header(upgraded_header)
     previous_record_sha256 = _header_sha256(upgraded_header)
     upgraded_records: list[dict[str, object]] = []
@@ -937,7 +1003,7 @@ def _upgrade_legacy_resume_log(
         outcome = _outcome_from_record(
             record,
             line_number=None,
-            schema_version=_LEGACY_RESUME_SCHEMA_VERSION,
+            schema_version=source_schema_version,
         )
         if upgraded_header["provider_policy_sha256"] is not None:
             outcome = replace(
@@ -946,11 +1012,13 @@ def _upgrade_legacy_resume_log(
             )
         if upgraded_header["privacy_sha256"] is not None:
             outcome = replace(outcome, privacy_sha256=upgraded_header["privacy_sha256"])
+        if prompt_set_sha256 is not None:
+            outcome = replace(outcome, prompt_set_sha256=prompt_set_sha256)
         upgraded = _outcome_record(
             outcome,
             run_id=str(upgraded_header["run_id"]),
-            model_metadata_sha256=upgraded_header["model_metadata_sha256"],  # type: ignore[arg-type]
-            provider_policy_sha256=upgraded_header.get("provider_policy_sha256"),  # type: ignore[arg-type]
+            model_metadata_sha256=upgraded_header["model_metadata_sha256"],
+            provider_policy_sha256=upgraded_header.get("provider_policy_sha256"),
             privacy_sha256=upgraded_header.get("privacy_sha256"),  # type: ignore[arg-type]
             previous_record_sha256=previous_record_sha256,
         )
@@ -984,6 +1052,7 @@ class RequestJournal:
         model_metadata_sha256: str | None = None,
         provider_policy_sha256: str | None = None,
         privacy_sha256: str | None = None,
+        prompt_set_sha256: str | None = None,
     ) -> None:
         """Create or validate the durable journal header.
 
@@ -1022,6 +1091,7 @@ class RequestJournal:
             model_metadata_sha256=model_metadata_sha256,
             provider_policy_sha256=provider_policy_sha256,
             privacy_sha256=privacy_sha256,
+            prompt_set_sha256=prompt_set_sha256,
         )
         existing = _existing_bytes(path)
         if existing is None:
@@ -1047,20 +1117,26 @@ class RequestJournal:
                     "privacy_sha256",
                 }:
                     continue
+                if key == "prompt_set_sha256" and key not in accepted:
+                    continue
                 if accepted.get(key) != expected:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
                     raise LargeLLMError(f"request journal {label} mismatch")
-            if accepted["schema_version"] == _LEGACY_RESUME_SCHEMA_VERSION:
+            if (
+                accepted["schema_version"] == _LEGACY_RESUME_SCHEMA_VERSION
+                or "prompt_set_sha256" not in accepted
+            ):
                 try:
-                    _atomic_write(
-                        path,
-                        _upgrade_legacy_resume_log(
-                            accepted,
-                            records,
-                            provider_policy_sha256=header["provider_policy_sha256"],
-                            privacy_sha256=header["privacy_sha256"],
-                        ),
+                    migrated = _upgrade_legacy_resume_log(
+                        accepted,
+                        records,
+                        provider_policy_sha256=header["provider_policy_sha256"],
+                        privacy_sha256=header["privacy_sha256"],
+                        prompt_set_sha256=header.get("prompt_set_sha256"),
+                        source_schema_version=int(accepted["schema_version"]),
                     )
+                    _atomic_write(path, migrated)
+                    header = _decode_json_line(migrated.splitlines(keepends=True)[0], 1)
                 except Exception as error:
                     raise LargeLLMError(
                         f"unable to upgrade schema v2 request journal: {error}"
@@ -1090,10 +1166,13 @@ class RequestJournal:
                 str(records[-1]["record_sha256"]) if records else _header_sha256(header)
             )
             record = _outcome_record(
-                outcome,
+                replace(
+                    outcome,
+                    prompt_set_sha256=header.get("prompt_set_sha256", outcome.prompt_set_sha256),
+                ),
                 run_id=str(self._header["run_id"]),
-                model_metadata_sha256=self._header["model_metadata_sha256"],  # type: ignore[arg-type]
-                provider_policy_sha256=self._header["provider_policy_sha256"],  # type: ignore[arg-type]
+                model_metadata_sha256=self._header["model_metadata_sha256"],
+                provider_policy_sha256=self._header.get("provider_policy_sha256"),
                 privacy_sha256=self._header["privacy_sha256"],  # type: ignore[arg-type]
                 previous_record_sha256=previous_record_sha256,
             )
@@ -1114,6 +1193,11 @@ class RequestJournal:
                 if record[key] != header[key]:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
                     raise LargeLLMError(f"request journal {label} mismatch")
+            if (
+                "prompt_set_sha256" in header
+                and record.get("prompt_set_sha256") != header["prompt_set_sha256"]
+            ):
+                raise LargeLLMError("request journal prompt-set fingerprint mismatch")
             if any(record["case_id"] == prior["case_id"] for prior in records):
                 raise LargeLLMError(
                     f"request journal contains duplicate case ID: {record['case_id']}"
@@ -1140,6 +1224,8 @@ def load_resume_state(
     expected_provider_policy_sha256: str | None | object = _UNSET,
     expected_privacy_sha256: str | None | object = _UNSET,
     expected_baseline: str | object = _UNSET,
+    expected_prompt_sha256_by_case: Mapping[str, str] | object = _UNSET,
+    expected_prompt_set_sha256: str | object = _UNSET,
 ) -> ResumeState:
     """Load a journal only after every row and requested identity validates.
 
@@ -1157,6 +1243,8 @@ def load_resume_state(
         expected_provider_policy_sha256: Exact provider policy fingerprint.
         expected_privacy_sha256: Exact accepted local privacy-review fingerprint.
         expected_baseline: Exact B4/B5 baseline identity.
+        expected_prompt_sha256_by_case: Exact current prompt hash per case.
+        expected_prompt_set_sha256: Canonical digest over the ordered prompt set.
 
     Returns:
         Validated completed IDs, prior authoritative cost, and immutable records.
@@ -1191,6 +1279,15 @@ def load_resume_state(
             raise LargeLLMError(f"{label} is invalid")
     if expected_baseline is not _UNSET and expected_baseline not in {"b4", "b5"}:
         raise LargeLLMError("expected baseline is invalid")
+    if expected_prompt_sha256_by_case is not _UNSET:
+        if not isinstance(expected_prompt_sha256_by_case, Mapping):
+            raise LargeLLMError("expected prompt hashes must be a mapping")
+        for case_id, prompt_hash in expected_prompt_sha256_by_case.items():
+            if not isinstance(case_id, str):
+                raise LargeLLMError("expected prompt case ID is invalid")
+            _validate_digest(prompt_hash, "expected prompt fingerprint")
+    if expected_prompt_set_sha256 is not _UNSET:
+        _validate_digest(expected_prompt_set_sha256, "expected prompt-set fingerprint")
     if not isinstance(expected_run_id, str) or _RUN_ID_RE.fullmatch(expected_run_id) is None:
         raise LargeLLMError("expected run ID is invalid")
     payload = _existing_bytes(request_log)
@@ -1247,6 +1344,24 @@ def load_resume_state(
         budget_checkpoint = outcome.budget_checkpoint
         assert outcome.authoritative_cost_usd is not None
         cost += outcome.authoritative_cost_usd
+    if expected_prompt_sha256_by_case is not _UNSET:
+        actual_prompt_hashes = {
+            str(record["case_id"]): record.get("prompt_sha256") for record in records
+        }
+        expected_prompt_hashes = dict(expected_prompt_sha256_by_case)
+        if any(
+            case_id not in expected_prompt_hashes or prompt != expected_prompt_hashes[case_id]
+            for case_id, prompt in actual_prompt_hashes.items()
+        ):
+            raise LargeLLMError("request journal prompt fingerprint mismatch")
+        derived_prompt_set = prompt_set_sha256(tuple(expected_prompt_hashes.items()))
+        if (
+            expected_prompt_set_sha256 is not _UNSET
+            and derived_prompt_set != expected_prompt_set_sha256
+        ):
+            raise LargeLLMError("request journal prompt-set fingerprint mismatch")
+        if "prompt_set_sha256" in header and header["prompt_set_sha256"] != derived_prompt_set:
+            raise LargeLLMError("request journal prompt-set fingerprint mismatch")
     if terminal is not None:
         budget_checkpoint, terminal_metrics = _terminal_evidence(terminal, line_number=None)
     assert budget_checkpoint is not None
@@ -1289,6 +1404,11 @@ def load_resume_state(
         schema_version=schema_version,
         provider_policy_sha256=provider_policy_sha256,  # type: ignore[arg-type]
         privacy_sha256=privacy_sha256,  # type: ignore[arg-type]
+        prompt_set_sha256=(
+            header.get("prompt_set_sha256")
+            if header.get("prompt_set_sha256") is not None
+            else (expected_prompt_set_sha256 if expected_prompt_set_sha256 is not _UNSET else None)
+        ),
     )
 
 
@@ -1300,7 +1420,14 @@ def serialize_predictions(run: LargeEvaluationRun) -> bytes:
             "seed": run.seed,
             "generated_at_utc": run.generated_at_utc,
             "model_metadata_sha256": run.model_metadata_sha256,
-            **_canonical_value(asdict(outcome)),
+            **_canonical_value(
+                asdict(
+                    replace(
+                        outcome,
+                        prompt_set_sha256=(outcome.prompt_set_sha256 or run.prompt_set_sha256),
+                    )
+                )
+            ),
         }
         for outcome in run.outcomes
     )
@@ -1323,10 +1450,13 @@ def _request_log_parts(
         model_metadata_sha256=run.model_metadata_sha256,
         provider_policy_sha256=run.provider_policy_sha256,
         privacy_sha256=run.privacy_sha256,
+        prompt_set_sha256=run.prompt_set_sha256,
     )
     previous_record_sha256 = _header_sha256(header)
     records: list[dict[str, object]] = []
     for outcome in run.outcomes:
+        if outcome.prompt_set_sha256 is None and run.prompt_set_sha256 is not None:
+            outcome = replace(outcome, prompt_set_sha256=run.prompt_set_sha256)
         record = _outcome_record(
             outcome,
             run_id=run.run_id,
@@ -1354,6 +1484,11 @@ def _request_log_parts(
         },
         previous_record_sha256=previous_record_sha256,
     )
+    if run.prompt_set_sha256 is not None:
+        terminal["prompt_set_sha256"] = run.prompt_set_sha256
+        terminal["record_sha256"] = _record_sha256(
+            {key: value for key, value in terminal.items() if key != "record_sha256"}
+        )
     _terminal_evidence(terminal, line_number=None)
     return header, tuple(records), terminal
 
@@ -1458,6 +1593,7 @@ def _report_body(run: LargeEvaluationRun) -> dict[str, object]:
             "model_metadata_sha256": run.model_metadata_sha256,
             "provider_policy_sha256": run.provider_policy_sha256,
             "privacy_sha256": run.privacy_sha256,
+            "prompt_set_sha256": run.prompt_set_sha256,
             "local_implementation_ready": run.local_implementation_ready,
             "scientific_ready": run.scientific_ready,
             "blockers": run.blockers,
@@ -1618,6 +1754,13 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
     ):
         if report.get(key) != header.get(key):
             raise LargeLLMError(f"large-run report {key} disagrees with request journal")
+    if (
+        "prompt_set_sha256" in header
+        and report.get("prompt_set_sha256") != header["prompt_set_sha256"]
+    ):
+        raise LargeLLMError(
+            "large-run report prompt-set fingerprint disagrees with request journal"
+        )
     if report.get("metrics") != terminal["metrics"]:
         raise LargeLLMError("large-run report metrics disagree with terminal checkpoint")
     if report.get("budget") != _canonical_value(asdict(budget)):
@@ -1667,6 +1810,7 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
             model_metadata_sha256=header["model_metadata_sha256"],  # type: ignore[arg-type]
             provider_policy_sha256=header.get("provider_policy_sha256"),  # type: ignore[arg-type]
             privacy_sha256=header.get("privacy_sha256"),  # type: ignore[arg-type]
+            prompt_set_sha256=header.get("prompt_set_sha256"),  # type: ignore[arg-type]
         )
     except (KeyError, TypeError, LargeLLMError) as error:
         raise LargeLLMError("large-run report is invalid") from error

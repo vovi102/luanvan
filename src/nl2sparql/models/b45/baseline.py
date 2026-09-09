@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Literal, Protocol
 
 from nl2sparql.models.b12.contracts import (
     CatalogSummary,
+    ChatMessage,
     SelectedExample,
     SmallLLMError,
     validate_question,
@@ -48,6 +50,15 @@ class _Retriever(Protocol):
     ) -> tuple[SelectedExample, ...]: ...
 
 
+@dataclass(frozen=True)
+class PromptPreview:
+    """Deterministic local prompt evidence prepared before transport access."""
+
+    messages: tuple[ChatMessage, ...]
+    prompt_sha256: str
+    selected_examples: tuple[SelectedExample, ...] = ()
+
+
 def _validate_dependencies(
     summary: object,
     config: object,
@@ -81,6 +92,48 @@ def _validated_question(value: object) -> str:
         raise LargeLLMError(str(exc)) from exc
 
 
+def _build_prompt_preview(
+    question: str,
+    summary: CatalogSummary,
+    *,
+    examples: tuple[SelectedExample, ...],
+) -> PromptPreview:
+    """Build and fingerprint the exact production prompt without I/O."""
+    question = _validated_question(question)
+    try:
+        messages = build_messages(question, summary, examples=examples)
+    except SmallLLMError as exc:
+        raise LargeLLMError(str(exc)) from exc
+    return PromptPreview(
+        messages=messages,
+        prompt_sha256=prompt_sha256(messages),
+        selected_examples=examples,
+    )
+
+
+def preview_b4_prompt(question: str, summary: CatalogSummary) -> PromptPreview:
+    """Build B4's exact production prompt without creating a transport."""
+    return _build_prompt_preview(question, summary, examples=())
+
+
+def preview_b5_prompt(
+    question: str,
+    summary: CatalogSummary,
+    retriever: _Retriever,
+    *,
+    target_id: str | None = None,
+) -> PromptPreview:
+    """Retrieve B5's examples and build its exact prompt without transport I/O."""
+    question = _validated_question(question)
+    try:
+        examples = retriever.retrieve(question, target_id=target_id)
+    except LargeLLMError:
+        raise
+    except Exception as exc:
+        raise LargeLLMError(f"few-shot retrieval failed ({type(exc).__name__})") from exc
+    return _build_prompt_preview(question, summary, examples=examples)
+
+
 def _interval_ms(start: object, end: object) -> float:
     if (
         not isinstance(start, int)
@@ -102,6 +155,7 @@ async def _predict(
     config: LargeLLMConfig,
     transport: CompletionTransport,
     examples: tuple[SelectedExample, ...],
+    preview: PromptPreview | None,
     clock_ns: Callable[[], int],
     training_sha256: str | None = None,
     encoder_id: str | None = None,
@@ -111,11 +165,10 @@ async def _predict(
     """Build one shared prompt, await completion, and preserve all provenance."""
     question = _validated_question(question)
     request_id = _validate_request_id(request_id)
-    try:
-        messages = build_messages(question, summary, examples=examples)
-    except SmallLLMError as exc:
-        raise LargeLLMError(str(exc)) from exc
-    prompt_fingerprint = prompt_sha256(messages)
+    if preview is None:
+        preview = _build_prompt_preview(question, summary, examples=examples)
+    messages = preview.messages
+    prompt_fingerprint = preview.prompt_sha256
 
     start = clock_ns()
     try:
@@ -223,8 +276,13 @@ class BaselineB4:
         """Return extracted safe GoogleSQL, if the response is a whole query."""
         return (await self.predict_detailed(question, request_id=request_id)).sql
 
+    def preview_prompt(self, question: str) -> PromptPreview:
+        """Return B4's exact prompt and fingerprint without contacting transport."""
+        return preview_b4_prompt(question, self._summary)
+
     async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
         """Return the completion, fail-closed extraction, and B4 provenance."""
+        preview = self.preview_prompt(question)
         return await _predict(
             question,
             request_id=request_id,
@@ -233,6 +291,7 @@ class BaselineB4:
             config=self._config,
             transport=self._transport,
             examples=(),
+            preview=preview,
             clock_ns=self._clock_ns,
         )
 
@@ -315,6 +374,20 @@ class BaselineB5:
             await self.predict_detailed(question, request_id=request_id, target_id=target_id)
         ).sql
 
+    def preview_prompt(
+        self,
+        question: str,
+        *,
+        target_id: str | None = None,
+    ) -> PromptPreview:
+        """Retrieve five examples and fingerprint B5's exact prompt locally."""
+        return preview_b5_prompt(
+            question,
+            self._summary,
+            self._retriever,
+            target_id=target_id,
+        )
+
     async def predict_detailed(
         self,
         question: str,
@@ -323,14 +396,8 @@ class BaselineB5:
         target_id: str | None = None,
     ) -> LargeLLMPrediction:
         """Retrieve five examples, then return completion and B5 provenance."""
-        question = _validated_question(question)
         _validate_request_id(request_id)
-        try:
-            examples = self._retriever.retrieve(question, target_id=target_id)
-        except LargeLLMError:
-            raise
-        except Exception as exc:
-            raise LargeLLMError(f"few-shot retrieval failed ({type(exc).__name__})") from exc
+        preview = self.preview_prompt(question, target_id=target_id)
         return await _predict(
             question,
             request_id=request_id,
@@ -338,7 +405,8 @@ class BaselineB5:
             summary=self._summary,
             config=self._config,
             transport=self._transport,
-            examples=examples,
+            examples=preview.selected_examples,
+            preview=preview,
             clock_ns=self._clock_ns,
             training_sha256=self._retriever.training_sha256,
             encoder_id=self._retriever.encoder_id,

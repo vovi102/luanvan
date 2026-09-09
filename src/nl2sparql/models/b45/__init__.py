@@ -14,7 +14,13 @@ from nl2sparql.models.b45.artifacts import (
     summarize_large_runs,
     validate_artifact_paths,
 )
-from nl2sparql.models.b45.baseline import BaselineB4, BaselineB5
+from nl2sparql.models.b45.baseline import (
+    BaselineB4,
+    BaselineB5,
+    PromptPreview,
+    preview_b4_prompt,
+    preview_b5_prompt,
+)
 from nl2sparql.models.b45.budget import (
     BudgetLedger,
     BudgetReservation,
@@ -40,6 +46,7 @@ from nl2sparql.models.b45.evaluate import (
     compare_large_reproducibility,
     evaluate_large_baseline,
     load_evaluation_cases,
+    prompt_set_sha256,
 )
 from nl2sparql.models.b45.privacy import (
     PrivacyReviewEvidence,
@@ -56,6 +63,7 @@ __all__ = [
     "BudgetSnapshot",
     "BaselineB4",
     "BaselineB5",
+    "PromptPreview",
     "CompletionTransport",
     "EvaluationOutcome",
     "MODEL_ID",
@@ -76,6 +84,9 @@ __all__ = [
     "compare_large_reproducibility",
     "conservative_request_cost",
     "evaluate_large_baseline",
+    "preview_b4_prompt",
+    "preview_b5_prompt",
+    "prompt_set_sha256",
     "load_resume_state",
     "load_large_run_artifacts",
     "load_evaluation_cases",

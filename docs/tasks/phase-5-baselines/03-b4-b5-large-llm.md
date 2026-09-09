@@ -131,7 +131,8 @@ uv run python scripts/18_large_llm_baselines.py validate \
 ```
 
 `validate` accepts `--baseline {b4,b5}`, required `--provider`,
-`--max-cost-usd`, `--test-set`, `--privacy-review`,
+`--max-cost-usd`, `--test-set`, `--predictions`, `--request-log`, `--cost-log`,
+`--report`, `--privacy-review`,
 `--accepted-privacy-review-sha256`, `--catalog`, `--training`, `--cache`,
 `--encoder-id`, `--encoder-revision`, and `--accepted-training-sha256`; B5
 additionally requires a valid accepted training digest and pinned encoder
@@ -148,9 +149,12 @@ publication.
 `--request-log`, `--cost-log`, `--report`, `--resume`, `--allow-network`, and
 `--accepted-model-metadata-sha256` in addition to the common options. Live
 evaluation requires explicit `--max-cost-usd`; it computes all local identity
-fingerprints and validates resume state before API key, metadata, encoder, or
-client access. It performs local path protection before the live loader, keeps
-ordered durable outcomes, and publishes atomically.
+fingerprints, including deterministic per-case prompt hashes and a canonical
+prompt-set digest, and validates resume state before API key, metadata, encoder,
+or client access. It performs local path protection before the live loader,
+keeps ordered durable outcomes, and publishes atomically. B5 builds its local
+encoder/retriever before this live boundary so changed retrieval evidence fails
+closed without network access.
 
 `summarize` is offline and requires exactly three repeated `--report PATH` and
 three repeated `--request-log PATH` options. It loads only sealed local runs and

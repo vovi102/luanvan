@@ -9,20 +9,24 @@ from types import SimpleNamespace
 
 import pytest
 
-from nl2sparql.models.b12 import EvaluationCase
+from nl2sparql.models.b12 import CatalogSummary, EvaluationCase, SelectedExample
 from nl2sparql.models.b12.contracts import ChatMessage
+from nl2sparql.models.b12.prompts import prompt_sha256
 from nl2sparql.models.b45 import (
+    BaselineB5,
     BudgetLedger,
     LargeBaselineEvidence,
     LargeLLMConfig,
     PrivacyReviewEvidence,
     ProviderPolicy,
+    RemoteCompletion,
     RequestJournal,
     load_privacy_review,
     load_resume_state,
     serialize_privacy_review,
 )
-from nl2sparql.models.b45.evaluate import evaluate_large_baseline
+from nl2sparql.models.b45.baseline import PromptPreview
+from nl2sparql.models.b45.evaluate import evaluate_large_baseline, prompt_set_sha256
 from nl2sparql.models.b45.openrouter import (
     OpenRouterRequestError,
     OpenRouterTransport,
@@ -30,6 +34,59 @@ from nl2sparql.models.b45.openrouter import (
 )
 
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
+
+
+def _policy() -> ProviderPolicy:
+    return ProviderPolicy(
+        provider_slug="deepinfra",
+        prompt_price_per_million_usd=Decimal("0.50"),
+        completion_price_per_million_usd=Decimal("1.00"),
+    )
+
+
+def _summary() -> CatalogSummary:
+    text = "GoogleSQL catalog\n"
+    return CatalogSummary(
+        text=text,
+        catalog_sha256="a" * 64,
+        summary_sha256=hashlib.sha256(text.encode()).hexdigest(),
+    )
+
+
+class _QueryRetriever:
+    training_sha256 = "d" * 64
+    encoder_id = "encoder"
+    encoder_revision = "a" * 40
+    training_accepted = True
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str | None]] = []
+
+    def retrieve(
+        self, question: str, *, target_id: str | None = None
+    ) -> tuple[SelectedExample, ...]:
+        self.calls.append((question, target_id))
+        return tuple(
+            SelectedExample(
+                record_id=f"train-{index}",
+                question=f"Question {index}",
+                sql=SAFE_SQL,
+                score=0.5,
+            )
+            for index in range(1, 6)
+        )
+
+
+class _NoCallTransport:
+    def __init__(self, config: LargeLLMConfig) -> None:
+        self._ledger = BudgetLedger(config)
+
+    @property
+    def budget_ledger(self) -> BudgetLedger:
+        return self._ledger
+
+    async def complete(self, *_args: object, **_kwargs: object) -> RemoteCompletion:
+        raise AssertionError("prompt preview must not contact transport")
 
 
 def _config(cap: str = "0.0011", *, concurrency: int = 5) -> LargeLLMConfig:
@@ -583,6 +640,26 @@ def test_legacy_resume_migration_binds_new_policy_and_privacy_identity(tmp_path:
     assert migrated[0]["privacy_sha256"] == privacy_sha
     assert migrated[1]["provider_policy_sha256"] == policy_sha
     assert migrated[1]["privacy_sha256"] == privacy_sha
+
+
+def test_prompt_preview_reuses_production_prompt_without_transport() -> None:
+    retriever = _QueryRetriever()
+    config = LargeLLMConfig(provider=_policy())
+    transport = _NoCallTransport(config)
+    baseline = BaselineB5(_summary(), config, transport, retriever)
+
+    preview = baseline.preview_prompt("List labels", target_id="case-1")
+
+    assert isinstance(preview, PromptPreview)
+    assert preview.prompt_sha256 == prompt_sha256(preview.messages)
+    assert len(preview.selected_examples) == 5
+    assert retriever.calls == [("List labels", "case-1")]
+
+
+def test_prompt_set_digest_is_ordered_and_rejects_mismatch() -> None:
+    values = (("case-1", "a" * 64), ("case-2", "b" * 64))
+    assert prompt_set_sha256(values) == prompt_set_sha256(values)
+    assert prompt_set_sha256(values) != prompt_set_sha256(tuple(reversed(values)))
 
 
 def test_provider_max_price_json_numbers_never_round_above_decimal_policy() -> None:

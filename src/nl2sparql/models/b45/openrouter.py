@@ -386,7 +386,9 @@ class OpenRouterTransport:
 
         async def hold_reservation(reservation: object, reason: str) -> None:
             try:
-                await _shield_operation(self._ledger.hold(reservation, reason))  # type: ignore[arg-type]
+                await _shield_operation(
+                    self._ledger.hold(reservation, reason)  # type: ignore[arg-type]
+                )
             except asyncio.CancelledError as cancelled:
                 _annotate_cancellation(
                     cancelled,
