@@ -18,6 +18,7 @@ from nl2sparql.models.b45.baseline import (
     BaselineB4,
     BaselineB5,
     PromptPreview,
+    RetrievalEvidence,
     preview_b4_prompt,
     preview_b5_prompt,
 )
@@ -64,6 +65,7 @@ __all__ = [
     "BaselineB4",
     "BaselineB5",
     "PromptPreview",
+    "RetrievalEvidence",
     "CompletionTransport",
     "EvaluationOutcome",
     "MODEL_ID",

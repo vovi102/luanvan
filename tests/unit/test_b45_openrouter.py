@@ -596,7 +596,11 @@ def test_model_metadata_rejects_invalid_prompt_bytes(prompt_bytes: object) -> No
 
 def test_model_metadata_requires_endpoint_local_parameters() -> None:
     raw = metadata_response()
-    raw["data"]["supported_parameters"] = ["temperature", "seed", "max_tokens"]  # type: ignore[index]
+    raw["data"]["supported_parameters"] = [
+        "temperature",
+        "seed",
+        "max_tokens",
+    ]  # type: ignore[index]
     del raw["data"]["endpoints"][0]["supported_parameters"]  # type: ignore[index]
 
     with pytest.raises(OpenRouterRequestError) as captured:

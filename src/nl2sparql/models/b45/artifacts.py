@@ -93,6 +93,7 @@ _OUTCOME_KEYS = {
     "previous_record_sha256",
     "record_sha256",
     "prompt_set_sha256",
+    "retrieval_sha256",
 }
 _LEGACY_OUTCOME_KEYS = _OUTCOME_KEYS - {
     "provider_policy_sha256",
@@ -100,8 +101,10 @@ _LEGACY_OUTCOME_KEYS = _OUTCOME_KEYS - {
     "previous_record_sha256",
     "record_sha256",
     "prompt_set_sha256",
+    "retrieval_sha256",
 }
-_LEGACY_V3_OUTCOME_KEYS = _OUTCOME_KEYS - {"prompt_set_sha256"}
+_LEGACY_V3_OUTCOME_KEYS = _OUTCOME_KEYS - {"prompt_set_sha256", "retrieval_sha256"}
+_LEGACY_PROMPT_OUTCOME_KEYS = _OUTCOME_KEYS - {"retrieval_sha256"}
 _TERMINAL_KEYS = {
     "record_type",
     "run_id",
@@ -250,6 +253,8 @@ class ResumeState:
     provider_policy_sha256: str | None = None
     privacy_sha256: str | None = None
     prompt_set_sha256: str | None = None
+    retrieval_sha256_by_case: Mapping[str, str] | None = None
+    journal_prompt_set_sha256: str | None = None
 
     @property
     def completed_outcomes(self) -> tuple[EvaluationOutcome, ...]:
@@ -286,6 +291,11 @@ class ResumeState:
                     outcome = replace(outcome, privacy_sha256=self.privacy_sha256)
                 if self.prompt_set_sha256 is not None:
                     outcome = replace(outcome, prompt_set_sha256=self.prompt_set_sha256)
+                if self.retrieval_sha256_by_case is not None:
+                    outcome = replace(
+                        outcome,
+                        retrieval_sha256=self.retrieval_sha256_by_case[outcome.case_id],
+                    )
                 outcomes.append(outcome)
             return tuple(outcomes)
         if self.schema_version != _SCHEMA_VERSION:
@@ -303,6 +313,7 @@ class ResumeState:
             model_metadata_sha256=self.model_metadata_sha256,
             provider_policy_sha256=self.provider_policy_sha256,
             privacy_sha256=self.privacy_sha256,
+            prompt_set_sha256=self.journal_prompt_set_sha256,
         )
         previous_record_sha256 = _header_sha256(header)
         outcomes: list[EvaluationOutcome] = []
@@ -315,6 +326,11 @@ class ResumeState:
             outcome = _outcome_from_record(record, line_number=None)
             if self.prompt_set_sha256 is not None:
                 outcome = replace(outcome, prompt_set_sha256=self.prompt_set_sha256)
+            if self.retrieval_sha256_by_case is not None:
+                outcome = replace(
+                    outcome,
+                    retrieval_sha256=self.retrieval_sha256_by_case[outcome.case_id],
+                )
             outcomes.append(outcome)
             previous_record_sha256 = str(record["record_sha256"])
         return tuple(outcomes)
@@ -592,6 +608,8 @@ def _outcome_record(
     }
     if outcome.prompt_set_sha256 is None:
         body.pop("prompt_set_sha256", None)
+    if outcome.retrieval_sha256 is None:
+        body.pop("retrieval_sha256", None)
     if body["model_metadata_sha256"] != model_metadata_sha256:
         raise LargeLLMError("request journal model metadata fingerprint mismatch")
     if body["provider_policy_sha256"] != provider_policy_sha256:
@@ -740,9 +758,12 @@ def _outcome_from_record(
     prefix = f"request journal line {line_number}" if line_number is not None else "resume record"
     try:
         if schema_version == _SCHEMA_VERSION:
-            outcome_keys = (
-                _OUTCOME_KEYS if "prompt_set_sha256" in record else _LEGACY_V3_OUTCOME_KEYS
-            )
+            if "retrieval_sha256" in record:
+                outcome_keys = _OUTCOME_KEYS
+            elif "prompt_set_sha256" in record:
+                outcome_keys = _LEGACY_PROMPT_OUTCOME_KEYS
+            else:
+                outcome_keys = _LEGACY_V3_OUTCOME_KEYS
         elif schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
             outcome_keys = _LEGACY_OUTCOME_KEYS
         else:
@@ -771,6 +792,7 @@ def _outcome_from_record(
         )
         values["budget_checkpoint"] = _budget_from_record(values["budget_checkpoint"])
         values.setdefault("prompt_set_sha256", None)
+        values.setdefault("retrieval_sha256", None)
         return EvaluationOutcome(**values)  # type: ignore[arg-type]
     except (LargeLLMError, TypeError, KeyError) as error:
         raise LargeLLMError(f"{prefix} is invalid: {error}") from error
@@ -1117,7 +1139,10 @@ class RequestJournal:
                     "privacy_sha256",
                 }:
                     continue
-                if key == "prompt_set_sha256" and key not in accepted:
+                if key == "prompt_set_sha256" and (
+                    key not in accepted
+                    or (accepted.get("baseline") == "b4" and accepted.get(key) != expected)
+                ):
                     continue
                 if accepted.get(key) != expected:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
@@ -1125,6 +1150,7 @@ class RequestJournal:
             if (
                 accepted["schema_version"] == _LEGACY_RESUME_SCHEMA_VERSION
                 or "prompt_set_sha256" not in accepted
+                or accepted.get("prompt_set_sha256") != header.get("prompt_set_sha256")
             ):
                 try:
                     migrated = _upgrade_legacy_resume_log(
@@ -1225,6 +1251,7 @@ def load_resume_state(
     expected_privacy_sha256: str | None | object = _UNSET,
     expected_baseline: str | object = _UNSET,
     expected_prompt_sha256_by_case: Mapping[str, str] | object = _UNSET,
+    expected_retrieval_sha256_by_case: Mapping[str, str] | object = _UNSET,
     expected_prompt_set_sha256: str | object = _UNSET,
 ) -> ResumeState:
     """Load a journal only after every row and requested identity validates.
@@ -1244,6 +1271,7 @@ def load_resume_state(
         expected_privacy_sha256: Exact accepted local privacy-review fingerprint.
         expected_baseline: Exact B4/B5 baseline identity.
         expected_prompt_sha256_by_case: Exact current prompt hash per case.
+        expected_retrieval_sha256_by_case: Exact current retrieval evidence hash per case.
         expected_prompt_set_sha256: Canonical digest over the ordered prompt set.
 
     Returns:
@@ -1286,6 +1314,13 @@ def load_resume_state(
             if not isinstance(case_id, str):
                 raise LargeLLMError("expected prompt case ID is invalid")
             _validate_digest(prompt_hash, "expected prompt fingerprint")
+    if expected_retrieval_sha256_by_case is not _UNSET:
+        if not isinstance(expected_retrieval_sha256_by_case, Mapping):
+            raise LargeLLMError("expected retrieval hashes must be a mapping")
+        for case_id, retrieval_hash in expected_retrieval_sha256_by_case.items():
+            if not isinstance(case_id, str):
+                raise LargeLLMError("expected retrieval case ID is invalid")
+            _validate_digest(retrieval_hash, "expected retrieval fingerprint")
     if expected_prompt_set_sha256 is not _UNSET:
         _validate_digest(expected_prompt_set_sha256, "expected prompt-set fingerprint")
     if not isinstance(expected_run_id, str) or _RUN_ID_RE.fullmatch(expected_run_id) is None:
@@ -1354,14 +1389,42 @@ def load_resume_state(
             for case_id, prompt in actual_prompt_hashes.items()
         ):
             raise LargeLLMError("request journal prompt fingerprint mismatch")
-        derived_prompt_set = prompt_set_sha256(tuple(expected_prompt_hashes.items()))
+        derived_values: tuple[tuple[str, object], ...]
+        if expected_retrieval_sha256_by_case is not _UNSET:
+            expected_retrieval_hashes = dict(expected_retrieval_sha256_by_case)
+            if set(expected_retrieval_hashes) != set(expected_prompt_hashes):
+                raise LargeLLMError("expected retrieval evidence must cover every prompt case")
+            actual_retrieval_hashes = {
+                str(record["case_id"]): record.get("retrieval_sha256") for record in records
+            }
+            if any(
+                case_id not in expected_retrieval_hashes
+                or (retrieval is not None and retrieval != expected_retrieval_hashes[case_id])
+                or (retrieval is None and header.get("baseline") != "b4")
+                for case_id, retrieval in actual_retrieval_hashes.items()
+            ):
+                raise LargeLLMError("request journal retrieval fingerprint mismatch")
+            derived_values = tuple(
+                (
+                    case_id,
+                    (prompt_hash, expected_retrieval_hashes[case_id]),
+                )
+                for case_id, prompt_hash in expected_prompt_hashes.items()
+            )
+        else:
+            derived_values = tuple(expected_prompt_hashes.items())
+        derived_prompt_set = prompt_set_sha256(derived_values)
         if (
             expected_prompt_set_sha256 is not _UNSET
             and derived_prompt_set != expected_prompt_set_sha256
         ):
             raise LargeLLMError("request journal prompt-set fingerprint mismatch")
         if "prompt_set_sha256" in header and header["prompt_set_sha256"] != derived_prompt_set:
-            raise LargeLLMError("request journal prompt-set fingerprint mismatch")
+            legacy_prompt_set = prompt_set_sha256(tuple(expected_prompt_hashes.items()))
+            if not (
+                header.get("baseline") == "b4" and header["prompt_set_sha256"] == legacy_prompt_set
+            ):
+                raise LargeLLMError("request journal prompt-set fingerprint mismatch")
     if terminal is not None:
         budget_checkpoint, terminal_metrics = _terminal_evidence(terminal, line_number=None)
     assert budget_checkpoint is not None
@@ -1405,10 +1468,16 @@ def load_resume_state(
         provider_policy_sha256=provider_policy_sha256,  # type: ignore[arg-type]
         privacy_sha256=privacy_sha256,  # type: ignore[arg-type]
         prompt_set_sha256=(
-            header.get("prompt_set_sha256")
-            if header.get("prompt_set_sha256") is not None
-            else (expected_prompt_set_sha256 if expected_prompt_set_sha256 is not _UNSET else None)
+            expected_prompt_set_sha256
+            if expected_prompt_set_sha256 is not _UNSET
+            else header.get("prompt_set_sha256")
         ),
+        retrieval_sha256_by_case=(
+            dict(expected_retrieval_sha256_by_case)
+            if expected_retrieval_sha256_by_case is not _UNSET
+            else None
+        ),
+        journal_prompt_set_sha256=header.get("prompt_set_sha256"),
     )
 
 

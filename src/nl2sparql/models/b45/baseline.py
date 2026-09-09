@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -51,12 +53,99 @@ class _Retriever(Protocol):
 
 
 @dataclass(frozen=True)
+class RetrievalEvidence:
+    """Canonical, non-secret provenance for one local retrieval preview."""
+
+    training_sha256: str | None
+    encoder_id: str | None
+    encoder_revision: str | None
+    training_accepted: bool
+    selected_examples: tuple[SelectedExample, ...]
+    selected_examples_sha256: str
+    retrieval_sha256: str
+
+
+def _retrieval_evidence(
+    *,
+    training_sha256: str | None,
+    encoder_id: str | None,
+    encoder_revision: str | None,
+    training_accepted: bool,
+    selected_examples: tuple[SelectedExample, ...],
+) -> RetrievalEvidence:
+    examples = tuple(
+        {
+            "record_id": example.record_id,
+            "question": example.question,
+            "score": example.score,
+            "sql": example.sql,
+        }
+        for example in selected_examples
+    )
+    examples_payload = json.dumps(
+        examples, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    )
+    examples_sha256 = hashlib.sha256(examples_payload.encode("utf-8")).hexdigest()
+    evidence = {
+        "encoder_id": encoder_id,
+        "encoder_revision": encoder_revision,
+        "selected_examples": examples,
+        "selected_examples_sha256": examples_sha256,
+        "training_accepted": training_accepted,
+        "training_sha256": training_sha256,
+    }
+    payload = json.dumps(evidence, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return RetrievalEvidence(
+        training_sha256=training_sha256,
+        encoder_id=encoder_id,
+        encoder_revision=encoder_revision,
+        training_accepted=training_accepted,
+        selected_examples=selected_examples,
+        selected_examples_sha256=examples_sha256,
+        retrieval_sha256=hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+    )
+
+
+@dataclass(frozen=True)
 class PromptPreview:
     """Deterministic local prompt evidence prepared before transport access."""
 
     messages: tuple[ChatMessage, ...]
     prompt_sha256: str
     selected_examples: tuple[SelectedExample, ...] = ()
+    retrieval_evidence: RetrievalEvidence | None = None
+
+    def __post_init__(self) -> None:
+        if self.retrieval_evidence is None:
+            object.__setattr__(
+                self,
+                "retrieval_evidence",
+                _retrieval_evidence(
+                    training_sha256=None,
+                    encoder_id=None,
+                    encoder_revision=None,
+                    training_accepted=False,
+                    selected_examples=self.selected_examples,
+                ),
+            )
+
+    @property
+    def retrieval_sha256(self) -> str:
+        """Return the canonical retrieval provenance fingerprint."""
+        assert self.retrieval_evidence is not None
+        return self.retrieval_evidence.retrieval_sha256
+
+    @property
+    def encoder_id(self) -> str | None:
+        """Return the encoder identity used by B5, if applicable."""
+        assert self.retrieval_evidence is not None
+        return self.retrieval_evidence.encoder_id
+
+    @property
+    def encoder_revision(self) -> str | None:
+        """Return the pinned encoder revision used by B5, if applicable."""
+        assert self.retrieval_evidence is not None
+        return self.retrieval_evidence.encoder_revision
 
 
 def _validate_dependencies(
@@ -97,6 +186,10 @@ def _build_prompt_preview(
     summary: CatalogSummary,
     *,
     examples: tuple[SelectedExample, ...],
+    training_sha256: str | None = None,
+    encoder_id: str | None = None,
+    encoder_revision: str | None = None,
+    training_accepted: bool = False,
 ) -> PromptPreview:
     """Build and fingerprint the exact production prompt without I/O."""
     question = _validated_question(question)
@@ -108,6 +201,13 @@ def _build_prompt_preview(
         messages=messages,
         prompt_sha256=prompt_sha256(messages),
         selected_examples=examples,
+        retrieval_evidence=_retrieval_evidence(
+            training_sha256=training_sha256,
+            encoder_id=encoder_id,
+            encoder_revision=encoder_revision,
+            training_accepted=training_accepted,
+            selected_examples=examples,
+        ),
     )
 
 
@@ -131,7 +231,15 @@ def preview_b5_prompt(
         raise
     except Exception as exc:
         raise LargeLLMError(f"few-shot retrieval failed ({type(exc).__name__})") from exc
-    return _build_prompt_preview(question, summary, examples=examples)
+    return _build_prompt_preview(
+        question,
+        summary,
+        examples=examples,
+        training_sha256=retriever.training_sha256,
+        encoder_id=retriever.encoder_id,
+        encoder_revision=retriever.encoder_revision,
+        training_accepted=retriever.training_accepted,
+    )
 
 
 def _interval_ms(start: object, end: object) -> float:

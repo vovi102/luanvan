@@ -150,11 +150,11 @@ publication.
 `--accepted-model-metadata-sha256` in addition to the common options. Live
 evaluation requires explicit `--max-cost-usd`; it computes all local identity
 fingerprints, including deterministic per-case prompt hashes and a canonical
-prompt-set digest, and validates resume state before API key, metadata, encoder,
-or client access. It performs local path protection before the live loader,
-keeps ordered durable outcomes, and publishes atomically. B5 builds its local
-encoder/retriever before this live boundary so changed retrieval evidence fails
-closed without network access.
+prompt-set digest, and validates resume state before API key, metadata, or client
+access. For B5, local cache validation and encoder/retriever construction
+precede prompt and resume validation, so changed retrieval evidence fails closed
+without network access. It performs local path protection before the live loader,
+keeps ordered durable outcomes, and publishes atomically.
 
 `summarize` is offline and requires exactly three repeated `--report PATH` and
 three repeated `--request-log PATH` options. It loads only sealed local runs and

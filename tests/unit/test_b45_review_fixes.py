@@ -23,6 +23,8 @@ from nl2sparql.models.b45 import (
     RequestJournal,
     load_privacy_review,
     load_resume_state,
+    preview_b4_prompt,
+    preview_b5_prompt,
     serialize_privacy_review,
 )
 from nl2sparql.models.b45.baseline import PromptPreview
@@ -654,6 +656,52 @@ def test_prompt_preview_reuses_production_prompt_without_transport() -> None:
     assert preview.prompt_sha256 == prompt_sha256(preview.messages)
     assert len(preview.selected_examples) == 5
     assert retriever.calls == [("List labels", "case-1")]
+
+
+def test_prompt_preview_binds_b5_retrieval_provenance_beyond_rendered_prompt() -> None:
+    class VariantRetriever(_QueryRetriever):
+        def __init__(self, revision: str, score: float) -> None:
+            super().__init__()
+            self.encoder_revision = revision
+            self._score = score
+
+        def retrieve(
+            self, question: str, *, target_id: str | None = None
+        ) -> tuple[SelectedExample, ...]:
+            examples = super().retrieve(question, target_id=target_id)
+            return tuple(
+                SelectedExample(
+                    record_id=example.record_id,
+                    question=example.question,
+                    sql=example.sql,
+                    score=self._score,
+                )
+                for example in examples
+            )
+
+    summary = _summary()
+    first = preview_b5_prompt("List labels", summary, VariantRetriever("a" * 40, 0.5))
+    changed = preview_b5_prompt("List labels", summary, VariantRetriever("b" * 40, 0.4))
+
+    assert first.messages == changed.messages
+    assert first.prompt_sha256 == changed.prompt_sha256
+    assert first.encoder_revision == "a" * 40
+    assert first.retrieval_evidence is not None
+    assert first.retrieval_evidence.selected_examples_sha256 != (
+        changed.retrieval_evidence.selected_examples_sha256
+    )
+    assert first.retrieval_sha256 != changed.retrieval_sha256
+    assert prompt_set_sha256((("case-1", first),)) != prompt_set_sha256((("case-1", changed),))
+
+
+def test_b4_prompt_preview_uses_canonical_empty_retrieval_evidence() -> None:
+    preview = preview_b4_prompt("List labels", _summary())
+
+    assert preview.retrieval_evidence is not None
+    assert preview.selected_examples == ()
+    assert preview.encoder_id is None
+    assert preview.encoder_revision is None
+    assert preview.retrieval_evidence.selected_examples_sha256
 
 
 def test_prompt_set_digest_is_ordered_and_rejects_mismatch() -> None:

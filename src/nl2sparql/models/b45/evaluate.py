@@ -102,6 +102,7 @@ class EvaluationOutcome:
     provider_policy_sha256: str | None = None
     privacy_sha256: str | None = None
     prompt_set_sha256: str | None = None
+    retrieval_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.case_id, str) or not self.case_id:
@@ -148,6 +149,11 @@ class EvaluationOutcome:
             raise LargeLLMError("B4 evaluation outcome must not accept training provenance")
         if self.prompt_sha256 is not None and _SHA256_RE.fullmatch(self.prompt_sha256) is None:
             raise LargeLLMError("evaluation outcome prompt fingerprint is invalid")
+        if (
+            self.retrieval_sha256 is not None
+            and _SHA256_RE.fullmatch(self.retrieval_sha256) is None
+        ):
+            raise LargeLLMError("evaluation outcome retrieval fingerprint is invalid")
         if (
             self.prompt_set_sha256 is not None
             and _SHA256_RE.fullmatch(self.prompt_set_sha256) is None
@@ -629,21 +635,35 @@ def _question_sha256(question: str) -> str:
 
 
 def prompt_set_sha256(
-    values: Mapping[str, str] | Sequence[tuple[str, str]],
+    values: Mapping[str, object] | Sequence[tuple[str, object]],
 ) -> str:
-    """Return a canonical digest for an ordered case-to-prompt hash set."""
+    """Return a canonical digest for ordered prompt and retrieval evidence."""
     pairs = list(values.items()) if isinstance(values, Mapping) else list(values)
-    normalized: list[list[str]] = []
+    normalized: list[list[object]] = []
     for pair in pairs:
-        if (
-            not isinstance(pair, (tuple, list))
-            or len(pair) != 2
-            or not isinstance(pair[0], str)
-            or not isinstance(pair[1], str)
-            or _SHA256_RE.fullmatch(pair[1]) is None
-        ):
+        if not isinstance(pair, (tuple, list)) or len(pair) != 2 or not isinstance(pair[0], str):
             raise LargeLLMError("prompt-set entries must be case IDs and SHA-256 values")
-        normalized.append([pair[0], pair[1]])
+        value = pair[1]
+        if isinstance(value, str) and _SHA256_RE.fullmatch(value):
+            identity: object = value
+        elif (
+            isinstance(value, (tuple, list))
+            and len(value) == 2
+            and all(isinstance(item, str) and _SHA256_RE.fullmatch(item) for item in value)
+        ):
+            identity = {"prompt_sha256": value[0], "retrieval_sha256": value[1]}
+        else:
+            prompt = getattr(value, "prompt_sha256", None)
+            retrieval = getattr(value, "retrieval_sha256", None)
+            if (
+                not isinstance(prompt, str)
+                or _SHA256_RE.fullmatch(prompt) is None
+                or not isinstance(retrieval, str)
+                or _SHA256_RE.fullmatch(retrieval) is None
+            ):
+                raise LargeLLMError("prompt-set entries must be case IDs and SHA-256 values")
+            identity = {"prompt_sha256": prompt, "retrieval_sha256": retrieval}
+        normalized.append([pair[0], identity])
     if not normalized or len({pair[0] for pair in normalized}) != len(normalized):
         raise LargeLLMError("prompt-set entries must be non-empty and unique")
     payload = json.dumps(normalized, separators=(",", ":"), ensure_ascii=False)
@@ -654,18 +674,39 @@ def _derive_prompt_set_sha256(outcomes: Sequence[EvaluationOutcome]) -> str | No
     if not outcomes or any(outcome.prompt_sha256 is None for outcome in outcomes):
         return None
     pairs = tuple((outcome.case_id, outcome.prompt_sha256) for outcome in outcomes)
-    return prompt_set_sha256(pairs)  # type: ignore[arg-type]
+    if all(outcome.retrieval_sha256 is not None for outcome in outcomes):
+        return prompt_set_sha256(
+            tuple(
+                (outcome.case_id, (outcome.prompt_sha256, outcome.retrieval_sha256))
+                for outcome in outcomes
+            )
+        )
+    return prompt_set_sha256(pairs)
 
 
 def _validate_prompt_identity(
     cases: Sequence[EvaluationCase],
     prompt_hashes: Mapping[str, str],
     expected_set: str | None,
+    retrieval_hashes: Mapping[str, str] | None = None,
 ) -> str:
     """Validate complete per-case prompt evidence and return its set digest."""
     if set(prompt_hashes) != {case.case_id for case in cases}:
         raise LargeLLMError("prompt-set evidence must cover every evaluation case")
-    ordered = tuple((case.case_id, prompt_hashes[case.case_id]) for case in cases)
+    if retrieval_hashes is not None and set(retrieval_hashes) != set(prompt_hashes):
+        raise LargeLLMError("retrieval evidence must cover every evaluation case")
+    ordered = tuple(
+        (
+            case.case_id,
+            (
+                prompt_hashes[case.case_id],
+                retrieval_hashes[case.case_id],
+            )
+            if retrieval_hashes is not None
+            else prompt_hashes[case.case_id],
+        )
+        for case in cases
+    )
     derived = prompt_set_sha256(ordered)
     if expected_set is not None and expected_set != derived:
         raise LargeLLMError("prompt-set fingerprint does not match per-case prompts")
@@ -734,6 +775,7 @@ def _validate_completed(
     provider_policy_sha256: str | None = None,
     privacy_sha256: str | None = None,
     prompt_sha256_by_case: Mapping[str, str] | None = None,
+    retrieval_sha256_by_case: Mapping[str, str] | None = None,
     prompt_set_sha256_value: str | None = None,
 ) -> dict[str, EvaluationOutcome]:
     if not isinstance(completed_outcomes, Sequence) or isinstance(completed_outcomes, (str, bytes)):
@@ -789,9 +831,15 @@ def _validate_completed(
             raise LargeLLMError("completed outcome does not match its source case")
         if prompt_sha256_by_case is not None and (
             outcome.prompt_sha256 != prompt_sha256_by_case[outcome.case_id]
+            or (
+                retrieval_sha256_by_case is not None
+                and outcome.retrieval_sha256 != retrieval_sha256_by_case[outcome.case_id]
+            )
             or outcome.prompt_set_sha256 != prompt_set_sha256_value
         ):
-            raise LargeLLMError("completed outcome prompt identity does not match current prompts")
+            raise LargeLLMError(
+                "completed outcome prompt or retrieval identity does not match current prompts"
+            )
     return by_id
 
 
@@ -1114,6 +1162,7 @@ async def evaluate_large_baseline(
     completed_outcomes: Sequence[EvaluationOutcome] = (),
     resume_budget_checkpoint: BudgetSnapshot | None = None,
     expected_prompt_sha256_by_case: Mapping[str, str] | None = None,
+    expected_retrieval_sha256_by_case: Mapping[str, str] | None = None,
     expected_prompt_set_sha256: str | None = None,
 ) -> LargeEvaluationRun:
     """Evaluate cases concurrently while preserving source order.
@@ -1148,13 +1197,12 @@ async def evaluate_large_baseline(
     selected_config = _baseline_config(baseline)
     ledger = _budget_ledger(baseline)
     evidence = _baseline_evidence(baseline)
-    if expected_prompt_sha256_by_case is None and callable(
-        getattr(baseline, "preview_prompt", None)
-    ):
+    if callable(getattr(baseline, "preview_prompt", None)):
         preview_prompt = getattr(baseline, "preview_prompt", None)
         if not callable(preview_prompt):
             raise LargeLLMError("baseline must provide deterministic prompt preview")
         generated_prompts: dict[str, str] = {}
+        generated_retrieval: dict[str, str] = {}
         for case in accepted_cases:
             parameters = inspect.signature(preview_prompt).parameters
             kwargs = {"target_id": case.case_id} if "target_id" in parameters else {}
@@ -1163,12 +1211,28 @@ async def evaluate_large_baseline(
             if not isinstance(prompt_hash, str):
                 raise LargeLLMError("baseline prompt preview is invalid")
             generated_prompts[case.case_id] = prompt_hash
+            retrieval_hash = getattr(preview, "retrieval_sha256", None)
+            if not isinstance(retrieval_hash, str):
+                raise LargeLLMError("baseline prompt preview retrieval evidence is invalid")
+            generated_retrieval[case.case_id] = retrieval_hash
+        if (
+            expected_prompt_sha256_by_case is not None
+            and dict(expected_prompt_sha256_by_case) != generated_prompts
+        ):
+            raise LargeLLMError("provided prompt evidence does not match current preview")
+        if (
+            expected_retrieval_sha256_by_case is not None
+            and dict(expected_retrieval_sha256_by_case) != generated_retrieval
+        ):
+            raise LargeLLMError("provided retrieval evidence does not match current preview")
         expected_prompt_sha256_by_case = generated_prompts
+        expected_retrieval_sha256_by_case = generated_retrieval
     prompt_set_sha256_value = (
         _validate_prompt_identity(
             accepted_cases,
             expected_prompt_sha256_by_case,
             expected_prompt_set_sha256,
+            retrieval_hashes=expected_retrieval_sha256_by_case,
         )
         if expected_prompt_sha256_by_case is not None
         else None
@@ -1207,6 +1271,7 @@ async def evaluate_large_baseline(
         provider_policy_sha256=provider_policy_sha256,
         privacy_sha256=privacy_sha256,
         prompt_sha256_by_case=expected_prompt_sha256_by_case,
+        retrieval_sha256_by_case=expected_retrieval_sha256_by_case,
         prompt_set_sha256_value=prompt_set_sha256_value,
     )
     accepted_completed = tuple(completed_outcomes)
@@ -1243,7 +1308,20 @@ async def evaluate_large_baseline(
                     privacy_sha256=privacy_sha256,
                 )
                 if prompt_set_sha256_value is not None:
-                    outcome = replace(outcome, prompt_set_sha256=prompt_set_sha256_value)
+                    outcome = replace(
+                        outcome,
+                        prompt_sha256=(
+                            expected_prompt_sha256_by_case[case.case_id]
+                            if expected_prompt_sha256_by_case is not None
+                            else outcome.prompt_sha256
+                        ),
+                        prompt_set_sha256=prompt_set_sha256_value,
+                        retrieval_sha256=(
+                            expected_retrieval_sha256_by_case[case.case_id]
+                            if expected_retrieval_sha256_by_case is not None
+                            else outcome.retrieval_sha256
+                        ),
+                    )
             except asyncio.CancelledError as cancelled:
                 if not record_cancellation:
                     raise
@@ -1265,7 +1343,20 @@ async def evaluate_large_baseline(
                     budget_checkpoint=checkpoint,
                 )
                 if prompt_set_sha256_value is not None:
-                    failure = replace(failure, prompt_set_sha256=prompt_set_sha256_value)
+                    failure = replace(
+                        failure,
+                        prompt_sha256=(
+                            expected_prompt_sha256_by_case[case.case_id]
+                            if expected_prompt_sha256_by_case is not None
+                            else failure.prompt_sha256
+                        ),
+                        prompt_set_sha256=prompt_set_sha256_value,
+                        retrieval_sha256=(
+                            expected_retrieval_sha256_by_case[case.case_id]
+                            if expected_retrieval_sha256_by_case is not None
+                            else failure.retrieval_sha256
+                        ),
+                    )
                 await append_durable(failure)
                 raise
             await append_durable(outcome)
@@ -1308,7 +1399,21 @@ async def evaluate_large_baseline(
     outcomes = tuple(outcome for _index, outcome in sorted(indexed, key=lambda item: item[0]))
     if prompt_set_sha256_value is not None:
         outcomes = tuple(
-            replace(outcome, prompt_set_sha256=prompt_set_sha256_value) for outcome in outcomes
+            replace(
+                outcome,
+                prompt_sha256=(
+                    expected_prompt_sha256_by_case[outcome.case_id]
+                    if expected_prompt_sha256_by_case is not None
+                    else outcome.prompt_sha256
+                ),
+                prompt_set_sha256=prompt_set_sha256_value,
+                retrieval_sha256=(
+                    expected_retrieval_sha256_by_case[outcome.case_id]
+                    if expected_retrieval_sha256_by_case is not None
+                    else outcome.retrieval_sha256
+                ),
+            )
+            for outcome in outcomes
         )
     budget = await ledger.snapshot()
     attributed_spend = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=_ZERO)

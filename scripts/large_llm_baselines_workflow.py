@@ -726,6 +726,7 @@ def evaluate_command(**options: Any) -> None:
                 cached_retriever,
             )
         previews = {}
+        retrieval_previews = {}
         for case in cases:
             if options["baseline_name"] == "b5":
                 preview = preview_b5_prompt(
@@ -734,8 +735,15 @@ def evaluate_command(**options: Any) -> None:
             else:
                 preview = preview_b4_prompt(case.question, summary)
             previews[case.case_id] = preview.prompt_sha256
+            retrieval_previews[case.case_id] = preview.retrieval_sha256
         prompt_set = prompt_set_sha256(
-            tuple((case.case_id, previews[case.case_id]) for case in cases)
+            tuple(
+                (
+                    case.case_id,
+                    (previews[case.case_id], retrieval_previews[case.case_id]),
+                )
+                for case in cases
+            )
         )
         completed_outcomes = ()
         resume_budget_checkpoint = None
@@ -762,6 +770,7 @@ def evaluate_command(**options: Any) -> None:
                 expected_privacy_sha256=privacy_sha256,
                 expected_baseline=options["baseline_name"],
                 expected_prompt_sha256_by_case=previews,
+                expected_retrieval_sha256_by_case=retrieval_previews,
                 expected_prompt_set_sha256=prompt_set,
             )
             ledger = BudgetLedger.from_checkpoint(config, resume.budget_checkpoint)
@@ -820,6 +829,7 @@ def evaluate_command(**options: Any) -> None:
                 completed_outcomes=completed_outcomes,
                 resume_budget_checkpoint=resume_budget_checkpoint,
                 expected_prompt_sha256_by_case=previews,
+                expected_retrieval_sha256_by_case=retrieval_previews,
                 expected_prompt_set_sha256=prompt_set,
             )
         )
