@@ -933,6 +933,7 @@ async def evaluate_large_baseline(
     model_metadata: ModelMetadataEvidence | None,
     journal: OutcomeJournal | None = None,
     completed_outcomes: Sequence[EvaluationOutcome] = (),
+    resume_budget_checkpoint: BudgetSnapshot | None = None,
 ) -> LargeEvaluationRun:
     """Evaluate cases concurrently while preserving source order.
 
@@ -945,6 +946,8 @@ async def evaluate_large_baseline(
         model_metadata: Accepted endpoint metadata or ``None`` to retain a blocker.
         journal: Optional durable append implementation called after each new outcome.
         completed_outcomes: Previously journaled outcomes eligible for strict resume.
+        resume_budget_checkpoint: Explicit authoritative checkpoint for resumed
+            outcomes whose serialized order need not be completion order.
 
     Returns:
         An immutable run whose outcomes remain in source-case order.
@@ -984,9 +987,11 @@ async def evaluate_large_baseline(
     )
     accepted_completed = tuple(completed_outcomes)
     if accepted_completed:
-        expected_checkpoint = accepted_completed[-1].budget_checkpoint
+        expected_checkpoint = resume_budget_checkpoint or accepted_completed[-1].budget_checkpoint
         if await ledger.snapshot() != expected_checkpoint:
             raise LargeLLMError("budget checkpoint must be restored before resume")
+    elif resume_budget_checkpoint is not None:
+        raise LargeLLMError("resume budget checkpoint requires completed outcomes")
     semaphore = asyncio.Semaphore(concurrency)
 
     async def worker(index: int, case: EvaluationCase) -> tuple[int, EvaluationOutcome]:

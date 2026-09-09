@@ -27,12 +27,13 @@ from nl2sparql.models.b45.contracts import (
 )
 from nl2sparql.models.b45.evaluate import (
     EvaluationOutcome,
+    LargeEvaluationMetrics,
     LargeEvaluationRun,
     _metrics,
     compare_large_reproducibility,
 )
 
-_SCHEMA_VERSION = 2
+_SCHEMA_VERSION = 3
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _HEADER_KEYS = {
@@ -76,6 +77,20 @@ _OUTCOME_KEYS = {
     "attempt_count",
     "budget_checkpoint",
     "authoritative_cost_usd",
+    "previous_record_sha256",
+    "record_sha256",
+}
+_TERMINAL_KEYS = {
+    "record_type",
+    "run_id",
+    "outcome_count",
+    "budget_checkpoint",
+    "metrics",
+    "scientific_ready",
+    "blockers",
+    "report_body_sha256",
+    "previous_record_sha256",
+    "record_sha256",
 }
 _PREDICTION_KEYS = {
     "baseline",
@@ -121,6 +136,24 @@ _BUDGET_KEYS = {
     "unresolved_reservations",
 }
 _RESERVATION_KEYS = {"request_id", "maximum_cost_usd"}
+_METRICS_KEYS = {
+    "total",
+    "completed",
+    "extraction_failed",
+    "request_failed",
+    "budget_blocked",
+    "cost_unresolved",
+    "p50_latency_ms",
+    "p95_latency_ms",
+    "input_tokens",
+    "output_tokens",
+    "charged_cost_usd",
+    "cost_per_1k_queries_usd",
+    "extraction_status_counts",
+    "difficulty_counts",
+    "category_counts",
+    "unattributed_spend_usd",
+}
 
 
 @dataclass(frozen=True)
@@ -194,9 +227,29 @@ class ResumeState:
         Raises:
             LargeLLMError: If a previously returned record was mutated by the caller.
         """
-        return tuple(
-            _outcome_from_record(record, line_number=None) for record in self.prior_records
+        header = _journal_header(
+            run_id=self.run_id,
+            baseline=self.baseline,
+            input_sha256=self.input_sha256,
+            config_sha256=self.config_sha256,
+            catalog_sha256=self.catalog_sha256,
+            summary_sha256=self.summary_sha256,
+            training_sha256=self.training_sha256,
+            model_id=self.model_id,
+            provider_slug=self.provider_slug,
+            model_metadata_sha256=self.model_metadata_sha256,
         )
+        previous_record_sha256 = _header_sha256(header)
+        outcomes: list[EvaluationOutcome] = []
+        for line_number, record in enumerate(self.prior_records, start=2):
+            _validate_record_chain(
+                record,
+                expected_previous=previous_record_sha256,
+                line_number=line_number,
+            )
+            outcomes.append(_outcome_from_record(record, line_number=None))
+            previous_record_sha256 = str(record["record_sha256"])
+        return tuple(outcomes)
 
     @property
     def unresolved_request_ids(self) -> tuple[str, ...]:
@@ -236,6 +289,23 @@ def _canonical_json(value: object) -> bytes:
         )
         + "\n"
     ).encode("utf-8")
+
+
+def _record_sha256(record: Mapping[str, object]) -> str:
+    body = {key: value for key, value in record.items() if key != "record_sha256"}
+    return hashlib.sha256(_canonical_json(body)).hexdigest()
+
+
+def _chained_record(
+    body: Mapping[str, object], *, previous_record_sha256: str
+) -> dict[str, object]:
+    _validate_digest(previous_record_sha256, "previous request journal record fingerprint")
+    record = {**body, "previous_record_sha256": previous_record_sha256}
+    return {**record, "record_sha256": _record_sha256(record)}
+
+
+def _header_sha256(header: Mapping[str, object]) -> str:
+    return hashlib.sha256(_canonical_json(header)).hexdigest()
 
 
 def _paths_alias(left: Path, right: Path) -> bool:
@@ -400,18 +470,19 @@ def _outcome_record(
     *,
     run_id: str,
     model_metadata_sha256: str | None,
+    previous_record_sha256: str,
 ) -> dict[str, object]:
     if not isinstance(outcome, EvaluationOutcome):
         raise LargeLLMError("request journal requires an EvaluationOutcome")
-    record = {
+    body = {
         "record_type": "outcome",
         "run_id": run_id,
         "model_metadata_sha256": model_metadata_sha256,
         **_canonical_value(asdict(outcome)),
     }
-    if record["model_metadata_sha256"] != model_metadata_sha256:
+    if body["model_metadata_sha256"] != model_metadata_sha256:
         raise LargeLLMError("request journal model metadata fingerprint mismatch")
-    return record
+    return _chained_record(body, previous_record_sha256=previous_record_sha256)
 
 
 def _money_from_json(value: object, label: str, *, optional: bool = False) -> Decimal | None:
@@ -475,6 +546,28 @@ def _budget_from_record(value: object) -> BudgetSnapshot:
         raise LargeLLMError(f"journal budget checkpoint is invalid: {error}") from error
 
 
+def _metrics_from_record(value: object) -> LargeEvaluationMetrics:
+    raw = _require_mapping(value, "journal terminal metrics", _METRICS_KEYS)
+    values = dict(raw)
+    for key, label in (
+        ("charged_cost_usd", "journal terminal charged cost"),
+        ("cost_per_1k_queries_usd", "journal terminal scaled cost"),
+        ("unattributed_spend_usd", "journal terminal unattributed spend"),
+    ):
+        values[key] = _money_from_json(values[key], label)
+    for key in ("extraction_status_counts", "difficulty_counts", "category_counts"):
+        grouped = values[key]
+        if not isinstance(grouped, list) or any(
+            not isinstance(item, list) or len(item) != 2 for item in grouped
+        ):
+            raise LargeLLMError("journal terminal grouped metrics are invalid")
+        values[key] = tuple((item[0], item[1]) for item in grouped)
+    try:
+        return LargeEvaluationMetrics(**values)  # type: ignore[arg-type]
+    except (LargeLLMError, TypeError) as error:
+        raise LargeLLMError(f"journal terminal metrics are invalid: {error}") from error
+
+
 def _require_mapping(value: object, label: str, keys: set[str]) -> dict[str, object]:
     if not isinstance(value, dict) or set(value) != keys:
         raise LargeLLMError(f"{label} fields are invalid")
@@ -530,7 +623,17 @@ def _outcome_from_record(
         raw = _require_mapping(record, prefix, _OUTCOME_KEYS)
         if raw["record_type"] != "outcome":
             raise LargeLLMError("journal outcome record type is invalid")
-        values = {key: item for key, item in raw.items() if key not in {"record_type", "run_id"}}
+        values = {
+            key: item
+            for key, item in raw.items()
+            if key
+            not in {
+                "record_type",
+                "run_id",
+                "previous_record_sha256",
+                "record_sha256",
+            }
+        }
         categories = values["categories"]
         if not isinstance(categories, list):
             raise LargeLLMError("journal outcome categories are invalid")
@@ -545,6 +648,54 @@ def _outcome_from_record(
         raise LargeLLMError(f"{prefix} is invalid: {error}") from error
 
 
+def _terminal_evidence(
+    record: Mapping[str, object], *, line_number: int | None
+) -> tuple[BudgetSnapshot, LargeEvaluationMetrics]:
+    prefix = f"request journal line {line_number}" if line_number is not None else "terminal record"
+    try:
+        raw = _require_mapping(record, prefix, _TERMINAL_KEYS)
+        if raw["record_type"] != "terminal":
+            raise LargeLLMError("journal terminal record type is invalid")
+        run_id = raw["run_id"]
+        if not isinstance(run_id, str) or _RUN_ID_RE.fullmatch(run_id) is None:
+            raise LargeLLMError("journal terminal run ID is invalid")
+        outcome_count = raw["outcome_count"]
+        if (
+            not isinstance(outcome_count, int)
+            or isinstance(outcome_count, bool)
+            or outcome_count <= 0
+        ):
+            raise LargeLLMError("journal terminal outcome count is invalid")
+        blockers = raw["blockers"]
+        if (
+            not isinstance(blockers, list)
+            or blockers != sorted(set(blockers))
+            or any(not isinstance(blocker, str) or not blocker for blocker in blockers)
+        ):
+            raise LargeLLMError("journal terminal blockers are invalid")
+        if not isinstance(raw["scientific_ready"], bool) or raw["scientific_ready"] == bool(
+            blockers
+        ):
+            raise LargeLLMError("journal terminal readiness is invalid")
+        _validate_digest(raw["report_body_sha256"], "journal terminal report fingerprint")
+        return _budget_from_record(raw["budget_checkpoint"]), _metrics_from_record(raw["metrics"])
+    except (LargeLLMError, TypeError) as error:
+        raise LargeLLMError(f"{prefix} is invalid: {error}") from error
+
+
+def _validate_record_chain(
+    record: Mapping[str, object], *, expected_previous: str, line_number: int
+) -> None:
+    previous = record.get("previous_record_sha256")
+    current = record.get("record_sha256")
+    _validate_digest(previous, f"request journal line {line_number} previous fingerprint")
+    _validate_digest(current, f"request journal line {line_number} record fingerprint")
+    if previous != expected_previous:
+        raise LargeLLMError(f"request journal line {line_number} chain is invalid")
+    if current != _record_sha256(record):
+        raise LargeLLMError(f"request journal line {line_number} fingerprint is invalid")
+
+
 def _decode_json_line(raw_line: bytes, line_number: int) -> dict[str, object]:
     if not raw_line.endswith(b"\n") or raw_line == b"\n":
         raise LargeLLMError(f"request journal line {line_number} is not canonical")
@@ -557,7 +708,13 @@ def _decode_json_line(raw_line: bytes, line_number: int) -> dict[str, object]:
     return value
 
 
-def _parse_request_log(payload: bytes) -> tuple[dict[str, object], tuple[dict[str, object], ...]]:
+def _parse_request_log(
+    payload: bytes,
+) -> tuple[
+    dict[str, object],
+    tuple[dict[str, object], ...],
+    dict[str, object] | None,
+]:
     if not payload:
         raise LargeLLMError("request journal must not be empty")
     lines = payload.splitlines(keepends=True)
@@ -565,6 +722,8 @@ def _parse_request_log(payload: bytes) -> tuple[dict[str, object], tuple[dict[st
     _validate_header(header)
     records: list[dict[str, object]] = []
     identifiers: set[str] = set()
+    terminal: dict[str, object] | None = None
+    previous_record_sha256 = _header_sha256(header)
     identity_keys = (
         "run_id",
         "baseline",
@@ -579,7 +738,31 @@ def _parse_request_log(payload: bytes) -> tuple[dict[str, object], tuple[dict[st
     )
     for line_number, raw_line in enumerate(lines[1:], start=2):
         record = _decode_json_line(raw_line, line_number)
+        if terminal is not None:
+            raise LargeLLMError("request journal contains a record after its terminal checkpoint")
+        record_type = record.get("record_type")
+        if record_type == "terminal":
+            _terminal_evidence(record, line_number=line_number)
+            _validate_record_chain(
+                record,
+                expected_previous=previous_record_sha256,
+                line_number=line_number,
+            )
+            if record["run_id"] != header["run_id"]:
+                raise LargeLLMError("request journal terminal run ID mismatch")
+            if record["outcome_count"] != len(records):
+                raise LargeLLMError("request journal terminal outcome count mismatch")
+            terminal = record
+            previous_record_sha256 = str(record["record_sha256"])
+            continue
+        if record_type != "outcome":
+            raise LargeLLMError(f"request journal line {line_number} record type is invalid")
         outcome = _outcome_from_record(record, line_number=line_number)
+        _validate_record_chain(
+            record,
+            expected_previous=previous_record_sha256,
+            line_number=line_number,
+        )
         for key in identity_keys:
             actual = record[key] if key in record else getattr(outcome, key)
             if actual != header[key]:
@@ -589,7 +772,8 @@ def _parse_request_log(payload: bytes) -> tuple[dict[str, object], tuple[dict[st
             raise LargeLLMError(f"request journal contains duplicate case ID: {outcome.case_id}")
         identifiers.add(outcome.case_id)
         records.append(record)
-    return header, tuple(records)
+        previous_record_sha256 = str(record["record_sha256"])
+    return header, tuple(records), terminal
 
 
 class RequestJournal:
@@ -649,7 +833,7 @@ class RequestJournal:
             except Exception as error:
                 raise LargeLLMError(f"unable to initialize request journal: {error}") from error
         else:
-            accepted, _records = _parse_request_log(existing)
+            accepted, _records, _terminal = _parse_request_log(existing)
             for key, expected in header.items():
                 if accepted[key] != expected:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
@@ -666,18 +850,24 @@ class RequestJournal:
         Raises:
             LargeLLMError: If evidence mismatches, duplicates a case, or cannot be saved.
         """
-        record = _outcome_record(
-            outcome,
-            run_id=str(self._header["run_id"]),
-            model_metadata_sha256=self._header["model_metadata_sha256"],  # type: ignore[arg-type]
-        )
         try:
             existing = _existing_bytes(self._path)
             if existing is None:
                 raise LargeLLMError("request journal disappeared before append")
-            header, records = _parse_request_log(existing)
+            header, records, terminal = _parse_request_log(existing)
             if header != self._header:
                 raise LargeLLMError("request journal header changed before append")
+            if terminal is not None:
+                raise LargeLLMError("request journal terminal checkpoint forbids append")
+            previous_record_sha256 = (
+                str(records[-1]["record_sha256"]) if records else _header_sha256(header)
+            )
+            record = _outcome_record(
+                outcome,
+                run_id=str(self._header["run_id"]),
+                model_metadata_sha256=self._header["model_metadata_sha256"],  # type: ignore[arg-type]
+                previous_record_sha256=previous_record_sha256,
+            )
             _outcome_from_record(record, line_number=None)
             for key in (
                 "baseline",
@@ -741,7 +931,7 @@ def load_resume_state(
     payload = _existing_bytes(request_log)
     if payload is None:
         raise LargeLLMError("request journal does not exist")
-    header, records = _parse_request_log(payload)
+    header, records, terminal = _parse_request_log(payload)
     for key, expected, label in (
         ("input_sha256", expected_input_sha256, "input fingerprint"),
         ("config_sha256", expected_config_sha256, "config fingerprint"),
@@ -758,15 +948,22 @@ def load_resume_state(
         raise LargeLLMError("request journal has no resumable records")
     cost = Decimal("0")
     budget_checkpoint: BudgetSnapshot | None = None
+    terminal_metrics: LargeEvaluationMetrics | None = None
     for record in records:
         outcome = _outcome_from_record(record, line_number=None)
         budget_checkpoint = outcome.budget_checkpoint
         assert outcome.authoritative_cost_usd is not None
         cost += outcome.authoritative_cost_usd
+    if terminal is not None:
+        budget_checkpoint, terminal_metrics = _terminal_evidence(terminal, line_number=None)
     assert budget_checkpoint is not None
     unattributed_spend = budget_checkpoint.spent_usd - cost
     if unattributed_spend < Decimal("0"):
         raise LargeLLMError("request journal budget spent is below accepted outcome costs")
+    if terminal_metrics is not None:
+        outcomes = tuple(_outcome_from_record(record, line_number=None) for record in records)
+        if terminal_metrics != _metrics(outcomes, unattributed_spend_usd=unattributed_spend):
+            raise LargeLLMError("request journal terminal metrics are not derived")
     return ResumeState(
         completed_case_ids=tuple(str(record["case_id"]) for record in records),
         prior_cost_usd=cost,
@@ -801,8 +998,9 @@ def serialize_predictions(run: LargeEvaluationRun) -> bytes:
     return b"".join(_canonical_json(row) for row in rows)
 
 
-def serialize_request_log(run: LargeEvaluationRun) -> bytes:
-    """Return a deterministic resumable journal containing no prompt or credentials."""
+def _request_log_parts(
+    run: LargeEvaluationRun,
+) -> tuple[dict[str, object], tuple[dict[str, object], ...], dict[str, object]]:
     header = _journal_header(
         run_id=run.run_id,
         baseline=run.baseline,
@@ -815,16 +1013,39 @@ def serialize_request_log(run: LargeEvaluationRun) -> bytes:
         provider_slug=run.provider_slug,
         model_metadata_sha256=run.model_metadata_sha256,
     )
-    return _canonical_json(header) + b"".join(
-        _canonical_json(
-            _outcome_record(
-                outcome,
-                run_id=run.run_id,
-                model_metadata_sha256=run.model_metadata_sha256,
-            )
+    previous_record_sha256 = _header_sha256(header)
+    records: list[dict[str, object]] = []
+    for outcome in run.outcomes:
+        record = _outcome_record(
+            outcome,
+            run_id=run.run_id,
+            model_metadata_sha256=run.model_metadata_sha256,
+            previous_record_sha256=previous_record_sha256,
         )
-        for outcome in run.outcomes
+        records.append(record)
+        previous_record_sha256 = str(record["record_sha256"])
+    report_body = _report_body(run)
+    terminal = _chained_record(
+        {
+            "record_type": "terminal",
+            "run_id": run.run_id,
+            "outcome_count": len(run.outcomes),
+            "budget_checkpoint": _canonical_value(asdict(run.budget)),
+            "metrics": _canonical_value(asdict(run.metrics)),
+            "scientific_ready": run.scientific_ready,
+            "blockers": list(run.blockers),
+            "report_body_sha256": hashlib.sha256(_canonical_json(report_body)).hexdigest(),
+        },
+        previous_record_sha256=previous_record_sha256,
     )
+    _terminal_evidence(terminal, line_number=None)
+    return header, tuple(records), terminal
+
+
+def serialize_request_log(run: LargeEvaluationRun) -> bytes:
+    """Return a deterministic, hash-chained journal sealed by a terminal checkpoint."""
+    header, records, terminal = _request_log_parts(run)
+    return b"".join(_canonical_json(record) for record in (header, *records, terminal))
 
 
 def serialize_cost_csv(run: LargeEvaluationRun) -> bytes:
@@ -937,10 +1158,18 @@ def _report_body(run: LargeEvaluationRun) -> dict[str, object]:
 
 
 def serialize_report(run: LargeEvaluationRun) -> bytes:
-    """Return deterministic report JSON with a SHA-256 over its canonical body."""
+    """Return a deterministic report cross-bound to the terminal journal record."""
     body = _report_body(run)
+    _header, _records, terminal = _request_log_parts(run)
+    linked_body = {
+        **body,
+        "request_log_terminal_sha256": terminal["record_sha256"],
+    }
     return _canonical_json(
-        {**body, "report_sha256": hashlib.sha256(_canonical_json(body)).hexdigest()}
+        {
+            **linked_body,
+            "report_sha256": hashlib.sha256(_canonical_json(linked_body)).hexdigest(),
+        }
     )
 
 
@@ -1026,18 +1255,34 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
     if hashlib.sha256(canonical_body).hexdigest() != reported_sha:
         raise LargeLLMError("large-run report fingerprint does not match body")
 
-    header, records = _parse_request_log(_existing_bytes(request_log_path) or b"")
+    terminal_sha = report.get("request_log_terminal_sha256")
+    _validate_digest(terminal_sha, "large-run report terminal fingerprint")
+    report_body = {
+        key: value for key, value in report.items() if key != "request_log_terminal_sha256"
+    }
+    header, records, terminal = _parse_request_log(_existing_bytes(request_log_path) or b"")
+    if terminal is None:
+        raise LargeLLMError("large-run request journal has no terminal checkpoint")
+    if terminal["record_sha256"] != terminal_sha:
+        raise LargeLLMError("large-run report terminal fingerprint mismatch")
+    if terminal["report_body_sha256"] != hashlib.sha256(_canonical_json(report_body)).hexdigest():
+        raise LargeLLMError(
+            "large-run report budget/metrics/totals disagree with final durable "
+            "checkpoint terminal evidence"
+        )
     outcomes = tuple(_outcome_from_record(record, line_number=None) for record in records)
     if not outcomes:
         raise LargeLLMError("large-run request journal has no outcomes")
-    budget = _budget_from_record(report.get("budget"))
-    if budget != outcomes[-1].budget_checkpoint:
-        raise LargeLLMError("large-run report budget disagrees with final durable checkpoint")
+    budget, terminal_metrics = _terminal_evidence(terminal, line_number=None)
+    if report.get("budget") != terminal["budget_checkpoint"]:
+        raise LargeLLMError("large-run report budget disagrees with terminal checkpoint")
     attributed = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=Decimal("0"))
     unattributed = budget.spent_usd - attributed
     if unattributed < Decimal("0"):
         raise LargeLLMError("large-run budget spent is below outcome costs")
     metrics = _metrics(outcomes, unattributed_spend_usd=unattributed)
+    if terminal_metrics != metrics:
+        raise LargeLLMError("large-run terminal metrics are not derived from terminal budget")
     for key in (
         "run_id",
         "baseline",
@@ -1052,10 +1297,15 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
     ):
         if report.get(key) != header.get(key):
             raise LargeLLMError(f"large-run report {key} disagrees with request journal")
-    if report.get("metrics") != _canonical_value(asdict(metrics)):
-        raise LargeLLMError("large-run report metrics are not derived from outcomes")
+    if report.get("metrics") != terminal["metrics"]:
+        raise LargeLLMError("large-run report metrics disagree with terminal checkpoint")
     if report.get("budget") != _canonical_value(asdict(budget)):
         raise LargeLLMError("large-run report budget is invalid")
+    if (
+        report.get("scientific_ready") != terminal["scientific_ready"]
+        or report.get("blockers") != terminal["blockers"]
+    ):
+        raise LargeLLMError("large-run report readiness disagrees with terminal checkpoint")
     expected_totals = {
         "outcome_count": len(outcomes),
         "authoritative_total_cost_usd": _canonical_value(attributed),
@@ -1064,15 +1314,24 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
         "total_spent_usd": _canonical_value(metrics.total_spent_usd),
     }
     if any(report.get(key) != value for key, value in expected_totals.items()):
-        raise LargeLLMError("large-run report totals are not derived from final durable checkpoint")
+        raise LargeLLMError("large-run report totals are not derived from terminal checkpoint")
+    expected_counts = {
+        "completed": metrics.completed,
+        "extraction_failed": metrics.extraction_failed,
+        "request_failed": metrics.request_failed,
+        "budget_blocked": metrics.budget_blocked,
+        "cost_unresolved": metrics.cost_unresolved,
+    }
+    if report.get("outcome_counts") != expected_counts:
+        raise LargeLLMError("large-run report outcome counts disagree with terminal checkpoint")
     try:
         return LargeEvaluationRun(
             run_id=header["run_id"],  # type: ignore[arg-type]
             baseline=header["baseline"],  # type: ignore[arg-type]
             outcomes=outcomes,
             metrics=metrics,
-            scientific_ready=report["scientific_ready"],  # type: ignore[arg-type]
-            blockers=tuple(report["blockers"]),  # type: ignore[arg-type]
+            scientific_ready=terminal["scientific_ready"],  # type: ignore[arg-type]
+            blockers=tuple(terminal["blockers"]),  # type: ignore[arg-type]
             seed=report["seed"],  # type: ignore[arg-type]
             generated_at_utc=report["generated_at_utc"],  # type: ignore[arg-type]
             input_sha256=header["input_sha256"],  # type: ignore[arg-type]

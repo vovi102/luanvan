@@ -312,6 +312,226 @@ def test_load_large_run_artifacts_rejects_rehashed_derived_totals(
         artifacts.load_large_run_artifacts(paths.report, paths.request_log)
 
 
+def test_published_terminal_checkpoint_survives_concurrent_source_sorting_and_resume(
+    tmp_path: Path,
+) -> None:
+    """Inferring the terminal budget from the last source row breaks this run."""
+    selected_config = config(concurrency=2)
+    cases = (
+        EvaluationCase(
+            case_id="case-1",
+            question="First source case finishes last",
+            gold_sql=SAFE_SQL,
+            difficulty="easy",
+            categories=("entity_lookup",),
+            input_sha256=INPUT_SHA256,
+        ),
+        EvaluationCase(
+            case_id="case-2",
+            question="Last source case finishes first",
+            gold_sql=SAFE_SQL,
+            difficulty="medium",
+            categories=("entity_lookup",),
+            input_sha256=INPUT_SHA256,
+        ),
+    )
+    metadata = ModelMetadataEvidence(
+        model_id=selected_config.model_id,
+        provider_slug="deepinfra",
+        context_length=131_072,
+        supported_parameters=("max_tokens", "seed", "temperature"),
+        prompt_price_per_million_usd=Decimal("0.50"),
+        completion_price_per_million_usd=Decimal("1.00"),
+        metadata_sha256=METADATA_SHA256,
+    )
+
+    class CompletionOrderedBaseline:
+        def __init__(self) -> None:
+            self.config = selected_config
+            self.budget_ledger = BudgetLedger(selected_config)
+            self.evaluation_evidence = LargeBaselineEvidence(
+                baseline="b4",
+                catalog_sha256=CATALOG_SHA256,
+                summary_sha256=SUMMARY_SHA256,
+                config_sha256=selected_config.sha256,
+                training_sha256=None,
+                training_accepted=False,
+                model_id=selected_config.model_id,
+                provider_slug="deepinfra",
+            )
+            self.case_two_reconciled = asyncio.Event()
+
+        async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+            reservation = await self.budget_ledger.reserve(
+                request_id, (ChatMessage("user", question),)
+            )
+            assert reservation is not None
+            if request_id == "case-1":
+                await self.case_two_reconciled.wait()
+            await self.budget_ledger.reconcile(reservation, Decimal("0.0001"))
+            if request_id == "case-2":
+                self.case_two_reconciled.set()
+            return replace(
+                prediction(question, cost=Decimal("0.0001")),
+                config_sha256=selected_config.sha256,
+            )
+
+    async def build_run(run_id: str) -> LargeEvaluationRun:
+        return await evaluate_large_baseline(
+            cases,
+            CompletionOrderedBaseline(),
+            run_id=run_id,
+            concurrency=2,
+            model_metadata=metadata,
+        )
+
+    loaded_runs = []
+    for index in range(1, 4):
+        run = asyncio.run(build_run(f"run-{index}"))
+        assert [outcome.case_id for outcome in run.outcomes] == ["case-1", "case-2"]
+        assert run.outcomes[0].budget_checkpoint.spent_usd == Decimal("0.0002")
+        assert run.outcomes[-1].budget_checkpoint.spent_usd == Decimal("0.0001")
+        paths = artifact_paths(
+            tmp_path,
+            predictions=tmp_path / f"predictions-{index}.jsonl",
+            request_log=tmp_path / f"request-{index}.jsonl",
+            cost_csv=tmp_path / f"cost-{index}.csv",
+            report=tmp_path / f"report-{index}.json",
+        )
+        artifacts.publish_large_run(run, paths=paths)
+        rows = [json.loads(line) for line in paths.request_log.read_text().splitlines()]
+        assert [row["record_type"] for row in rows] == [
+            "header",
+            "outcome",
+            "outcome",
+            "terminal",
+        ]
+        assert rows[-1]["budget_checkpoint"]["spent_usd"] == "0.0002"
+        resume = artifacts.load_resume_state(
+            paths.request_log,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=selected_config.sha256,
+            expected_run_id=f"run-{index}",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+        assert resume.completed_case_ids == ("case-1", "case-2")
+        assert resume.budget_checkpoint == run.budget
+        resumed = CompletionOrderedBaseline()
+        resumed.budget_ledger = BudgetLedger.from_checkpoint(
+            selected_config, resume.budget_checkpoint
+        )
+        resumed_run = asyncio.run(
+            evaluate_large_baseline(
+                cases,
+                resumed,
+                run_id=f"run-{index}",
+                concurrency=2,
+                model_metadata=metadata,
+                completed_outcomes=resume.completed_outcomes,
+                resume_budget_checkpoint=resume.budget_checkpoint,
+            )
+        )
+        assert resumed_run.budget == run.budget
+        loaded_runs.append(artifacts.load_large_run_artifacts(paths.report, paths.request_log))
+
+    summary = artifacts.summarize_large_runs(loaded_runs)
+    assert summary["run_ids"] == ["run-1", "run-2", "run-3"]
+    assert summary["total_spent_usd"] == "0.0006"
+
+
+def test_self_rehashed_terminal_tampering_fails_closed(tmp_path: Path) -> None:
+    """Rehashing a changed terminal must not detach it from its report."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    rows = [json.loads(line) for line in paths.request_log.read_text().splitlines()]
+    terminal = rows[-1]
+    terminal["budget_checkpoint"]["stop_reason"] = None
+    terminal_body = {key: value for key, value in terminal.items() if key != "record_sha256"}
+    terminal["record_sha256"] = hashlib.sha256(canonical_test_json(terminal_body)).hexdigest()
+    paths.request_log.write_bytes(b"".join(canonical_test_json(row) for row in rows))
+
+    with pytest.raises(LargeLLMError, match="terminal"):
+        artifacts.load_large_run_artifacts(paths.report, paths.request_log)
+
+
+def test_resume_rejects_self_rehashed_terminal_metric_tampering(tmp_path: Path) -> None:
+    """A sealed log's terminal metrics must remain derived during resume."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    rows = [json.loads(line) for line in paths.request_log.read_text().splitlines()]
+    terminal = rows[-1]
+    terminal["metrics"]["p50_latency_ms"] = 99.0
+    terminal_body = {key: value for key, value in terminal.items() if key != "record_sha256"}
+    terminal["record_sha256"] = hashlib.sha256(canonical_test_json(terminal_body)).hexdigest()
+    paths.request_log.write_bytes(b"".join(canonical_test_json(row) for row in rows))
+
+    with pytest.raises(LargeLLMError, match="terminal metrics"):
+        artifacts.load_resume_state(
+            paths.request_log,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=config().sha256,
+            expected_run_id="run-1",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+
+
+def test_self_rehashed_report_readiness_tampering_fails_closed(tmp_path: Path) -> None:
+    """Rehashing changed report claims must still disagree with terminal evidence."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    report = json.loads(paths.report.read_text())
+    body = {key: value for key, value in report.items() if key != "report_sha256"}
+    body["scientific_ready"] = True
+    body["blockers"] = []
+    report = {
+        **body,
+        "report_sha256": hashlib.sha256(canonical_test_json(body)).hexdigest(),
+    }
+    paths.report.write_bytes(canonical_test_json(report))
+
+    with pytest.raises(LargeLLMError, match="terminal"):
+        artifacts.load_large_run_artifacts(paths.report, paths.request_log)
+
+
+def test_terminal_published_log_rejects_trailing_outcome(tmp_path: Path) -> None:
+    """Allowing records after the terminal checkpoint would unseal published evidence."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    rows = [json.loads(line) for line in paths.request_log.read_text().splitlines()]
+    trailing = dict(rows[1])
+    trailing["case_id"] = "case-2"
+    trailing["previous_record_sha256"] = rows[-1]["record_sha256"]
+    trailing_body = {key: value for key, value in trailing.items() if key != "record_sha256"}
+    trailing["record_sha256"] = hashlib.sha256(canonical_test_json(trailing_body)).hexdigest()
+    paths.request_log.write_bytes(b"".join(canonical_test_json(row) for row in (*rows, trailing)))
+
+    with pytest.raises(LargeLLMError, match="terminal"):
+        artifacts.load_resume_state(
+            paths.request_log,
+            expected_input_sha256=INPUT_SHA256,
+            expected_config_sha256=config().sha256,
+            expected_run_id="run-1",
+            expected_model_metadata_sha256=METADATA_SHA256,
+        )
+
+
+def test_resume_completed_outcomes_rechecks_returned_record_chain(tmp_path: Path) -> None:
+    """Mutating public resume records must invalidate typed reconstruction."""
+    paths = artifact_paths(tmp_path)
+    artifacts.publish_large_run(complete_synthetic_run(), paths=paths)
+    resume = artifacts.load_resume_state(
+        paths.request_log,
+        expected_input_sha256=INPUT_SHA256,
+        expected_config_sha256=config().sha256,
+        expected_run_id="run-1",
+        expected_model_metadata_sha256=METADATA_SHA256,
+    )
+    resume.prior_records[0]["gold_sql"] = "SELECT 1"
+
+    with pytest.raises(LargeLLMError, match="fingerprint"):
+        _ = resume.completed_outcomes
+
+
 def test_resume_rejects_changed_model_metadata(tmp_path: Path) -> None:
     paths = artifact_paths(tmp_path)
     artifacts.publish_large_run(complete_synthetic_run(), paths=paths)

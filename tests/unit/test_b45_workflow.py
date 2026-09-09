@@ -529,6 +529,88 @@ def test_invalid_metadata_sha_precedes_catalog_key_and_transport(
     assert "metadata fingerprint" in json.loads(result.output)["error"]
 
 
+@pytest.mark.parametrize("target_id", ["", "bad id"])
+def test_b5_predict_rejects_invalid_target_id_before_every_dependency(
+    target_id: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Removing target-ID primitive validation would reach a dependency seam."""
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("target ID must stop before dependency construction")
+
+    monkeypatch.setattr(workflow, "compile_catalog_summary", bomb)
+    monkeypatch.setattr(workflow, "_b5_cache_preflight", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+    monkeypatch.setattr(workflow, "load_model_metadata", bomb)
+    monkeypatch.setattr(workflow, "load_sentence_encoder", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "predict",
+            "--baseline",
+            "b5",
+            "--question",
+            "List labels",
+            "--target-id",
+            target_id,
+            "--provider",
+            "deepinfra",
+            "--encoder-revision",
+            "a" * 40,
+            "--accepted-training-sha256",
+            "d" * 64,
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "target ID" in json.loads(result.output)["error"]
+
+
+def test_b5_predict_rejects_invalid_encoder_id_before_every_dependency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Leaving an analogous B5 primitive to filesystem preflight would fail this test."""
+
+    def bomb(*_args, **_kwargs):
+        raise AssertionError("encoder ID must stop before dependency construction")
+
+    monkeypatch.setattr(workflow, "compile_catalog_summary", bomb)
+    monkeypatch.setattr(workflow, "_b5_cache_preflight", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "predict",
+            "--baseline",
+            "b5",
+            "--question",
+            "List labels",
+            "--target-id",
+            "case-1",
+            "--provider",
+            "deepinfra",
+            "--encoder-id",
+            " ",
+            "--encoder-revision",
+            "a" * 40,
+            "--accepted-training-sha256",
+            "d" * 64,
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--allow-network",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "encoder ID" in json.loads(result.output)["error"]
+
+
 def test_live_predict_requires_metadata_sha_before_key_or_catalog(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

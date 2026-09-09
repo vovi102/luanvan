@@ -145,7 +145,19 @@ def _validate_primitives(options: dict[str, Any], *, evaluation: bool) -> LargeL
         raise LargeLLMError("evaluate requires --accepted-model-metadata-sha256")
     if not evaluation and options.get("allow_network") and accepted_metadata is None:
         raise LargeLLMError("predict requires --accepted-model-metadata-sha256")
+    target_id = options.get("target_id")
+    if target_id is not None and (
+        not isinstance(target_id, str) or _RUN_ID_RE.fullmatch(target_id) is None
+    ):
+        raise LargeLLMError("target ID must be a non-empty valid identifier")
     if options["baseline_name"] == "b5":
+        encoder_id = options["encoder_id"]
+        if (
+            not isinstance(encoder_id, str)
+            or not encoder_id.strip()
+            or any(ord(character) < 32 or ord(character) == 127 for character in encoder_id)
+        ):
+            raise LargeLLMError("encoder ID must be non-empty and control-free")
         accepted_training = options["accepted_training_sha256"]
         if (
             not isinstance(accepted_training, str)
@@ -574,6 +586,7 @@ def evaluate_command(**options: Any) -> None:
         protected = _protected_paths(options)
         validate_artifact_paths(paths, protected_paths=protected)
         completed_outcomes = ()
+        resume_budget_checkpoint = None
         ledger = BudgetLedger(config)
         if options["resume"]:
             expected_metadata_sha = _require_metadata_sha(options["accepted_model_metadata_sha256"])
@@ -589,6 +602,7 @@ def evaluate_command(**options: Any) -> None:
             )
             ledger = BudgetLedger.from_checkpoint(config, resume.budget_checkpoint)
             completed_outcomes = resume.completed_outcomes
+            resume_budget_checkpoint = resume.budget_checkpoint
         _require_network(options["allow_network"])
         _require_api_key()
         metadata = _metadata_evidence(
@@ -643,6 +657,7 @@ def evaluate_command(**options: Any) -> None:
                 model_metadata=metadata,
                 journal=journal,
                 completed_outcomes=completed_outcomes,
+                resume_budget_checkpoint=resume_budget_checkpoint,
             )
         )
         publish_large_run(run, paths=paths, protected_paths=protected)
