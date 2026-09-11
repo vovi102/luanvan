@@ -19,6 +19,7 @@ import sqlglot
 from sqlglot.errors import SqlglotError
 
 from nl2sparql.models.b12.evaluate import EvaluationCase, load_evaluation_cases
+from nl2sparql.models.b45.attempts import AttemptEvidence
 from nl2sparql.models.b45.budget import BudgetLedger, BudgetSnapshot
 from nl2sparql.models.b45.contracts import (
     LargeBaselineEvidence,
@@ -417,6 +418,7 @@ class LargeEvaluationRun:
     provider_policy_sha256: str | None = None
     privacy_sha256: str | None = None
     prompt_set_sha256: str | None = None
+    attempts: tuple[AttemptEvidence, ...] = ()
 
     @property
     def local_implementation_ready(self) -> bool:
@@ -458,6 +460,10 @@ class LargeEvaluationRun:
             or len({outcome.case_id for outcome in self.outcomes}) != len(self.outcomes)
         ):
             raise LargeLLMError("evaluation run outcomes must have unique case IDs")
+        if not isinstance(self.attempts, tuple) or any(
+            not isinstance(attempt, AttemptEvidence) for attempt in self.attempts
+        ):
+            raise LargeLLMError("evaluation run attempts are invalid")
         if not isinstance(self.metrics, LargeEvaluationMetrics):
             raise LargeLLMError("evaluation run metrics are invalid")
         if self.metrics.total != len(self.outcomes):
@@ -1275,12 +1281,10 @@ async def evaluate_large_baseline(
         prompt_set_sha256_value=prompt_set_sha256_value,
     )
     accepted_completed = tuple(completed_outcomes)
-    if accepted_completed:
+    if resume_budget_checkpoint is not None or accepted_completed:
         expected_checkpoint = resume_budget_checkpoint or accepted_completed[-1].budget_checkpoint
         if await ledger.snapshot() != expected_checkpoint:
             raise LargeLLMError("budget checkpoint must be restored before resume")
-    elif resume_budget_checkpoint is not None:
-        raise LargeLLMError("resume budget checkpoint requires completed outcomes")
     semaphore = asyncio.Semaphore(concurrency)
     journal_lock = asyncio.Lock()
     record_cancellation = True
@@ -1432,6 +1436,11 @@ async def evaluate_large_baseline(
         privacy_sha256,
     )
     input_fingerprints = {case.input_sha256 for case in accepted_cases}
+    durable_attempts = () if journal is None else getattr(journal, "attempts", ())
+    if not isinstance(durable_attempts, tuple) or any(
+        not isinstance(item, AttemptEvidence) for item in durable_attempts
+    ):
+        raise LargeLLMError("outcome journal attempt evidence is invalid")
     return LargeEvaluationRun(
         run_id=run_id,
         baseline=evidence.baseline,
@@ -1453,6 +1462,7 @@ async def evaluate_large_baseline(
         provider_policy_sha256=provider_policy_sha256,
         privacy_sha256=privacy_sha256,
         prompt_set_sha256=prompt_set_sha256_value,
+        attempts=durable_attempts,
     )
 
 

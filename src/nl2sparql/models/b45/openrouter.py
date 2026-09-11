@@ -16,6 +16,7 @@ from typing import Any
 
 from nl2sparql.models.b12.contracts import ChatMessage
 from nl2sparql.models.b12.prompts import prompt_sha256
+from nl2sparql.models.b45.attempts import AttemptEvidence, AttemptEvidenceSink, AttemptStatus
 from nl2sparql.models.b45.budget import BudgetLedger
 from nl2sparql.models.b45.contracts import (
     _LIVE_COMPLETION_MARKER,
@@ -286,6 +287,7 @@ class OpenRouterTransport:
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         clock_ns: Callable[[], int] = time.perf_counter_ns,
         jitter: Callable[[int], float] = _zero_jitter,
+        attempt_sink: AttemptEvidenceSink | None = None,
     ) -> None:
         """Create a transport around injected SDK and timing dependencies.
 
@@ -304,15 +306,68 @@ class OpenRouterTransport:
             raise OpenRouterRequestError("transport_configuration_invalid")
         if not callable(sleep) or not callable(clock_ns) or not callable(jitter):
             raise OpenRouterRequestError("transport_configuration_invalid")
+        if attempt_sink is not None and not callable(getattr(attempt_sink, "append_attempt", None)):
+            raise OpenRouterRequestError("transport_attempt_sink_invalid")
         self._sdk = sdk
         self._ledger = ledger
         self._config_sha256 = ledger.config_sha256
         self._sleep = sleep
         self._clock_ns = clock_ns
         self._jitter = jitter
+        self._attempt_sink = attempt_sink
+
+    async def _append_attempt(
+        self,
+        *,
+        request_id: str,
+        reservation: object,
+        attempt: int,
+        status: AttemptStatus,
+        prompt_sha256: str,
+        authoritative_cost_usd: Decimal | None = None,
+    ) -> None:
+        """Persist a secret-safe checkpoint before the transport advances."""
+        if self._attempt_sink is None:
+            return
+        reservation_id = getattr(reservation, "request_id", None)
+        ceiling = getattr(reservation, "maximum_cost_usd", None)
+        if not isinstance(reservation_id, str) or not isinstance(ceiling, Decimal):
+            raise OpenRouterRequestError("attempt_evidence_invalid", attempt_count=attempt)
+        cancelled = False
+        try:
+            checkpoint = await _shield_operation(self._ledger.snapshot())
+        except asyncio.CancelledError:
+            # ``_shield_operation`` deliberately propagates cancellation after
+            # the snapshot task finishes, so obtain its now-stable value before
+            # persisting the transition that caused the cancellation.
+            cancelled = True
+            checkpoint = await _shield_operation(self._ledger.snapshot())
+        evidence = AttemptEvidence(
+            case_id=request_id,
+            request_id=request_id,
+            reservation_id=reservation_id,
+            attempt_number=attempt,
+            status=status,
+            prompt_sha256=prompt_sha256,
+            reservation_ceiling_usd=ceiling,
+            budget_checkpoint=checkpoint,
+            authoritative_cost_usd=authoritative_cost_usd,
+        )
+        try:
+            await _shield_operation(self._attempt_sink.append_attempt(evidence))
+        except asyncio.CancelledError:
+            cancelled = True
+        if cancelled:
+            raise asyncio.CancelledError
 
     @classmethod
-    def from_env(cls, config: LargeLLMConfig, ledger: BudgetLedger) -> OpenRouterTransport:
+    def from_env(
+        cls,
+        config: LargeLLMConfig,
+        ledger: BudgetLedger,
+        *,
+        attempt_sink: AttemptEvidenceSink | None = None,
+    ) -> OpenRouterTransport:
         """Construct the live SDK only after confirming local configuration.
 
         Args:
@@ -349,7 +404,7 @@ class OpenRouterTransport:
 
         if initialization_failed:
             raise OpenRouterRequestError("client_initialization_failed")
-        return cls(sdk=sdk, ledger=ledger)
+        return cls(sdk=sdk, ledger=ledger, attempt_sink=attempt_sink)
 
     async def complete(
         self,
@@ -384,19 +439,33 @@ class OpenRouterTransport:
         attempt = 0
         response: object
 
-        async def hold_reservation(reservation: object, reason: str) -> None:
+        async def hold_reservation(reservation: object, reason: str, status: AttemptStatus) -> None:
+            cancelled = False
             try:
                 await _shield_operation(
                     self._ledger.hold(reservation, reason)  # type: ignore[arg-type]
                 )
-            except asyncio.CancelledError as cancelled:
+            except asyncio.CancelledError:
+                cancelled = True
+            try:
+                await self._append_attempt(
+                    request_id=request_id,
+                    reservation=reservation,
+                    attempt=attempt,
+                    status=status,
+                    prompt_sha256=prompt_fingerprint,
+                )
+            except asyncio.CancelledError:
+                cancelled = True
+            if cancelled:
+                cancellation = asyncio.CancelledError()
                 _annotate_cancellation(
-                    cancelled,
+                    cancellation,
                     prompt_sha256=prompt_fingerprint,
                     attempt_count=attempt,
                     reservation_id=getattr(reservation, "request_id", None),
                 )
-                raise
+                raise cancellation
 
         while True:
             attempt += 1
@@ -428,12 +497,28 @@ class OpenRouterTransport:
                     attempt_count=attempt - 1,
                     prompt_sha256=prompt_fingerprint,
                 )
+            try:
+                await self._append_attempt(
+                    request_id=request_id,
+                    reservation=reservation,
+                    attempt=attempt,
+                    status="reserved",
+                    prompt_sha256=prompt_fingerprint,
+                )
+            except asyncio.CancelledError as cancelled:
+                _annotate_cancellation(
+                    cancelled,
+                    prompt_sha256=prompt_fingerprint,
+                    attempt_count=attempt,
+                    reservation_id=reservation.request_id,
+                )
+                raise
             terminal_error: OpenRouterRequestError | None = None
             delay: float | None = None
             try:
                 response = await self._sdk.chat.completions.create(**request)
             except asyncio.CancelledError as cancelled:
-                await hold_reservation(reservation, "request_cancelled")
+                await hold_reservation(reservation, "request_cancelled", "cancelled")
                 _annotate_cancellation(
                     cancelled,
                     prompt_sha256=prompt_fingerprint,
@@ -443,20 +528,24 @@ class OpenRouterTransport:
                 raise
             except Exception as error:
                 if not retry_policy.is_retryable(error) or attempt >= retry_policy.max_attempts:
-                    await hold_reservation(reservation, "request_cost_unknown")
+                    await hold_reservation(reservation, "request_cost_unknown", "terminal_failure")
                     terminal_error = OpenRouterRequestError(
                         _request_error_code(error, exhausted=attempt >= retry_policy.max_attempts),
                         attempt_count=attempt,
                         prompt_sha256=prompt_fingerprint,
                     )
                 else:
-                    await hold_reservation(reservation, "retryable_request_failure")
+                    await hold_reservation(
+                        reservation, "retryable_request_failure", "retryable_failure"
+                    )
                     try:
                         delay = retry_policy.delay_seconds(
                             error, attempt=attempt, jitter=self._jitter
                         )
                     except OpenRouterRequestError as delay_error:
-                        await hold_reservation(reservation, "retry_delay_invalid")
+                        await hold_reservation(
+                            reservation, "retry_delay_invalid", "terminal_failure"
+                        )
                         terminal_error = OpenRouterRequestError(
                             delay_error.code,
                             attempt_count=delay_error.attempt_count,
@@ -468,7 +557,7 @@ class OpenRouterTransport:
                 try:
                     await self._sleep(delay)
                 except asyncio.CancelledError as cancelled:
-                    await hold_reservation(reservation, "request_cancelled")
+                    await hold_reservation(reservation, "request_cancelled", "cancelled")
                     _annotate_cancellation(
                         cancelled,
                         prompt_sha256=prompt_fingerprint,
@@ -483,7 +572,7 @@ class OpenRouterTransport:
         end_ns = _clock_value(self._clock_ns, "clock_invalid")
         latency_ms = (end_ns - start_ns) / 1_000_000
         if not math.isfinite(latency_ms) or latency_ms < 0.0:
-            await hold_reservation(reservation, "clock_invalid")
+            await hold_reservation(reservation, "clock_invalid", "terminal_failure")
             raise OpenRouterRequestError(
                 "clock_invalid", attempt_count=attempt, prompt_sha256=prompt_fingerprint
             )
@@ -491,26 +580,13 @@ class OpenRouterTransport:
         try:
             charged_cost = _authoritative_cost(response, attempt_count=attempt)
         except OpenRouterRequestError as error:
-            await hold_reservation(reservation, "authoritative_cost_invalid")
+            await hold_reservation(reservation, "authoritative_cost_invalid", "terminal_failure")
             raise OpenRouterRequestError(
                 error.code,
                 attempt_count=error.attempt_count,
                 prompt_sha256=prompt_fingerprint,
             ) from None
 
-        try:
-            await _shield_operation(self._ledger.reconcile(reservation, charged_cost))
-        except asyncio.CancelledError as cancelled:
-            snapshot = await _shield_operation(self._ledger.snapshot())
-            reconciled = reservation.request_id not in snapshot.unresolved_request_ids
-            _annotate_cancellation(
-                cancelled,
-                prompt_sha256=prompt_fingerprint,
-                attempt_count=attempt,
-                authoritative_cost_usd=charged_cost if reconciled else Decimal("0"),
-                reservation_id=reservation.request_id,
-            )
-            raise
         billed_error: OpenRouterRequestError | None = None
         completion: RemoteCompletion | None = None
         try:
@@ -543,6 +619,34 @@ class OpenRouterTransport:
                 prompt_sha256=prompt_fingerprint,
                 authoritative_cost_usd=charged_cost,
             )
+        accounting_cancelled = False
+        try:
+            await _shield_operation(self._ledger.reconcile(reservation, charged_cost))
+        except asyncio.CancelledError:
+            accounting_cancelled = True
+        try:
+            await self._append_attempt(
+                request_id=request_id,
+                reservation=reservation,
+                attempt=attempt,
+                status="terminal_failure" if billed_error is not None else "completed",
+                prompt_sha256=prompt_fingerprint,
+                authoritative_cost_usd=charged_cost,
+            )
+        except asyncio.CancelledError:
+            accounting_cancelled = True
+        if accounting_cancelled:
+            snapshot = await _shield_operation(self._ledger.snapshot())
+            reconciled = reservation.request_id not in snapshot.unresolved_request_ids
+            cancelled = asyncio.CancelledError()
+            _annotate_cancellation(
+                cancelled,
+                prompt_sha256=prompt_fingerprint,
+                attempt_count=attempt,
+                authoritative_cost_usd=charged_cost if reconciled else Decimal("0"),
+                reservation_id=reservation.request_id,
+            )
+            raise cancelled
         if billed_error is not None:
             raise billed_error
         assert completion is not None

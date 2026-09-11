@@ -16,6 +16,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from nl2sparql.models.b12.contracts import SelectedExample, SmallLLMError
+from nl2sparql.models.b45.attempts import AttemptEvidence
 from nl2sparql.models.b45.budget import BudgetReservation, BudgetSnapshot
 from nl2sparql.models.b45.contracts import (
     _LIVE_COMPLETION_MARKER,
@@ -34,9 +35,12 @@ from nl2sparql.models.b45.evaluate import (
     prompt_set_sha256,
 )
 
-_SCHEMA_VERSION = 3
+_SCHEMA_VERSION = 4
 _LEGACY_RESUME_SCHEMA_VERSION = 2
-_RESUME_SCHEMA_VERSIONS = frozenset({_LEGACY_RESUME_SCHEMA_VERSION, _SCHEMA_VERSION})
+_LEGACY_CHAINED_SCHEMA_VERSION = 3
+_RESUME_SCHEMA_VERSIONS = frozenset(
+    {_LEGACY_RESUME_SCHEMA_VERSION, _LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}
+)
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _HEADER_KEYS = {
@@ -94,6 +98,8 @@ _OUTCOME_KEYS = {
     "record_sha256",
     "prompt_set_sha256",
     "retrieval_sha256",
+    "attempt_set_count",
+    "attempt_set_sha256",
 }
 _LEGACY_OUTCOME_KEYS = _OUTCOME_KEYS - {
     "provider_policy_sha256",
@@ -102,9 +108,20 @@ _LEGACY_OUTCOME_KEYS = _OUTCOME_KEYS - {
     "record_sha256",
     "prompt_set_sha256",
     "retrieval_sha256",
+    "attempt_set_count",
+    "attempt_set_sha256",
 }
-_LEGACY_V3_OUTCOME_KEYS = _OUTCOME_KEYS - {"prompt_set_sha256", "retrieval_sha256"}
-_LEGACY_PROMPT_OUTCOME_KEYS = _OUTCOME_KEYS - {"retrieval_sha256"}
+_LEGACY_V3_OUTCOME_KEYS = _OUTCOME_KEYS - {
+    "prompt_set_sha256",
+    "retrieval_sha256",
+    "attempt_set_count",
+    "attempt_set_sha256",
+}
+_LEGACY_PROMPT_OUTCOME_KEYS = _OUTCOME_KEYS - {
+    "retrieval_sha256",
+    "attempt_set_count",
+    "attempt_set_sha256",
+}
 _TERMINAL_KEYS = {
     "record_type",
     "run_id",
@@ -120,6 +137,23 @@ _TERMINAL_KEYS = {
     "previous_record_sha256",
     "record_sha256",
     "prompt_set_sha256",
+    "attempt_set_count",
+    "attempt_set_sha256",
+}
+_ATTEMPT_KEYS = {
+    "record_type",
+    "run_id",
+    "case_id",
+    "request_id",
+    "reservation_id",
+    "attempt_number",
+    "status",
+    "prompt_sha256",
+    "reservation_ceiling_usd",
+    "budget_checkpoint",
+    "authoritative_cost_usd",
+    "previous_record_sha256",
+    "record_sha256",
 }
 _PREDICTION_KEYS = {
     "baseline",
@@ -255,6 +289,8 @@ class ResumeState:
     prompt_set_sha256: str | None = None
     retrieval_sha256_by_case: Mapping[str, str] | None = None
     journal_prompt_set_sha256: str | None = None
+    prior_journal_records: tuple[dict[str, object], ...] = ()
+    attempt_records: tuple[AttemptEvidence, ...] = ()
 
     @property
     def completed_outcomes(self) -> tuple[EvaluationOutcome, ...]:
@@ -298,7 +334,7 @@ class ResumeState:
                     )
                 outcomes.append(outcome)
             return tuple(outcomes)
-        if self.schema_version != _SCHEMA_VERSION:
+        if self.schema_version not in {_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}:
             raise LargeLLMError("resume journal schema version is invalid")
         header = _journal_header(
             run_id=self.run_id,
@@ -314,16 +350,26 @@ class ResumeState:
             provider_policy_sha256=self.provider_policy_sha256,
             privacy_sha256=self.privacy_sha256,
             prompt_set_sha256=self.journal_prompt_set_sha256,
+            schema_version=self.schema_version,
         )
         previous_record_sha256 = _header_sha256(header)
         outcomes: list[EvaluationOutcome] = []
-        for line_number, record in enumerate(self.prior_records, start=2):
+        chain_records = self.prior_journal_records or self.prior_records
+        for line_number, record in enumerate(chain_records, start=2):
             _validate_record_chain(
                 record,
                 expected_previous=previous_record_sha256,
                 line_number=line_number,
             )
-            outcome = _outcome_from_record(record, line_number=None)
+            if record.get("record_type") == "attempt":
+                _attempt_from_record(record, line_number=None)
+                previous_record_sha256 = str(record["record_sha256"])
+                continue
+            outcome = _outcome_from_record(
+                record,
+                line_number=None,
+                schema_version=self.schema_version,
+            )
             if self.prompt_set_sha256 is not None:
                 outcome = replace(outcome, prompt_set_sha256=self.prompt_set_sha256)
             if self.retrieval_sha256_by_case is not None:
@@ -334,6 +380,17 @@ class ResumeState:
             outcomes.append(outcome)
             previous_record_sha256 = str(record["record_sha256"])
         return tuple(outcomes)
+
+    @property
+    def attempts(self) -> tuple[AttemptEvidence, ...]:
+        """Return validated attempt transitions retained by the resume prefix."""
+        if self.attempt_records:
+            return self.attempt_records
+        return tuple(
+            _attempt_from_record(record, line_number=None)
+            for record in self.prior_journal_records
+            if record.get("record_type") == "attempt"
+        )
 
     @property
     def unresolved_request_ids(self) -> tuple[str, ...]:
@@ -564,9 +621,10 @@ def _journal_header(
     provider_policy_sha256: str | None = None,
     privacy_sha256: str | None = None,
     prompt_set_sha256: str | None = None,
+    schema_version: int = _LEGACY_CHAINED_SCHEMA_VERSION,
 ) -> dict[str, object]:
     header: dict[str, object] = {
-        "schema_version": _SCHEMA_VERSION,
+        "schema_version": schema_version,
         "record_type": "header",
         "run_id": run_id,
         "baseline": baseline,
@@ -583,7 +641,10 @@ def _journal_header(
     }
     if prompt_set_sha256 is not None:
         header["prompt_set_sha256"] = prompt_set_sha256
-    _validate_header(header)
+    _validate_header(
+        header,
+        allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+    )
     return header
 
 
@@ -595,9 +656,15 @@ def _outcome_record(
     provider_policy_sha256: str | None,
     privacy_sha256: str | None,
     previous_record_sha256: str,
+    attempts: Sequence[AttemptEvidence] = (),
+    schema_version: int = _SCHEMA_VERSION,
 ) -> dict[str, object]:
     if not isinstance(outcome, EvaluationOutcome):
         raise LargeLLMError("request journal requires an EvaluationOutcome")
+    if schema_version not in {_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}:
+        raise LargeLLMError("request journal schema version is invalid")
+    if schema_version == _LEGACY_CHAINED_SCHEMA_VERSION and attempts:
+        raise LargeLLMError("schema v3 request journal cannot contain attempt evidence")
     body = {
         "record_type": "outcome",
         "run_id": run_id,
@@ -606,6 +673,9 @@ def _outcome_record(
         "privacy_sha256": privacy_sha256,
         **_canonical_value(asdict(outcome)),
     }
+    if schema_version == _SCHEMA_VERSION:
+        body["attempt_set_count"] = len(attempts)
+        body["attempt_set_sha256"] = _attempt_set_sha256(attempts)
     if outcome.prompt_set_sha256 is None:
         body.pop("prompt_set_sha256", None)
     if outcome.retrieval_sha256 is None:
@@ -617,6 +687,54 @@ def _outcome_record(
     if body["privacy_sha256"] != privacy_sha256:
         raise LargeLLMError("request journal privacy fingerprint mismatch")
     return _chained_record(body, previous_record_sha256=previous_record_sha256)
+
+
+def _attempt_record(
+    evidence: AttemptEvidence, *, run_id: str, previous_record_sha256: str
+) -> dict[str, object]:
+    """Return one chained, canonical attempt transition record."""
+    if not isinstance(evidence, AttemptEvidence):
+        raise LargeLLMError("request journal requires AttemptEvidence")
+    return _chained_record(
+        {
+            "record_type": "attempt",
+            "run_id": run_id,
+            **_canonical_value(asdict(evidence)),
+        },
+        previous_record_sha256=previous_record_sha256,
+    )
+
+
+def _attempt_from_record(
+    record: Mapping[str, object], *, line_number: int | None
+) -> AttemptEvidence:
+    prefix = f"request journal line {line_number}" if line_number is not None else "attempt record"
+    raw = _require_mapping(record, prefix, _ATTEMPT_KEYS)
+    if raw["record_type"] != "attempt":
+        raise LargeLLMError(f"{prefix} record type is invalid")
+    values = {
+        key: value
+        for key, value in raw.items()
+        if key not in {"record_type", "run_id", "previous_record_sha256", "record_sha256"}
+    }
+    values["reservation_ceiling_usd"] = _money_from_json(
+        values["reservation_ceiling_usd"], "attempt reservation ceiling"
+    )
+    values["authoritative_cost_usd"] = _money_from_json(
+        values["authoritative_cost_usd"], "attempt authoritative cost", optional=True
+    )
+    values["budget_checkpoint"] = _budget_from_record(values["budget_checkpoint"])
+    try:
+        return AttemptEvidence(**values)  # type: ignore[arg-type]
+    except (LargeLLMError, TypeError) as error:
+        raise LargeLLMError(f"{prefix} is invalid: {error}") from error
+
+
+def _attempt_set_sha256(attempts: Sequence[AttemptEvidence]) -> str:
+    """Return a canonical digest that cannot be replaced by outcome metadata."""
+    return hashlib.sha256(
+        _canonical_json([_canonical_value(asdict(attempt)) for attempt in attempts])
+    ).hexdigest()
 
 
 def _money_from_json(value: object, label: str, *, optional: bool = False) -> Decimal | None:
@@ -758,12 +876,18 @@ def _outcome_from_record(
     prefix = f"request journal line {line_number}" if line_number is not None else "resume record"
     try:
         if schema_version == _SCHEMA_VERSION:
+            outcome_keys = set(_OUTCOME_KEYS)
+            if "retrieval_sha256" not in record:
+                outcome_keys.discard("retrieval_sha256")
+            if "prompt_set_sha256" not in record:
+                outcome_keys.discard("prompt_set_sha256")
+        elif schema_version == _LEGACY_CHAINED_SCHEMA_VERSION:
+            outcome_keys = set(_LEGACY_V3_OUTCOME_KEYS)
             if "retrieval_sha256" in record:
-                outcome_keys = _OUTCOME_KEYS
+                outcome_keys.add("retrieval_sha256")
+                outcome_keys.add("prompt_set_sha256")
             elif "prompt_set_sha256" in record:
-                outcome_keys = _LEGACY_PROMPT_OUTCOME_KEYS
-            else:
-                outcome_keys = _LEGACY_V3_OUTCOME_KEYS
+                outcome_keys.add("prompt_set_sha256")
         elif schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
             outcome_keys = _LEGACY_OUTCOME_KEYS
         else:
@@ -793,21 +917,28 @@ def _outcome_from_record(
         values["budget_checkpoint"] = _budget_from_record(values["budget_checkpoint"])
         values.setdefault("prompt_set_sha256", None)
         values.setdefault("retrieval_sha256", None)
+        values.pop("attempt_set_count", None)
+        values.pop("attempt_set_sha256", None)
         return EvaluationOutcome(**values)  # type: ignore[arg-type]
     except (LargeLLMError, TypeError, KeyError) as error:
         raise LargeLLMError(f"{prefix} is invalid: {error}") from error
 
 
 def _terminal_evidence(
-    record: Mapping[str, object], *, line_number: int | None
+    record: Mapping[str, object],
+    *,
+    line_number: int | None,
+    schema_version: int = _SCHEMA_VERSION,
 ) -> tuple[BudgetSnapshot, LargeEvaluationMetrics]:
     prefix = f"request journal line {line_number}" if line_number is not None else "terminal record"
     try:
-        terminal_keys = (
-            _TERMINAL_KEYS
-            if "prompt_set_sha256" in record
-            else _TERMINAL_KEYS - {"prompt_set_sha256"}
-        )
+        terminal_keys = set(_TERMINAL_KEYS)
+        if schema_version != _SCHEMA_VERSION:
+            terminal_keys -= {"attempt_set_count", "attempt_set_sha256"}
+        elif "attempt_set_sha256" not in record:
+            raise LargeLLMError("journal terminal attempt evidence is missing")
+        if "prompt_set_sha256" not in record:
+            terminal_keys = terminal_keys - {"prompt_set_sha256"}
         raw = _require_mapping(record, prefix, terminal_keys)
         if raw["record_type"] != "terminal":
             raise LargeLLMError("journal terminal record type is invalid")
@@ -846,6 +977,11 @@ def _terminal_evidence(
         )
         if "prompt_set_sha256" in raw:
             _validate_digest(raw["prompt_set_sha256"], "journal terminal prompt-set fingerprint")
+        if schema_version == _SCHEMA_VERSION:
+            count = raw["attempt_set_count"]
+            if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+                raise LargeLLMError("journal terminal attempt count is invalid")
+            _validate_digest(raw["attempt_set_sha256"], "journal terminal attempt fingerprint")
         _validate_digest(raw["report_body_sha256"], "journal terminal report fingerprint")
         return _budget_from_record(raw["budget_checkpoint"]), _metrics_from_record(raw["metrics"])
     except (LargeLLMError, TypeError) as error:
@@ -865,6 +1001,117 @@ def _validate_record_chain(
         raise LargeLLMError(f"request journal line {line_number} fingerprint is invalid")
 
 
+_ATTEMPT_TERMINAL_STATUSES = frozenset(
+    {"retryable_failure", "completed", "terminal_failure", "cancelled"}
+)
+
+
+def _validate_attempt_transition(
+    prior: Sequence[AttemptEvidence], attempt: AttemptEvidence
+) -> None:
+    """Validate one case's append-only attempt state machine."""
+    if not prior:
+        if (
+            attempt.attempt_number != 1
+            or attempt.status != "reserved"
+            or attempt.reservation_id != f"{attempt.request_id}:attempt-1"
+        ):
+            raise LargeLLMError("request journal attempt transition ordering is invalid")
+        if attempt.budget_checkpoint.stop_reason is not None:
+            raise LargeLLMError("request journal attempt checkpoint is already stopped")
+        return
+    previous = prior[-1]
+    if attempt.attempt_number == previous.attempt_number:
+        # A resumed worker can replay an unresolved first reservation with a
+        # fresh ``:resume-N`` ID.  This is the only legal repeated number.
+        if (
+            attempt.status == "reserved"
+            and attempt.reservation_id != previous.reservation_id
+            and ":resume-" in attempt.reservation_id
+            and previous.status in _ATTEMPT_TERMINAL_STATUSES | {"reserved"}
+        ):
+            _validate_attempt_checkpoint_transition(previous, attempt, resumed=True)
+            if attempt.budget_checkpoint.stop_reason is not None:
+                raise LargeLLMError("request journal attempt checkpoint is already stopped")
+            return
+        if (
+            previous.status != "reserved"
+            or attempt.reservation_id != previous.reservation_id
+            or attempt.status not in _ATTEMPT_TERMINAL_STATUSES
+        ):
+            raise LargeLLMError("request journal attempt transition ordering is invalid")
+        _validate_attempt_checkpoint_transition(previous, attempt, resumed=False)
+        return
+    if (
+        attempt.attempt_number != previous.attempt_number + 1
+        or previous.status not in _ATTEMPT_TERMINAL_STATUSES
+        or attempt.status != "reserved"
+    ):
+        raise LargeLLMError("request journal attempt transition ordering is invalid")
+    _validate_attempt_checkpoint_transition(previous, attempt, resumed=True)
+    if attempt.budget_checkpoint.stop_reason is not None:
+        raise LargeLLMError("request journal attempt checkpoint is already stopped")
+
+
+def _validate_attempt_checkpoint_transition(
+    previous: AttemptEvidence,
+    current: AttemptEvidence,
+    *,
+    resumed: bool,
+) -> None:
+    """Require accounting checkpoints to move in the only safe direction.
+
+    A checkpoint can include activity from other concurrent cases between two
+    rows for this case.  The validator therefore checks monotonic spend and
+    exact reservation membership rather than requiring byte-for-byte snapshots.
+    """
+    previous_snapshot = previous.budget_checkpoint
+    current_snapshot = current.budget_checkpoint
+    if current_snapshot.cap_usd != previous_snapshot.cap_usd:
+        raise LargeLLMError("request journal attempt budget cap changed")
+    if current_snapshot.spent_usd < previous_snapshot.spent_usd:
+        raise LargeLLMError("request journal attempt spend moved backwards")
+    previous_reservations = {
+        item.request_id: item.maximum_cost_usd for item in previous_snapshot.unresolved_reservations
+    }
+    current_reservations = {
+        item.request_id: item.maximum_cost_usd for item in current_snapshot.unresolved_reservations
+    }
+    previous_held = previous_reservations.get(previous.reservation_id)
+    if previous.authoritative_cost_usd is None and (
+        previous_held != previous.reservation_ceiling_usd
+    ):
+        # AttemptEvidence validates this itself, but keeping the check here
+        # makes the transition invariant explicit and future-proof.
+        raise LargeLLMError("request journal prior attempt reservation is not held exactly")
+
+    if not resumed:
+        # This is the terminal row for the reservation just started.  Unknown
+        # cost must retain the full ceiling; known cost must remove that
+        # reservation and add at least the authoritative spend.
+        if current.authoritative_cost_usd is None:
+            if current_reservations.get(current.reservation_id) != current.reservation_ceiling_usd:
+                raise LargeLLMError("request journal unresolved attempt ceiling changed")
+        else:
+            if current.reservation_id in current_reservations:
+                raise LargeLLMError("request journal reconciled attempt remains reserved")
+            if (
+                current_snapshot.spent_usd
+                < previous_snapshot.spent_usd + current.authoritative_cost_usd
+            ):
+                raise LargeLLMError("request journal reconciled spend is missing")
+        return
+
+    # A retry or resumed replay receives a fresh reservation.  Every prior
+    # unresolved liability remains held while the new request is reserved.
+    if previous.authoritative_cost_usd is None and (
+        current_reservations.get(previous.reservation_id) != previous.reservation_ceiling_usd
+    ):
+        raise LargeLLMError("request journal retry released prior unresolved ceiling")
+    if current_reservations.get(current.reservation_id) != current.reservation_ceiling_usd:
+        raise LargeLLMError("request journal next attempt ceiling is not held exactly")
+
+
 def _decode_json_line(raw_line: bytes, line_number: int) -> dict[str, object]:
     if not raw_line.endswith(b"\n") or raw_line == b"\n":
         raise LargeLLMError(f"request journal line {line_number} is not canonical")
@@ -880,7 +1127,7 @@ def _decode_json_line(raw_line: bytes, line_number: int) -> dict[str, object]:
 def _parse_request_log(
     payload: bytes,
     *,
-    allowed_versions: frozenset[int] = frozenset({_SCHEMA_VERSION}),
+    allowed_versions: frozenset[int] = frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
 ) -> tuple[
     dict[str, object],
     tuple[dict[str, object], ...],
@@ -893,6 +1140,8 @@ def _parse_request_log(
     schema_version = _validate_header(header, allowed_versions=allowed_versions)
     records: list[dict[str, object]] = []
     identifiers: set[str] = set()
+    attempt_records: list[AttemptEvidence] = []
+    attempts_by_case: dict[str, list[AttemptEvidence]] = {}
     terminal: dict[str, object] | None = None
     previous_record_sha256 = _header_sha256(header)
     identity_keys = (
@@ -918,7 +1167,11 @@ def _parse_request_log(
         if record_type == "terminal":
             if schema_version == _LEGACY_RESUME_SCHEMA_VERSION:
                 raise LargeLLMError("request journal schema v2 must not contain terminal records")
-            _terminal_evidence(record, line_number=line_number)
+            _terminal_evidence(
+                record,
+                line_number=line_number,
+                schema_version=schema_version,
+            )
             _validate_record_chain(
                 record,
                 expected_previous=previous_record_sha256,
@@ -926,7 +1179,8 @@ def _parse_request_log(
             )
             if record["run_id"] != header["run_id"]:
                 raise LargeLLMError("request journal terminal run ID mismatch")
-            if record["outcome_count"] != len(records):
+            outcome_count = sum(item.get("record_type") == "outcome" for item in records)
+            if record["outcome_count"] != outcome_count:
                 raise LargeLLMError("request journal terminal outcome count mismatch")
             for key in ("provider_policy_sha256", "privacy_sha256"):
                 if record[key] != header.get(key):
@@ -936,7 +1190,38 @@ def _parse_request_log(
                 "prompt_set_sha256"
             ):
                 raise LargeLLMError("request journal terminal prompt-set fingerprint mismatch")
+            if schema_version == _SCHEMA_VERSION and (
+                record["attempt_set_count"] != len(attempt_records)
+                or record["attempt_set_sha256"] != _attempt_set_sha256(attempt_records)
+            ):
+                raise LargeLLMError("request journal terminal attempt evidence mismatch")
             terminal = record
+            previous_record_sha256 = str(record["record_sha256"])
+            continue
+        if record_type == "attempt":
+            if schema_version != _SCHEMA_VERSION:
+                raise LargeLLMError("legacy request journal cannot contain attempt records")
+            case_id = record.get("case_id")
+            if isinstance(case_id, str) and case_id in identifiers:
+                raise LargeLLMError("request journal attempt transition occurs after its outcome")
+            _validate_record_chain(
+                record,
+                expected_previous=previous_record_sha256,
+                line_number=line_number,
+            )
+            attempt = _attempt_from_record(record, line_number=line_number)
+            if record["run_id"] != header["run_id"]:
+                raise LargeLLMError("request journal attempt run ID mismatch")
+            prior = attempts_by_case.setdefault(attempt.case_id, [])
+            if any(
+                item.reservation_id == attempt.reservation_id and item.status == attempt.status
+                for item in prior
+            ):
+                raise LargeLLMError("request journal contains duplicate attempt transition")
+            _validate_attempt_transition(prior, attempt)
+            prior.append(attempt)
+            attempt_records.append(attempt)
+            records.append(record)
             previous_record_sha256 = str(record["record_sha256"])
             continue
         if record_type != "outcome":
@@ -946,7 +1231,7 @@ def _parse_request_log(
             line_number=line_number,
             schema_version=schema_version,
         )
-        if schema_version == _SCHEMA_VERSION:
+        if schema_version in {_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}:
             _validate_record_chain(
                 record,
                 expected_previous=previous_record_sha256,
@@ -962,8 +1247,50 @@ def _parse_request_log(
         if outcome.case_id in identifiers:
             raise LargeLLMError(f"request journal contains duplicate case ID: {outcome.case_id}")
         identifiers.add(outcome.case_id)
-        records.append(record)
         if schema_version == _SCHEMA_VERSION:
+            case_attempts = attempts_by_case.get(outcome.case_id, [])
+            if record["attempt_set_count"] != len(case_attempts) or record[
+                "attempt_set_sha256"
+            ] != _attempt_set_sha256(case_attempts):
+                raise LargeLLMError("request journal outcome attempt evidence mismatch")
+            if case_attempts and any(
+                attempt.prompt_sha256 != outcome.prompt_sha256 for attempt in case_attempts
+            ):
+                raise LargeLLMError("request journal attempt prompt fingerprint mismatch")
+            synthetic = (
+                outcome.prediction is not None and outcome.prediction.completion.synthetic_backend
+            )
+            if (
+                case_attempts
+                and not synthetic
+                and outcome.attempt_count != len({item.attempt_number for item in case_attempts})
+            ):
+                raise LargeLLMError("request journal outcome attempt count mismatch")
+            if case_attempts:
+                latest = case_attempts[-1]
+                if latest.authoritative_cost_usd is None:
+                    # A case can be durably represented by a budget-blocked,
+                    # request-failed, or unresolved-cost outcome while its
+                    # latest attempt still retains an unresolved ceiling.  The
+                    # ceiling is the blocker and must not be mistaken for
+                    # spend; only a zero-cost failure outcome is admissible.
+                    if outcome.status not in {
+                        "budget_blocked",
+                        "request_failed",
+                        "cost_unresolved",
+                    } or outcome.authoritative_cost_usd != Decimal("0"):
+                        raise LargeLLMError(
+                            "request journal outcome cost does not match attempt evidence"
+                        )
+                elif (
+                    latest.status not in {"completed", "terminal_failure"}
+                    or latest.authoritative_cost_usd != outcome.authoritative_cost_usd
+                ):
+                    raise LargeLLMError(
+                        "request journal outcome cost does not match attempt evidence"
+                    )
+        records.append(record)
+        if schema_version in {_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}:
             previous_record_sha256 = str(record["record_sha256"])
     return header, tuple(records), terminal
 
@@ -1002,7 +1329,7 @@ def _upgrade_legacy_resume_log(
     """
     upgraded_header = {
         **header,
-        "schema_version": _SCHEMA_VERSION,
+        "schema_version": _LEGACY_CHAINED_SCHEMA_VERSION,
         "provider_policy_sha256": (
             provider_policy_sha256
             if provider_policy_sha256 is not None
@@ -1016,7 +1343,10 @@ def _upgrade_legacy_resume_log(
         prompt_set_sha256 = _prompt_set_from_records(records)
     if prompt_set_sha256 is not None:
         upgraded_header["prompt_set_sha256"] = prompt_set_sha256
-    _validate_header(upgraded_header)
+    _validate_header(
+        upgraded_header,
+        allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+    )
     previous_record_sha256 = _header_sha256(upgraded_header)
     upgraded_records: list[dict[str, object]] = []
     attributed_spend = Decimal("0")
@@ -1043,6 +1373,7 @@ def _upgrade_legacy_resume_log(
             provider_policy_sha256=upgraded_header.get("provider_policy_sha256"),
             privacy_sha256=upgraded_header.get("privacy_sha256"),  # type: ignore[arg-type]
             previous_record_sha256=previous_record_sha256,
+            schema_version=_LEGACY_CHAINED_SCHEMA_VERSION,
         )
         upgraded_records.append(upgraded)
         previous_record_sha256 = str(upgraded["record_sha256"])
@@ -1054,8 +1385,70 @@ def _upgrade_legacy_resume_log(
     return b"".join(_canonical_json(record) for record in (upgraded_header, *upgraded_records))
 
 
+def _upgrade_chained_attempt_log(
+    header: Mapping[str, object],
+    records: Sequence[Mapping[str, object]],
+    *,
+    prompt_set_sha256: str | None = None,
+) -> bytes:
+    """Upgrade an in-progress schema-v3 log before its first attempt row.
+
+    Schema v3 remains the compact format for runs that have no attempt evidence.
+    Once a live transport needs to persist an attempt, the existing chained
+    outcome rows are re-emitted with the schema-v4 attempt-set fields and a new
+    chain root.  The upgrade is written together with the first attempt row by
+    :meth:`RequestJournal.append_attempt`, so a crash cannot expose a partially
+    migrated chain.
+    """
+    if header.get("schema_version") not in {
+        _LEGACY_CHAINED_SCHEMA_VERSION,
+        _SCHEMA_VERSION,
+    }:
+        raise LargeLLMError("request journal is not a chained journal")
+    upgraded_header = {**header, "schema_version": _SCHEMA_VERSION}
+    if prompt_set_sha256 is not None:
+        upgraded_header["prompt_set_sha256"] = prompt_set_sha256
+    _validate_header(upgraded_header)
+    previous_record_sha256 = _header_sha256(upgraded_header)
+    upgraded_records: list[dict[str, object]] = []
+    attempts_by_case: dict[str, list[AttemptEvidence]] = {}
+    source_schema_version = int(header["schema_version"])
+    for record in records:
+        if record.get("record_type") == "attempt":
+            attempt = _attempt_from_record(record, line_number=None)
+            attempts_by_case.setdefault(attempt.case_id, []).append(attempt)
+            upgraded = _attempt_record(
+                attempt,
+                run_id=str(upgraded_header["run_id"]),
+                previous_record_sha256=previous_record_sha256,
+            )
+        elif record.get("record_type") == "outcome":
+            outcome = _outcome_from_record(
+                record,
+                line_number=None,
+                schema_version=source_schema_version,
+            )
+            if prompt_set_sha256 is not None:
+                outcome = replace(outcome, prompt_set_sha256=prompt_set_sha256)
+            upgraded = _outcome_record(
+                outcome,
+                run_id=str(upgraded_header["run_id"]),
+                model_metadata_sha256=upgraded_header["model_metadata_sha256"],
+                provider_policy_sha256=upgraded_header.get("provider_policy_sha256"),
+                privacy_sha256=upgraded_header.get("privacy_sha256"),  # type: ignore[arg-type]
+                previous_record_sha256=previous_record_sha256,
+                attempts=tuple(attempts_by_case.get(outcome.case_id, ())),
+                schema_version=_SCHEMA_VERSION,
+            )
+        else:
+            raise LargeLLMError("chained request journal has an invalid record")
+        upgraded_records.append(upgraded)
+        previous_record_sha256 = str(upgraded["record_sha256"])
+    return b"".join(_canonical_json(record) for record in (upgraded_header, *upgraded_records))
+
+
 class RequestJournal:
-    """Atomic v3 per-case journal, upgrading a valid terminal-free v2 resume log."""
+    """Atomic v3/v4 journal, upgrading a valid terminal-free v2 resume log."""
 
     def __init__(
         self,
@@ -1125,6 +1518,8 @@ class RequestJournal:
             allowed_versions = (
                 _RESUME_SCHEMA_VERSIONS if allow_legacy_resume else frozenset({_SCHEMA_VERSION})
             )
+            if not allow_legacy_resume:
+                allowed_versions = frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION})
             accepted, records, _terminal = _parse_request_log(
                 existing, allowed_versions=allowed_versions
             )
@@ -1147,10 +1542,19 @@ class RequestJournal:
                 if accepted.get(key) != expected:
                     label = key.replace("_sha256", " fingerprint").replace("_", " ")
                     raise LargeLLMError(f"request journal {label} mismatch")
-            if (
-                accepted["schema_version"] == _LEGACY_RESUME_SCHEMA_VERSION
-                or "prompt_set_sha256" not in accepted
-                or accepted.get("prompt_set_sha256") != header.get("prompt_set_sha256")
+            accepted_schema = int(accepted["schema_version"])
+            needs_v2_migration = accepted_schema == _LEGACY_RESUME_SCHEMA_VERSION
+            needs_prompt_upgrade = (
+                header.get("prompt_set_sha256") is not None
+                and accepted.get("prompt_set_sha256") != header.get("prompt_set_sha256")
+                and accepted_schema
+                in {
+                    _LEGACY_CHAINED_SCHEMA_VERSION,
+                    _SCHEMA_VERSION,
+                }
+            )
+            if needs_v2_migration or (
+                needs_prompt_upgrade and accepted_schema == _LEGACY_CHAINED_SCHEMA_VERSION
             ):
                 try:
                     migrated = _upgrade_legacy_resume_log(
@@ -1167,6 +1571,29 @@ class RequestJournal:
                     raise LargeLLMError(
                         f"unable to upgrade schema v2 request journal: {error}"
                     ) from error
+            elif needs_prompt_upgrade and accepted_schema == _SCHEMA_VERSION:
+                try:
+                    migrated = _upgrade_chained_attempt_log(
+                        accepted,
+                        records,
+                        prompt_set_sha256=header.get("prompt_set_sha256"),  # type: ignore[arg-type]
+                    )
+                    _parse_request_log(
+                        migrated,
+                        allowed_versions=frozenset(
+                            {_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}
+                        ),
+                    )
+                    _atomic_write(path, migrated)
+                    header = _decode_json_line(migrated.splitlines(keepends=True)[0], 1)
+                except Exception as error:
+                    raise LargeLLMError(
+                        f"unable to upgrade schema v4 request journal: {error}"
+                    ) from error
+            else:
+                # Keep the on-disk schema (including v4 attempt journals) as
+                # the fixed header used by subsequent appends.
+                header = accepted
         self._path = path
         self._header = header
 
@@ -1183,13 +1610,23 @@ class RequestJournal:
             existing = _existing_bytes(self._path)
             if existing is None:
                 raise LargeLLMError("request journal disappeared before append")
-            header, records, terminal = _parse_request_log(existing)
+            header, records, terminal = _parse_request_log(
+                existing,
+                allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+            )
             if header != self._header:
                 raise LargeLLMError("request journal header changed before append")
             if terminal is not None:
                 raise LargeLLMError("request journal terminal checkpoint forbids append")
             previous_record_sha256 = (
                 str(records[-1]["record_sha256"]) if records else _header_sha256(header)
+            )
+            schema_version = int(header["schema_version"])
+            case_attempts = tuple(
+                _attempt_from_record(record, line_number=None)
+                for record in records
+                if record.get("record_type") == "attempt"
+                and record.get("case_id") == outcome.case_id
             )
             record = _outcome_record(
                 replace(
@@ -1201,8 +1638,14 @@ class RequestJournal:
                 provider_policy_sha256=self._header.get("provider_policy_sha256"),
                 privacy_sha256=self._header["privacy_sha256"],  # type: ignore[arg-type]
                 previous_record_sha256=previous_record_sha256,
+                attempts=case_attempts,
+                schema_version=schema_version,
             )
-            _outcome_from_record(record, line_number=None)
+            _outcome_from_record(
+                record,
+                line_number=None,
+                schema_version=schema_version,
+            )
             for key in (
                 "baseline",
                 "input_sha256",
@@ -1224,15 +1667,84 @@ class RequestJournal:
                 and record.get("prompt_set_sha256") != header["prompt_set_sha256"]
             ):
                 raise LargeLLMError("request journal prompt-set fingerprint mismatch")
-            if any(record["case_id"] == prior["case_id"] for prior in records):
+            if any(
+                record["case_id"] == prior["case_id"]
+                for prior in records
+                if prior.get("record_type") == "outcome"
+            ):
                 raise LargeLLMError(
                     f"request journal contains duplicate case ID: {record['case_id']}"
                 )
-            _atomic_write(self._path, existing + _canonical_json(record))
+            updated = existing + _canonical_json(record)
+            _parse_request_log(
+                updated,
+                allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+            )
+            _atomic_write(self._path, updated)
         except LargeLLMError:
             raise
         except Exception as error:
             raise LargeLLMError(f"unable to append request journal: {error}") from error
+
+    async def append_attempt(self, evidence: AttemptEvidence) -> None:
+        """Durably append one live attempt accounting transition.
+
+        The transport invokes this after every reserve, hold, and reconciliation
+        checkpoint.  Atomic replacement makes the exact final checkpoint survive
+        cooperative cancellation.
+        """
+        try:
+            existing = _existing_bytes(self._path)
+            if existing is None:
+                raise LargeLLMError("request journal disappeared before attempt append")
+            header, records, terminal = _parse_request_log(
+                existing,
+                allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+            )
+            if header != self._header:
+                raise LargeLLMError("request journal header changed before attempt append")
+            if terminal is not None:
+                raise LargeLLMError("request journal terminal checkpoint forbids append")
+            pending_header = header
+            if int(header["schema_version"]) == _LEGACY_CHAINED_SCHEMA_VERSION:
+                existing = _upgrade_chained_attempt_log(header, records)
+                header, records, terminal = _parse_request_log(
+                    existing,
+                    allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+                )
+                pending_header = header
+            previous = str(records[-1]["record_sha256"]) if records else _header_sha256(header)
+            record = _attempt_record(
+                evidence, run_id=str(header["run_id"]), previous_record_sha256=previous
+            )
+            _attempt_from_record(record, line_number=None)
+            updated = existing + _canonical_json(record)
+            _parse_request_log(
+                updated,
+                allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+            )
+            _atomic_write(self._path, updated)
+            self._header = pending_header
+        except LargeLLMError:
+            raise
+        except Exception as error:
+            raise LargeLLMError(f"unable to append request journal attempt: {error}") from error
+
+    @property
+    def attempts(self) -> tuple[AttemptEvidence, ...]:
+        """Return the canonical attempt evidence currently retained by this journal."""
+        payload = _existing_bytes(self._path)
+        if payload is None:
+            raise LargeLLMError("request journal disappeared before attempt load")
+        _header, records, _terminal = _parse_request_log(
+            payload,
+            allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+        )
+        return tuple(
+            _attempt_from_record(record, line_number=None)
+            for record in records
+            if record.get("record_type") == "attempt"
+        )
 
 
 def load_resume_state(
@@ -1317,6 +1829,8 @@ def load_resume_state(
     if expected_retrieval_sha256_by_case is not _UNSET:
         if not isinstance(expected_retrieval_sha256_by_case, Mapping):
             raise LargeLLMError("expected retrieval hashes must be a mapping")
+        if expected_prompt_sha256_by_case is _UNSET:
+            raise LargeLLMError("expected retrieval hashes require expected prompt hashes")
         for case_id, retrieval_hash in expected_retrieval_sha256_by_case.items():
             if not isinstance(case_id, str):
                 raise LargeLLMError("expected retrieval case ID is invalid")
@@ -1334,6 +1848,7 @@ def load_resume_state(
         payload,
         allowed_versions=_RESUME_SCHEMA_VERSIONS,
     )
+    outcome_records = tuple(record for record in records if record.get("record_type") == "outcome")
     schema_version = int(header["schema_version"])
     for key, expected, label in (
         ("input_sha256", expected_input_sha256, "input fingerprint"),
@@ -1370,7 +1885,12 @@ def load_resume_state(
     cost = Decimal("0")
     budget_checkpoint: BudgetSnapshot | None = None
     terminal_metrics: LargeEvaluationMetrics | None = None
+    attempt_records: list[AttemptEvidence] = []
     for record in records:
+        if record.get("record_type") == "attempt":
+            attempt_records.append(_attempt_from_record(record, line_number=None))
+            budget_checkpoint = attempt_records[-1].budget_checkpoint
+            continue
         outcome = _outcome_from_record(
             record,
             line_number=None,
@@ -1381,7 +1901,7 @@ def load_resume_state(
         cost += outcome.authoritative_cost_usd
     if expected_prompt_sha256_by_case is not _UNSET:
         actual_prompt_hashes = {
-            str(record["case_id"]): record.get("prompt_sha256") for record in records
+            str(record["case_id"]): record.get("prompt_sha256") for record in outcome_records
         }
         expected_prompt_hashes = dict(expected_prompt_sha256_by_case)
         if any(
@@ -1389,13 +1909,19 @@ def load_resume_state(
             for case_id, prompt in actual_prompt_hashes.items()
         ):
             raise LargeLLMError("request journal prompt fingerprint mismatch")
+        if any(
+            attempt.case_id not in expected_prompt_hashes
+            or attempt.prompt_sha256 != expected_prompt_hashes[attempt.case_id]
+            for attempt in attempt_records
+        ):
+            raise LargeLLMError("request journal attempt prompt fingerprint mismatch")
         derived_values: tuple[tuple[str, object], ...]
         if expected_retrieval_sha256_by_case is not _UNSET:
             expected_retrieval_hashes = dict(expected_retrieval_sha256_by_case)
             if set(expected_retrieval_hashes) != set(expected_prompt_hashes):
                 raise LargeLLMError("expected retrieval evidence must cover every prompt case")
             actual_retrieval_hashes = {
-                str(record["case_id"]): record.get("retrieval_sha256") for record in records
+                str(record["case_id"]): record.get("retrieval_sha256") for record in outcome_records
             }
             if any(
                 case_id not in expected_retrieval_hashes
@@ -1425,8 +1951,18 @@ def load_resume_state(
                 header.get("baseline") == "b4" and header["prompt_set_sha256"] == legacy_prompt_set
             ):
                 raise LargeLLMError("request journal prompt-set fingerprint mismatch")
+    elif (
+        expected_prompt_set_sha256 is not _UNSET
+        and schema_version != _LEGACY_RESUME_SCHEMA_VERSION
+        and header.get("prompt_set_sha256") != expected_prompt_set_sha256
+    ):
+        raise LargeLLMError("request journal prompt-set fingerprint mismatch")
     if terminal is not None:
-        budget_checkpoint, terminal_metrics = _terminal_evidence(terminal, line_number=None)
+        budget_checkpoint, terminal_metrics = _terminal_evidence(
+            terminal,
+            line_number=None,
+            schema_version=schema_version,
+        )
     assert budget_checkpoint is not None
     unattributed_spend = budget_checkpoint.spent_usd - cost
     if unattributed_spend < Decimal("0"):
@@ -1438,7 +1974,7 @@ def load_resume_state(
                 line_number=None,
                 schema_version=schema_version,
             )
-            for record in records
+            for record in outcome_records
         )
         if terminal_metrics != _metrics(outcomes, unattributed_spend_usd=unattributed_spend):
             raise LargeLLMError("request journal terminal metrics are not derived")
@@ -1449,10 +1985,10 @@ def load_resume_state(
     if privacy_sha256 is None and expected_privacy_sha256 is not _UNSET:
         privacy_sha256 = expected_privacy_sha256
     return ResumeState(
-        completed_case_ids=tuple(str(record["case_id"]) for record in records),
+        completed_case_ids=tuple(str(record["case_id"]) for record in outcome_records),
         prior_cost_usd=cost,
         unattributed_spend_usd=unattributed_spend,
-        prior_records=records,
+        prior_records=outcome_records,
         budget_checkpoint=budget_checkpoint,
         run_id=str(header["run_id"]),
         baseline=str(header["baseline"]),
@@ -1478,6 +2014,8 @@ def load_resume_state(
             else None
         ),
         journal_prompt_set_sha256=header.get("prompt_set_sha256"),
+        prior_journal_records=records,
+        attempt_records=tuple(attempt_records),
     )
 
 
@@ -1506,6 +2044,7 @@ def serialize_predictions(run: LargeEvaluationRun) -> bytes:
 def _request_log_parts(
     run: LargeEvaluationRun,
 ) -> tuple[dict[str, object], tuple[dict[str, object], ...], dict[str, object]]:
+    schema_version = _SCHEMA_VERSION if run.attempts else _LEGACY_CHAINED_SCHEMA_VERSION
     header = _journal_header(
         run_id=run.run_id,
         baseline=run.baseline,
@@ -1520,10 +2059,29 @@ def _request_log_parts(
         provider_policy_sha256=run.provider_policy_sha256,
         privacy_sha256=run.privacy_sha256,
         prompt_set_sha256=run.prompt_set_sha256,
+        schema_version=schema_version,
     )
     previous_record_sha256 = _header_sha256(header)
     records: list[dict[str, object]] = []
+    attempts_by_case: dict[str, list[AttemptEvidence]] = {}
+    for attempt in run.attempts:
+        prior = attempts_by_case.setdefault(attempt.case_id, [])
+        if any(
+            item.reservation_id == attempt.reservation_id and item.status == attempt.status
+            for item in prior
+        ):
+            raise LargeLLMError("run attempt evidence contains duplicate transitions")
+        _validate_attempt_transition(prior, attempt)
+        prior.append(attempt)
+        attempt_record = _attempt_record(
+            attempt,
+            run_id=run.run_id,
+            previous_record_sha256=previous_record_sha256,
+        )
+        records.append(attempt_record)
+        previous_record_sha256 = str(attempt_record["record_sha256"])
     for outcome in run.outcomes:
+        case_attempts = tuple(attempts_by_case.pop(outcome.case_id, ()))
         if outcome.prompt_set_sha256 is None and run.prompt_set_sha256 is not None:
             outcome = replace(outcome, prompt_set_sha256=run.prompt_set_sha256)
         record = _outcome_record(
@@ -1533,24 +2091,32 @@ def _request_log_parts(
             provider_policy_sha256=run.provider_policy_sha256,
             privacy_sha256=run.privacy_sha256,
             previous_record_sha256=previous_record_sha256,
+            attempts=case_attempts,
+            schema_version=schema_version,
         )
         records.append(record)
         previous_record_sha256 = str(record["record_sha256"])
+    if attempts_by_case:
+        raise LargeLLMError("run attempt evidence does not belong to an outcome")
     report_body = _report_body(run)
+    terminal_body: dict[str, object] = {
+        "record_type": "terminal",
+        "run_id": run.run_id,
+        "outcome_count": len(run.outcomes),
+        "budget_checkpoint": _canonical_value(asdict(run.budget)),
+        "metrics": _canonical_value(asdict(run.metrics)),
+        "scientific_ready": run.scientific_ready,
+        "blockers": list(run.blockers),
+        "local_implementation_ready": run.local_implementation_ready,
+        "provider_policy_sha256": run.provider_policy_sha256,
+        "privacy_sha256": run.privacy_sha256,
+        "report_body_sha256": hashlib.sha256(_canonical_json(report_body)).hexdigest(),
+    }
+    if schema_version == _SCHEMA_VERSION:
+        terminal_body["attempt_set_count"] = len(run.attempts)
+        terminal_body["attempt_set_sha256"] = _attempt_set_sha256(run.attempts)
     terminal = _chained_record(
-        {
-            "record_type": "terminal",
-            "run_id": run.run_id,
-            "outcome_count": len(run.outcomes),
-            "budget_checkpoint": _canonical_value(asdict(run.budget)),
-            "metrics": _canonical_value(asdict(run.metrics)),
-            "scientific_ready": run.scientific_ready,
-            "blockers": list(run.blockers),
-            "local_implementation_ready": run.local_implementation_ready,
-            "provider_policy_sha256": run.provider_policy_sha256,
-            "privacy_sha256": run.privacy_sha256,
-            "report_body_sha256": hashlib.sha256(_canonical_json(report_body)).hexdigest(),
-        },
+        terminal_body,
         previous_record_sha256=previous_record_sha256,
     )
     if run.prompt_set_sha256 is not None:
@@ -1558,7 +2124,15 @@ def _request_log_parts(
         terminal["record_sha256"] = _record_sha256(
             {key: value for key, value in terminal.items() if key != "record_sha256"}
         )
-    _terminal_evidence(terminal, line_number=None)
+    _terminal_evidence(
+        terminal,
+        line_number=None,
+        schema_version=(_SCHEMA_VERSION if run.attempts else _LEGACY_CHAINED_SCHEMA_VERSION),
+    )
+    _parse_request_log(
+        b"".join(_canonical_json(record) for record in (header, *records, terminal)),
+        allowed_versions=frozenset({_LEGACY_CHAINED_SCHEMA_VERSION, _SCHEMA_VERSION}),
+    )
     return header, tuple(records), terminal
 
 
@@ -1663,6 +2237,8 @@ def _report_body(run: LargeEvaluationRun) -> dict[str, object]:
             "provider_policy_sha256": run.provider_policy_sha256,
             "privacy_sha256": run.privacy_sha256,
             "prompt_set_sha256": run.prompt_set_sha256,
+            "attempt_set_count": len(run.attempts),
+            "attempt_set_sha256": _attempt_set_sha256(run.attempts),
             "local_implementation_ready": run.local_implementation_ready,
             "scientific_ready": run.scientific_ready,
             "blockers": run.blockers,
@@ -1794,10 +2370,34 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
             "large-run report budget/metrics/totals disagree with final durable "
             "checkpoint terminal evidence"
         )
-    outcomes = tuple(_outcome_from_record(record, line_number=None) for record in records)
+    outcome_records = tuple(record for record in records if record.get("record_type") == "outcome")
+    attempts = tuple(
+        _attempt_from_record(record, line_number=None)
+        for record in records
+        if record.get("record_type") == "attempt"
+    )
+    if int(header["schema_version"]) == _SCHEMA_VERSION:
+        if report.get("attempt_set_count") != len(attempts):
+            raise LargeLLMError("large-run report attempt count disagrees with request journal")
+        if report.get("attempt_set_sha256") != _attempt_set_sha256(attempts):
+            raise LargeLLMError(
+                "large-run report attempt fingerprint disagrees with request journal"
+            )
+    outcomes = tuple(
+        _outcome_from_record(
+            record,
+            line_number=None,
+            schema_version=int(header["schema_version"]),
+        )
+        for record in outcome_records
+    )
     if not outcomes:
         raise LargeLLMError("large-run request journal has no outcomes")
-    budget, terminal_metrics = _terminal_evidence(terminal, line_number=None)
+    budget, terminal_metrics = _terminal_evidence(
+        terminal,
+        line_number=None,
+        schema_version=int(header["schema_version"]),
+    )
     if report.get("budget") != terminal["budget_checkpoint"]:
         raise LargeLLMError("large-run report budget disagrees with terminal checkpoint")
     attributed = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=Decimal("0"))
@@ -1880,6 +2480,7 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
             provider_policy_sha256=header.get("provider_policy_sha256"),  # type: ignore[arg-type]
             privacy_sha256=header.get("privacy_sha256"),  # type: ignore[arg-type]
             prompt_set_sha256=header.get("prompt_set_sha256"),  # type: ignore[arg-type]
+            attempts=attempts,
         )
     except (KeyError, TypeError, LargeLLMError) as error:
         raise LargeLLMError("large-run report is invalid") from error

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -212,7 +213,9 @@ def load_sentence_encoder(encoder_id: str, encoder_revision: str) -> Any:
         raise LargeLLMError("unable to load pinned sentence encoder") from error
 
 
-def load_openrouter_transport(config: LargeLLMConfig, ledger: BudgetLedger) -> Any:
+def load_openrouter_transport(
+    config: LargeLLMConfig, ledger: BudgetLedger, *, attempt_sink: object | None = None
+) -> Any:
     """Lazily construct the live OpenRouter transport after all preflight checks.
 
     Args:
@@ -224,7 +227,20 @@ def load_openrouter_transport(config: LargeLLMConfig, ledger: BudgetLedger) -> A
     """
     from nl2sparql.models.b45.openrouter import OpenRouterTransport
 
-    return OpenRouterTransport.from_env(config, ledger)
+    return OpenRouterTransport.from_env(config, ledger, attempt_sink=attempt_sink)
+
+
+def _load_transport_with_attempt_sink(
+    config: LargeLLMConfig, ledger: BudgetLedger, journal: object
+) -> Any:
+    """Pass the durable attempt sink while preserving narrow injected seams."""
+    loader = load_openrouter_transport
+    parameters = inspect.signature(loader).parameters
+    if "attempt_sink" in parameters or any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values()
+    ):
+        return loader(config, ledger, attempt_sink=journal)
+    return loader(config, ledger)
 
 
 def load_model_metadata(config: LargeLLMConfig) -> object:
@@ -784,7 +800,26 @@ def evaluate_command(**options: Any) -> None:
             len(summary.text.encode("utf-8")) + 2000,
             options["accepted_model_metadata_sha256"],
         )
-        transport = load_openrouter_transport(config, ledger)
+        journal = RequestJournal(
+            paths.request_log,
+            allow_legacy_resume=legacy_resume_authorized,
+            run_id=options["run_id"],
+            baseline=options["baseline_name"],
+            input_sha256=cases[0].input_sha256,
+            config_sha256=config.sha256,
+            catalog_sha256=summary.catalog_sha256,
+            summary_sha256=summary.summary_sha256,
+            training_sha256=(
+                options["accepted_training_sha256"] if options["baseline_name"] == "b5" else None
+            ),
+            model_id=config.model_id,
+            provider_slug=config.provider.provider_slug,
+            model_metadata_sha256=metadata.metadata_sha256,
+            provider_policy_sha256=config.provider.sha256,
+            privacy_sha256=privacy_sha256,
+            prompt_set_sha256=prompt_set,
+        )
+        transport = _load_transport_with_attempt_sink(config, ledger, journal)
         baseline = build_large_baseline(
             options["baseline_name"],
             summary=summary,
@@ -799,23 +834,6 @@ def evaluate_command(**options: Any) -> None:
             retriever=retriever,
         )
         evidence = baseline.evaluation_evidence
-        journal = RequestJournal(
-            paths.request_log,
-            allow_legacy_resume=legacy_resume_authorized,
-            run_id=options["run_id"],
-            baseline=options["baseline_name"],
-            input_sha256=cases[0].input_sha256,
-            config_sha256=config.sha256,
-            catalog_sha256=evidence.catalog_sha256,
-            summary_sha256=evidence.summary_sha256,
-            training_sha256=evidence.training_sha256,
-            model_id=evidence.model_id,
-            provider_slug=evidence.provider_slug,
-            model_metadata_sha256=metadata.metadata_sha256,
-            provider_policy_sha256=evidence.provider_policy_sha256,
-            privacy_sha256=privacy_sha256,
-            prompt_set_sha256=prompt_set,
-        )
         run = asyncio.run(
             evaluate_large_baseline(
                 cases,
