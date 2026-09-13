@@ -144,11 +144,25 @@ provider details.
 Offline validation never needs a key, model, encoder, or network:
 
 ```bash
+uv run python scripts/generate_b45_local_verification.py
 uv run python scripts/18_large_llm_baselines.py validate \
   --baseline b4 \
   --provider deepinfra \
   --max-cost-usd 20
 ```
+
+The generator is the only canonical publication workflow for
+`docs/evidence/t5-3-local-verification.json`. It executes the exact focused and
+full pytest commands, Ruff check and format checks, CLI help, and offline
+validation before atomically publishing command-output hashes, passing test
+counts, and a deterministic source-set SHA-256. The source set covers the B45
+module, workflow and numbered wrapper, generator, B45 tests and fixtures,
+`pyproject.toml`, `uv.lock`, and `.python-version`; the manifest and
+closure-only documentation are deliberately outside that digest to avoid a
+self-reference cycle. A missing, malformed, tampered, or source-stale manifest
+yields a local-readiness blocker. Live `evaluate` rejects that state before
+snapshot, key, metadata, SDK, or transport access, while offline `validate`
+reports it without opening a network connection.
 
 `validate` accepts `--baseline {b4,b5}`, required `--provider`,
 `--max-cost-usd`, `--test-set`, `--predictions`, `--request-log`, `--cost-log`,
@@ -190,8 +204,9 @@ The local implementation gate covers contracts, B4/B5 prompt parity, B2
 retrieval reuse, fail-closed GoogleSQL extraction, lazy provider loading,
 retry/error policy, hard-cap accounting, protected atomic artifacts, v3
 terminal evidence, v2 resume migration, CLI preflight, focused tests, the full
-test suite, and lint/format checks. Local completion does not produce research
-results.
+test suite, and lint/format checks. Readiness is derived from the validated
+canonical manifest rather than a caller-provided boolean. Local completion does
+not produce research results.
 
 Scientific acceptance remains blocked until all of the following are supplied
 and independently reviewed:

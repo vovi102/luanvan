@@ -55,6 +55,10 @@ from nl2sparql.models.b45.evaluate import (
     load_evaluation_cases,
     prompt_set_sha256,
 )
+from nl2sparql.models.b45.local_verification import (
+    LocalVerificationEvidence,
+    load_local_verification_evidence,
+)
 from nl2sparql.models.b45.privacy import (
     PrivacyReviewEvidence,
     load_privacy_review,
@@ -85,6 +89,7 @@ __all__ = [
     "LargeEvaluationMetrics",
     "LargeEvaluationRun",
     "LargeLLMPrediction",
+    "LocalVerificationEvidence",
     "OutcomeJournal",
     "ProviderPolicy",
     "PrivacyReviewEvidence",
@@ -101,6 +106,7 @@ __all__ = [
     "prompt_set_sha256",
     "load_resume_state",
     "load_large_run_artifacts",
+    "load_local_verification_evidence",
     "load_evaluation_cases",
     "load_privacy_review",
     "privacy_review_path",

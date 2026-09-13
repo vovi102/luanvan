@@ -32,6 +32,7 @@ from nl2sparql.models.b45 import (
     evaluate_large_baseline,
     load_evaluation_cases,
     load_large_run_artifacts,
+    load_local_verification_evidence,
     load_privacy_review,
     load_resume_state,
     preview_b4_prompt,
@@ -117,6 +118,13 @@ def _config(provider: str, max_cost_usd: str) -> LargeLLMConfig:
 def _require_network(allow_network: bool) -> None:
     if not allow_network:
         raise LargeLLMError("network access requires --allow-network")
+
+
+def _require_local_verification() -> None:
+    evidence = load_local_verification_evidence()
+    if not evidence.ready:
+        blockers = ",".join(evidence.blockers)
+        raise LargeLLMError(f"local implementation verification is blocked: {blockers}")
 
 
 def _require_api_key() -> None:
@@ -562,6 +570,7 @@ def validate_command(**options: Any) -> None:
     """Validate local catalog and B5 cache evidence without network access."""
     try:
         config = _validate_primitives(options, evaluation=False)
+        local_verification = load_local_verification_evidence()
         snapshot_blocker = None
         snapshot_sha256 = None
         if options["test_set"].exists():
@@ -604,12 +613,16 @@ def validate_command(**options: Any) -> None:
                 "config_sha256": config.sha256,
                 "input_sha256": snapshot_sha256,
                 "training_sha256": training_sha256,
-                "local_implementation_ready": True,
+                "local_implementation_ready": local_verification.ready,
                 "privacy_review": privacy_path,
                 "privacy_sha256": privacy.privacy_sha256 if privacy is not None else None,
                 "blockers": [
                     blocker
-                    for blocker in (snapshot_blocker, privacy_blocker)
+                    for blocker in (
+                        snapshot_blocker,
+                        privacy_blocker,
+                        *local_verification.blockers,
+                    )
                     if blocker is not None
                 ],
             }
@@ -709,6 +722,8 @@ def evaluate_command(**options: Any) -> None:
     """Run and atomically publish one opted-in B4/B5 evaluation."""
     try:
         config = _validate_primitives(options, evaluation=True)
+        if options["allow_network"]:
+            _require_local_verification()
         cases = load_evaluation_cases(options["test_set"])
         summary = compile_catalog_summary(options["catalog_path"])
         paths = _artifact_paths(

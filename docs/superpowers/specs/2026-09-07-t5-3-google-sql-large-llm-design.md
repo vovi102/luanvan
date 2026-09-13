@@ -227,7 +227,8 @@ as remote-processing baselines and retain no API credentials.
 The workflow emits separate readiness fields:
 
 - `local_implementation_ready`: contracts, fake transport, validation, CLI,
-  artifact checks, focused tests, full tests, and lint all pass.
+  artifact checks, focused tests, full tests, and lint all pass, as recorded by
+  the canonical content-bound local-verification manifest.
 - `scientific_ready`: finalized/reviewed T3.5 snapshot, accepted B5 training
   source, pinned supported model/provider metadata, three genuine complete runs,
   final cost under USD 20, no unresolved charges, and no synthetic records.
@@ -235,6 +236,11 @@ The workflow emits separate readiness fields:
 No caller-provided boolean alone can confer either status. Readiness is derived
 from loader-issued provenance objects and validated artifacts. Synthetic
 transport completions are marked at construction and cannot be relabeled.
+The local manifest is generated only by executing the exact focused/full
+pytest, Ruff check/format, CLI help, and offline-validation commands. It binds
+deterministic hashes for B45 source, workflow/wrappers, B45 tests/fixtures, and
+Python project configuration. Missing, malformed, tampered, or stale evidence
+fails closed; live evaluation checks this gate before every network seam.
 
 ## Testing
 

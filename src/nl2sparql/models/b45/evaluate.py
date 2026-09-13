@@ -27,6 +27,7 @@ from nl2sparql.models.b45.contracts import (
     LargeLLMError,
     LargeLLMPrediction,
 )
+from nl2sparql.models.b45.local_verification import load_local_verification_evidence
 from nl2sparql.models.b45.openrouter import ModelMetadataEvidence, OpenRouterRequestError
 
 OutcomeStatus = Literal[
@@ -429,7 +430,7 @@ class LargeEvaluationRun:
         counterpart baseline.  The property is intentionally not a dataclass
         field: callers cannot assert readiness by supplying a boolean.
         """
-        return True
+        return load_local_verification_evidence().ready
 
     def __post_init__(self) -> None:
         if (

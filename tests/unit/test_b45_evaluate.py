@@ -7,9 +7,15 @@ from decimal import Decimal
 
 import pytest
 
+import nl2sparql.models.b45.evaluate as evaluate_module
 from nl2sparql.models.b12 import EvaluationCase
 from nl2sparql.models.b12.contracts import ChatMessage
-from nl2sparql.models.b45 import BudgetLedger, LargeLLMConfig, ProviderPolicy
+from nl2sparql.models.b45 import (
+    BudgetLedger,
+    LargeLLMConfig,
+    LocalVerificationEvidence,
+    ProviderPolicy,
+)
 from nl2sparql.models.b45.budget import BudgetReservation, BudgetSnapshot
 from nl2sparql.models.b45.contracts import (
     LargeBaselineEvidence,
@@ -741,6 +747,23 @@ def run_with_failure(run_id: str) -> LargeEvaluationRun:
         provider_slug="deepinfra",
         model_metadata_sha256="e" * 64,
     )
+
+
+def test_run_local_readiness_is_derived_from_loader_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Returning a constant true readiness value would fail this test."""
+    monkeypatch.setattr(
+        evaluate_module,
+        "load_local_verification_evidence",
+        lambda: LocalVerificationEvidence(
+            ready=False,
+            blockers=("local_verification_manifest_missing",),
+        ),
+        raising=False,
+    )
+
+    assert run_with_sql("run-1", SAFE_SQL).local_implementation_ready is False
 
 
 def test_three_run_report_measures_raw_and_normalized_sql_agreement() -> None:

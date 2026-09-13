@@ -44,11 +44,19 @@ Lệnh preflight offline sau đây chỉ kiểm tra catalog/config local, không
 key, không khởi tạo client và không mở network:
 
 ```bash
+uv run python scripts/generate_b45_local_verification.py
 uv run python scripts/18_large_llm_baselines.py validate \
   --baseline b4 \
   --provider deepinfra \
   --max-cost-usd 20
 ```
+
+Lệnh generator chạy lại focused/full pytest, Ruff check/format, CLI help và
+offline validate rồi mới ghi manifest canonical
+`docs/evidence/t5-3-local-verification.json`. Manifest ràng buộc SHA-256 của
+module B45, workflow/wrapper, B45 tests và cấu hình Python; thay đổi bất kỳ đầu
+vào nào làm `local_implementation_ready=false` cho đến khi toàn bộ gate được
+chạy lại thành công. Generator không gọi OpenRouter.
 
 `validate` cũng kiểm tra sidecar privacy cục bộ nếu có; khi sidecar chưa có,
 JSON kết quả giữ blocker `privacy_review_missing` để nhắc gate bên ngoài mà

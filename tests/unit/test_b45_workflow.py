@@ -32,6 +32,16 @@ METADATA_SHA = "c" * 64
 V2_JOURNAL_FIXTURE = Path("tests/fixtures/b45/request-journal-v2-in-progress.jsonl")
 
 
+@pytest.fixture(autouse=True)
+def _validated_local_implementation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep workflow tests focused while the real manifest loader is tested separately."""
+    monkeypatch.setattr(
+        workflow,
+        "load_local_verification_evidence",
+        lambda: SimpleNamespace(ready=True, blockers=()),
+    )
+
+
 def test_task_document_matches_google_sql_acceptance_boundary() -> None:
     text = Path("docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md").read_text()
     assert "GoogleSQL" in text
@@ -224,6 +234,88 @@ def test_validate_uses_only_local_catalog_evidence(monkeypatch: pytest.MonkeyPat
     payload = json.loads(result.output)
     assert payload["status"] == "ready"
     assert payload["baseline"] == "b4"
+
+
+def test_validate_reports_missing_local_verification_manifest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Hard-coding local readiness to true would make this test fail."""
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(
+        workflow,
+        "load_local_verification_evidence",
+        lambda: SimpleNamespace(
+            ready=False,
+            blockers=("local_verification_manifest_missing",),
+        ),
+        raising=False,
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        ["validate", "--baseline", "b4", "--provider", "deepinfra", "--max-cost-usd", "20"],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["local_implementation_ready"] is False
+    assert "local_verification_manifest_missing" in payload["blockers"]
+
+
+def test_evaluate_rejects_invalid_local_verification_before_network(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reaching any live seam with stale local evidence would fail this test."""
+    events: list[str] = []
+    monkeypatch.setattr(
+        workflow,
+        "load_local_verification_evidence",
+        lambda: SimpleNamespace(
+            ready=False,
+            blockers=("local_verification_source_stale",),
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_evaluation_cases",
+        lambda _path: events.append("snapshot") or (_case(),),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_model_metadata",
+        lambda *_args, **_kwargs: events.append("metadata") or {"unexpected": True},
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_openrouter_transport",
+        lambda *_args, **_kwargs: events.append("transport") or None,
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--run-id",
+            "run-1",
+            "--provider",
+            "deepinfra",
+            "--max-cost-usd",
+            "20",
+            "--allow-network",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--accepted-privacy-review-sha256",
+            "d" * 64,
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert json.loads(result.output)["error"] == (
+        "local implementation verification is blocked: local_verification_source_stale"
+    )
+    assert events == []
 
 
 def test_validate_does_not_import_openai() -> None:
