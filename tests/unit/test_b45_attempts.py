@@ -5,11 +5,15 @@ from types import SimpleNamespace
 
 import pytest
 
+from nl2sparql.models.b12 import EvaluationCase
 from nl2sparql.models.b12.contracts import ChatMessage
+from nl2sparql.models.b12.prompts import prompt_sha256
 from nl2sparql.models.b45 import (
+    AttemptEvidencePersistenceError,
     BudgetLedger,
     BudgetReservation,
     BudgetSnapshot,
+    LargeBaselineEvidence,
     LargeLLMConfig,
     LargeLLMError,
     ProviderPolicy,
@@ -17,6 +21,7 @@ from nl2sparql.models.b45 import (
     load_resume_state,
 )
 from nl2sparql.models.b45.attempts import AttemptEvidence
+from nl2sparql.models.b45.evaluate import EvaluationOutcome, evaluate_large_baseline
 from nl2sparql.models.b45.openrouter import OpenRouterRequestError, OpenRouterTransport
 
 
@@ -47,6 +52,75 @@ def _response() -> object:
             cost_details=SimpleNamespace(upstream_inference_cost="0.0001"),
         ),
     )
+
+
+def _journal(path, config: LargeLLMConfig) -> RequestJournal:
+    return RequestJournal(
+        path,
+        run_id="run-1",
+        baseline="b4",
+        input_sha256="b" * 64,
+        config_sha256=config.sha256,
+        catalog_sha256="c" * 64,
+        summary_sha256="d" * 64,
+        training_sha256=None,
+        model_id=config.model_id,
+        provider_slug="deepinfra",
+    )
+
+
+async def _append_completed_prefix(
+    journal: RequestJournal,
+    config: LargeLLMConfig,
+    *,
+    case_id: str = "case-1",
+    cost: Decimal = Decimal("0.0002"),
+) -> BudgetSnapshot:
+    messages = (ChatMessage("user", "prompt"),)
+    prompt = prompt_sha256(messages)
+    ceiling = Decimal("0.000515")
+    reserved = BudgetSnapshot(
+        cap_usd=config.max_cost_usd,
+        spent_usd=Decimal("0"),
+        reserved_usd=ceiling,
+        remaining_usd=config.max_cost_usd - ceiling,
+        unresolved_request_ids=(f"{case_id}:attempt-1",),
+        unresolved_reservations=(BudgetReservation(f"{case_id}:attempt-1", ceiling),),
+    )
+    completed = BudgetSnapshot(
+        cap_usd=config.max_cost_usd,
+        spent_usd=cost,
+        reserved_usd=Decimal("0"),
+        remaining_usd=config.max_cost_usd - cost,
+        unresolved_request_ids=(),
+        unresolved_reservations=(),
+    )
+    await journal.append_attempt(
+        AttemptEvidence(
+            case_id=case_id,
+            request_id=case_id,
+            reservation_id=f"{case_id}:attempt-1",
+            attempt_number=1,
+            status="reserved",
+            prompt_sha256=prompt,
+            reservation_ceiling_usd=ceiling,
+            budget_checkpoint=reserved,
+        )
+    )
+    await journal.append_attempt(
+        AttemptEvidence(
+            case_id=case_id,
+            request_id=case_id,
+            reservation_id=f"{case_id}:attempt-1",
+            attempt_number=1,
+            status="completed",
+            prompt_sha256=prompt,
+            reservation_ceiling_usd=ceiling,
+            budget_checkpoint=completed,
+            authoritative_cost_usd=cost,
+        )
+    )
+    return completed
 
 
 def test_transport_emits_ordered_secret_safe_evidence_for_retry_and_success() -> None:
@@ -97,6 +171,101 @@ def test_transport_emits_ordered_secret_safe_evidence_for_retry_and_success() ->
         assert attempts.items[-1].authoritative_cost_usd == Decimal("0.0002")
         assert all("secret" not in repr(item) for item in attempts.items)
         assert all(item.request_id == "case-1" for item in attempts.items)
+
+    asyncio.run(scenario())
+
+
+def test_completed_attempt_only_prefix_reissues_next_attempt_when_cap_admits(tmp_path) -> None:
+    """Restarting at attempt 1 would collide with durable completed attempt evidence."""
+
+    class Completions:
+        def __init__(self, outcomes: list[object]) -> None:
+            self.outcomes = iter(outcomes)
+
+        async def create(self, **_kwargs: object) -> object:
+            return next(self.outcomes)
+
+    async def scenario() -> None:
+        config = _config()
+        journal = _journal(tmp_path / "completed-prefix.jsonl", config)
+        checkpoint = await _append_completed_prefix(journal, config)
+        resume = load_resume_state(
+            tmp_path / "completed-prefix.jsonl",
+            expected_input_sha256="b" * 64,
+            expected_config_sha256=config.sha256,
+            expected_run_id="run-1",
+            expected_model_metadata_sha256=None,
+        )
+        assert resume.completed_case_ids == ()
+        assert resume.budget_checkpoint == checkpoint
+
+        transport = OpenRouterTransport(
+            sdk=SimpleNamespace(chat=SimpleNamespace(completions=Completions([_response()]))),
+            ledger=BudgetLedger.from_checkpoint(config, resume.budget_checkpoint),
+            attempt_sink=journal,
+            clock_ns=iter([0, 1_000_000]).__next__,
+        )
+        result = await transport.complete(
+            (ChatMessage("user", "prompt"),), config, request_id="case-1"
+        )
+
+        assert result.attempt_count == 2
+        assert [
+            (item.attempt_number, item.status, item.reservation_id) for item in journal.attempts
+        ] == [
+            (1, "reserved", "case-1:attempt-1"),
+            (1, "completed", "case-1:attempt-1"),
+            (2, "reserved", "case-1:attempt-2"),
+            (2, "completed", "case-1:attempt-2"),
+        ]
+        snapshot = await transport._ledger.snapshot()
+        assert snapshot.cap_usd == config.max_cost_usd
+        assert snapshot.spent_usd == Decimal("0.0004")
+        assert snapshot.reserved_usd == Decimal("0")
+        assert journal.attempts[-1].budget_checkpoint == snapshot
+
+    asyncio.run(scenario())
+
+
+def test_completed_attempt_only_prefix_does_not_reissue_when_cap_blocks(tmp_path) -> None:
+    """A blocked resume must not reuse attempt 1 or append a fabricated attempt 2."""
+
+    class Completions:
+        calls = 0
+
+        async def create(self, **_kwargs: object) -> object:
+            type(self).calls += 1
+            return _response()
+
+    async def scenario() -> None:
+        config = LargeLLMConfig(
+            provider=ProviderPolicy(
+                provider_slug="deepinfra",
+                prompt_price_per_million_usd=Decimal("0.50"),
+                completion_price_per_million_usd=Decimal("1.00"),
+            ),
+            max_cost_usd=Decimal("0.0006"),
+        )
+        journal = _journal(tmp_path / "completed-prefix-blocked.jsonl", config)
+        checkpoint = await _append_completed_prefix(journal, config)
+        before = (tmp_path / "completed-prefix-blocked.jsonl").read_bytes()
+        transport = OpenRouterTransport(
+            sdk=SimpleNamespace(chat=SimpleNamespace(completions=Completions())),
+            ledger=BudgetLedger.from_checkpoint(config, checkpoint),
+            attempt_sink=journal,
+        )
+
+        with pytest.raises(OpenRouterRequestError) as captured:
+            await transport.complete((ChatMessage("user", "prompt"),), config, request_id="case-1")
+
+        assert captured.value.code == "budget_blocked"
+        assert captured.value.attempt_count == 0
+        assert Completions.calls == 0
+        assert [(item.attempt_number, item.status) for item in journal.attempts] == [
+            (1, "reserved"),
+            (1, "completed"),
+        ]
+        assert (tmp_path / "completed-prefix-blocked.jsonl").read_bytes() == before
 
     asyncio.run(scenario())
 
@@ -162,6 +331,190 @@ def test_attempt_only_prefix_restores_latest_checkpoint_without_completing_case(
     # outer JSON line canonically; the chain/order validator remains fail-closed.
     with pytest.raises(Exception, match="duplicate"):
         asyncio.run(journal.append_attempt(reserved))
+
+
+def test_backoff_cancellation_does_not_append_second_terminal_attempt() -> None:
+    """Appending cancelled after retryable_failure double-counts one attempt."""
+
+    class Attempts:
+        def __init__(self) -> None:
+            self.items: list[AttemptEvidence] = []
+
+        async def append_attempt(self, evidence: AttemptEvidence) -> None:
+            self.items.append(evidence)
+
+    class Completions:
+        async def create(self, **_kwargs: object) -> object:
+            raise ConnectionError("transient provider detail")
+
+    async def scenario() -> None:
+        started = asyncio.Event()
+
+        async def sleep(_delay: float) -> None:
+            started.set()
+            await asyncio.Event().wait()
+
+        config = _config()
+        attempts = Attempts()
+        transport = OpenRouterTransport(
+            sdk=SimpleNamespace(chat=SimpleNamespace(completions=Completions())),
+            ledger=BudgetLedger(config),
+            attempt_sink=attempts,
+            sleep=sleep,
+        )
+        task = asyncio.create_task(
+            transport.complete((ChatMessage("user", "prompt"),), config, request_id="case-1")
+        )
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        assert [(item.attempt_number, item.status) for item in attempts.items] == [
+            (1, "reserved"),
+            (1, "retryable_failure"),
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_invalid_retry_delay_records_one_terminal_transition() -> None:
+    """A retry-delay validation failure must not first mark the attempt retryable."""
+
+    class Attempts:
+        def __init__(self) -> None:
+            self.items: list[AttemptEvidence] = []
+
+        async def append_attempt(self, evidence: AttemptEvidence) -> None:
+            self.items.append(evidence)
+
+    class Completions:
+        async def create(self, **_kwargs: object) -> object:
+            raise ConnectionError("transient provider detail")
+
+    async def scenario() -> None:
+        config = _config()
+        attempts = Attempts()
+        transport = OpenRouterTransport(
+            sdk=SimpleNamespace(chat=SimpleNamespace(completions=Completions())),
+            ledger=BudgetLedger(config),
+            attempt_sink=attempts,
+            jitter=lambda _attempt: float("nan"),
+        )
+
+        with pytest.raises(OpenRouterRequestError) as captured:
+            await transport.complete((ChatMessage("user", "prompt"),), config, request_id="case-1")
+
+        assert captured.value.code == "retry_delay_invalid"
+        assert [(item.attempt_number, item.status) for item in attempts.items] == [
+            (1, "reserved"),
+            (1, "terminal_failure"),
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_attempt_sink_persistence_error_aborts_evaluation_without_outcome() -> None:
+    """Converting attempt persistence failure to prediction_failed would publish bad evidence."""
+
+    class FailingSink:
+        def __init__(self) -> None:
+            self.sibling_started = asyncio.Event()
+
+        async def append_attempt(self, _evidence: AttemptEvidence) -> None:
+            if _evidence.case_id == "case-1":
+                await self.sibling_started.wait()
+                raise LargeLLMError("raw secret persistence detail")
+
+    class Completions:
+        def __init__(self, sink: FailingSink) -> None:
+            self.sink = sink
+            self.sibling_cancelled = asyncio.Event()
+
+        async def create(self, **_kwargs: object) -> object:
+            self.sink.sibling_started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.sibling_cancelled.set()
+                raise
+
+    class OutcomeCollector:
+        def __init__(self) -> None:
+            self.items: list[EvaluationOutcome] = []
+
+        def append(self, outcome: EvaluationOutcome) -> None:
+            self.items.append(outcome)
+
+    async def scenario() -> None:
+        config = LargeLLMConfig(
+            provider=ProviderPolicy(
+                provider_slug="deepinfra",
+                prompt_price_per_million_usd=Decimal("0.50"),
+                completion_price_per_million_usd=Decimal("1.00"),
+            ),
+            max_cost_usd=Decimal("1.00"),
+            concurrency=2,
+        )
+        ledger = BudgetLedger(config)
+        sink = FailingSink()
+        completions = Completions(sink)
+        transport = OpenRouterTransport(
+            sdk=SimpleNamespace(chat=SimpleNamespace(completions=completions)),
+            ledger=ledger,
+            attempt_sink=sink,
+        )
+
+        class Baseline:
+            def __init__(self) -> None:
+                self.config = config
+                self.budget_ledger = ledger
+                self.evaluation_evidence = LargeBaselineEvidence(
+                    baseline="b4",
+                    catalog_sha256="c" * 64,
+                    summary_sha256="d" * 64,
+                    config_sha256=config.sha256,
+                    training_sha256=None,
+                    training_accepted=False,
+                    model_id=config.model_id,
+                    provider_slug=config.provider.provider_slug,
+                )
+
+            async def predict_detailed(self, question: str, *, request_id: str) -> object:
+                return await transport.complete(
+                    (ChatMessage("user", question),), config, request_id=request_id
+                )
+
+        collector = OutcomeCollector()
+        cases = tuple(
+            EvaluationCase(
+                case_id=f"case-{index}",
+                question=f"prompt {index}",
+                gold_sql=(
+                    "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
+                ),
+                difficulty="easy",
+                categories=("lookup",),
+                input_sha256="b" * 64,
+            )
+            for index in (1, 2)
+        )
+        with pytest.raises(AttemptEvidencePersistenceError) as captured:
+            await evaluate_large_baseline(
+                cases,
+                Baseline(),
+                run_id="run-1",
+                concurrency=config.concurrency,
+                model_metadata=None,
+                journal=collector,
+            )
+
+        assert "attempt evidence persistence" in str(captured.value)
+        assert "secret" not in str(captured.value)
+        assert completions.sibling_cancelled.is_set()
+        assert collector.items == []
+
+    asyncio.run(scenario())
 
 
 def test_attempt_evidence_rejects_authoritative_cost_on_retryable_failure() -> None:

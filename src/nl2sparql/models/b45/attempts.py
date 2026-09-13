@@ -123,5 +123,15 @@ class AttemptEvidence:
 class AttemptEvidenceSink(Protocol):
     """Durably receive each accounting transition before remote control advances."""
 
+    def next_attempt_number(self, request_id: str) -> int:
+        """Return the next 1-based attempt number for a base request ID."""
+
     async def append_attempt(self, evidence: AttemptEvidence) -> None:
         """Persist one validated attempt transition."""
+
+
+class AttemptEvidencePersistenceError(RuntimeError):
+    """Raised when durable attempt evidence cannot be persisted safely."""
+
+    def __init__(self) -> None:
+        super().__init__("attempt evidence persistence failed")

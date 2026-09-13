@@ -122,8 +122,9 @@ For compatibility, an authentic terminal-free schema-v2 journal may be loaded
 **only for resume**, after exact identity and budget validation. Before the next
 append it is atomically migrated one-way to schema v3. A valid in-progress
 schema-v3 journal is upgraded atomically to schema v4 only when the first
-attempt row is appended. Publication and summary loading require sealed v3 or
-v4 evidence; v2 cannot be used as a final result.
+attempt row is appended. New publication is always sealed as schema v4,
+including runs with no attempt rows. Summary loading retains read-only support
+for sealed v3 evidence; v2 cannot be used as a final result.
 
 ## CLI
 

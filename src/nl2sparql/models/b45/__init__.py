@@ -14,7 +14,12 @@ from nl2sparql.models.b45.artifacts import (
     summarize_large_runs,
     validate_artifact_paths,
 )
-from nl2sparql.models.b45.attempts import AttemptEvidence, AttemptEvidenceSink, AttemptStatus
+from nl2sparql.models.b45.attempts import (
+    AttemptEvidence,
+    AttemptEvidencePersistenceError,
+    AttemptEvidenceSink,
+    AttemptStatus,
+)
 from nl2sparql.models.b45.baseline import (
     BaselineB4,
     BaselineB5,
@@ -61,6 +66,7 @@ from nl2sparql.models.b45.transport import CompletionTransport
 __all__ = [
     "ArtifactPaths",
     "AttemptEvidence",
+    "AttemptEvidencePersistenceError",
     "AttemptEvidenceSink",
     "AttemptStatus",
     "BudgetLedger",

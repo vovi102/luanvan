@@ -615,7 +615,8 @@ def test_evaluate_resume_authorizes_v2_migration_after_validation(
 
     assert result.exit_code == 0, result.output
     rows = [json.loads(line) for line in request_log.read_text().splitlines()]
-    assert rows[0]["schema_version"] == 3
+    assert rows[0]["schema_version"] == 4
+    assert rows[-1]["attempt_set_count"] == 0
     assert [row["record_type"] for row in rows] == ["header", "outcome", "terminal"]
     assert rows[-1]["budget_checkpoint"]["cap_usd"] == "20"
     assert rows[-1]["budget_checkpoint"]["spent_usd"] == "0.02"

@@ -16,7 +16,12 @@ from typing import Any
 
 from nl2sparql.models.b12.contracts import ChatMessage
 from nl2sparql.models.b12.prompts import prompt_sha256
-from nl2sparql.models.b45.attempts import AttemptEvidence, AttemptEvidenceSink, AttemptStatus
+from nl2sparql.models.b45.attempts import (
+    AttemptEvidence,
+    AttemptEvidencePersistenceError,
+    AttemptEvidenceSink,
+    AttemptStatus,
+)
 from nl2sparql.models.b45.budget import BudgetLedger
 from nl2sparql.models.b45.contracts import (
     _LIVE_COMPLETION_MARKER,
@@ -357,8 +362,25 @@ class OpenRouterTransport:
             await _shield_operation(self._attempt_sink.append_attempt(evidence))
         except asyncio.CancelledError:
             cancelled = True
+        except Exception:
+            raise AttemptEvidencePersistenceError() from None
         if cancelled:
             raise asyncio.CancelledError
+
+    def _next_attempt_number(self, request_id: str) -> int:
+        """Read a durable attempt ordinal without exposing sink failures."""
+        if self._attempt_sink is None:
+            return 1
+        next_number = getattr(self._attempt_sink, "next_attempt_number", None)
+        if not callable(next_number):
+            return 1
+        try:
+            attempt = next_number(request_id)
+        except Exception:
+            raise AttemptEvidencePersistenceError() from None
+        if not isinstance(attempt, int) or isinstance(attempt, bool) or attempt <= 0:
+            raise AttemptEvidencePersistenceError()
+        return attempt
 
     @classmethod
     def from_env(
@@ -436,7 +458,9 @@ class OpenRouterTransport:
         prompt_fingerprint = prompt_sha256(messages)
         retry_policy = RetryPolicy(max_attempts=config.max_attempts)
         start_ns = _clock_value(self._clock_ns, "clock_invalid")
-        attempt = 0
+        first_attempt = self._next_attempt_number(request_id)
+        attempt = first_attempt - 1
+        attempts_this_call = 0
         response: object
 
         async def hold_reservation(reservation: object, reason: str, status: AttemptStatus) -> None:
@@ -494,7 +518,7 @@ class OpenRouterTransport:
             if reservation is None:
                 raise OpenRouterRequestError(
                     "budget_blocked",
-                    attempt_count=attempt - 1,
+                    attempt_count=attempts_this_call,
                     prompt_sha256=prompt_fingerprint,
                 )
             try:
@@ -515,6 +539,7 @@ class OpenRouterTransport:
                 raise
             terminal_error: OpenRouterRequestError | None = None
             delay: float | None = None
+            attempts_this_call += 1
             try:
                 response = await self._sdk.chat.completions.create(**request)
             except asyncio.CancelledError as cancelled:
@@ -527,17 +552,15 @@ class OpenRouterTransport:
                 )
                 raise
             except Exception as error:
-                if not retry_policy.is_retryable(error) or attempt >= retry_policy.max_attempts:
+                exhausted = attempts_this_call >= retry_policy.max_attempts
+                if not retry_policy.is_retryable(error) or exhausted:
                     await hold_reservation(reservation, "request_cost_unknown", "terminal_failure")
                     terminal_error = OpenRouterRequestError(
-                        _request_error_code(error, exhausted=attempt >= retry_policy.max_attempts),
+                        _request_error_code(error, exhausted=exhausted),
                         attempt_count=attempt,
                         prompt_sha256=prompt_fingerprint,
                     )
                 else:
-                    await hold_reservation(
-                        reservation, "retryable_request_failure", "retryable_failure"
-                    )
                     try:
                         delay = retry_policy.delay_seconds(
                             error, attempt=attempt, jitter=self._jitter
@@ -551,13 +574,16 @@ class OpenRouterTransport:
                             attempt_count=delay_error.attempt_count,
                             prompt_sha256=prompt_fingerprint,
                         )
+                    else:
+                        await hold_reservation(
+                            reservation, "retryable_request_failure", "retryable_failure"
+                        )
             if terminal_error is not None:
                 raise terminal_error
             if delay is not None:
                 try:
                     await self._sleep(delay)
                 except asyncio.CancelledError as cancelled:
-                    await hold_reservation(reservation, "request_cancelled", "cancelled")
                     _annotate_cancellation(
                         cancelled,
                         prompt_sha256=prompt_fingerprint,

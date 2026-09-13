@@ -15,6 +15,7 @@ import nl2sparql.models.b45.artifacts as artifacts
 from nl2sparql.models.b12 import EvaluationCase
 from nl2sparql.models.b12.contracts import ChatMessage
 from nl2sparql.models.b45 import (
+    AttemptEvidenceSink,
     BudgetLedger,
     LargeBaselineEvidence,
     LargeLLMConfig,
@@ -22,7 +23,12 @@ from nl2sparql.models.b45 import (
     ProviderPolicy,
 )
 from nl2sparql.models.b45.budget import BudgetReservation, BudgetSnapshot
-from nl2sparql.models.b45.contracts import LargeLLMPrediction, RemoteCompletion
+from nl2sparql.models.b45.contracts import (
+    _LIVE_COMPLETION_MARKER,
+    LargeLLMPrediction,
+    RemoteCompletion,
+    _openrouter_completion,
+)
 from nl2sparql.models.b45.evaluate import (
     EvaluationOutcome,
     LargeEvaluationMetrics,
@@ -827,6 +833,8 @@ def test_publication_is_canonical_secret_safe_and_preserves_run_evidence(
     assert b"messages" not in request_bytes.lower()
     assert PROMPT_SHA256.encode() in request_bytes
     request_rows = [json.loads(line) for line in request_bytes.splitlines()]
+    assert request_rows[0]["schema_version"] == 4
+    assert request_rows[-1]["attempt_set_count"] == 0
     assert request_rows[0]["model_metadata_sha256"] == METADATA_SHA256
     assert request_rows[1]["prediction"]["completion"]["synthetic_backend"] is True
     assert request_rows[1]["prediction"]["completion"]["charged_cost_usd"] == "0.01"
@@ -838,6 +846,40 @@ def test_publication_is_canonical_secret_safe_and_preserves_run_evidence(
     assert report["authoritative_total_cost_usd"] == "0.01"
     assert report["scientific_ready"] is False
     assert "synthetic_backend" in report["blockers"]
+
+
+def test_schema_v4_rejects_live_attempted_outcome_without_attempt_rows() -> None:
+    """Allowing attempt_count without attempt rows hides missing durable provider evidence."""
+    outcome = completed_outcome()
+    assert outcome.prediction is not None
+    live_completion = _openrouter_completion(
+        {
+            "raw_text": SAFE_SQL,
+            "generation_id": "generation-live",
+            "model_id": config().model_id,
+            "provider_slug": "deepinfra",
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "charged_cost_usd": Decimal("0.0100"),
+            "upstream_cost_usd": Decimal("0.0080"),
+            "latency_ms": 12.5,
+            "attempt_count": 1,
+            "finish_reason": "stop",
+            "system_fingerprint": "fp-test",
+        },
+        _LIVE_COMPLETION_MARKER,
+    )
+    live_prediction = replace(outcome.prediction, completion=live_completion)
+    live_outcome = replace(outcome, prediction=live_prediction)
+    run = replace(
+        complete_synthetic_run(),
+        outcomes=(live_outcome,),
+        blockers=("expected_100_cases", "non_three_run_evidence", "pricing_violation"),
+        attempts=(),
+    )
+
+    with pytest.raises(LargeLLMError, match="attempt"):
+        artifacts.serialize_request_log(run)
 
 
 def test_journal_rejects_duplicate_and_mismatched_outcomes(tmp_path: Path) -> None:
@@ -1447,7 +1489,7 @@ def test_billed_malformed_live_response_publishes_and_resumes_exact_spend(
             return malformed_response
 
     class LiveFailureBaseline:
-        def __init__(self) -> None:
+        def __init__(self, attempt_sink: AttemptEvidenceSink | None = None) -> None:
             self.config = config()
             self.budget_ledger = BudgetLedger(self.config)
             self.evaluation_evidence = LargeBaselineEvidence(
@@ -1465,6 +1507,7 @@ def test_billed_malformed_live_response_publishes_and_resumes_exact_spend(
                 sdk=sdk,
                 ledger=self.budget_ledger,
                 clock_ns=iter([0, 1_000_000]).__next__,
+                attempt_sink=attempt_sink,
             )
             self.calls: list[str] = []
 
@@ -1491,7 +1534,7 @@ def test_billed_malformed_live_response_publishes_and_resumes_exact_spend(
     )
 
     async def scenario() -> None:
-        baseline = LiveFailureBaseline()
+        baseline = LiveFailureBaseline(journal)
         run = await evaluate_large_baseline(
             cases,
             baseline,
@@ -1514,7 +1557,11 @@ def test_billed_malformed_live_response_publishes_and_resumes_exact_spend(
         assert run.budget.spent_usd == Decimal("0.0100")
 
         artifacts.publish_large_run(run, paths=paths)
-        row = json.loads(paths.request_log.read_text(encoding="utf-8").splitlines()[1])
+        row = next(
+            json.loads(line)
+            for line in paths.request_log.read_text(encoding="utf-8").splitlines()
+            if json.loads(line).get("record_type") == "outcome"
+        )
         assert row["authoritative_cost_usd"] == "0.01"
         assert (
             b"request,b4,run-1,case-1,request_failed,,,,0.01,,0.01,,\n"

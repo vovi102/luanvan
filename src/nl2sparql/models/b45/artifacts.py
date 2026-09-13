@@ -264,8 +264,8 @@ class ResumeState:
         provider_slug: Exact configured provider.
         model_metadata_sha256: Accepted endpoint metadata fingerprint.
         schema_version: Journal schema used by the immutable prior records. Schema
-            v2 is accepted only as an in-progress resume source; new and published
-            journals use schema v3.
+            v2 is accepted only as an in-progress resume source; new publication
+            uses schema v4, while sealed v3 remains readable for compatibility.
     """
 
     completed_case_ids: tuple[str, ...]
@@ -1260,10 +1260,8 @@ def _parse_request_log(
             synthetic = (
                 outcome.prediction is not None and outcome.prediction.completion.synthetic_backend
             )
-            if (
-                case_attempts
-                and not synthetic
-                and outcome.attempt_count != len({item.attempt_number for item in case_attempts})
+            if not synthetic and outcome.attempt_count != len(
+                {item.attempt_number for item in case_attempts}
             ):
                 raise LargeLLMError("request journal outcome attempt count mismatch")
             if case_attempts:
@@ -1393,10 +1391,10 @@ def _upgrade_chained_attempt_log(
 ) -> bytes:
     """Upgrade an in-progress schema-v3 log before its first attempt row.
 
-    Schema v3 remains the compact format for runs that have no attempt evidence.
-    Once a live transport needs to persist an attempt, the existing chained
-    outcome rows are re-emitted with the schema-v4 attempt-set fields and a new
-    chain root.  The upgrade is written together with the first attempt row by
+    Existing in-progress schema-v3 journals can have no attempt evidence. Once
+    a live transport needs to persist an attempt, their chained outcome rows
+    are re-emitted with the schema-v4 attempt-set fields and a new chain root.
+    The upgrade is written together with the first attempt row by
     :meth:`RequestJournal.append_attempt`, so a crash cannot expose a partially
     migrated chain.
     """
@@ -1730,6 +1728,18 @@ class RequestJournal:
         except Exception as error:
             raise LargeLLMError(f"unable to append request journal attempt: {error}") from error
 
+    def next_attempt_number(self, request_id: str) -> int:
+        """Return one above the largest durable attempt number for a case."""
+        if not isinstance(request_id, str):
+            raise LargeLLMError("request journal attempt request ID is invalid")
+        return (
+            max(
+                (item.attempt_number for item in self.attempts if item.request_id == request_id),
+                default=0,
+            )
+            + 1
+        )
+
     @property
     def attempts(self) -> tuple[AttemptEvidence, ...]:
         """Return the canonical attempt evidence currently retained by this journal."""
@@ -2044,7 +2054,7 @@ def serialize_predictions(run: LargeEvaluationRun) -> bytes:
 def _request_log_parts(
     run: LargeEvaluationRun,
 ) -> tuple[dict[str, object], tuple[dict[str, object], ...], dict[str, object]]:
-    schema_version = _SCHEMA_VERSION if run.attempts else _LEGACY_CHAINED_SCHEMA_VERSION
+    schema_version = _SCHEMA_VERSION
     header = _journal_header(
         run_id=run.run_id,
         baseline=run.baseline,
@@ -2112,9 +2122,8 @@ def _request_log_parts(
         "privacy_sha256": run.privacy_sha256,
         "report_body_sha256": hashlib.sha256(_canonical_json(report_body)).hexdigest(),
     }
-    if schema_version == _SCHEMA_VERSION:
-        terminal_body["attempt_set_count"] = len(run.attempts)
-        terminal_body["attempt_set_sha256"] = _attempt_set_sha256(run.attempts)
+    terminal_body["attempt_set_count"] = len(run.attempts)
+    terminal_body["attempt_set_sha256"] = _attempt_set_sha256(run.attempts)
     terminal = _chained_record(
         terminal_body,
         previous_record_sha256=previous_record_sha256,
@@ -2127,7 +2136,7 @@ def _request_log_parts(
     _terminal_evidence(
         terminal,
         line_number=None,
-        schema_version=(_SCHEMA_VERSION if run.attempts else _LEGACY_CHAINED_SCHEMA_VERSION),
+        schema_version=_SCHEMA_VERSION,
     )
     _parse_request_log(
         b"".join(_canonical_json(record) for record in (header, *records, terminal)),
