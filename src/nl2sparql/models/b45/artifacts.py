@@ -1280,9 +1280,14 @@ def _parse_request_log(
                         raise LargeLLMError(
                             "request journal outcome cost does not match attempt evidence"
                         )
-                elif (
-                    latest.status not in {"completed", "terminal_failure"}
-                    or latest.authoritative_cost_usd != outcome.authoritative_cost_usd
+                elif latest.status not in {"completed", "terminal_failure"}:
+                    raise LargeLLMError(
+                        "request journal outcome cost does not match attempt evidence"
+                    )
+                elif latest.authoritative_cost_usd != outcome.authoritative_cost_usd and not (
+                    outcome.status == "budget_blocked"
+                    and outcome.authoritative_cost_usd == Decimal("0")
+                    and latest.status == "completed"
                 ):
                     raise LargeLLMError(
                         "request journal outcome cost does not match attempt evidence"

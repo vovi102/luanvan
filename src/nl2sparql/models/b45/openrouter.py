@@ -518,7 +518,7 @@ class OpenRouterTransport:
             if reservation is None:
                 raise OpenRouterRequestError(
                     "budget_blocked",
-                    attempt_count=attempts_this_call,
+                    attempt_count=attempt - 1,
                     prompt_sha256=prompt_fingerprint,
                 )
             try:

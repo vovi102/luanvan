@@ -5,11 +5,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from nl2sparql.models.b12 import EvaluationCase
+from nl2sparql.models.b12 import CatalogSummary, EvaluationCase
 from nl2sparql.models.b12.contracts import ChatMessage
 from nl2sparql.models.b12.prompts import prompt_sha256
 from nl2sparql.models.b45 import (
     AttemptEvidencePersistenceError,
+    BaselineB4,
     BudgetLedger,
     BudgetReservation,
     BudgetSnapshot,
@@ -19,6 +20,8 @@ from nl2sparql.models.b45 import (
     ProviderPolicy,
     RequestJournal,
     load_resume_state,
+    preview_b4_prompt,
+    serialize_request_log,
 )
 from nl2sparql.models.b45.attempts import AttemptEvidence
 from nl2sparql.models.b45.evaluate import EvaluationOutcome, evaluate_large_baseline
@@ -75,8 +78,8 @@ async def _append_completed_prefix(
     *,
     case_id: str = "case-1",
     cost: Decimal = Decimal("0.0002"),
+    messages: tuple[ChatMessage, ...] = (ChatMessage("user", "prompt"),),
 ) -> BudgetSnapshot:
-    messages = (ChatMessage("user", "prompt"),)
     prompt = prompt_sha256(messages)
     ceiling = Decimal("0.000515")
     reserved = BudgetSnapshot(
@@ -259,13 +262,119 @@ def test_completed_attempt_only_prefix_does_not_reissue_when_cap_blocks(tmp_path
             await transport.complete((ChatMessage("user", "prompt"),), config, request_id="case-1")
 
         assert captured.value.code == "budget_blocked"
-        assert captured.value.attempt_count == 0
+        assert captured.value.attempt_count == 1
         assert Completions.calls == 0
         assert [(item.attempt_number, item.status) for item in journal.attempts] == [
             (1, "reserved"),
             (1, "completed"),
         ]
         assert (tmp_path / "completed-prefix-blocked.jsonl").read_bytes() == before
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("cap_usd", [Decimal("0.0006"), Decimal("1.00")])
+def test_completed_attempt_only_resume_attributes_only_the_new_outcome(
+    tmp_path, cap_usd: Decimal
+) -> None:
+    """Orphan attempt spend remains unattributed whether resume blocks or completes."""
+
+    class Completions:
+        calls = 0
+
+        async def create(self, **_kwargs: object) -> object:
+            type(self).calls += 1
+            response = _response()
+            response.choices[0].message.content = (
+                "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
+            )
+            return response
+
+    async def scenario() -> None:
+        config = LargeLLMConfig(
+            provider=ProviderPolicy(
+                provider_slug="deepinfra",
+                prompt_price_per_million_usd=Decimal("0.50"),
+                completion_price_per_million_usd=Decimal("1.00"),
+            ),
+            max_cost_usd=cap_usd,
+        )
+        summary_text = "GoogleSQL catalog\n"
+        summary = CatalogSummary(
+            text=summary_text,
+            catalog_sha256="c" * 64,
+            summary_sha256=hashlib.sha256(summary_text.encode()).hexdigest(),
+        )
+        journal_path = tmp_path / f"resume-{cap_usd}.jsonl"
+        journal = RequestJournal(
+            journal_path,
+            run_id="run-1",
+            baseline="b4",
+            input_sha256="b" * 64,
+            config_sha256=config.sha256,
+            catalog_sha256=summary.catalog_sha256,
+            summary_sha256=summary.summary_sha256,
+            training_sha256=None,
+            model_id=config.model_id,
+            provider_slug="deepinfra",
+            provider_policy_sha256=config.provider.sha256,
+        )
+        case = EvaluationCase(
+            case_id="case-1",
+            question="prompt",
+            gold_sql=(
+                "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
+            ),
+            difficulty="easy",
+            categories=("lookup",),
+            input_sha256="b" * 64,
+        )
+        preview = preview_b4_prompt(case.question, summary)
+        checkpoint = await _append_completed_prefix(journal, config, messages=preview.messages)
+        resume = load_resume_state(
+            journal_path,
+            expected_input_sha256="b" * 64,
+            expected_config_sha256=config.sha256,
+            expected_run_id="run-1",
+            expected_model_metadata_sha256=None,
+            expected_provider_policy_sha256=config.provider.sha256,
+        )
+        assert resume.completed_case_ids == ()
+        assert resume.budget_checkpoint == checkpoint
+
+        ledger = BudgetLedger.from_checkpoint(config, checkpoint)
+        transport = OpenRouterTransport(
+            sdk=SimpleNamespace(chat=SimpleNamespace(completions=Completions())),
+            ledger=ledger,
+            attempt_sink=journal,
+            clock_ns=iter([0, 1_000_000]).__next__,
+        )
+        baseline = BaselineB4(summary, config, transport)
+        run = await evaluate_large_baseline(
+            (case,),
+            baseline,
+            run_id="run-1",
+            concurrency=config.concurrency,
+            model_metadata=None,
+            journal=journal,
+            resume_budget_checkpoint=resume.budget_checkpoint,
+        )
+
+        expected_new_cost = Decimal("0") if cap_usd < Decimal("1") else Decimal("0.0002")
+        expected_status = "budget_blocked" if expected_new_cost == 0 else "completed"
+        assert Completions.calls == (0 if expected_status == "budget_blocked" else 1)
+        assert run.outcomes[0].status == expected_status
+        assert run.outcomes[0].attempt_count == (1 if expected_status == "budget_blocked" else 2)
+        assert run.outcomes[0].authoritative_cost_usd == expected_new_cost
+        assert run.budget.spent_usd == Decimal("0.0002") + expected_new_cost
+        assert run.budget.unresolved_request_ids == ()
+        assert run.metrics.attributed_spend_usd == expected_new_cost
+        assert run.metrics.unattributed_spend_usd == Decimal("0.0002")
+        assert "unattributed_spend" in run.blockers
+        assert [item.attempt_number for item in run.attempts] == (
+            [1, 1] if expected_status == "budget_blocked" else [1, 1, 2, 2]
+        )
+        assert serialize_request_log(run).endswith(b"\n")
 
     asyncio.run(scenario())
 

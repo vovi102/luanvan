@@ -101,11 +101,12 @@ error code, prompt fingerprint, attempt count, authoritative cost when known,
 and the durable budget checkpoint. Run/outcome/report identities also retain
 the provider-policy and accepted privacy fingerprints.
 
-Request journals are schema **v3** when they contain only outcome evidence and
-schema **v4** after live provider-attempt evidence exists. Header, attempt,
-outcome, and terminal records are SHA-256-chained, and the final terminal
-record seals outcome count, derived metrics, budget, blockers, readiness, and
-the canonical attempt set. Each attempt record contains only secret-safe
+Existing in-progress request journals may be schema **v3** when they contain
+only outcome evidence and upgrade to schema **v4** before live provider-attempt
+evidence is appended. Header, attempt, outcome, and terminal records are
+SHA-256-chained, and the final terminal record seals outcome count, derived
+metrics, budget, blockers, readiness, and the canonical attempt set. Each
+attempt record contains only secret-safe
 evidence: request/reservation identity, attempt number, status, prompt hash,
 reserved ceiling, latest budget checkpoint, and authoritative cost when known.
 Outcome and terminal rows cross-bind the attempt count and attempt-set digest,
@@ -117,6 +118,12 @@ Hashes detect corruption and bind artifacts relative to an accepted digest, but
 unkeyed hashes do not authenticate a coordinated rewrite of every artifact. An
 external accepted digest or signature would be required for that threat model
 and is outside T5.3.
+
+On resume, a pre-network budget block reports the cumulative durable attempt
+count while attributing zero cost to the new outcome. Costs from completed
+attempts whose outcomes were lost remain in budget spend as unattributed spend,
+which is always a scientific blocker. A later successful attempt attributes
+only its own authoritative cost; earlier orphan costs remain unattributed.
 
 For compatibility, an authentic terminal-free schema-v2 journal may be loaded
 **only for resume**, after exact identity and budget validation. Before the next
@@ -130,7 +137,9 @@ for sealed v3 evidence; v2 cannot be used as a final result.
 
 The numbered entry point is `scripts/18_large_llm_baselines.py`. Use `--help`
 for the authoritative Click rendering. All commands emit compact JSON on
-non-help paths.
+non-help paths. Fatal attempt-evidence persistence failures use the stable
+`attempt_evidence_persistence_failed` code and never emit traceback, prompt, or
+provider details.
 
 Offline validation never needs a key, model, encoder, or network:
 

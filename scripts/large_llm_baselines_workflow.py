@@ -20,6 +20,7 @@ from nl2sparql.models.b12 import FewShotRetriever, SmallLLMError, compile_catalo
 from nl2sparql.models.b12.contracts import validate_question
 from nl2sparql.models.b45 import (
     ArtifactPaths,
+    AttemptEvidencePersistenceError,
     BaselineB4,
     BaselineB5,
     BudgetLedger,
@@ -504,6 +505,15 @@ class _JsonGroup(click.Group):
         except click.ClickException as error:
             _emit({"status": "failed", "error": error.format_message()})
             raise SystemExit(error.exit_code) from None
+        except AttemptEvidencePersistenceError as error:
+            _emit(
+                {
+                    "status": "failed",
+                    "error_code": "attempt_evidence_persistence_failed",
+                    "error": str(error),
+                }
+            )
+            raise SystemExit(2) from None
 
 
 @click.group(cls=_JsonGroup)

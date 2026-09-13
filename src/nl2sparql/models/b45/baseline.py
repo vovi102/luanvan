@@ -18,6 +18,7 @@ from nl2sparql.models.b12.contracts import (
 )
 from nl2sparql.models.b12.extraction import extract_google_sql
 from nl2sparql.models.b12.prompts import build_messages, prompt_sha256
+from nl2sparql.models.b45.attempts import AttemptEvidencePersistenceError
 from nl2sparql.models.b45.budget import BudgetLedger
 from nl2sparql.models.b45.contracts import (
     LargeBaselineEvidence,
@@ -281,6 +282,8 @@ async def _predict(
     start = clock_ns()
     try:
         completion = await transport.complete(messages, config, request_id=request_id)
+    except AttemptEvidencePersistenceError:
+        raise
     except LargeLLMError as exc:
         if getattr(exc, "prompt_sha256", None) is None:
             exc.prompt_sha256 = prompt_fingerprint

@@ -16,6 +16,7 @@ from click.testing import CliRunner
 import scripts.large_llm_baselines_workflow as workflow
 from nl2sparql.models.b12 import CatalogSummary, EvaluationCase, SelectedExample
 from nl2sparql.models.b45 import (
+    AttemptEvidencePersistenceError,
     BudgetLedger,
     LargeLLMConfig,
     PrivacyReviewEvidence,
@@ -24,7 +25,7 @@ from nl2sparql.models.b45 import (
     preview_b4_prompt,
     serialize_privacy_review,
 )
-from nl2sparql.models.b45.openrouter import ModelMetadataEvidence
+from nl2sparql.models.b45.openrouter import ModelMetadataEvidence, OpenRouterTransport
 
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
 METADATA_SHA = "c" * 64
@@ -727,6 +728,73 @@ def test_click_parse_errors_are_one_compact_json_object(arguments: list[str]) ->
     assert result.exit_code == 2
     assert result.output.count("\n") == 0
     assert json.loads(result.output)["status"] == "failed"
+
+
+def test_attempt_sink_failure_is_one_secret_safe_cli_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fatal attempt-journal failure must not leak through Click or become an outcome."""
+    _stub_live_evaluation(monkeypatch)
+
+    async def fail_attempt(_journal, _evidence) -> None:
+        raise workflow.LargeLLMError("raw secret prompt and provider detail")
+
+    class Completions:
+        calls = 0
+
+        async def create(self, **_kwargs: object) -> object:
+            type(self).calls += 1
+            raise AssertionError("SDK must not run after attempt sink failure")
+
+    def failing_transport(config, ledger, *, attempt_sink):
+        return OpenRouterTransport(
+            sdk=SimpleNamespace(chat=SimpleNamespace(completions=Completions())),
+            ledger=ledger,
+            attempt_sink=attempt_sink,
+        )
+
+    monkeypatch.setattr(workflow.RequestJournal, "append_attempt", fail_attempt)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", failing_transport)
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "evaluate",
+            "--baseline",
+            "b4",
+            "--test-set",
+            str(tmp_path / "test.jsonl"),
+            "--run-id",
+            "run-1",
+            "--provider",
+            "deepinfra",
+            "--max-cost-usd",
+            "20",
+            "--allow-network",
+            "--accepted-model-metadata-sha256",
+            METADATA_SHA,
+            "--predictions",
+            str(tmp_path / "predictions.jsonl"),
+            "--request-log",
+            str(tmp_path / "requests.jsonl"),
+            "--cost-log",
+            str(tmp_path / "cost.csv"),
+            "--report",
+            str(tmp_path / "report.json"),
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert result.output.count("\n") == 0
+    assert json.loads(result.output) == {
+        "error": str(AttemptEvidencePersistenceError()),
+        "error_code": "attempt_evidence_persistence_failed",
+        "status": "failed",
+    }
+    assert Completions.calls == 0
+    assert not any(
+        value in result.output.lower()
+        for value in ("traceback", "usage:", "prompt", "secret", "provider detail")
+    )
 
 
 def test_invalid_run_id_precedes_filesystem_key_metadata_and_transport(
