@@ -22,6 +22,8 @@ _REQUIRED_FILES = (
     Path("scripts/18_large_llm_baselines.py"),
     Path("scripts/generate_b45_local_verification.py"),
     Path("scripts/large_llm_baselines_workflow.py"),
+    Path("src/nl2sparql/models/b4_zero_shot.py"),
+    Path("src/nl2sparql/models/b5_few_shot.py"),
 )
 _BASE_CHECK_COMMANDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("full_pytest", ("uv", "run", "python", "-m", "pytest", "-q")),
@@ -137,6 +139,12 @@ def generate_local_verification_manifest(
 ) -> LocalVerificationEvidence:
     """Run every accepted check and atomically publish canonical local evidence."""
     root = (project_root or _project_root()).resolve()
+    try:
+        sources_before = verification_source_records(root)
+    except (OSError, ValueError) as error:
+        raise LocalVerificationGenerationError(
+            "local verification source snapshot is unavailable"
+        ) from error
     checks: list[dict[str, object]] = []
     for check_id, command in expected_verification_commands(root):
         result = _run_command(command, root)
@@ -159,7 +167,15 @@ def generate_local_verification_manifest(
                 )
             check.update({"passed_tests": passed, "skipped_tests": skipped})
         checks.append(check)
-    sources = list(verification_source_records(root))
+    try:
+        sources_after = verification_source_records(root)
+    except (OSError, ValueError) as error:
+        raise LocalVerificationGenerationError(
+            "local verification source changed during checks"
+        ) from error
+    if sources_after != sources_before:
+        raise LocalVerificationGenerationError("local verification source changed during checks")
+    sources = list(sources_after)
     timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     body: dict[str, object] = {
         "schema_version": 1,

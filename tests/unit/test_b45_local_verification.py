@@ -27,6 +27,8 @@ def _write_minimal_project(root: Path) -> None:
         "uv.lock": "version = 1\n",
         "src/nl2sparql/models/b45/contracts.py": "MODEL_ID = 'model'\n",
         "src/nl2sparql/models/b45/local_verification.py": "def verify():\n    return True\n",
+        "src/nl2sparql/models/b4_zero_shot.py": "from .b45 import BaselineB4\n",
+        "src/nl2sparql/models/b5_few_shot.py": "from .b45 import BaselineB5\n",
         "scripts/18_large_llm_baselines.py": "print('wrapper')\n",
         "scripts/generate_b45_local_verification.py": "print('generator')\n",
         "scripts/large_llm_baselines_workflow.py": "print('workflow')\n",
@@ -50,6 +52,8 @@ def _source_records(root: Path) -> list[dict[str, str]]:
         root / "scripts/18_large_llm_baselines.py",
         root / "scripts/generate_b45_local_verification.py",
         root / "scripts/large_llm_baselines_workflow.py",
+        root / "src/nl2sparql/models/b4_zero_shot.py",
+        root / "src/nl2sparql/models/b5_few_shot.py",
     }
     return [
         {
@@ -168,6 +172,21 @@ def test_source_change_makes_manifest_stale(tmp_path: Path) -> None:
     assert evidence.blockers == ("local_verification_source_stale",)
 
 
+@pytest.mark.parametrize("module_name", ["b4_zero_shot.py", "b5_few_shot.py"])
+def test_compatibility_module_change_makes_manifest_stale(module_name: str, tmp_path: Path) -> None:
+    """Leaving a task compatibility export outside the source digest would fail this test."""
+    _write_minimal_project(tmp_path)
+    _write_valid_manifest(tmp_path)
+    assert load_local_verification_evidence(project_root=tmp_path).ready is True
+    module = tmp_path / "src/nl2sparql/models" / module_name
+    module.write_text("raise RuntimeError('changed compatibility module')\n", encoding="utf-8")
+
+    evidence = load_local_verification_evidence(project_root=tmp_path)
+
+    assert evidence.ready is False
+    assert evidence.blockers == ("local_verification_source_stale",)
+
+
 def test_generator_runs_exact_checks_and_writes_loadable_manifest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -209,6 +228,35 @@ def test_generator_does_not_publish_failed_verification(
         local_verification.generate_local_verification_manifest(project_root=tmp_path)
 
     assert not (tmp_path / "docs/evidence/t5-3-local-verification.json").exists()
+
+
+def test_generator_preserves_manifest_when_source_changes_during_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Publishing evidence for a source set not tested by every check would fail this test."""
+    _write_minimal_project(tmp_path)
+    manifest_path = _write_valid_manifest(tmp_path)
+    original_manifest = manifest_path.read_bytes()
+    source = tmp_path / "src/nl2sparql/models/b45/contracts.py"
+    changed = False
+
+    def runner(command: tuple[str, ...], cwd: Path) -> subprocess.CompletedProcess[str]:
+        nonlocal changed
+        if not changed:
+            source.write_text("MODEL_ID = 'changed-during-verification'\n", encoding="utf-8")
+            changed = True
+        stdout = "1 passed in 0.01s\n" if command[4:5] == ("pytest",) else "ok\n"
+        return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(local_verification, "_run_command", runner)
+
+    with pytest.raises(
+        local_verification.LocalVerificationGenerationError,
+        match="^local verification source changed during checks$",
+    ):
+        local_verification.generate_local_verification_manifest(project_root=tmp_path)
+
+    assert manifest_path.read_bytes() == original_manifest
 
 
 def test_generator_cli_documents_canonical_output() -> None:
