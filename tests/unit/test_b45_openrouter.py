@@ -555,6 +555,20 @@ def test_model_metadata_validates_provider_capabilities_and_is_immutable() -> No
         evidence.context_length = 1  # type: ignore[misc]
 
 
+def test_model_metadata_keeps_injected_float_adapter_compatible() -> None:
+    """A conservative float adapter must remain usable without understating its value."""
+    raw = metadata_response()
+    raw["data"]["endpoints"][0]["pricing"] = {  # type: ignore[index]
+        "prompt": 4e-7,
+        "completion": 8e-7,
+    }
+
+    evidence = validate_model_metadata(raw, make_config(), prompt_bytes=PROMPT_BYTES)
+
+    assert Decimal("0") < evidence.prompt_price_per_million_usd <= Decimal("0.4")
+    assert Decimal("0") < evidence.completion_price_per_million_usd <= Decimal("0.8")
+
+
 @pytest.mark.parametrize(
     "mutate",
     [

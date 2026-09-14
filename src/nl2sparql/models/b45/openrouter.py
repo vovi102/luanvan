@@ -1022,10 +1022,30 @@ def _metadata_provider_matches(endpoint: dict[str, object], expected: str) -> bo
 def _metadata_price(pricing: dict[str, object], name: str) -> Decimal:
     per_million_name = f"{name}_per_million_usd"
     if per_million_name in pricing:
-        return _decimal_money(pricing[per_million_name], "model_metadata_invalid", 0)
+        return _metadata_decimal(pricing[per_million_name])
     if name not in pricing:
         raise OpenRouterRequestError("model_metadata_invalid")
-    return _decimal_money(pricing[name], "model_metadata_invalid", 0) * Decimal(1_000_000)
+    return _metadata_decimal(pricing[name]) * Decimal(1_000_000)
+
+
+def _metadata_decimal(value: object) -> Decimal:
+    """Parse injected metadata numbers without understating binary floats."""
+    if isinstance(value, bool) or value is None:
+        raise OpenRouterRequestError("model_metadata_invalid")
+    if not isinstance(value, (Decimal, str, int, float)):
+        raise OpenRouterRequestError("model_metadata_invalid")
+    try:
+        if isinstance(value, Decimal):
+            converted = value
+        elif isinstance(value, float):
+            converted = Decimal.from_float(value)
+        else:
+            converted = Decimal(value)
+    except (InvalidOperation, ValueError):
+        raise OpenRouterRequestError("model_metadata_invalid") from None
+    if not converted.is_finite() or converted < Decimal("0"):
+        raise OpenRouterRequestError("model_metadata_invalid")
+    return converted
 
 
 __all__ = [

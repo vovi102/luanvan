@@ -27,6 +27,7 @@ from nl2sparql.models.b45 import (
     LargeEvaluationRun,
     LargeLLMConfig,
     LargeLLMError,
+    PromptPreview,
     ProviderPolicy,
     RequestJournal,
     evaluate_large_baseline,
@@ -272,7 +273,7 @@ def load_model_metadata(config: LargeLLMConfig) -> object:
     )
     try:
         with urlopen(request, timeout=float(config.timeout_seconds)) as response:  # noqa: S310
-            return json.loads(response.read().decode("utf-8"))
+            return json.loads(response.read().decode("utf-8"), parse_float=Decimal)
     except Exception as error:
         raise LargeLLMError("unable to load OpenRouter model metadata") from error
 
@@ -404,6 +405,13 @@ def _metadata_evidence(config: LargeLLMConfig, prompt_bytes: int, accepted_sha: 
     return evidence
 
 
+def _prompt_bytes(preview: PromptPreview) -> int:
+    """Return the exact UTF-8 content-byte count of a production prompt preview."""
+    if not isinstance(preview, PromptPreview):
+        raise LargeLLMError("prompt preview is invalid")
+    return sum(len(message.content.encode("utf-8")) for message in preview.messages)
+
+
 def _artifact_paths(
     baseline_name: str,
     predictions: Path | None,
@@ -418,6 +426,18 @@ def _artifact_paths(
         cost_csv=cost_log or DEFAULT_COST_LOG,
         report=report or (DEFAULT_B4_REPORT if baseline_name == "b4" else DEFAULT_B5_REPORT),
     )
+
+
+def _require_new_artifact_paths(paths: ArtifactPaths) -> None:
+    """Reject non-resume evaluation when any publication destination exists."""
+    existing = next(
+        (path for path in paths.all_outputs if path.exists() or path.is_symlink()),
+        None,
+    )
+    if existing is not None:
+        raise LargeLLMError(
+            f"evaluate without --resume requires new artifact paths; already exists: {existing}"
+        )
 
 
 def _protected_paths(options: dict[str, Any]) -> tuple[Path, ...]:
@@ -663,11 +683,20 @@ def predict_command(**options: Any) -> None:
                 options["accepted_training_sha256"],
                 cached_retriever,
             )
+        if options["baseline_name"] == "b5":
+            preview = preview_b5_prompt(
+                options["question"],
+                summary,
+                retriever,
+                target_id=options["target_id"],
+            )
+        else:
+            preview = preview_b4_prompt(options["question"], summary)
         _require_network(options["allow_network"])
         _require_api_key()
         metadata = _metadata_evidence(
             config,
-            len(summary.text.encode("utf-8")) + len(options["question"].encode("utf-8")),
+            _prompt_bytes(preview),
             options["accepted_model_metadata_sha256"],
         )
         ledger = BudgetLedger(config)
@@ -735,6 +764,8 @@ def evaluate_command(**options: Any) -> None:
         )
         protected = _protected_paths(options)
         validate_artifact_paths(paths, protected_paths=protected)
+        if not options["resume"]:
+            _require_new_artifact_paths(paths)
         snapshot_sha256 = cases[0].input_sha256
         if snapshot_sha256 is None:
             raise LargeLLMError("evaluation snapshot fingerprint is missing")
@@ -768,6 +799,7 @@ def evaluate_command(**options: Any) -> None:
             )
         previews = {}
         retrieval_previews = {}
+        maximum_prompt_bytes = 0
         for case in cases:
             if options["baseline_name"] == "b5":
                 preview = preview_b5_prompt(
@@ -777,6 +809,7 @@ def evaluate_command(**options: Any) -> None:
                 preview = preview_b4_prompt(case.question, summary)
             previews[case.case_id] = preview.prompt_sha256
             retrieval_previews[case.case_id] = preview.retrieval_sha256
+            maximum_prompt_bytes = max(maximum_prompt_bytes, _prompt_bytes(preview))
         prompt_set = prompt_set_sha256(
             tuple(
                 (
@@ -822,7 +855,7 @@ def evaluate_command(**options: Any) -> None:
         _require_api_key()
         metadata = _metadata_evidence(
             config,
-            len(summary.text.encode("utf-8")) + 2000,
+            maximum_prompt_bytes,
             options["accepted_model_metadata_sha256"],
         )
         journal = RequestJournal(

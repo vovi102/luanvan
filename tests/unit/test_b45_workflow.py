@@ -22,10 +22,16 @@ from nl2sparql.models.b45 import (
     PrivacyReviewEvidence,
     ProviderPolicy,
     RemoteCompletion,
+    RequestJournal,
     preview_b4_prompt,
     serialize_privacy_review,
 )
-from nl2sparql.models.b45.openrouter import ModelMetadataEvidence, OpenRouterTransport
+from nl2sparql.models.b45.openrouter import (
+    ModelMetadataEvidence,
+    OpenRouterRequestError,
+    OpenRouterTransport,
+    validate_model_metadata,
+)
 
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
 METADATA_SHA = "c" * 64
@@ -120,6 +126,114 @@ class _QueryRetriever:
             )
             for index in range(1, 6)
         )
+
+
+class _LargeQueryRetriever(_QueryRetriever):
+    """Return valid examples large enough to expose fixed-size prompt guesses."""
+
+    def retrieve(
+        self, _question: str, *, target_id: str | None = None
+    ) -> tuple[SelectedExample, ...]:
+        return tuple(
+            SelectedExample(
+                record_id=f"train-{index}",
+                question=f"Example {index} " + "x" * 1_900,
+                sql=SAFE_SQL,
+                score=0.5,
+            )
+            for index in range(1, 6)
+        )
+
+
+def _metadata_response(*, context_length: int) -> dict[str, object]:
+    return {
+        "data": {
+            "id": "meta-llama/llama-3.3-70b-instruct",
+            "endpoints": [
+                {
+                    "provider_name": "DeepInfra",
+                    "context_length": context_length,
+                    "supported_parameters": ["temperature", "seed", "max_tokens"],
+                    "pricing": {"prompt": "0.0000004", "completion": "0.0000008"},
+                }
+            ],
+        }
+    }
+
+
+def _live_evaluate_arguments(
+    tmp_path: Path,
+    *,
+    baseline: str = "b4",
+    accepted_metadata: str = METADATA_SHA,
+) -> list[str]:
+    arguments = [
+        "evaluate",
+        "--baseline",
+        baseline,
+        "--test-set",
+        str(tmp_path / "test.jsonl"),
+        "--run-id",
+        "run-1",
+        "--provider",
+        "deepinfra",
+        "--max-cost-usd",
+        "20",
+        "--allow-network",
+        "--accepted-model-metadata-sha256",
+        accepted_metadata,
+        "--accepted-privacy-review-sha256",
+        "d" * 64,
+        "--predictions",
+        str(tmp_path / "predictions.jsonl"),
+        "--request-log",
+        str(tmp_path / "requests.jsonl"),
+        "--cost-log",
+        str(tmp_path / "cost.csv"),
+        "--report",
+        str(tmp_path / "report.json"),
+    ]
+    if baseline == "b5":
+        arguments.extend(
+            [
+                "--training",
+                str(tmp_path / "train.jsonl"),
+                "--cache",
+                str(tmp_path / "cache.npz"),
+                "--encoder-revision",
+                "a" * 40,
+                "--accepted-training-sha256",
+                "d" * 64,
+            ]
+        )
+    return arguments
+
+
+def _live_b5_predict_arguments(
+    tmp_path: Path, *, question: str, accepted_metadata: str
+) -> list[str]:
+    return [
+        "predict",
+        "--baseline",
+        "b5",
+        "--question",
+        question,
+        "--provider",
+        "deepinfra",
+        "--max-cost-usd",
+        "20",
+        "--training",
+        str(tmp_path / "train.jsonl"),
+        "--cache",
+        str(tmp_path / "cache.npz"),
+        "--encoder-revision",
+        "a" * 40,
+        "--accepted-training-sha256",
+        "d" * 64,
+        "--allow-network",
+        "--accepted-model-metadata-sha256",
+        accepted_metadata,
+    ]
 
 
 def _legacy_v2_workflow_payload() -> bytes:
@@ -600,6 +714,137 @@ def test_metadata_drift_blocks_client_construction(monkeypatch: pytest.MonkeyPat
     assert "metadata" in json.loads(result.output)["error"]
 
 
+def test_evaluate_metadata_context_uses_largest_exact_b5_prompt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Replacing exact previews with a fixed prompt allowance would reach transport."""
+    summary = _summary()
+    config = LargeLLMConfig(provider=_policy())
+    old_prompt_guess = len(summary.text.encode("utf-8")) + 2_000
+    raw_metadata = _metadata_response(context_length=old_prompt_guess + config.max_tokens)
+    accepted_metadata = validate_model_metadata(
+        raw_metadata, config, prompt_bytes=old_prompt_guess
+    ).metadata_sha256
+    retriever = _LargeQueryRetriever()
+    request_log = tmp_path / "requests.jsonl"
+    events: list[str] = []
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: summary)
+    monkeypatch.setattr(workflow, "_b5_cache_preflight", lambda *_args: retriever)
+    monkeypatch.setattr(workflow, "_b5_retriever", lambda *_args: retriever)
+    monkeypatch.setattr(workflow, "load_model_metadata", lambda _config: raw_metadata)
+    monkeypatch.setattr(
+        workflow,
+        "_privacy_preflight",
+        lambda *_args, **_kwargs: (
+            SimpleNamespace(privacy_sha256="d" * 64),
+            None,
+            Path("stub.privacy.json"),
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_openrouter_transport",
+        lambda *_args, **_kwargs: (
+            events.append("transport")
+            or (_ for _ in ()).throw(AssertionError("undersized context must block transport"))
+        ),
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        _live_evaluate_arguments(tmp_path, baseline="b5", accepted_metadata=accepted_metadata),
+    )
+
+    assert result.exit_code == 2
+    assert "metadata" in json.loads(result.output)["error"]
+    assert events == []
+    assert not request_log.exists()
+
+
+def test_predict_metadata_context_uses_exact_b5_prompt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Counting only summary and question bytes would omit five sent examples."""
+    summary = _summary()
+    question = "List labels"
+    config = LargeLLMConfig(provider=_policy())
+    old_prompt_guess = len(summary.text.encode("utf-8")) + len(question.encode("utf-8"))
+    raw_metadata = _metadata_response(context_length=old_prompt_guess + config.max_tokens)
+    accepted_metadata = validate_model_metadata(
+        raw_metadata, config, prompt_bytes=old_prompt_guess
+    ).metadata_sha256
+    retriever = _LargeQueryRetriever()
+    events: list[str] = []
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: summary)
+    monkeypatch.setattr(workflow, "_b5_cache_preflight", lambda *_args: retriever)
+    monkeypatch.setattr(workflow, "_b5_retriever", lambda *_args: retriever)
+    monkeypatch.setattr(workflow, "load_model_metadata", lambda _config: raw_metadata)
+    monkeypatch.setattr(
+        workflow,
+        "load_openrouter_transport",
+        lambda *_args, **_kwargs: (
+            events.append("transport")
+            or (_ for _ in ()).throw(AssertionError("undersized context must block transport"))
+        ),
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        _live_b5_predict_arguments(
+            tmp_path, question=question, accepted_metadata=accepted_metadata
+        ),
+    )
+
+    assert result.exit_code == 2
+    assert "metadata" in json.loads(result.output)["error"]
+    assert events == []
+
+
+def test_metadata_loader_rejects_json_price_above_decimal_ceiling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Parsing provider JSON prices through binary float would round this down."""
+    payload = b"""{
+        "data": {
+            "id": "meta-llama/llama-3.3-70b-instruct",
+            "endpoints": [{
+                "provider_name": "DeepInfra",
+                "context_length": 131072,
+                "supported_parameters": ["temperature", "seed", "max_tokens"],
+                "pricing": {
+                    "prompt": 0.00000050000000000000001,
+                    "completion": 0.000001
+                }
+            }]
+        }
+    }"""
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return payload
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr("urllib.request.urlopen", lambda *_args, **_kwargs: Response())
+    config = LargeLLMConfig(provider=_policy())
+    raw = workflow.load_model_metadata(config)
+
+    with pytest.raises(OpenRouterRequestError) as captured:
+        validate_model_metadata(raw, config, prompt_bytes=1)
+
+    assert captured.value.code == "model_metadata_invalid"
+
+
 def test_injected_synthetic_transport_can_run_but_is_not_scientifically_ready(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -719,7 +964,7 @@ def test_evaluate_resume_authorizes_v2_migration_after_validation(
 def test_evaluate_without_resume_rejects_v2_and_preserves_journal(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Granting migration authority to a new run would rewrite legacy evidence."""
+    """A non-resume run must reject legacy evidence without parsing or rewriting it."""
     _stub_live_evaluation(monkeypatch)
     request_log = tmp_path / "requests.jsonl"
     original = _legacy_v2_workflow_payload()
@@ -754,8 +999,121 @@ def test_evaluate_without_resume_rejects_v2_and_preserves_journal(
     )
 
     assert result.exit_code == 2
-    assert "version" in json.loads(result.output)["error"]
+    assert "already exists" in json.loads(result.output)["error"]
     assert request_log.read_bytes() == original
+
+
+def test_evaluate_without_resume_rejects_existing_v3_before_live_seams(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Treating an existing current journal as a new run would permit remote work."""
+    config = LargeLLMConfig(provider=_policy())
+    summary = _summary()
+    case = _case()
+    preview = preview_b4_prompt(case.question, summary)
+    prompt_set = workflow.prompt_set_sha256(
+        ((case.case_id, (preview.prompt_sha256, preview.retrieval_sha256)),)
+    )
+    request_log = tmp_path / "requests.jsonl"
+    RequestJournal(
+        request_log,
+        run_id="run-1",
+        baseline="b4",
+        input_sha256=case.input_sha256,
+        config_sha256=config.sha256,
+        catalog_sha256=summary.catalog_sha256,
+        summary_sha256=summary.summary_sha256,
+        training_sha256=None,
+        model_id=config.model_id,
+        provider_slug=config.provider.provider_slug,
+        model_metadata_sha256=METADATA_SHA,
+        provider_policy_sha256=config.provider.sha256,
+        privacy_sha256="d" * 64,
+        prompt_set_sha256=prompt_set,
+    )
+    original = request_log.read_bytes()
+    assert json.loads(original.splitlines()[0])["schema_version"] == 3
+    events: list[str] = []
+
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (case,))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: summary)
+    monkeypatch.setattr(
+        workflow,
+        "_privacy_preflight",
+        lambda *_args, **_kwargs: (
+            SimpleNamespace(privacy_sha256="d" * 64),
+            None,
+            Path("stub.privacy.json"),
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "_require_api_key",
+        lambda: (
+            events.append("key")
+            or (_ for _ in ()).throw(AssertionError("existing output must precede key access"))
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_model_metadata",
+        lambda *_args: (
+            events.append("metadata")
+            or (_ for _ in ()).throw(AssertionError("existing output must precede metadata"))
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "load_openrouter_transport",
+        lambda *_args, **_kwargs: (
+            events.append("transport")
+            or (_ for _ in ()).throw(AssertionError("existing output must precede transport"))
+        ),
+    )
+
+    result = CliRunner().invoke(workflow.cli, _live_evaluate_arguments(tmp_path))
+
+    assert result.exit_code == 2
+    assert "already exists" in json.loads(result.output)["error"]
+    assert events == []
+    assert request_log.read_bytes() == original
+
+
+def test_evaluate_without_resume_rejects_existing_publication_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Silently replacing any prior publication artifact would erase evidence."""
+    existing = tmp_path / "predictions.jsonl"
+    existing.write_bytes(b"prior evidence\n")
+    original = existing.read_bytes()
+    events: list[str] = []
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(
+        workflow,
+        "_privacy_preflight",
+        lambda *_args, **_kwargs: (
+            SimpleNamespace(privacy_sha256="d" * 64),
+            None,
+            Path("stub.privacy.json"),
+        ),
+    )
+    monkeypatch.setattr(
+        workflow,
+        "_require_api_key",
+        lambda: (
+            events.append("key")
+            or (_ for _ in ()).throw(AssertionError("existing output must precede key access"))
+        ),
+    )
+
+    result = CliRunner().invoke(workflow.cli, _live_evaluate_arguments(tmp_path))
+
+    assert result.exit_code == 2
+    assert "already exists" in json.loads(result.output)["error"]
+    assert events == []
+    assert existing.read_bytes() == original
+    assert not (tmp_path / "requests.jsonl").exists()
 
 
 def test_summarize_accepts_three_local_reports_without_a_client(
