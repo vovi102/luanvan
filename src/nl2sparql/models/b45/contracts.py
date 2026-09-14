@@ -42,7 +42,10 @@ def canonical_money(value: Decimal) -> str:
         raise LargeLLMError("money must be a finite Decimal")
     if value.is_zero():
         return "0"
-    return format(value.normalize(), "f")
+    rendered = format(value, "f")
+    if "." in rendered:
+        rendered = rendered.rstrip("0").rstrip(".")
+    return rendered
 
 
 def _required_text(value: object, label: str) -> str:

@@ -64,6 +64,7 @@ class RetrievalEvidence:
     selected_examples: tuple[SelectedExample, ...]
     selected_examples_sha256: str
     retrieval_sha256: str
+    target_id: str | None = None
 
 
 def _retrieval_evidence(
@@ -71,6 +72,7 @@ def _retrieval_evidence(
     training_sha256: str | None,
     encoder_id: str | None,
     encoder_revision: str | None,
+    target_id: str | None,
     training_accepted: bool,
     selected_examples: tuple[SelectedExample, ...],
 ) -> RetrievalEvidence:
@@ -90,6 +92,7 @@ def _retrieval_evidence(
     evidence = {
         "encoder_id": encoder_id,
         "encoder_revision": encoder_revision,
+        "target_id": target_id,
         "selected_examples": examples,
         "selected_examples_sha256": examples_sha256,
         "training_accepted": training_accepted,
@@ -100,6 +103,7 @@ def _retrieval_evidence(
         training_sha256=training_sha256,
         encoder_id=encoder_id,
         encoder_revision=encoder_revision,
+        target_id=target_id,
         training_accepted=training_accepted,
         selected_examples=selected_examples,
         selected_examples_sha256=examples_sha256,
@@ -125,6 +129,7 @@ class PromptPreview:
                     training_sha256=None,
                     encoder_id=None,
                     encoder_revision=None,
+                    target_id=None,
                     training_accepted=False,
                     selected_examples=self.selected_examples,
                 ),
@@ -190,6 +195,7 @@ def _build_prompt_preview(
     training_sha256: str | None = None,
     encoder_id: str | None = None,
     encoder_revision: str | None = None,
+    target_id: str | None = None,
     training_accepted: bool = False,
 ) -> PromptPreview:
     """Build and fingerprint the exact production prompt without I/O."""
@@ -206,6 +212,7 @@ def _build_prompt_preview(
             training_sha256=training_sha256,
             encoder_id=encoder_id,
             encoder_revision=encoder_revision,
+            target_id=target_id,
             training_accepted=training_accepted,
             selected_examples=examples,
         ),
@@ -214,7 +221,7 @@ def _build_prompt_preview(
 
 def preview_b4_prompt(question: str, summary: CatalogSummary) -> PromptPreview:
     """Build B4's exact production prompt without creating a transport."""
-    return _build_prompt_preview(question, summary, examples=())
+    return _build_prompt_preview(question, summary, examples=(), target_id=None)
 
 
 def preview_b5_prompt(
@@ -226,6 +233,8 @@ def preview_b5_prompt(
 ) -> PromptPreview:
     """Retrieve B5's examples and build its exact prompt without transport I/O."""
     question = _validated_question(question)
+    if target_id is not None:
+        _validate_request_id(target_id)
     try:
         examples = retriever.retrieve(question, target_id=target_id)
     except LargeLLMError:
@@ -239,8 +248,39 @@ def preview_b5_prompt(
         training_sha256=retriever.training_sha256,
         encoder_id=retriever.encoder_id,
         encoder_revision=retriever.encoder_revision,
+        target_id=target_id,
         training_accepted=retriever.training_accepted,
     )
+
+
+def _validated_prepared_preview(
+    preview: object,
+    *,
+    question: str,
+    summary: CatalogSummary,
+    examples: tuple[SelectedExample, ...],
+    training_sha256: str | None,
+    encoder_id: str | None,
+    encoder_revision: str | None,
+    target_id: str | None,
+    training_accepted: bool,
+) -> PromptPreview:
+    """Validate that prepared messages and retrieval provenance match this request."""
+    if not isinstance(preview, PromptPreview):
+        raise LargeLLMError("prepared prompt preview is invalid")
+    expected = _build_prompt_preview(
+        question,
+        summary,
+        examples=examples,
+        training_sha256=training_sha256,
+        encoder_id=encoder_id,
+        encoder_revision=encoder_revision,
+        target_id=target_id,
+        training_accepted=training_accepted,
+    )
+    if preview != expected:
+        raise LargeLLMError("prepared prompt preview does not match request identity")
+    return preview
 
 
 def _interval_ms(start: object, end: object) -> float:
@@ -264,7 +304,7 @@ async def _predict(
     config: LargeLLMConfig,
     transport: CompletionTransport,
     examples: tuple[SelectedExample, ...],
-    preview: PromptPreview | None,
+    preview: PromptPreview,
     clock_ns: Callable[[], int],
     training_sha256: str | None = None,
     encoder_id: str | None = None,
@@ -274,8 +314,6 @@ async def _predict(
     """Build one shared prompt, await completion, and preserve all provenance."""
     question = _validated_question(question)
     request_id = _validate_request_id(request_id)
-    if preview is None:
-        preview = _build_prompt_preview(question, summary, examples=examples)
     messages = preview.messages
     prompt_fingerprint = preview.prompt_sha256
 
@@ -391,9 +429,26 @@ class BaselineB4:
         """Return B4's exact prompt and fingerprint without contacting transport."""
         return preview_b4_prompt(question, self._summary)
 
-    async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+    async def predict_detailed(
+        self,
+        question: str,
+        *,
+        request_id: str,
+        preview: PromptPreview | None = None,
+    ) -> LargeLLMPrediction:
         """Return the completion, fail-closed extraction, and B4 provenance."""
-        preview = self.preview_prompt(question)
+        selected_preview = preview if preview is not None else self.preview_prompt(question)
+        selected_preview = _validated_prepared_preview(
+            selected_preview,
+            question=question,
+            summary=self._summary,
+            examples=(),
+            training_sha256=None,
+            encoder_id=None,
+            encoder_revision=None,
+            target_id=None,
+            training_accepted=False,
+        )
         return await _predict(
             question,
             request_id=request_id,
@@ -402,7 +457,7 @@ class BaselineB4:
             config=self._config,
             transport=self._transport,
             examples=(),
-            preview=preview,
+            preview=selected_preview,
             clock_ns=self._clock_ns,
         )
 
@@ -505,10 +560,24 @@ class BaselineB5:
         *,
         request_id: str,
         target_id: str | None = None,
+        preview: PromptPreview | None = None,
     ) -> LargeLLMPrediction:
         """Retrieve five examples, then return completion and B5 provenance."""
         _validate_request_id(request_id)
-        preview = self.preview_prompt(question, target_id=target_id)
+        selected_preview = (
+            preview if preview is not None else self.preview_prompt(question, target_id=target_id)
+        )
+        selected_preview = _validated_prepared_preview(
+            selected_preview,
+            question=question,
+            summary=self._summary,
+            examples=selected_preview.selected_examples,
+            training_sha256=self._retriever.training_sha256,
+            encoder_id=self._retriever.encoder_id,
+            encoder_revision=self._retriever.encoder_revision,
+            target_id=target_id,
+            training_accepted=self._retriever.training_accepted,
+        )
         return await _predict(
             question,
             request_id=request_id,
@@ -516,8 +585,8 @@ class BaselineB5:
             summary=self._summary,
             config=self._config,
             transport=self._transport,
-            examples=preview.selected_examples,
-            preview=preview,
+            examples=selected_preview.selected_examples,
+            preview=selected_preview,
             clock_ns=self._clock_ns,
             training_sha256=self._retriever.training_sha256,
             encoder_id=self._retriever.encoder_id,

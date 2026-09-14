@@ -717,12 +717,17 @@ def predict_command(**options: Any) -> None:
         if options["baseline_name"] == "b5":
             prediction = asyncio.run(
                 baseline.predict_detailed(
-                    options["question"], request_id="predict", target_id=options["target_id"]
+                    options["question"],
+                    request_id="predict",
+                    target_id=options["target_id"],
+                    preview=preview,
                 )
             )
         else:
             prediction = asyncio.run(
-                baseline.predict_detailed(options["question"], request_id="predict")
+                baseline.predict_detailed(
+                    options["question"], request_id="predict", preview=preview
+                )
             )
         _emit(
             {
@@ -799,6 +804,7 @@ def evaluate_command(**options: Any) -> None:
             )
         previews = {}
         retrieval_previews = {}
+        prepared_previews = {}
         maximum_prompt_bytes = 0
         for case in cases:
             if options["baseline_name"] == "b5":
@@ -809,6 +815,7 @@ def evaluate_command(**options: Any) -> None:
                 preview = preview_b4_prompt(case.question, summary)
             previews[case.case_id] = preview.prompt_sha256
             retrieval_previews[case.case_id] = preview.retrieval_sha256
+            prepared_previews[case.case_id] = preview
             maximum_prompt_bytes = max(maximum_prompt_bytes, _prompt_bytes(preview))
         prompt_set = prompt_set_sha256(
             tuple(
@@ -907,6 +914,7 @@ def evaluate_command(**options: Any) -> None:
                 expected_prompt_sha256_by_case=previews,
                 expected_retrieval_sha256_by_case=retrieval_previews,
                 expected_prompt_set_sha256=prompt_set,
+                prepared_previews_by_case=prepared_previews,
             )
         )
         publish_large_run(run, paths=paths, protected_paths=protected)

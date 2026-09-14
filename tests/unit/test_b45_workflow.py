@@ -15,6 +15,7 @@ from click.testing import CliRunner
 
 import scripts.large_llm_baselines_workflow as workflow
 from nl2sparql.models.b12 import CatalogSummary, EvaluationCase, SelectedExample
+from nl2sparql.models.b12.prompts import build_messages
 from nl2sparql.models.b45 import (
     AttemptEvidencePersistenceError,
     BudgetLedger,
@@ -143,6 +144,32 @@ class _LargeQueryRetriever(_QueryRetriever):
             )
             for index in range(1, 6)
         )
+
+
+class _StatefulQueryRetriever(_QueryRetriever):
+    """Return a larger prompt after a configured number of retrievals."""
+
+    def __init__(self, *, stable_calls: int) -> None:
+        self.calls = 0
+        self.stable_calls = stable_calls
+
+    def retrieve(
+        self, question: str, *, target_id: str | None = None
+    ) -> tuple[SelectedExample, ...]:
+        self.calls += 1
+        if self.calls <= self.stable_calls:
+            return super().retrieve(question, target_id=target_id)
+        return _LargeQueryRetriever().retrieve(question, target_id=target_id)
+
+
+class _RecordingSyntheticTransport(_SyntheticTransport):
+    def __init__(self, config: LargeLLMConfig, ledger: BudgetLedger | None = None) -> None:
+        super().__init__(config, ledger)
+        self.messages: list[tuple[object, ...]] = []
+
+    async def complete(self, messages, config, *, request_id):
+        self.messages.append(messages)
+        return await super().complete(messages, config, request_id=request_id)
 
 
 def _metadata_response(*, context_length: int) -> dict[str, object]:
@@ -805,6 +832,88 @@ def test_predict_metadata_context_uses_exact_b5_prompt(
     assert events == []
 
 
+def test_predict_sends_the_single_metadata_preflight_preview(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Retrieving again after metadata could send a larger unvalidated prompt."""
+    summary = _summary()
+    question = "List labels"
+    config = LargeLLMConfig(provider=_policy())
+    expected_messages = build_messages(
+        question, summary, examples=_QueryRetriever().retrieve(question)
+    )
+    prompt_bytes = sum(len(message.content.encode("utf-8")) for message in expected_messages)
+    raw_metadata = _metadata_response(context_length=prompt_bytes + config.max_tokens)
+    accepted_metadata = validate_model_metadata(
+        raw_metadata, config, prompt_bytes=prompt_bytes
+    ).metadata_sha256
+    retriever = _StatefulQueryRetriever(stable_calls=1)
+    transport = _RecordingSyntheticTransport(config)
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: summary)
+    monkeypatch.setattr(workflow, "_b5_cache_preflight", lambda *_args: retriever)
+    monkeypatch.setattr(workflow, "_b5_retriever", lambda *_args: retriever)
+    monkeypatch.setattr(workflow, "load_model_metadata", lambda _config: raw_metadata)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", lambda *_args: transport)
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        _live_b5_predict_arguments(
+            tmp_path, question=question, accepted_metadata=accepted_metadata
+        ),
+    )
+
+    assert result.exit_code == 0, result.output
+    assert retriever.calls == 1
+    assert transport.messages == [expected_messages]
+
+
+def test_evaluate_sends_each_preflight_preview_without_retrieval_rebuild(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A third retrieval after matching resume hashes could bypass context preflight."""
+    summary = _summary()
+    case = _case()
+    config = LargeLLMConfig(provider=_policy())
+    expected_messages = build_messages(
+        case.question, summary, examples=_QueryRetriever().retrieve(case.question)
+    )
+    prompt_bytes = sum(len(message.content.encode("utf-8")) for message in expected_messages)
+    raw_metadata = _metadata_response(context_length=prompt_bytes + config.max_tokens)
+    accepted_metadata = validate_model_metadata(
+        raw_metadata, config, prompt_bytes=prompt_bytes
+    ).metadata_sha256
+    retriever = _StatefulQueryRetriever(stable_calls=2)
+    transport = _RecordingSyntheticTransport(config)
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (case,))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: summary)
+    monkeypatch.setattr(workflow, "_b5_cache_preflight", lambda *_args: retriever)
+    monkeypatch.setattr(workflow, "_b5_retriever", lambda *_args: retriever)
+    monkeypatch.setattr(workflow, "load_model_metadata", lambda _config: raw_metadata)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", lambda *_args, **_kwargs: transport)
+    monkeypatch.setattr(
+        workflow,
+        "_privacy_preflight",
+        lambda *_args, **_kwargs: (
+            SimpleNamespace(privacy_sha256="d" * 64),
+            None,
+            Path("stub.privacy.json"),
+        ),
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        _live_evaluate_arguments(tmp_path, baseline="b5", accepted_metadata=accepted_metadata),
+    )
+
+    assert result.exit_code == 0, result.output
+    assert retriever.calls == 1
+    assert transport.messages == [expected_messages]
+
+
 def test_metadata_loader_rejects_json_price_above_decimal_ceiling(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -817,7 +926,7 @@ def test_metadata_loader_rejects_json_price_above_decimal_ceiling(
                 "context_length": 131072,
                 "supported_parameters": ["temperature", "seed", "max_tokens"],
                 "pricing": {
-                    "prompt": 0.00000050000000000000001,
+                    "prompt": 0.0000005000000000000000000000000000000000000000000000000001,
                     "completion": 0.000001
                 }
             }]
@@ -838,6 +947,9 @@ def test_metadata_loader_rejects_json_price_above_decimal_ceiling(
     monkeypatch.setattr("urllib.request.urlopen", lambda *_args, **_kwargs: Response())
     config = LargeLLMConfig(provider=_policy())
     raw = workflow.load_model_metadata(config)
+    prompt_price = raw["data"]["endpoints"][0]["pricing"]["prompt"]  # type: ignore[index]
+    assert isinstance(prompt_price, Decimal)
+    assert prompt_price > Decimal("0.0000005")
 
     with pytest.raises(OpenRouterRequestError) as captured:
         validate_model_metadata(raw, config, prompt_bytes=1)

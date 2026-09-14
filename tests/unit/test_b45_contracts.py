@@ -100,6 +100,14 @@ def test_money_and_config_fingerprint_are_decimal_canonical() -> None:
     assert first.sha256 == second.sha256
 
 
+def test_money_canonicalization_preserves_digits_beyond_context_precision() -> None:
+    value = Decimal("0.0000005000000000000000000000000000000000000000000000000001")
+
+    assert canonical_money(value) == (
+        "0.0000005000000000000000000000000000000000000000000000000001"
+    )
+
+
 @pytest.mark.parametrize(
     "price",
     [Decimal("-0.01"), Decimal("NaN"), Decimal("Infinity")],

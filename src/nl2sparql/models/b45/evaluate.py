@@ -20,6 +20,7 @@ from sqlglot.errors import SqlglotError
 
 from nl2sparql.models.b12.evaluate import EvaluationCase, load_evaluation_cases
 from nl2sparql.models.b45.attempts import AttemptEvidence
+from nl2sparql.models.b45.baseline import PromptPreview
 from nl2sparql.models.b45.budget import BudgetLedger, BudgetSnapshot
 from nl2sparql.models.b45.contracts import (
     LargeBaselineEvidence,
@@ -859,6 +860,8 @@ def _outcome_from_prediction(
     provider_policy_sha256: str | None,
     privacy_sha256: str | None,
     budget_checkpoint: BudgetSnapshot,
+    prompt_set_sha256_value: str | None = None,
+    retrieval_sha256: str | None = None,
 ) -> EvaluationOutcome:
     if prediction.question != case.question:
         raise LargeLLMError("prediction question does not match its source case")
@@ -891,6 +894,8 @@ def _outcome_from_prediction(
         authoritative_cost_usd=prediction.completion.charged_cost_usd,
         provider_policy_sha256=provider_policy_sha256,
         privacy_sha256=privacy_sha256,
+        prompt_set_sha256=prompt_set_sha256_value,
+        retrieval_sha256=retrieval_sha256,
     )
 
 
@@ -903,11 +908,17 @@ def _failure_outcome(
     provider_policy_sha256: str | None,
     privacy_sha256: str | None,
     budget_checkpoint: BudgetSnapshot,
+    prepared_preview: PromptPreview | None = None,
+    prompt_set_sha256_value: str | None = None,
 ) -> EvaluationOutcome:
     code = error.code if isinstance(error, OpenRouterRequestError) else "prediction_failed"
     prompt = getattr(error, "prompt_sha256", None)
     if prompt is not None and not isinstance(prompt, str):
         prompt = None
+    if prepared_preview is not None:
+        if prompt is not None and prompt != prepared_preview.prompt_sha256:
+            raise LargeLLMError("failure prompt does not match prepared preview")
+        prompt = prepared_preview.prompt_sha256
     attempt_count = getattr(error, "attempt_count", 0)
     if not isinstance(attempt_count, int) or isinstance(attempt_count, bool) or attempt_count < 0:
         attempt_count = 0
@@ -952,6 +963,10 @@ def _failure_outcome(
         authoritative_cost_usd=authoritative_cost,
         provider_policy_sha256=provider_policy_sha256,
         privacy_sha256=privacy_sha256,
+        prompt_set_sha256=prompt_set_sha256_value,
+        retrieval_sha256=(
+            prepared_preview.retrieval_sha256 if prepared_preview is not None else None
+        ),
     )
 
 
@@ -964,14 +979,20 @@ async def _predict_case(
     model_metadata_sha256: str | None,
     provider_policy_sha256: str | None,
     privacy_sha256: str | None,
+    prepared_preview: PromptPreview | None = None,
+    prompt_set_sha256_value: str | None = None,
 ) -> EvaluationOutcome:
     predict = getattr(baseline, "predict_detailed", None)
     if not callable(predict):
         raise LargeLLMError("baseline must provide async predict_detailed")
     parameters = inspect.signature(predict).parameters
-    kwargs: dict[str, str] = {"request_id": case.case_id}
+    kwargs: dict[str, object] = {"request_id": case.case_id}
     if evidence.baseline == "b5" or "target_id" in parameters:
         kwargs["target_id"] = case.case_id
+    if prepared_preview is not None:
+        if "preview" not in parameters:
+            raise LargeLLMError("baseline cannot consume a prepared prompt preview")
+        kwargs["preview"] = prepared_preview
     try:
         prediction = await predict(case.question, **kwargs)
     except asyncio.CancelledError:
@@ -985,9 +1006,13 @@ async def _predict_case(
             provider_policy_sha256=provider_policy_sha256,
             privacy_sha256=privacy_sha256,
             budget_checkpoint=await ledger.snapshot(),
+            prepared_preview=prepared_preview,
+            prompt_set_sha256_value=prompt_set_sha256_value,
         )
     if not isinstance(prediction, LargeLLMPrediction):
         raise LargeLLMError("baseline must return LargeLLMPrediction")
+    if prepared_preview is not None and prediction.prompt_sha256 != prepared_preview.prompt_sha256:
+        raise LargeLLMError("prediction prompt does not match prepared preview")
     return _outcome_from_prediction(
         case,
         prediction,
@@ -996,6 +1021,10 @@ async def _predict_case(
         provider_policy_sha256=provider_policy_sha256,
         privacy_sha256=privacy_sha256,
         budget_checkpoint=await ledger.snapshot(),
+        prompt_set_sha256_value=prompt_set_sha256_value,
+        retrieval_sha256=(
+            prepared_preview.retrieval_sha256 if prepared_preview is not None else None
+        ),
     )
 
 
@@ -1171,6 +1200,7 @@ async def evaluate_large_baseline(
     expected_prompt_sha256_by_case: Mapping[str, str] | None = None,
     expected_retrieval_sha256_by_case: Mapping[str, str] | None = None,
     expected_prompt_set_sha256: str | None = None,
+    prepared_previews_by_case: Mapping[str, PromptPreview] | None = None,
 ) -> LargeEvaluationRun:
     """Evaluate cases concurrently while preserving source order.
 
@@ -1188,6 +1218,8 @@ async def evaluate_large_baseline(
         completed_outcomes: Previously journaled outcomes eligible for strict resume.
         resume_budget_checkpoint: Explicit authoritative checkpoint for resumed
             outcomes whose serialized order need not be completion order.
+        prepared_previews_by_case: Exact per-case previews already accepted by
+            metadata preflight, reused without another retrieval or rebuild.
 
     Returns:
         An immutable run whose outcomes remain in source-case order.
@@ -1204,16 +1236,29 @@ async def evaluate_large_baseline(
     selected_config = _baseline_config(baseline)
     ledger = _budget_ledger(baseline)
     evidence = _baseline_evidence(baseline)
-    if callable(getattr(baseline, "preview_prompt", None)):
+    prepared_previews: dict[str, PromptPreview] | None = None
+    if prepared_previews_by_case is not None:
+        if not isinstance(prepared_previews_by_case, Mapping):
+            raise LargeLLMError("prepared prompt previews must be a mapping")
+        prepared_previews = dict(prepared_previews_by_case)
+        if set(prepared_previews) != {case.case_id for case in accepted_cases} or any(
+            not isinstance(preview, PromptPreview) for preview in prepared_previews.values()
+        ):
+            raise LargeLLMError("prepared prompt previews must match evaluation cases")
+    elif callable(getattr(baseline, "preview_prompt", None)):
         preview_prompt = getattr(baseline, "preview_prompt", None)
         if not callable(preview_prompt):
             raise LargeLLMError("baseline must provide deterministic prompt preview")
-        generated_prompts: dict[str, str] = {}
-        generated_retrieval: dict[str, str] = {}
+        prepared_previews = {}
         for case in accepted_cases:
             parameters = inspect.signature(preview_prompt).parameters
             kwargs = {"target_id": case.case_id} if "target_id" in parameters else {}
-            preview = preview_prompt(case.question, **kwargs)
+            prepared_previews[case.case_id] = preview_prompt(case.question, **kwargs)
+    if prepared_previews is not None:
+        generated_prompts: dict[str, str] = {}
+        generated_retrieval: dict[str, str] = {}
+        for case in accepted_cases:
+            preview = prepared_previews[case.case_id]
             prompt_hash = getattr(preview, "prompt_sha256", None)
             if not isinstance(prompt_hash, str):
                 raise LargeLLMError("baseline prompt preview is invalid")
@@ -1311,22 +1356,11 @@ async def evaluate_large_baseline(
                     model_metadata_sha256=model_metadata_sha256,
                     provider_policy_sha256=provider_policy_sha256,
                     privacy_sha256=privacy_sha256,
+                    prepared_preview=(
+                        prepared_previews[case.case_id] if prepared_previews is not None else None
+                    ),
+                    prompt_set_sha256_value=prompt_set_sha256_value,
                 )
-                if prompt_set_sha256_value is not None:
-                    outcome = replace(
-                        outcome,
-                        prompt_sha256=(
-                            expected_prompt_sha256_by_case[case.case_id]
-                            if expected_prompt_sha256_by_case is not None
-                            else outcome.prompt_sha256
-                        ),
-                        prompt_set_sha256=prompt_set_sha256_value,
-                        retrieval_sha256=(
-                            expected_retrieval_sha256_by_case[case.case_id]
-                            if expected_retrieval_sha256_by_case is not None
-                            else outcome.retrieval_sha256
-                        ),
-                    )
             except asyncio.CancelledError as cancelled:
                 if not record_cancellation:
                     raise
@@ -1346,22 +1380,11 @@ async def evaluate_large_baseline(
                     provider_policy_sha256=provider_policy_sha256,
                     privacy_sha256=privacy_sha256,
                     budget_checkpoint=checkpoint,
+                    prepared_preview=(
+                        prepared_previews[case.case_id] if prepared_previews is not None else None
+                    ),
+                    prompt_set_sha256_value=prompt_set_sha256_value,
                 )
-                if prompt_set_sha256_value is not None:
-                    failure = replace(
-                        failure,
-                        prompt_sha256=(
-                            expected_prompt_sha256_by_case[case.case_id]
-                            if expected_prompt_sha256_by_case is not None
-                            else failure.prompt_sha256
-                        ),
-                        prompt_set_sha256=prompt_set_sha256_value,
-                        retrieval_sha256=(
-                            expected_retrieval_sha256_by_case[case.case_id]
-                            if expected_retrieval_sha256_by_case is not None
-                            else failure.retrieval_sha256
-                        ),
-                    )
                 await append_durable(failure)
                 raise
             await append_durable(outcome)

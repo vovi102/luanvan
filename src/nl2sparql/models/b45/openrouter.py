@@ -1025,7 +1025,11 @@ def _metadata_price(pricing: dict[str, object], name: str) -> Decimal:
         return _metadata_decimal(pricing[per_million_name])
     if name not in pricing:
         raise OpenRouterRequestError("model_metadata_invalid")
-    return _metadata_decimal(pricing[name]) * Decimal(1_000_000)
+    per_token = _metadata_decimal(pricing[name])
+    components = per_token.as_tuple()
+    if not isinstance(components.exponent, int):
+        raise OpenRouterRequestError("model_metadata_invalid")
+    return Decimal((components.sign, components.digits, components.exponent + 6))
 
 
 def _metadata_decimal(value: object) -> Decimal:
