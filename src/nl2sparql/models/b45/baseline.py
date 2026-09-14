@@ -6,7 +6,7 @@ import hashlib
 import json
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
 from nl2sparql.models.b12.contracts import (
@@ -119,6 +119,12 @@ class PromptPreview:
     prompt_sha256: str
     selected_examples: tuple[SelectedExample, ...] = ()
     retrieval_evidence: RetrievalEvidence | None = None
+    _retriever_issuer: object | None = field(
+        init=False,
+        default=None,
+        repr=False,
+        compare=False,
+    )
 
     def __post_init__(self) -> None:
         if self.retrieval_evidence is None:
@@ -241,7 +247,7 @@ def preview_b5_prompt(
         raise
     except Exception as exc:
         raise LargeLLMError(f"few-shot retrieval failed ({type(exc).__name__})") from exc
-    return _build_prompt_preview(
+    preview = _build_prompt_preview(
         question,
         summary,
         examples=examples,
@@ -251,6 +257,8 @@ def preview_b5_prompt(
         target_id=target_id,
         training_accepted=retriever.training_accepted,
     )
+    object.__setattr__(preview, "_retriever_issuer", retriever)
+    return preview
 
 
 def _validated_prepared_preview(
@@ -264,10 +272,13 @@ def _validated_prepared_preview(
     encoder_revision: str | None,
     target_id: str | None,
     training_accepted: bool,
+    retriever_issuer: object | None,
 ) -> PromptPreview:
     """Validate that prepared messages and retrieval provenance match this request."""
     if not isinstance(preview, PromptPreview):
         raise LargeLLMError("prepared prompt preview is invalid")
+    if preview._retriever_issuer is not retriever_issuer:
+        raise LargeLLMError("prepared prompt preview issuer does not match retriever")
     expected = _build_prompt_preview(
         question,
         summary,
@@ -448,6 +459,7 @@ class BaselineB4:
             encoder_revision=None,
             target_id=None,
             training_accepted=False,
+            retriever_issuer=None,
         )
         return await _predict(
             question,
@@ -577,6 +589,7 @@ class BaselineB5:
             encoder_revision=self._retriever.encoder_revision,
             target_id=target_id,
             training_accepted=self._retriever.training_accepted,
+            retriever_issuer=self._retriever,
         )
         return await _predict(
             question,

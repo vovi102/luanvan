@@ -3,18 +3,23 @@ from __future__ import annotations
 import ast
 import asyncio
 import hashlib
+from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from nl2sparql.models.b12 import CatalogSummary, SelectedExample
+from nl2sparql.models.b12 import CatalogSummary, EvaluationCase, SelectedExample
 from nl2sparql.models.b45 import (
     BaselineB4,
     BaselineB5,
+    BudgetLedger,
     LargeLLMConfig,
     LargeLLMError,
     ProviderPolicy,
+    evaluate_large_baseline,
+    preview_b5_prompt,
+    prompt_set_sha256,
 )
 from nl2sparql.models.b45.contracts import RemoteCompletion
 
@@ -123,6 +128,94 @@ def test_b5_is_identical_except_for_exactly_five_examples() -> None:
             "train-5",
         ]
         assert retriever.calls == [("List labels", "case-1")]
+
+    asyncio.run(scenario())
+
+
+def test_b5_rejects_preview_issued_by_a_different_retriever() -> None:
+    async def scenario() -> None:
+        exact_retriever = ScriptedRetriever(five_examples())
+        lookalike_retriever = ScriptedRetriever(five_examples())
+        backend = ScriptedTransport(SAFE_SQL)
+        baseline = BaselineB5(
+            summary(), LargeLLMConfig(provider=policy()), backend, exact_retriever
+        )
+        forged = preview_b5_prompt(
+            "List labels", summary(), lookalike_retriever, target_id="case-1"
+        )
+
+        with pytest.raises(LargeLLMError, match="prepared prompt"):
+            await baseline.predict_detailed(
+                "List labels",
+                request_id="case-1",
+                target_id="case-1",
+                preview=forged,
+            )
+
+        assert backend.calls == []
+        assert exact_retriever.calls == []
+
+    asyncio.run(scenario())
+
+
+def test_evaluate_rejects_preview_issued_by_a_different_retriever() -> None:
+    async def scenario() -> None:
+        config = LargeLLMConfig(provider=policy())
+        exact_retriever = ScriptedRetriever(five_examples())
+        lookalike_retriever = ScriptedRetriever(five_examples())
+        backend = ScriptedTransport(SAFE_SQL)
+        backend._ledger = BudgetLedger(config)
+        baseline = BaselineB5(summary(), config, backend, exact_retriever)
+        case = EvaluationCase(
+            case_id="case-1",
+            question="List labels",
+            gold_sql=SAFE_SQL,
+            difficulty="easy",
+            categories=("lookup",),
+            input_sha256="e" * 64,
+        )
+        forged = preview_b5_prompt(
+            case.question, summary(), lookalike_retriever, target_id=case.case_id
+        )
+        prompt_set = prompt_set_sha256(
+            ((case.case_id, (forged.prompt_sha256, forged.retrieval_sha256)),)
+        )
+
+        run = await evaluate_large_baseline(
+            (case,),
+            baseline,
+            run_id="run-1",
+            concurrency=config.concurrency,
+            model_metadata=None,
+            expected_prompt_sha256_by_case={case.case_id: forged.prompt_sha256},
+            expected_retrieval_sha256_by_case={case.case_id: forged.retrieval_sha256},
+            expected_prompt_set_sha256=prompt_set,
+            prepared_previews_by_case={case.case_id: forged},
+        )
+
+        assert run.outcomes[0].status == "request_failed"
+        assert backend.calls == []
+        assert exact_retriever.calls == []
+
+    asyncio.run(scenario())
+
+
+def test_b5_rejects_replaced_preview_that_lost_its_issuer() -> None:
+    async def scenario() -> None:
+        retriever = ScriptedRetriever(five_examples())
+        backend = ScriptedTransport(SAFE_SQL)
+        baseline = BaselineB5(summary(), LargeLLMConfig(provider=policy()), backend, retriever)
+        issued = preview_b5_prompt("List labels", summary(), retriever, target_id="case-1")
+
+        with pytest.raises(LargeLLMError, match="prepared prompt"):
+            await baseline.predict_detailed(
+                "List labels",
+                request_id="case-1",
+                target_id="case-1",
+                preview=replace(issued),
+            )
+
+        assert backend.calls == []
 
     asyncio.run(scenario())
 
