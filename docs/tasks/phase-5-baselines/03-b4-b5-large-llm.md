@@ -198,45 +198,51 @@ summary always reports `counterpart_baseline_missing` and
 `combined_budget_unverified`, keeps `scientific_ready=false`, and separately
 emits derived `local_implementation_ready`.
 
-## Local closure evidence
+## Bằng chứng chốt triển khai local
 
-The canonical local-verification manifest was generated at implementation HEAD
-`84a773c7ac45d7fe8ba6ef20b06419d8d9bc5ca0` on 2026-09-14. It records:
+Manifest xác minh local chuẩn được tạo tại implementation HEAD
+`84a773c7ac45d7fe8ba6ef20b06419d8d9bc5ca0` vào ngày 2026-09-14. Manifest ghi
+lại lệnh chính xác, exit code, số test passed/skipped, digest của output và hash
+của source set. Lần chạy xác minh chuẩn cho kết quả:
 
-- 242 focused B45 tests passed, with 0 skipped;
-- 1,189 repository tests passed, with 0 skipped and 342 pre-existing
-  dependency warnings;
-- `ruff check` and `ruff format --check` passed;
-- CLI help and offline B4 validation passed without credentials or network.
+- 242 test B45 tập trung passed, 0 skipped;
+- 1.189 test toàn repository passed, 0 skipped; output của lần chạy full test
+  báo 342 cảnh báo dependency đã tồn tại từ trước;
+- `ruff check` và `ruff format --check` passed;
+- CLI help và offline B4 validation trả về thành công mà không yêu cầu
+  credentials; hành vi không truy cập mạng của các đường chạy local được bao
+  phủ bởi test.
 
-The validated source-set SHA-256 is
-`af48ec15b0fc9273943218b44a222d075b8b635478d4ea5901cf6c6c3f6aef14`, and the
-manifest SHA-256 is
-`a852e01a197fc5671d3b920775bc2a7f2bfea7e3d66f333658ffbc6c0a66c150`.
-Closure-only documentation is outside the source set by design.
+SHA-256 của source set đã xác minh là
+`af48ec15b0fc9273943218b44a222d075b8b635478d4ea5901cf6c6c3f6aef14`. Trường
+self-hash `manifest_sha256` của nội dung manifest chuẩn là
+`a852e01a197fc5671d3b920775bc2a7f2bfea7e3d66f333658ffbc6c0a66c150`, còn
+SHA-256 của toàn bộ file manifest đã commit là
+`4f51552d3f6a6b7f95d24a7ded0571f1f9a3424d1d68a8b6cf59def65f13fd07`. Tài
+liệu closure không thuộc source set theo chủ đích.
 
-The independent Spec/Standards review chain covered changes from base
-`3b34ac48c86a7b02799a953062e162502470a8d2` through implementation HEAD
-`84a773c7ac45d7fe8ba6ef20b06419d8d9bc5ca0`. The initial review found two
-Critical and six Important issues. Test-first fix and scoped re-review rounds
-then closed retry/cancellation accounting, privacy evidence, resume and prompt
-identity, local readiness, durable attempt records, exact prompt context
-preflight, explicit fresh-run behavior, and exact/conservative price parsing.
-No Critical or Important finding remained at `84a773c`.
+Chuỗi review độc lập theo hai trục Spec/Standards bao phủ các thay đổi từ base
+`3b34ac48c86a7b02799a953062e162502470a8d2` đến implementation HEAD
+`84a773c7ac45d7fe8ba6ef20b06419d8d9bc5ca0`. Review ban đầu tìm thấy hai lỗi
+Critical và sáu lỗi Important. Các vòng sửa test-first và scoped re-review sau
+đó đã chốt các vấn đề về retry/cancellation accounting, privacy evidence,
+resume và prompt identity, local readiness, durable attempt records, exact
+prompt context preflight, explicit fresh-run behavior và exact/conservative
+price parsing. Không còn finding Critical hoặc Important tại `84a773c`.
 
-This evidence establishes local implementation readiness only. No live
-OpenRouter request was made, and there is no claim for live accuracy, latency,
-cost, provider reproducibility, or B4/B5 scientific comparison.
+Bằng chứng này chỉ xác nhận local implementation readiness. Không có request
+OpenRouter live nào được thực hiện và không có tuyên bố về live accuracy,
+latency, cost, provider reproducibility hoặc so sánh khoa học B4/B5.
 
 ## Acceptance boundary
 
 The local implementation gate covers contracts, B4/B5 prompt parity, B2
 retrieval reuse, fail-closed GoogleSQL extraction, lazy provider loading,
-retry/error policy, hard-cap accounting, protected atomic artifacts, v3
-terminal evidence, v2 resume migration, CLI preflight, focused tests, the full
-test suite, and lint/format checks. Readiness is derived from the validated
-canonical manifest rather than a caller-provided boolean. Local completion does
-not produce research results.
+retry/error policy, hard-cap accounting, protected atomic artifacts, sealed v4
+publication terminal evidence, sealed-v3 read-only compatibility, v2 resume
+migration, CLI preflight, focused tests, the full test suite, and lint/format
+checks. Readiness is derived from the validated canonical manifest rather than
+a caller-provided boolean. Local completion does not produce research results.
 
 Scientific acceptance remains blocked until all of the following are supplied
 and independently reviewed:
