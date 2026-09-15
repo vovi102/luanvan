@@ -39,7 +39,7 @@
 - Consumes: `ChatMessage`, `CatalogSummary`, `ExtractionStatus`, `SelectedExample`, and `validate_question` from `nl2sparql.models.b12.contracts`.
 - Produces: `LargeLLMError`, `ProviderPolicy`, `LargeLLMConfig`, `RemoteCompletion`, `LargeLLMPrediction`, `canonical_money(value: Decimal) -> str`, and private loader-issued live completion provenance.
 
-- [ ] **Step 1: Write failing tests for canonical configuration and immutable accounting**
+- [x] **Step 1: Write failing tests for canonical configuration and immutable accounting**
 
 ```python
 from dataclasses import FrozenInstanceError, replace
@@ -107,13 +107,13 @@ def test_completion_is_synthetic_by_default_and_cannot_be_relabelled() -> None:
         )
 ```
 
-- [ ] **Step 2: Run the contract tests and verify the missing module failure**
+- [x] **Step 2: Run the contract tests and verify the missing module failure**
 
 Run: `uv run python -m pytest tests/unit/test_b45_contracts.py -q`
 
 Expected: FAIL during collection with `ModuleNotFoundError: No module named 'nl2sparql.models.b45'`.
 
-- [ ] **Step 3: Implement strict frozen contracts and fingerprints**
+- [x] **Step 3: Implement strict frozen contracts and fingerprints**
 
 Implement these exact public shapes in `contracts.py`:
 
@@ -237,13 +237,13 @@ Keep live provenance private: `RemoteCompletion.synthetic` is public, while `_op
 
 Export the stable public names from `b45/__init__.py`; do not import `b45.openrouter` there.
 
-- [ ] **Step 4: Run focused contracts and existing B1/B2 tests**
+- [x] **Step 4: Run focused contracts and existing B1/B2 tests**
 
 Run: `uv run python -m pytest tests/unit/test_b45_contracts.py tests/unit/test_b12_baseline.py tests/unit/test_b12_prompts.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the contract layer**
+- [x] **Step 5: Commit the contract layer**
 
 ```bash
 git add src/nl2sparql/models/b45 tests/unit/test_b45_contracts.py
@@ -263,7 +263,7 @@ git commit -m "feat(baselines): define large-LLM contracts"
 - Consumes: `LargeLLMConfig`, `LargeLLMError`, `ChatMessage`.
 - Produces: `BudgetLedger.reserve(request_id: str, messages: tuple[ChatMessage, ...]) -> BudgetReservation | None`, `BudgetLedger.reconcile(reservation, actual_cost_usd) -> BudgetSnapshot`, `BudgetLedger.hold(reservation, reason) -> BudgetSnapshot`, `BudgetLedger.snapshot() -> BudgetSnapshot`, and `conservative_request_cost(messages, config) -> Decimal`.
 
-- [ ] **Step 1: Write failing tests for reservation, reconciliation, and concurrency**
+- [x] **Step 1: Write failing tests for reservation, reconciliation, and concurrency**
 
 ```python
 import asyncio
@@ -326,13 +326,13 @@ def test_unknown_cost_holds_reservation_and_blocks_future_spend() -> None:
     asyncio.run(scenario())
 ```
 
-- [ ] **Step 2: Run the budget tests and verify they fail**
+- [x] **Step 2: Run the budget tests and verify they fail**
 
 Run: `uv run python -m pytest tests/unit/test_b45_budget.py -q`
 
 Expected: FAIL because `nl2sparql.models.b45.budget` does not exist.
 
-- [ ] **Step 3: Implement byte-conservative reservations under one async lock**
+- [x] **Step 3: Implement byte-conservative reservations under one async lock**
 
 Use these immutable records and formulas:
 
@@ -366,7 +366,7 @@ def conservative_request_cost(
 
 `BudgetLedger` keeps reservations in a dictionary keyed by request ID and protects every read/write with one `asyncio.Lock`. Reject duplicate IDs, foreign/already-finalized reservations, negative or non-finite authoritative costs, and actual cost above the reserved ceiling. On an over-ceiling response, add the actual amount to spent, clear the reservation, set a permanent `pricing_violation` stop reason, and reject every later reservation. `hold` leaves the full amount reserved and records the reason. Every snapshot sorts unresolved IDs.
 
-- [ ] **Step 4: Run focused tests including cancellation/duplicate edge cases**
+- [x] **Step 4: Run focused tests including cancellation/duplicate edge cases**
 
 Add tests that cancel a waiter without corrupting state, reject duplicate request IDs, reject reconciliation twice, and assert `spent + reserved <= cap` for accepted prices.
 
@@ -374,7 +374,7 @@ Run: `uv run python -m pytest tests/unit/test_b45_budget.py tests/unit/test_b45_
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the budget ledger**
+- [x] **Step 5: Commit the budget ledger**
 
 ```bash
 git add src/nl2sparql/models/b45/budget.py src/nl2sparql/models/b45/__init__.py tests/unit/test_b45_budget.py
@@ -397,7 +397,7 @@ git commit -m "feat(baselines): cap concurrent OpenRouter cost"
 - Consumes: `build_messages`, `prompt_sha256`, `extract_google_sql`, `CatalogSummary`, `SelectedExample`, `LargeLLMConfig`, `RemoteCompletion`, and a B2-compatible retriever.
 - Produces: `CompletionTransport.complete(messages, config, request_id) -> RemoteCompletion`, `BaselineB4.predict[_detailed]`, and `BaselineB5.predict[_detailed]`.
 
-- [ ] **Step 1: Write failing public-interface tests for parity and fail-closed SQL**
+- [x] **Step 1: Write failing public-interface tests for parity and fail-closed SQL**
 
 ```python
 import asyncio
@@ -473,13 +473,13 @@ def test_b5_is_identical_except_for_exactly_five_examples() -> None:
 
 In the test file, define `policy()` exactly as Task 1, `five_examples()` as five valid `SelectedExample` records with stable IDs and scores, and `ScriptedRetriever` with `training_sha256`, `encoder_id`, `encoder_revision`, `training_accepted=True`, and `retrieve` returning those examples.
 
-- [ ] **Step 2: Run the baseline tests and verify missing interfaces**
+- [x] **Step 2: Run the baseline tests and verify missing interfaces**
 
 Run: `uv run python -m pytest tests/unit/test_b45_baseline.py -q`
 
 Expected: FAIL importing `BaselineB4` and `BaselineB5`.
 
-- [ ] **Step 3: Implement the transport protocol and baseline orchestration**
+- [x] **Step 3: Implement the transport protocol and baseline orchestration**
 
 Define the protocol:
 
@@ -515,13 +515,13 @@ Compatibility files only import and export the corresponding class. Add an
 AST/import-guard test that `b45` does not import `nl2sparql.linking` and that
 `b4_zero_shot.py`/`b5_few_shot.py` contain no parallel implementation.
 
-- [ ] **Step 4: Run B4/B5 and reused prompt/extraction tests**
+- [x] **Step 4: Run B4/B5 and reused prompt/extraction tests**
 
 Run: `uv run python -m pytest tests/unit/test_b45_baseline.py tests/unit/test_b12_prompts.py tests/unit/test_b12_baseline.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit baseline behavior**
+- [x] **Step 5: Commit baseline behavior**
 
 ```bash
 git add src/nl2sparql/models/b45 src/nl2sparql/models/b4_zero_shot.py src/nl2sparql/models/b5_few_shot.py tests/unit/test_b45_baseline.py
@@ -540,7 +540,7 @@ git commit -m "feat(baselines): predict GoogleSQL with B4 and B5"
 - Consumes: `BudgetLedger`, `LargeLLMConfig`, `ChatMessage`, and private live completion factory.
 - Produces: `OpenRouterTransport.from_env(config: LargeLLMConfig, ledger: BudgetLedger) -> OpenRouterTransport`, `OpenRouterTransport.complete(messages: tuple[ChatMessage, ...], config: LargeLLMConfig, *, request_id: str) -> RemoteCompletion`, `OpenRouterRequestError`, `RetryPolicy`, and `validate_model_metadata(raw: object, config: LargeLLMConfig) -> ModelMetadataEvidence`.
 
-- [ ] **Step 1: Write failing tests for payload, retry matrix, and live evidence**
+- [x] **Step 1: Write failing tests for payload, retry matrix, and live evidence**
 
 ```python
 import asyncio
@@ -644,13 +644,13 @@ bounded `Retry-After`, malformed usage cost, two choices, empty content,
 unexpected provider/model, non-`stop`/`length` finish reasons, held reservation
 after ambiguous cost, and errors that never contain `OPENROUTER_API_KEY`.
 
-- [ ] **Step 2: Run adapter tests and verify the missing adapter failure**
+- [x] **Step 2: Run adapter tests and verify the missing adapter failure**
 
 Run: `uv run python -m pytest tests/unit/test_b45_openrouter.py -q`
 
 Expected: FAIL because `b45.openrouter` does not exist.
 
-- [ ] **Step 3: Implement a lazy injected SDK adapter**
+- [x] **Step 3: Implement a lazy injected SDK adapter**
 
 The constructor takes an SDK-like object, ledger, injected async sleep, clock,
 and deterministic jitter function. `from_env` imports `AsyncOpenAI` inside the
@@ -676,7 +676,7 @@ endpoint, `seed`, `temperature`, and `max_tokens` support, prices at or below th
 policy ceilings, and a context window large enough for prompt bytes plus 512.
 Return an immutable `ModelMetadataEvidence` carrying a canonical metadata SHA.
 
-- [ ] **Step 4: Prove no live network is reachable from local test paths**
+- [x] **Step 4: Prove no live network is reachable from local test paths**
 
 Add an autouse test fixture that monkeypatches `socket.socket.connect` to raise
 `AssertionError("network forbidden in local tests")`. Test `from_env` with a
@@ -686,7 +686,7 @@ Run: `uv run python -m pytest tests/unit/test_b45_openrouter.py tests/unit/test_
 
 Expected: PASS with no real sleeps or sockets.
 
-- [ ] **Step 5: Commit the production adapter**
+- [x] **Step 5: Commit the production adapter**
 
 ```bash
 git add src/nl2sparql/models/b45/openrouter.py tests/unit/test_b45_openrouter.py
@@ -706,7 +706,7 @@ git commit -m "feat(baselines): add budgeted OpenRouter transport"
 - Consumes: B1/B2 `EvaluationCase` and `load_evaluation_cases`, B4/B5 public interfaces, `BudgetLedger.snapshot`, and remote prediction contracts.
 - Produces: `OutcomeJournal`, `EvaluationOutcome`, `LargeEvaluationMetrics`, `LargeEvaluationRun`, `evaluate_large_baseline(cases, baseline, *, run_id, concurrency, model_metadata, journal=None, completed_outcomes=()) -> LargeEvaluationRun`, and `compare_large_reproducibility(runs) -> ReproducibilityReport`.
 
-- [ ] **Step 1: Write failing tests for bounded concurrency and ordered outcomes**
+- [x] **Step 1: Write failing tests for bounded concurrency and ordered outcomes**
 
 ```python
 import asyncio
@@ -764,13 +764,13 @@ def test_three_run_report_measures_raw_and_normalized_sql_agreement() -> None:
     assert report.raw_output_agreement < 1.0
 ```
 
-- [ ] **Step 2: Run evaluation tests and verify they fail**
+- [x] **Step 2: Run evaluation tests and verify they fail**
 
 Run: `uv run python -m pytest tests/unit/test_b45_evaluate.py -q`
 
 Expected: FAIL because `b45.evaluate` does not exist.
 
-- [ ] **Step 3: Implement evaluator records and worker orchestration**
+- [x] **Step 3: Implement evaluator records and worker orchestration**
 
 Use these public records:
 
@@ -845,13 +845,13 @@ model, and provider. Compute all three pairwise per-case agreements for raw text
 and normalized safe SQL; a missing/failed prediction counts as disagreement
 unless both runs have the same failure status.
 
-- [ ] **Step 4: Run evaluator and B4/B5 tests**
+- [x] **Step 4: Run evaluator and B4/B5 tests**
 
 Run: `uv run python -m pytest tests/unit/test_b45_evaluate.py tests/unit/test_b45_baseline.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit evaluation behavior**
+- [x] **Step 5: Commit evaluation behavior**
 
 ```bash
 git add src/nl2sparql/models/b45/evaluate.py src/nl2sparql/models/b45/__init__.py tests/unit/test_b45_evaluate.py
@@ -871,7 +871,7 @@ git commit -m "feat(baselines): evaluate B4 B5 runs offline"
 - Consumes: `LargeEvaluationRun`, `ReproducibilityReport`, exact input/config fingerprints.
 - Produces: `RequestJournal.append(outcome) -> None`, `load_resume_state(request_log, *, expected_input_sha256, expected_config_sha256, expected_run_id) -> ResumeState`, `publish_large_run(run, *, paths, protected_paths=()) -> None`, `summarize_large_runs(runs) -> dict[str, object]`, and deterministic JSONL/CSV serializers.
 
-- [ ] **Step 1: Write failing tests for report-last rollback and stale resume rejection**
+- [x] **Step 1: Write failing tests for report-last rollback and stale resume rejection**
 
 ```python
 from pathlib import Path
@@ -924,13 +924,13 @@ def test_outputs_cannot_alias_inputs_or_each_other(tmp_path: Path) -> None:
         )
 ```
 
-- [ ] **Step 2: Run artifact tests and verify they fail**
+- [x] **Step 2: Run artifact tests and verify they fail**
 
 Run: `uv run python -m pytest tests/unit/test_b45_artifacts.py -q`
 
 Expected: FAIL because `b45.artifacts` does not exist.
 
-- [ ] **Step 3: Implement deterministic serializers and safe publication**
+- [x] **Step 3: Implement deterministic serializers and safe publication**
 
 Define:
 
@@ -983,13 +983,13 @@ lose an in-flight request but cannot corrupt or silently duplicate an accepted
 record. Add a test that interrupts after case one, reloads `ResumeState`, and
 proves the resumed evaluator schedules only case two.
 
-- [ ] **Step 4: Run artifact and existing T5.2 rollback tests**
+- [x] **Step 4: Run artifact and existing T5.2 rollback tests**
 
 Run: `uv run python -m pytest tests/unit/test_b45_artifacts.py tests/unit/test_b12_artifacts.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit artifact publication**
+- [x] **Step 5: Commit artifact publication**
 
 ```bash
 git add src/nl2sparql/models/b45/artifacts.py src/nl2sparql/models/b45/__init__.py tests/unit/test_b45_artifacts.py
@@ -1010,7 +1010,7 @@ git commit -m "feat(baselines): publish resumable B4 B5 evidence"
 - Consumes: all public B4/B5 contracts, evaluator, artifact publisher, B1/B2 catalog/retriever/evaluation loaders, and a lazily imported OpenRouter transport.
 - Produces: Click commands `validate`, `predict`, `evaluate`, and `summarize`; `load_openrouter_transport`, `load_model_metadata`, and `build_large_baseline` seams for local tests.
 
-- [ ] **Step 1: Write failing tests for help, opt-in, key, and path preflight**
+- [x] **Step 1: Write failing tests for help, opt-in, key, and path preflight**
 
 ```python
 import json
@@ -1080,13 +1080,13 @@ blocks client construction, an injected synthetic transport can exercise the
 workflow but yields `scientific_ready=false`, and `summarize` never loads a
 client.
 
-- [ ] **Step 2: Run CLI tests and verify the missing workflow failure**
+- [x] **Step 2: Run CLI tests and verify the missing workflow failure**
 
 Run: `uv run python -m pytest tests/unit/test_b45_workflow.py -q`
 
 Expected: FAIL importing `scripts.large_llm_baselines_workflow`.
 
-- [ ] **Step 3: Implement commands and strict preflight sequence**
+- [x] **Step 3: Implement commands and strict preflight sequence**
 
 Use defaults:
 
@@ -1129,7 +1129,7 @@ if __name__ == "__main__":
 
 Ensure `.env.example` contains `OPENROUTER_API_KEY=` with no sample secret.
 
-- [ ] **Step 4: Run CLI subprocess and complete focused suite**
+- [x] **Step 4: Run CLI subprocess and complete focused suite**
 
 Run: `uv run python scripts/18_large_llm_baselines.py --help`
 
@@ -1140,7 +1140,7 @@ Run: `uv run python -m pytest tests/unit/test_b45_contracts.py tests/unit/test_b
 
 Expected: PASS and no network attempt.
 
-- [ ] **Step 5: Commit the offline workflow**
+- [x] **Step 5: Commit the offline workflow**
 
 ```bash
 git add scripts/large_llm_baselines_workflow.py scripts/18_large_llm_baselines.py tests/unit/test_b45_workflow.py .env.example
@@ -1160,7 +1160,7 @@ git commit -m "feat(baselines): add B4 B5 offline workflow"
 - Consumes: final implemented CLI names, artifact schemas, blockers, and verification evidence.
 - Produces: an accurate GoogleSQL T5.3 task, reproducible operator commands, and a dated architectural decision.
 
-- [ ] **Step 1: Write a documentation assertion test before changing docs**
+- [x] **Step 1: Write a documentation assertion test before changing docs**
 
 Add to `tests/unit/test_b45_workflow.py`:
 
@@ -1174,13 +1174,13 @@ def test_task_document_matches_google_sql_acceptance_boundary() -> None:
     assert "SPARQL extraction" not in text
 ```
 
-- [ ] **Step 2: Run the documentation test and verify legacy wording fails**
+- [x] **Step 2: Run the documentation test and verify legacy wording fails**
 
 Run: `uv run python -m pytest tests/unit/test_b45_workflow.py::test_task_document_matches_google_sql_acceptance_boundary -q`
 
 Expected: FAIL because the current task still describes SPARQL and has status `todo`.
 
-- [ ] **Step 3: Rewrite T5.3 around the implemented GoogleSQL workflow**
+- [x] **Step 3: Rewrite T5.3 around the implemented GoogleSQL workflow**
 
 Document B4/B5 definitions, exact model slug, B1/B2 prompt/retrieval reuse,
 OpenRouter request policy, retryable statuses, USD 20 reservation behavior,
@@ -1201,7 +1201,7 @@ Llama 3.3 70B, one pinned provider without fallback, shared B1/B2 GoogleSQL
 prompt/extraction, conservative budget reservations, and separate local versus
 scientific readiness.
 
-- [ ] **Step 4: Run docs assertion and inspect all changed Markdown**
+- [x] **Step 4: Run docs assertion and inspect all changed Markdown**
 
 Run: `uv run python -m pytest tests/unit/test_b45_workflow.py::test_task_document_matches_google_sql_acceptance_boundary -q`
 
@@ -1211,7 +1211,7 @@ Run: `rg -n "SPARQL|todo|OPENROUTER_API_KEY=.+" docs/tasks/phase-5-baselines/03-
 
 Expected: no legacy SPARQL target, stale `todo` status, or committed secret.
 
-- [ ] **Step 5: Commit the migration and decision record**
+- [x] **Step 5: Commit the migration and decision record**
 
 ```bash
 git add docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md docs/memory/05-DECISION_LOG.md README.md tests/unit/test_b45_workflow.py
@@ -1231,7 +1231,7 @@ git commit -m "docs(baselines): migrate T5.3 to GoogleSQL"
 - Consumes: the complete T5.3 branch and its approved design.
 - Produces: passing repository evidence, resolved Spec/Standards review findings, and checked plan boxes.
 
-- [ ] **Step 1: Run the complete focused suite from a fresh process**
+- [x] **Step 1: Run the complete focused suite from a fresh process**
 
 Run:
 
@@ -1248,7 +1248,7 @@ uv run python -m pytest \
 
 Expected: PASS with no skipped tests and no network traffic.
 
-- [ ] **Step 2: Run full repository verification**
+- [x] **Step 2: Run full repository verification**
 
 Run:
 
@@ -1266,7 +1266,7 @@ Expected: all tests pass; Ruff reports no issues or formatting changes; CLI help
 and offline validation succeed without a key; diff check is empty; only intended
 tracked changes remain.
 
-- [ ] **Step 3: Request independent Spec and Standards review**
+- [x] **Step 3: Request independent Spec and Standards review**
 
 Use the `superpowers:requesting-code-review` skill followed by the repository
 `code-review` skill against base commit `3b34ac48c86a7b02799a953062e162502470a8d2`.
@@ -1278,14 +1278,14 @@ Expected: both reviewers return no Critical or Important findings. If they do,
 use `superpowers:receiving-code-review`, reproduce each finding, fix it with a
 failing regression test, rerun focused/full verification, and request a recheck.
 
-- [ ] **Step 4: Record exact verification and review evidence**
+- [x] **Step 4: Record exact verification and review evidence**
 
 Update the task document with the final test count, Ruff results, CLI checks,
 review commit SHA, and remaining scientific blockers. Check every completed box
 in this plan. Do not mark live runs, cost, latency, or reproducibility complete
 unless genuine OpenRouter artifacts exist.
 
-- [ ] **Step 5: Commit closure documentation**
+- [x] **Step 5: Commit closure documentation**
 
 ```bash
 git add docs/superpowers/plans/2026-09-07-t5-3-google-sql-large-llm.md docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md

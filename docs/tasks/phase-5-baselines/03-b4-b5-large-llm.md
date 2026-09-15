@@ -198,6 +198,36 @@ summary always reports `counterpart_baseline_missing` and
 `combined_budget_unverified`, keeps `scientific_ready=false`, and separately
 emits derived `local_implementation_ready`.
 
+## Local closure evidence
+
+The canonical local-verification manifest was generated at implementation HEAD
+`84a773c7ac45d7fe8ba6ef20b06419d8d9bc5ca0` on 2026-09-14. It records:
+
+- 242 focused B45 tests passed, with 0 skipped;
+- 1,189 repository tests passed, with 0 skipped and 342 pre-existing
+  dependency warnings;
+- `ruff check` and `ruff format --check` passed;
+- CLI help and offline B4 validation passed without credentials or network.
+
+The validated source-set SHA-256 is
+`af48ec15b0fc9273943218b44a222d075b8b635478d4ea5901cf6c6c3f6aef14`, and the
+manifest SHA-256 is
+`a852e01a197fc5671d3b920775bc2a7f2bfea7e3d66f333658ffbc6c0a66c150`.
+Closure-only documentation is outside the source set by design.
+
+The independent Spec/Standards review chain covered changes from base
+`3b34ac48c86a7b02799a953062e162502470a8d2` through implementation HEAD
+`84a773c7ac45d7fe8ba6ef20b06419d8d9bc5ca0`. The initial review found two
+Critical and six Important issues. Test-first fix and scoped re-review rounds
+then closed retry/cancellation accounting, privacy evidence, resume and prompt
+identity, local readiness, durable attempt records, exact prompt context
+preflight, explicit fresh-run behavior, and exact/conservative price parsing.
+No Critical or Important finding remained at `84a773c`.
+
+This evidence establishes local implementation readiness only. No live
+OpenRouter request was made, and there is no claim for live accuracy, latency,
+cost, provider reproducibility, or B4/B5 scientific comparison.
+
 ## Acceptance boundary
 
 The local implementation gate covers contracts, B4/B5 prompt parity, B2
