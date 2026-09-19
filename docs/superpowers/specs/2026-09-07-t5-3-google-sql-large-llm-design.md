@@ -1,7 +1,7 @@
 # T5.3 GoogleSQL Large-LLM Baselines Design
 
-**Date:** 2026-09-07  
-**Status:** approved by the user on 2026-09-07  
+**Date:** 2026-09-07
+**Status:** approved by the user on 2026-09-07
 **Scope:** migrate B4/B5 from NL-to-SPARQL to reproducible, budget-bounded
 NL-to-GoogleSQL baselines backed by OpenRouter. Local development must not send
 requests or incur API cost.

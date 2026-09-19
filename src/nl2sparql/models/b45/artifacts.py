@@ -500,6 +500,184 @@ def _atomic_write(path: Path, payload: bytes) -> None:
             temporary.unlink(missing_ok=True)
 
 
+def _quarantine_name(path: Path, *, label: str) -> Path:
+    descriptor, raw_quarantined = tempfile.mkstemp(
+        dir=path.parent.resolve(strict=True), prefix=f".{path.name}.{label}."
+    )
+    os.close(descriptor)
+    quarantined = Path(raw_quarantined)
+    quarantined.unlink()
+    return quarantined
+
+
+def _same_file_as_fd(path: Path, owned_descriptor: int) -> bool:
+    current = path.stat(follow_symlinks=False)
+    owned = os.fstat(owned_descriptor)
+    return (current.st_dev, current.st_ino) == (owned.st_dev, owned.st_ino)
+
+
+def _open_current_file(path: Path, current: bytes) -> int:
+    """Open the exact regular file represented by a preflight byte snapshot."""
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        details = os.fstat(descriptor)
+        if not stat.S_ISREG(details.st_mode) or details.st_nlink != 1:
+            raise LargeLLMError(f"unsafe existing artifact alias: {path}")
+        with os.fdopen(os.dup(descriptor), "rb") as handle:
+            if handle.read() != current or not _same_file_as_fd(path, descriptor):
+                raise LargeLLMError(f"artifact changed after publication preflight: {path}")
+        result = descriptor
+        descriptor = None
+        return result
+    except LargeLLMError:
+        raise
+    except OSError as error:
+        raise LargeLLMError(f"unable to inspect existing artifact {path}: {error}") from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _remove_if_same_file(path: Path, owned_descriptor: int) -> None:
+    """Remove the current path only when it is the inode held by owned_descriptor."""
+    quarantined = _quarantine_name(path, label="rollback")
+    os.rename(path, quarantined)
+    if _same_file_as_fd(quarantined, owned_descriptor):
+        quarantined.unlink()
+        return
+    _restore_quarantined(path, quarantined)
+
+
+def _atomic_create_owned(path: Path, payload: bytes) -> int:
+    """Durably create without clobbering and return an open ownership descriptor."""
+    temporary: Path | None = None
+    owned_descriptor: int | None = None
+    linked = False
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        parent = path.parent.resolve(strict=True)
+        descriptor, raw_temporary = tempfile.mkstemp(dir=parent, prefix=f".{path.name}.")
+        temporary = Path(raw_temporary)
+        owned_descriptor = descriptor
+        with os.fdopen(os.dup(descriptor), "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        # DECISION: hard-link the staged inode so creation is no-clobber and the
+        # retained staging link is an ownership token until directory fsync succeeds.
+        os.link(temporary, path)
+        linked = True
+        _fsync_directory(parent)
+        temporary.unlink()
+        temporary = None
+        result = owned_descriptor
+        owned_descriptor = None
+        return result
+    except Exception:
+        if linked and owned_descriptor is not None:
+            _remove_if_same_file(path, owned_descriptor)
+        raise
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        if owned_descriptor is not None:
+            os.close(owned_descriptor)
+
+
+def _atomic_create(path: Path, payload: bytes) -> None:
+    """Durably create one file without replacing a racing destination."""
+    owned_descriptor = _atomic_create_owned(path, payload)
+    os.close(owned_descriptor)
+
+
+def _restore_quarantined(path: Path, quarantined: Path) -> None:
+    """Restore a quarantined path without replacing a racing destination."""
+    os.link(quarantined, path, follow_symlinks=False)
+    quarantined.unlink()
+    _fsync_directory(path.parent.resolve(strict=True))
+
+
+def _restore_replaced_file(path: Path, owned_descriptor: int, previous_quarantine: Path) -> None:
+    """Recover the exact previous inode without overwriting a racing path."""
+    replacement_quarantine = _quarantine_name(path, label="failed")
+    try:
+        os.rename(path, replacement_quarantine)
+    except Exception as quarantine_error:
+        try:
+            _remove_if_same_file(path, owned_descriptor)
+            if path.exists() or path.is_symlink():
+                raise LargeLLMError("journal replacement changed before fallback recovery")
+            _restore_quarantined(path, previous_quarantine)
+        except Exception as fallback_error:
+            raise LargeLLMError(
+                f"unable to quarantine journal replacement: {quarantine_error}; "
+                f"fallback recovery failed: {fallback_error}"
+            ) from quarantine_error
+        raise LargeLLMError(
+            f"unable to quarantine journal replacement: {quarantine_error}; "
+            "exact preflight journal restored"
+        ) from quarantine_error
+    try:
+        if not _same_file_as_fd(replacement_quarantine, owned_descriptor):
+            _restore_quarantined(path, replacement_quarantine)
+            raise LargeLLMError("journal replacement ownership changed during recovery")
+        _restore_quarantined(path, previous_quarantine)
+        replacement_quarantine.unlink()
+        _fsync_directory(path.parent.resolve(strict=True))
+    except Exception:
+        if replacement_quarantine.exists() or replacement_quarantine.is_symlink():
+            if not path.exists() and not path.is_symlink():
+                _restore_quarantined(path, replacement_quarantine)
+        raise
+
+
+def _atomic_write_if_current(
+    path: Path, payload: bytes, current: bytes, current_descriptor: int
+) -> int:
+    """Replace the observed version and return an open ownership descriptor."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    quarantined = _quarantine_name(path, label="old")
+    os.rename(path, quarantined)
+    owned_descriptor: int | None = None
+    try:
+        if not _same_file_as_fd(quarantined, current_descriptor) or (
+            _existing_bytes(quarantined) != current
+        ):
+            _restore_quarantined(path, quarantined)
+            raise LargeLLMError(f"artifact changed after publication preflight: {path}")
+        try:
+            owned_descriptor = _atomic_create_owned(path, payload)
+        except Exception:
+            if not path.exists() and not path.is_symlink():
+                _restore_quarantined(path, quarantined)
+            raise
+        try:
+            quarantined.unlink()
+        except Exception as retirement_error:
+            try:
+                _restore_replaced_file(path, owned_descriptor, quarantined)
+            except Exception as recovery_error:
+                raise LargeLLMError(
+                    f"unable to retire previous journal: {retirement_error}; "
+                    f"recovery failed: {recovery_error}"
+                ) from retirement_error
+            raise LargeLLMError(
+                f"unable to retire previous journal: {retirement_error}"
+            ) from retirement_error
+        result = owned_descriptor
+        owned_descriptor = None
+        return result
+    except Exception:
+        if quarantined.exists() or quarantined.is_symlink():
+            if not path.exists() and not path.is_symlink():
+                _restore_quarantined(path, quarantined)
+        raise
+    finally:
+        if owned_descriptor is not None:
+            os.close(owned_descriptor)
+
+
 def _restore(path: Path, previous: bytes | None) -> None:
     if previous is not None:
         _atomic_write(path, previous)
@@ -507,6 +685,35 @@ def _restore(path: Path, previous: bytes | None) -> None:
     if path.exists() or path.is_symlink():
         path.unlink()
         _fsync_directory(path.parent.resolve(strict=True))
+
+
+def _restore_if_current(path: Path, owned_descriptor: int, previous: bytes | None) -> None:
+    """Roll back only the inode still owned by this publication."""
+    if not path.exists() and not path.is_symlink():
+        return
+    quarantined = _quarantine_name(path, label="rollback")
+    try:
+        os.rename(path, quarantined)
+    except FileNotFoundError:
+        return
+    try:
+        if not _same_file_as_fd(quarantined, owned_descriptor):
+            _restore_quarantined(path, quarantined)
+            return
+        if previous is not None:
+            try:
+                _atomic_create(path, previous)
+            except Exception:
+                if not path.exists() and not path.is_symlink():
+                    _restore_quarantined(path, quarantined)
+                raise
+        quarantined.unlink()
+        _fsync_directory(path.parent.resolve(strict=True))
+    except Exception:
+        if quarantined.exists() or quarantined.is_symlink():
+            if not path.exists() and not path.is_symlink():
+                _restore_quarantined(path, quarantined)
+        raise
 
 
 def validate_artifact_paths(paths: ArtifactPaths, *, protected_paths: Sequence[Path] = ()) -> None:
@@ -1458,6 +1665,7 @@ class RequestJournal:
         path: Path,
         *,
         allow_legacy_resume: bool = False,
+        fresh: bool = False,
         run_id: str,
         baseline: str,
         input_sha256: str | None,
@@ -1478,6 +1686,8 @@ class RequestJournal:
             path: Journal JSONL path.
             allow_legacy_resume: Explicit authority to accept and atomically
                 migrate a validated terminal-free schema v2 resume journal.
+            fresh: Explicit authority requiring atomic no-clobber creation of a
+                new journal rather than acceptance of an existing journal.
             run_id: Stable evaluation-run identifier.
             baseline: ``b4`` or ``b5``.
             input_sha256: Exact input snapshot fingerprint, if available.
@@ -1496,6 +1706,10 @@ class RequestJournal:
             raise LargeLLMError("request journal path must be a pathlib.Path")
         if not isinstance(allow_legacy_resume, bool):
             raise LargeLLMError("legacy resume authority must be boolean")
+        if not isinstance(fresh, bool):
+            raise LargeLLMError("fresh journal authority must be boolean")
+        if fresh and allow_legacy_resume:
+            raise LargeLLMError("fresh journal cannot accept resume authority")
         header = _journal_header(
             run_id=run_id,
             baseline=baseline,
@@ -1514,10 +1728,13 @@ class RequestJournal:
         existing = _existing_bytes(path)
         if existing is None:
             try:
-                _atomic_write(path, _canonical_json(header))
+                writer = _atomic_create if fresh else _atomic_write
+                writer(path, _canonical_json(header))
             except Exception as error:
                 raise LargeLLMError(f"unable to initialize request journal: {error}") from error
         else:
+            if fresh:
+                raise LargeLLMError("unable to initialize request journal: path already exists")
             allowed_versions = (
                 _RESUME_SCHEMA_VERSIONS if allow_legacy_resume else frozenset({_SCHEMA_VERSION})
             )
@@ -2299,6 +2516,7 @@ def publish_large_run(
     *,
     paths: ArtifactPaths,
     protected_paths: Sequence[Path] = (),
+    fresh: bool = False,
 ) -> None:
     """Publish all artifacts atomically in order and the report last.
 
@@ -2306,33 +2524,84 @@ def publish_large_run(
         run: Validated immutable evaluation run.
         paths: Four output destinations.
         protected_paths: Input/evidence paths that must never be overwritten.
+        fresh: Require no-clobber creation for new-run publication outputs.
 
     Raises:
         LargeLLMError: If paths/evidence are invalid or any write/rollback fails.
     """
     if not isinstance(run, LargeEvaluationRun):
         raise LargeLLMError("publication requires a LargeEvaluationRun")
+    if not isinstance(fresh, bool):
+        raise LargeLLMError("fresh publication authority must be boolean")
     _validate_publication_run(run)
     validate_artifact_paths(paths, protected_paths=protected_paths)
     previous = {path: _existing_bytes(path) for path in paths.all_outputs}
-    payloads = (
-        serialize_predictions(run),
-        serialize_request_log(run),
-        serialize_cost_csv(run),
-        serialize_report(run),
-    )
+    current_journal_descriptor: int | None = None
+    if fresh:
+        existing_output = next(
+            (
+                path
+                for path in (paths.predictions, paths.cost_csv, paths.report)
+                if previous[path] is not None
+            ),
+            None,
+        )
+        if existing_output is not None:
+            raise LargeLLMError(
+                f"unable to publish large-run artifacts: path already exists: {existing_output}"
+            )
+        if previous[paths.request_log] is None:
+            raise LargeLLMError(
+                "unable to publish large-run artifacts: fresh request journal is missing"
+            )
+        current_journal_descriptor = _open_current_file(
+            paths.request_log, previous[paths.request_log]
+        )
+    written: dict[Path, int] = {}
     try:
-        for path, payload in zip(paths.all_outputs, payloads, strict=True):
-            _atomic_write(path, payload)
-    except Exception as error:
-        rollback_errors: list[str] = []
-        for path in paths.all_outputs:
-            try:
-                _restore(path, previous[path])
-            except Exception as rollback_error:
-                rollback_errors.append(f"{path}: {rollback_error}")
-        suffix = f"; rollback failed: {rollback_errors}" if rollback_errors else ""
-        raise LargeLLMError(f"unable to publish large-run artifacts: {error}{suffix}") from error
+        payloads = (
+            serialize_predictions(run),
+            serialize_request_log(run),
+            serialize_cost_csv(run),
+            serialize_report(run),
+        )
+        try:
+            for path, payload in zip(paths.all_outputs, payloads, strict=True):
+                if fresh and path != paths.request_log:
+                    owned_descriptor = _atomic_create_owned(path, payload)
+                elif fresh:
+                    assert previous[path] is not None
+                    assert current_journal_descriptor is not None
+                    owned_descriptor = _atomic_write_if_current(
+                        path,
+                        payload,
+                        previous[path],
+                        current_journal_descriptor,
+                    )
+                else:
+                    _atomic_write(path, payload)
+                    continue
+                written[path] = owned_descriptor
+        except Exception as error:
+            rollback_errors: list[str] = []
+            rollback_paths = tuple(reversed(tuple(written))) if fresh else paths.all_outputs
+            for path in rollback_paths:
+                try:
+                    if fresh:
+                        _restore_if_current(path, written[path], previous[path])
+                    else:
+                        _restore(path, previous[path])
+                except Exception as rollback_error:
+                    rollback_errors.append(f"{path}: {rollback_error}")
+            suffix = f"; rollback failed: {rollback_errors}" if rollback_errors else ""
+            raise LargeLLMError(
+                f"unable to publish large-run artifacts: {error}{suffix}"
+            ) from error
+    finally:
+        for owned_descriptor in written.values():
+            os.close(owned_descriptor)
+        if current_journal_descriptor is not None:
+            os.close(current_journal_descriptor)
 
 
 def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> LargeEvaluationRun:

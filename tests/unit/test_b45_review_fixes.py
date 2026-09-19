@@ -721,7 +721,7 @@ def test_provider_max_price_json_numbers_never_round_above_decimal_policy() -> N
         )
     )
     payload = _request_payload((ChatMessage("user", "List labels"),), config)
-    prices = payload["provider"]["max_price"]  # type: ignore[index]
+    prices = payload["extra_body"]["provider"]["max_price"]  # type: ignore[index]
     assert Decimal.from_float(prices["prompt"]) <= config.provider.prompt_price_per_million_usd
     assert (
         Decimal.from_float(prices["completion"]) <= config.provider.completion_price_per_million_usd

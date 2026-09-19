@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from decimal import Decimal
@@ -955,6 +956,88 @@ def test_metadata_loader_rejects_json_price_above_decimal_ceiling(
         validate_model_metadata(raw, config, prompt_bytes=1)
 
     assert captured.value.code == "model_metadata_invalid"
+
+
+def test_metadata_loader_uses_endpoint_local_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = json.dumps(_metadata_response(context_length=131_072)).encode("utf-8")
+    captured: list[tuple[str, float]] = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return payload
+
+    def fake_urlopen(request: object, *, timeout: float) -> Response:
+        captured.append((request.full_url, timeout))  # type: ignore[attr-defined]
+        return Response()
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    config = LargeLLMConfig(provider=_policy())
+
+    assert workflow.load_model_metadata(config) == json.loads(payload)
+    assert captured == [
+        (
+            "https://openrouter.ai/api/v1/models/meta-llama/llama-3.3-70b-instruct/endpoints",
+            float(config.timeout_seconds),
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    "model_id",
+    ["model", "/model", "author/model/extra", "../model", "author/model?redirect=x"],
+)
+def test_metadata_route_rejects_unsafe_model_ids(model_id: str) -> None:
+    with pytest.raises(workflow.LargeLLMError, match="model ID"):
+        workflow._model_metadata_url(model_id)
+
+
+@pytest.mark.parametrize("alias_kind", ["same", "symlink", "hardlink"])
+def test_b5_evaluate_rejects_test_training_alias_before_live_seams(
+    alias_kind: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    test_set = tmp_path / "test.jsonl"
+    original = b'{"case":"unchanged"}\n'
+    test_set.write_bytes(original)
+    training = tmp_path / "train.jsonl"
+    if alias_kind == "same":
+        training = test_set
+    elif alias_kind == "symlink":
+        training.symlink_to(test_set)
+    else:
+        os.link(test_set, training)
+    events: list[str] = []
+
+    def bomb(*_args: object, **_kwargs: object) -> object:
+        events.append("live-or-encoder")
+        raise AssertionError("aliased B5 inputs must fail during local preflight")
+
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(workflow, "_b5_cache_preflight", bomb)
+    monkeypatch.setattr(workflow, "_b5_retriever", bomb)
+    monkeypatch.setattr(workflow, "_require_api_key", bomb)
+    monkeypatch.setattr(workflow, "load_model_metadata", bomb)
+    monkeypatch.setattr(workflow, "load_openrouter_transport", bomb)
+    arguments = _live_evaluate_arguments(tmp_path, baseline="b5")
+    arguments[arguments.index("--training") + 1] = str(training)
+
+    result = CliRunner().invoke(workflow.cli, arguments)
+
+    assert result.exit_code == 2
+    assert "alias" in json.loads(result.output)["error"]
+    assert events == []
+    assert test_set.read_bytes() == original
 
 
 def test_injected_synthetic_transport_can_run_but_is_not_scientifically_ready(

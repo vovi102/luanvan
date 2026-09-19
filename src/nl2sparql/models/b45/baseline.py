@@ -34,23 +34,33 @@ class _Retriever(Protocol):
     """B2-compatible source of five provenance-bearing examples."""
 
     @property
-    def training_sha256(self) -> str: ...
+    def training_sha256(self) -> str:
+        """Return the accepted training snapshot fingerprint."""
+        ...
 
     @property
-    def encoder_id(self) -> str: ...
+    def encoder_id(self) -> str:
+        """Return the pinned encoder identifier."""
+        ...
 
     @property
-    def encoder_revision(self) -> str: ...
+    def encoder_revision(self) -> str:
+        """Return the pinned encoder revision."""
+        ...
 
     @property
-    def training_accepted(self) -> bool: ...
+    def training_accepted(self) -> bool:
+        """Return whether training provenance was explicitly accepted."""
+        ...
 
     def retrieve(
         self,
         question: str,
         *,
         target_id: str | None = None,
-    ) -> tuple[SelectedExample, ...]: ...
+    ) -> tuple[SelectedExample, ...]:
+        """Return exactly five local examples for the target question."""
+        ...
 
 
 @dataclass(frozen=True)

@@ -68,6 +68,7 @@ _B12_PROTECTED_PATHS = (
     Path("data/dataset/raw/generation-config.json"),
 )
 _RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_MODEL_PATH_COMPONENT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _REVISION_RE = re.compile(r"^[0-9a-f]{40}$")
 
@@ -253,6 +254,18 @@ def _load_transport_with_attempt_sink(
     return loader(config, ledger)
 
 
+def _model_metadata_url(model_id: str) -> str:
+    """Return the endpoint-local OpenRouter metadata URL for one safe model ID."""
+    if not isinstance(model_id, str):
+        raise LargeLLMError("OpenRouter model ID is invalid")
+    components = model_id.split("/")
+    if len(components) != 2 or any(
+        _MODEL_PATH_COMPONENT_RE.fullmatch(component) is None for component in components
+    ):
+        raise LargeLLMError("OpenRouter model ID is invalid")
+    return f"https://openrouter.ai/api/v1/models/{components[0]}/{components[1]}/endpoints"
+
+
 def load_model_metadata(config: LargeLLMConfig) -> object:
     """Fetch exact model metadata only for opted-in live runs.
 
@@ -268,7 +281,7 @@ def load_model_metadata(config: LargeLLMConfig) -> object:
     from urllib.request import Request, urlopen
 
     request = Request(
-        f"https://openrouter.ai/api/v1/models/{config.model_id}",
+        _model_metadata_url(config.model_id),
         headers={"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}"},
     )
     try:
@@ -438,6 +451,20 @@ def _require_new_artifact_paths(paths: ArtifactPaths) -> None:
         raise LargeLLMError(
             f"evaluate without --resume requires new artifact paths; already exists: {existing}"
         )
+
+
+def _require_distinct_b5_inputs(test_set: Path, training_path: Path) -> None:
+    """Reject B5 snapshots that resolve to the same path or filesystem inode."""
+    try:
+        aliases = test_set.resolve(strict=False) == training_path.resolve(strict=False) or (
+            test_set.exists()
+            and training_path.exists()
+            and os.path.samefile(test_set, training_path)
+        )
+    except (OSError, RuntimeError) as error:
+        raise LargeLLMError(f"unable to compare B5 input paths: {error}") from error
+    if aliases:
+        raise LargeLLMError("B5 test-set and training paths must not alias")
 
 
 def _protected_paths(options: dict[str, Any]) -> tuple[Path, ...]:
@@ -771,6 +798,8 @@ def evaluate_command(**options: Any) -> None:
         validate_artifact_paths(paths, protected_paths=protected)
         if not options["resume"]:
             _require_new_artifact_paths(paths)
+        if options["baseline_name"] == "b5":
+            _require_distinct_b5_inputs(options["test_set"], options["training_path"])
         snapshot_sha256 = cases[0].input_sha256
         if snapshot_sha256 is None:
             raise LargeLLMError("evaluation snapshot fingerprint is missing")
@@ -867,6 +896,7 @@ def evaluate_command(**options: Any) -> None:
         )
         journal = RequestJournal(
             paths.request_log,
+            fresh=not options["resume"],
             allow_legacy_resume=legacy_resume_authorized,
             run_id=options["run_id"],
             baseline=options["baseline_name"],
@@ -917,7 +947,12 @@ def evaluate_command(**options: Any) -> None:
                 prepared_previews_by_case=prepared_previews,
             )
         )
-        publish_large_run(run, paths=paths, protected_paths=protected)
+        publish_large_run(
+            run,
+            paths=paths,
+            protected_paths=protected,
+            fresh=not options["resume"],
+        )
         _emit(
             {
                 "status": "ready",

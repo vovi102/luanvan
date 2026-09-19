@@ -212,6 +212,293 @@ def test_publication_writes_report_last_and_rolls_back_every_output(
     assert all(path.read_bytes() == b"old\n" for path in paths.all_outputs)
 
 
+def test_fresh_journal_creation_does_not_clobber_racing_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    request_log = tmp_path / "request.jsonl"
+    foreign = b"foreign journal\n"
+    original_existing_bytes = artifacts._existing_bytes
+    first = True
+
+    def inject_after_absence(path: Path) -> bytes | None:
+        nonlocal first
+        if path == request_log and first:
+            first = False
+            assert not path.exists()
+            path.write_bytes(foreign)
+            return None
+        return original_existing_bytes(path)
+
+    monkeypatch.setattr(artifacts, "_existing_bytes", inject_after_absence)
+
+    with pytest.raises(LargeLLMError, match="initialize request journal"):
+        artifacts.RequestJournal(
+            request_log,
+            fresh=True,
+            run_id="run-1",
+            baseline="b4",
+            input_sha256=INPUT_SHA256,
+            config_sha256=config().sha256,
+            catalog_sha256=CATALOG_SHA256,
+            summary_sha256=SUMMARY_SHA256,
+            training_sha256=None,
+            model_id=config().model_id,
+            provider_slug="deepinfra",
+            model_metadata_sha256=METADATA_SHA256,
+        )
+
+    assert request_log.read_bytes() == foreign
+
+
+def test_fresh_publication_does_not_clobber_file_created_after_preflight(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = artifact_paths(tmp_path)
+    paths.request_log.write_bytes(b"owned journal\n")
+    foreign = b"foreign predictions\n"
+    original_serializer = artifacts.serialize_predictions
+
+    def inject_foreign(run: LargeEvaluationRun) -> bytes:
+        assert not paths.predictions.exists()
+        paths.predictions.write_bytes(foreign)
+        return original_serializer(run)
+
+    monkeypatch.setattr(artifacts, "serialize_predictions", inject_foreign)
+
+    with pytest.raises(LargeLLMError, match="unable to publish"):
+        artifacts.publish_large_run(complete_synthetic_run(), paths=paths, fresh=True)
+
+    assert paths.predictions.read_bytes() == foreign
+
+
+def test_fresh_publication_does_not_clobber_journal_changed_during_serialization(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = artifact_paths(tmp_path)
+    paths.request_log.write_bytes(b"owned journal\n")
+    foreign = b"foreign replacement journal\n"
+    original_serializer = artifacts.serialize_request_log
+
+    def replace_journal(run: LargeEvaluationRun) -> bytes:
+        paths.request_log.write_bytes(foreign)
+        return original_serializer(run)
+
+    monkeypatch.setattr(artifacts, "serialize_request_log", replace_journal)
+
+    with pytest.raises(LargeLLMError, match="unable to publish"):
+        artifacts.publish_large_run(complete_synthetic_run(), paths=paths, fresh=True)
+
+    assert paths.request_log.read_bytes() == foreign
+
+
+def test_fresh_publication_rejects_same_byte_journal_inode_replacement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = artifact_paths(tmp_path)
+    original = b"owned journal\n"
+    paths.request_log.write_bytes(original)
+    original_serializer = artifacts.serialize_request_log
+    foreign_inode: int | None = None
+
+    def replace_journal_inode(run: LargeEvaluationRun) -> bytes:
+        nonlocal foreign_inode
+        replacement = tmp_path / "foreign-journal.jsonl"
+        replacement.write_bytes(original)
+        os.replace(replacement, paths.request_log)
+        foreign_inode = paths.request_log.stat().st_ino
+        return original_serializer(run)
+
+    monkeypatch.setattr(artifacts, "serialize_request_log", replace_journal_inode)
+
+    with pytest.raises(LargeLLMError, match="unable to publish"):
+        artifacts.publish_large_run(complete_synthetic_run(), paths=paths, fresh=True)
+
+    assert foreign_inode is not None
+    assert paths.request_log.stat().st_ino == foreign_inode
+    assert paths.request_log.read_bytes() == original
+
+
+def test_atomic_create_cleans_owned_destination_when_directory_fsync_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "created.json"
+
+    def fail_directory_fsync(_parent: Path) -> None:
+        raise OSError("injected directory fsync failure")
+
+    monkeypatch.setattr(artifacts, "_fsync_directory", fail_directory_fsync)
+
+    with pytest.raises(OSError, match="injected directory fsync failure"):
+        artifacts._atomic_create(destination, b"owned payload\n")
+
+    assert not destination.exists()
+
+
+def test_journal_retirement_failure_restores_preflight_inode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = artifact_paths(tmp_path)
+    original = b"owned journal\n"
+    paths.request_log.write_bytes(original)
+    original_inode = paths.request_log.stat().st_ino
+    original_unlink = Path.unlink
+    injected = False
+
+    def fail_old_journal_retirement(path: Path, missing_ok: bool = False) -> None:
+        nonlocal injected
+        if (
+            not injected
+            and path.name.startswith(f".{paths.request_log.name}.old.")
+            and path.exists()
+            and path.read_bytes() == original
+        ):
+            injected = True
+            raise OSError("injected journal retirement failure")
+        original_unlink(path, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", fail_old_journal_retirement)
+
+    with pytest.raises(LargeLLMError, match="injected journal retirement failure"):
+        artifacts.publish_large_run(complete_synthetic_run(), paths=paths, fresh=True)
+
+    assert paths.request_log.stat().st_ino == original_inode
+    assert paths.request_log.read_bytes() == original
+    assert not paths.predictions.exists()
+    assert not paths.cost_csv.exists()
+    assert not paths.report.exists()
+    assert not tuple(tmp_path.glob(f".{paths.request_log.name}.old.*"))
+
+
+def test_recovery_rename_failure_restores_preflight_journal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = artifact_paths(tmp_path)
+    original = b"owned journal\n"
+    paths.request_log.write_bytes(original)
+    original_inode = paths.request_log.stat().st_ino
+    original_unlink = Path.unlink
+    original_rename = os.rename
+    retirement_failed = False
+    recovery_rename_failed = False
+
+    def fail_old_journal_retirement(path: Path, missing_ok: bool = False) -> None:
+        nonlocal retirement_failed
+        if (
+            not retirement_failed
+            and path.name.startswith(f".{paths.request_log.name}.old.")
+            and path.exists()
+            and path.read_bytes() == original
+        ):
+            retirement_failed = True
+            raise OSError("injected journal retirement failure")
+        original_unlink(path, missing_ok=missing_ok)
+
+    def fail_first_recovery_rename(source: Path, destination: Path) -> None:
+        nonlocal recovery_rename_failed
+        if (
+            retirement_failed
+            and not recovery_rename_failed
+            and source == paths.request_log
+            and destination.name.startswith(f".{paths.request_log.name}.failed.")
+        ):
+            recovery_rename_failed = True
+            raise OSError("injected recovery rename failure")
+        original_rename(source, destination)
+
+    monkeypatch.setattr(Path, "unlink", fail_old_journal_retirement)
+    monkeypatch.setattr(os, "rename", fail_first_recovery_rename)
+
+    with pytest.raises(LargeLLMError, match="injected recovery rename failure"):
+        artifacts.publish_large_run(complete_synthetic_run(), paths=paths, fresh=True)
+
+    assert retirement_failed
+    assert recovery_rename_failed
+    assert paths.request_log.stat().st_ino == original_inode
+    assert paths.request_log.read_bytes() == original
+    assert not tuple(tmp_path.glob(f".{paths.request_log.name}.old.*"))
+
+
+def test_fresh_publication_rollback_preserves_foreign_replacement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = artifact_paths(tmp_path)
+    paths.request_log.write_bytes(b"owned journal\n")
+    foreign = b"foreign replacement\n"
+    original_atomic_create_owned = artifacts._atomic_create_owned
+
+    def fail_after_replacement(path: Path, payload: bytes) -> int:
+        if path == paths.cost_csv:
+            replacement = tmp_path / "foreign.jsonl"
+            replacement.write_bytes(foreign)
+            os.replace(replacement, paths.predictions)
+            raise OSError("injected cost failure")
+        return original_atomic_create_owned(path, payload)
+
+    monkeypatch.setattr(artifacts, "_atomic_create_owned", fail_after_replacement)
+
+    with pytest.raises(LargeLLMError, match="unable to publish"):
+        artifacts.publish_large_run(complete_synthetic_run(), paths=paths, fresh=True)
+
+    assert paths.predictions.read_bytes() == foreign
+
+
+def test_fresh_publication_rollback_preserves_same_byte_foreign_inode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = artifact_paths(tmp_path)
+    paths.request_log.write_bytes(b"owned journal\n")
+    original_atomic_create_owned = artifacts._atomic_create_owned
+    foreign_inode: int | None = None
+
+    def fail_after_same_byte_replacement(path: Path, payload: bytes) -> int:
+        nonlocal foreign_inode
+        if path == paths.cost_csv:
+            replacement = tmp_path / "foreign.jsonl"
+            replacement.write_bytes(paths.predictions.read_bytes())
+            os.replace(replacement, paths.predictions)
+            foreign_inode = paths.predictions.stat().st_ino
+            raise OSError("injected cost failure")
+        return original_atomic_create_owned(path, payload)
+
+    monkeypatch.setattr(artifacts, "_atomic_create_owned", fail_after_same_byte_replacement)
+
+    with pytest.raises(LargeLLMError, match="unable to publish"):
+        artifacts.publish_large_run(complete_synthetic_run(), paths=paths, fresh=True)
+
+    assert foreign_inode is not None
+    assert paths.predictions.stat().st_ino == foreign_inode
+
+
+def test_rollback_preserves_replacement_installed_after_ownership_inspection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "predictions.jsonl"
+    owned = b"owned publication\n"
+    foreign = b"foreign replacement\n"
+    destination.write_bytes(owned)
+    owned_descriptor = os.open(destination, os.O_RDONLY)
+    original_same_file = artifacts._same_file_as_fd
+    injected = False
+
+    def replace_after_inspection(path: Path, descriptor: int) -> bool:
+        nonlocal injected
+        current = original_same_file(path, descriptor)
+        if not injected and current:
+            injected = True
+            replacement = tmp_path / "foreign.jsonl"
+            replacement.write_bytes(foreign)
+            os.replace(replacement, destination)
+        return current
+
+    monkeypatch.setattr(artifacts, "_same_file_as_fd", replace_after_inspection)
+    try:
+        artifacts._restore_if_current(destination, owned_descriptor, None)
+    finally:
+        os.close(owned_descriptor)
+
+    assert destination.read_bytes() == foreign
+
+
 def test_resume_rejects_changed_configuration(tmp_path: Path) -> None:
     paths = artifact_paths(tmp_path)
     artifacts.publish_large_run(complete_synthetic_run(), paths=paths)

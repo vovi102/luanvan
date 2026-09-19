@@ -158,7 +158,7 @@ class RetryPolicy:
         if not isinstance(attempt, int) or isinstance(attempt, bool) or attempt <= 0:
             raise OpenRouterRequestError("retry_delay_invalid", attempt_count=0)
         retry_after = _retry_after_seconds(error)
-        if retry_after is None or retry_after == 0.0:
+        if retry_after is None:
             try:
                 jitter_seconds = float(jitter(attempt))
             except (TypeError, ValueError, OverflowError) as error:
@@ -701,16 +701,20 @@ def _request_payload(
         "seed": config.seed,
         "max_tokens": config.max_tokens,
         "n": config.choice_count,
-        "provider": {
-            "only": [config.provider.provider_slug],
-            "allow_fallbacks": config.provider.allow_fallbacks,
-            "require_parameters": config.provider.require_parameters,
-            "data_collection": config.provider.data_collection,
-            "max_price": {
-                "prompt": _conservative_json_number(config.provider.prompt_price_per_million_usd),
-                "completion": _conservative_json_number(
-                    config.provider.completion_price_per_million_usd
-                ),
+        "extra_body": {
+            "provider": {
+                "only": [config.provider.provider_slug],
+                "allow_fallbacks": config.provider.allow_fallbacks,
+                "require_parameters": config.provider.require_parameters,
+                "data_collection": config.provider.data_collection,
+                "max_price": {
+                    "prompt": _conservative_json_number(
+                        config.provider.prompt_price_per_million_usd
+                    ),
+                    "completion": _conservative_json_number(
+                        config.provider.completion_price_per_million_usd
+                    ),
+                },
             },
         },
         "extra_headers": {

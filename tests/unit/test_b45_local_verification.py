@@ -135,6 +135,38 @@ def test_valid_canonical_manifest_confers_local_readiness(tmp_path: Path) -> Non
     assert evidence.manifest_sha256 == hashlib.sha256(manifest_path.read_bytes()).hexdigest()
 
 
+@pytest.mark.parametrize("second_read", ["replacement", "disappearance"])
+def test_manifest_evidence_uses_the_single_validated_snapshot(
+    second_read: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A path race cannot change the digest or crash after manifest validation."""
+    _write_minimal_project(tmp_path)
+    manifest_path = _write_valid_manifest(tmp_path)
+    accepted = manifest_path.read_bytes()
+    original_read_bytes = Path.read_bytes
+    manifest_reads = 0
+
+    def raced_read_bytes(path: Path) -> bytes:
+        nonlocal manifest_reads
+        if path == manifest_path:
+            manifest_reads += 1
+            if manifest_reads > 1:
+                if second_read == "disappearance":
+                    raise FileNotFoundError(manifest_path)
+                return b'{"unvalidated":"replacement"}\n'
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", raced_read_bytes)
+
+    evidence = load_local_verification_evidence(project_root=tmp_path)
+
+    assert evidence.ready is True
+    assert evidence.manifest_sha256 == hashlib.sha256(accepted).hexdigest()
+    assert manifest_reads == 1
+
+
 def test_missing_manifest_fails_closed(tmp_path: Path) -> None:
     """Defaulting readiness to true when evidence is absent would fail this test."""
     _write_minimal_project(tmp_path)

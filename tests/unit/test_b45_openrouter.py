@@ -174,13 +174,16 @@ def test_request_pins_model_provider_and_generation_parameters() -> None:
     assert request["seed"] == 42
     assert request["max_tokens"] == 512
     assert request["n"] == 1
-    assert request["provider"] == {
-        "only": ["deepinfra"],
-        "allow_fallbacks": False,
-        "require_parameters": True,
-        "data_collection": "deny",
-        "max_price": {"prompt": 0.5, "completion": 1.0},
+    assert request["extra_body"] == {
+        "provider": {
+            "only": ["deepinfra"],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+            "data_collection": "deny",
+            "max_price": {"prompt": 0.5, "completion": 1.0},
+        }
     }
+    assert "provider" not in request
     assert request["extra_headers"] == {
         "X-OpenRouter-Metadata": "enabled",
         "HTTP-Referer": "https://github.com/vovi102/luanvan",
@@ -193,6 +196,60 @@ def test_request_pins_model_provider_and_generation_parameters() -> None:
     snapshot = asyncio.run(ledger.snapshot())
     assert snapshot.spent_usd == Decimal("0.0002")
     assert snapshot.unresolved_request_ids == ()
+
+
+def test_request_matches_installed_sdk_extra_body_seam() -> None:
+    """The installed OpenAI SDK rejects OpenRouter's provider extension top-level."""
+    config = make_config()
+
+    class StrictCompletions:
+        request: dict[str, object] | None = None
+
+        async def create(
+            self,
+            *,
+            model: object,
+            messages: object,
+            temperature: object,
+            seed: object,
+            max_tokens: object,
+            n: object,
+            extra_headers: object,
+            extra_body: object,
+        ) -> object:
+            self.request = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "seed": seed,
+                "max_tokens": max_tokens,
+                "n": n,
+                "extra_headers": extra_headers,
+                "extra_body": extra_body,
+            }
+            return response()
+
+    completions = StrictCompletions()
+    transport = OpenRouterTransport(
+        sdk=SimpleNamespace(chat=SimpleNamespace(completions=completions)),
+        ledger=BudgetLedger(config),
+        sleep=no_wait,
+        clock_ns=iter([0, 2_000_000]).__next__,
+    )
+
+    result = run_completion(transport, config)
+
+    assert result.raw_text == SAFE_SQL
+    assert completions.request is not None
+    assert completions.request["extra_body"] == {
+        "provider": {
+            "only": ["deepinfra"],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+            "data_collection": "deny",
+            "max_price": {"prompt": 0.5, "completion": 1.0},
+        }
+    }
 
 
 def test_official_openrouter_metadata_supplies_provider_identity() -> None:
@@ -284,6 +341,25 @@ def test_bounded_retry_after_takes_precedence() -> None:
     run_completion(transport, config)
 
     assert delays == [7.5]
+
+
+def test_zero_retry_after_takes_precedence_over_backoff() -> None:
+    config = make_config()
+    delays: list[float] = []
+
+    async def record_wait(delay: float) -> None:
+        delays.append(delay)
+
+    transport, _, _ = make_transport(
+        [SDKError(429, retry_after="0"), response()],
+        config=config,
+        sleep=record_wait,
+        jitter=lambda _attempt: 0.25,
+    )
+
+    run_completion(transport, config)
+
+    assert delays == [0.0]
 
 
 def test_retry_after_is_capped_at_thirty_seconds() -> None:

@@ -257,12 +257,12 @@ def _valid_source_records(raw: object) -> bool:
     return paths == sorted(paths) and len(paths) == len(set(paths))
 
 
-def _load_manifest(path: Path, project_root: Path) -> tuple[dict[str, Any] | None, str]:
+def _load_manifest(path: Path, project_root: Path) -> tuple[dict[str, Any] | None, str, str | None]:
     raw_bytes = path.read_bytes()
     try:
         payload = json.loads(raw_bytes)
     except (UnicodeDecodeError, json.JSONDecodeError):
-        return None, "local_verification_manifest_invalid"
+        return None, "local_verification_manifest_invalid", None
     if not isinstance(payload, dict) or set(payload) != {
         "schema_version",
         "verified_at_utc",
@@ -271,9 +271,9 @@ def _load_manifest(path: Path, project_root: Path) -> tuple[dict[str, Any] | Non
         "checks",
         "manifest_sha256",
     }:
-        return None, "local_verification_manifest_invalid"
+        return None, "local_verification_manifest_invalid", None
     if raw_bytes != _canonical_json(payload):
-        return None, "local_verification_manifest_invalid"
+        return None, "local_verification_manifest_invalid", None
     manifest_sha256 = payload["manifest_sha256"]
     body = {key: value for key, value in payload.items() if key != "manifest_sha256"}
     if (
@@ -286,7 +286,7 @@ def _load_manifest(path: Path, project_root: Path) -> tuple[dict[str, Any] | Non
         or not isinstance(payload["source_sha256"], str)
         or payload["source_sha256"] != _sha256(_canonical_json(payload["source_files"]))
     ):
-        return None, "local_verification_manifest_invalid"
+        return None, "local_verification_manifest_invalid", None
     commands = expected_verification_commands(project_root)
     checks = payload["checks"]
     if (
@@ -297,8 +297,8 @@ def _load_manifest(path: Path, project_root: Path) -> tuple[dict[str, Any] | Non
             for check, (check_id, command) in zip(checks, commands, strict=True)
         )
     ):
-        return None, "local_verification_manifest_invalid"
-    return payload, ""
+        return None, "local_verification_manifest_invalid", None
+    return payload, "", _sha256(raw_bytes)
 
 
 def load_local_verification_evidence(
@@ -313,9 +313,9 @@ def load_local_verification_evidence(
             blockers=("local_verification_manifest_missing",),
         )
     try:
-        payload, blocker = _load_manifest(manifest_path, root)
+        payload, blocker, manifest_sha256 = _load_manifest(manifest_path, root)
     except OSError:
-        payload, blocker = None, "local_verification_manifest_invalid"
+        payload, blocker, manifest_sha256 = None, "local_verification_manifest_invalid", None
     if payload is None:
         return LocalVerificationEvidence(ready=False, blockers=(blocker,))
     try:
@@ -326,12 +326,12 @@ def load_local_verification_evidence(
         return LocalVerificationEvidence(
             ready=False,
             blockers=("local_verification_source_stale",),
-            manifest_sha256=_sha256(manifest_path.read_bytes()),
+            manifest_sha256=manifest_sha256,
             source_sha256=payload["source_sha256"],
         )
     return LocalVerificationEvidence(
         ready=True,
         blockers=(),
-        manifest_sha256=_sha256(manifest_path.read_bytes()),
+        manifest_sha256=manifest_sha256,
         source_sha256=payload["source_sha256"],
     )
