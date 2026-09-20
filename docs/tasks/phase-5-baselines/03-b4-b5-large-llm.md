@@ -202,12 +202,12 @@ emits derived `local_implementation_ready`.
 ## Bằng chứng chốt triển khai local
 
 Manifest xác minh local chuẩn được tạo tại implementation HEAD
-`8ba6684f9a752c32c1ce4f80efbb8c13d5644e80` vào ngày 2026-09-20. Manifest ghi
+`e50df0a` vào ngày 2026-09-20. Manifest ghi
 lại lệnh chính xác, exit code, số test passed/skipped, digest của output và hash
 của source set. Lần chạy xác minh chuẩn cho kết quả:
 
-- 265 test B45 tập trung passed, 0 skipped;
-- 1.212 test toàn repository passed, 0 skipped; output của lần chạy full test
+- 273 test B45 tập trung passed, 0 skipped;
+- 1.220 test toàn repository passed, 0 skipped; output của lần chạy full test
   báo 342 cảnh báo dependency đã tồn tại từ trước;
 - `ruff check` và `ruff format --check` passed;
 - CLI help và offline B4 validation trả về thành công mà không yêu cầu
@@ -215,22 +215,26 @@ của source set. Lần chạy xác minh chuẩn cho kết quả:
   phủ bởi test.
 
 SHA-256 của source set đã xác minh là
-`433c7ede32ae5933cef7144afc4cc57c1aba38e9ad58b609165c887b7c46cf6b`. Trường
+`2d052f3fbb87db592cb29f8b67f362aec4f3f1cbed323a5971830842fb0207ea`. Trường
 self-hash `manifest_sha256` của nội dung manifest chuẩn là
-`96da2c8bafe890a0b4f9183bab4ec00502993670cc8bf3de4669d2b4d0cb0bc6`, còn
-SHA-256 của toàn bộ file manifest đã commit là
-`c1b4fbad8efb291ebad80356fb0e1da6a46b66aba6b39e8d6627c50615f4f234`. Tài
+`21aba7f290b182a4f0628282dc99431074093ffe887f2e91ed5bd167e1f6fc9a`, còn
+SHA-256 của toàn bộ file manifest là
+`d2323fe3449a1eeec63a8905027444196d5f39022640ca375c0e551fa79519f0`. Tài
 liệu closure không thuộc source set theo chủ đích.
 
 Chuỗi review độc lập theo hai trục Spec/Standards bao phủ các thay đổi từ base
 `3b34ac48c86a7b02799a953062e162502470a8d2` đến implementation HEAD
-`8ba6684f9a752c32c1ce4f80efbb8c13d5644e80`. Review ban đầu tìm thấy hai lỗi
+`e50df0a`. Review ban đầu tìm thấy hai lỗi
 Critical và sáu lỗi Important. Các vòng sửa test-first và scoped re-review sau
 đó đã chốt các vấn đề về retry/cancellation accounting, privacy evidence,
 resume và prompt identity, local readiness, durable attempt records, exact
 prompt context preflight, explicit fresh-run behavior, exact/conservative
 price parsing, SDK routing, endpoint metadata và publication no-clobber theo
-inode. Không còn finding Critical hoặc Important tại `8ba6684`.
+inode. Final whole-branch review tiếp theo phát hiện hai lỗi Important về phép
+toán tiền chịu ảnh hưởng của ambient Decimal context và journal mất cập nhật
+giữa nhiều process. Regression test, OS journal lease trọn vòng đời và phép
+toán Decimal độc lập context đã được scoped re-review xác nhận sạch; không còn
+finding Critical hoặc Important tại `e50df0a`.
 
 Bằng chứng này chỉ xác nhận local implementation readiness. Không có request
 OpenRouter live nào được thực hiện và không có tuyên bố về live accuracy,
