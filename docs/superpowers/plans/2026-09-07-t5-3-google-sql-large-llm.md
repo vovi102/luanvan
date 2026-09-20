@@ -1292,7 +1292,7 @@ git add docs/superpowers/plans/2026-09-07-t5-3-google-sql-large-llm.md docs/task
 git commit -m "docs(baselines): close T5.3 local implementation"
 ```
 
-- [ ] **Step 6: Re-run completion verification at final HEAD**
+- [x] **Step 6: Re-run completion verification at final HEAD**
 
 Run:
 
