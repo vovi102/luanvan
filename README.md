@@ -1,8 +1,8 @@
-# NL2SPARQL Blockchain KG
+# NL2SQL Blockchain KG
 
 > **Trang thai:** Pivot #1 da chuyen target active sang NL2SQL tren BigQuery (2026-08-09).
 >
-> **De tai ban dau:** NL2SPARQL cho Blockchain Knowledge Graph Analytics
+> **De tai ban dau:** Natural-language blockchain analytics trên Knowledge Graph
 >
 > **Thoi luong:** 6.5 thang  
 > **Dau ra active:** luan van thac si, dataset NL-SQL, source code pipeline, demo Gradio/HF Spaces
@@ -30,6 +30,63 @@ Neu can tach cache/Python managed vao trong repo khi chay local:
 ```bash
 UV_CACHE_DIR=.uv-cache UV_PYTHON_INSTALL_DIR=.uv-python uv sync
 ```
+
+## T5.3 B4/B5 GoogleSQL large-LLM
+
+T5.3 dùng model `meta-llama/llama-3.3-70b-instruct`: B4 zero-shot và B5
+few-shot đúng năm examples do B2 retriever chọn. Hai baseline dùng chung
+catalog/prompt/extraction GoogleSQL của B1/B2. Provider được pin và không
+fallback; hard budget là USD 20 tối đa theo reservation trước request. Xem
+chi tiết acceptance và artifact tại
+`docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md`.
+
+Lệnh preflight offline sau đây chỉ kiểm tra catalog/config local, không đọc API
+key, không khởi tạo client và không mở network:
+
+```bash
+uv run python scripts/generate_b45_local_verification.py
+uv run python scripts/18_large_llm_baselines.py validate \
+  --baseline b4 \
+  --provider deepinfra \
+  --max-cost-usd 20
+```
+
+Lệnh generator chạy lại focused/full pytest, Ruff check/format, CLI help và
+offline validate rồi mới ghi manifest canonical
+`docs/evidence/t5-3-local-verification.json`. Manifest ràng buộc SHA-256 của
+module B45, workflow/wrapper, B45 tests và cấu hình Python; thay đổi bất kỳ đầu
+vào nào làm `local_implementation_ready=false` cho đến khi toàn bộ gate được
+chạy lại thành công. Generator không gọi OpenRouter.
+
+`validate` cũng kiểm tra sidecar privacy cục bộ nếu có; khi sidecar chưa có,
+JSON kết quả giữ blocker `privacy_review_missing` để nhắc gate bên ngoài mà
+không chặn preflight offline. Sidecar mặc định là
+`<test-set>.privacy.json`; có thể chọn bằng `--privacy-review`.
+
+Ví dụ live dưới đây chỉ là thao tác thủ công có chủ đích; nó **không bao giờ
+được chạy tự động**. Cần tự cấp key, metadata fingerprint đã chấp nhận và
+đồng ý phát sinh chi phí trước khi thêm `--allow-network`:
+
+```bash
+export OPENROUTER_API_KEY
+uv run python scripts/18_large_llm_baselines.py predict \
+  --baseline b4 \
+  --question "List known Ethereum addresses" \
+  --provider deepinfra \
+  --max-cost-usd 20 \
+  --accepted-model-metadata-sha256 <64-lowercase-hex-sha256> \
+  --allow-network
+```
+
+`predict` không publish artifact. Evaluation dùng `evaluate --run-id ...`
+với `--test-set`, `--predictions`, `--request-log`, `--cost-log`, `--report`
+và `--resume`; `summarize` nhận đúng ba cặp `--report`/`--request-log` và vẫn
+offline. Live `predict` và `evaluate` bắt buộc truyền tường minh
+`--max-cost-usd` (không có mặc định USD 20), và live `evaluate` bắt buộc
+`--accepted-privacy-review-sha256` khớp chính xác sidecar với snapshot test.
+Mỗi lần retry giữ liability reservation riêng; failure/cancellation được ghi
+vào checkpoint để resume không bỏ mất chi phí chưa rõ. Không có lệnh README
+nào tự chạy live inference.
 
 Du lieu lon va artifact train/KG khong commit vao git. Xem `.gitignore` va `docs/memory/04-CONVENTIONS.md`.
 
@@ -68,7 +125,7 @@ Du lieu lon va artifact train/KG khong commit vao git. Xem `.gitignore` va `docs
 │   ├── dataset/                # Template, synthetic, paraphrase, noise
 │   ├── models/                 # Baselines, fine-tuned model, full system
 │   ├── decoding/               # Grammar/constrained decoding
-│   ├── validation/             # SPARQL validation va recovery
+│   ├── validation/             # Legacy graph validation va recovery
 │   ├── evaluation/             # Metrics, runner, analysis
 │   └── demo/                   # Gradio app
 └── tests/
