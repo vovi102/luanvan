@@ -101,9 +101,10 @@ error code, prompt fingerprint, attempt count, authoritative cost when known,
 and the durable budget checkpoint. Run/outcome/report identities also retain
 the provider-policy and accepted privacy fingerprints.
 
-Existing in-progress request journals may be schema **v3** when they contain
-only outcome evidence and upgrade to schema **v4** before live provider-attempt
-evidence is appended. Header, attempt, outcome, and terminal records are
+Newly published request journals are schema **v4**. An existing in-progress
+schema-v3 journal containing only outcome evidence upgrades to schema **v4**
+before live provider-attempt evidence is appended; sealed schema-v3 evidence
+remains read-compatible only. Header, attempt, outcome, and terminal records are
 SHA-256-chained, and the final terminal record seals outcome count, derived
 metrics, budget, blockers, readiness, and the canonical attempt set. Each
 attempt record contains only secret-safe
@@ -125,13 +126,13 @@ attempts whose outcomes were lost remain in budget spend as unattributed spend,
 which is always a scientific blocker. A later successful attempt attributes
 only its own authoritative cost; earlier orphan costs remain unattributed.
 
-For compatibility, an authentic terminal-free schema-v2 journal may be loaded
-**only for resume**, after exact identity and budget validation. Before the next
-append it is atomically migrated one-way to schema v3. A valid in-progress
-schema-v3 journal is upgraded atomically to schema v4 only when the first
-attempt row is appended. New publication is always sealed as schema v4,
-including runs with no attempt rows. Summary loading retains read-only support
-for sealed v3 evidence; v2 cannot be used as a final result.
+For compatibility, schema **v2 is resume-only**: an authentic terminal-free
+v2 journal may be accepted only after exact identity and budget validation,
+then atomically migrates one-way before the next append. A valid in-progress
+schema-v3 journal similarly upgrades to schema v4 before its first attempt
+row. Every new publication is sealed as schema v4, including runs with no
+attempt rows. Summary loading retains read-only support for sealed v3 evidence;
+v2 can never be used as final published evidence.
 
 ## CLI
 

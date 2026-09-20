@@ -8,7 +8,7 @@ import math
 import re
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal, localcontext
 from typing import Literal
 
 from nl2sparql.models.b12.contracts import ExtractionStatus, SelectedExample, validate_question
@@ -46,6 +46,83 @@ def canonical_money(value: Decimal) -> str:
     if "." in rendered:
         rendered = rendered.rstrip("0").rstrip(".")
     return rendered
+
+
+def _money_sum(values: object) -> Decimal:
+    """Return an exact Decimal sum without inheriting ambient context precision."""
+    accepted = tuple(values)  # type: ignore[arg-type]
+    if not accepted:
+        return Decimal("0")
+    if any(not isinstance(value, Decimal) or not value.is_finite() for value in accepted):
+        raise LargeLLMError("money totals require finite Decimals")
+    minimum_exponent = min(value.as_tuple().exponent for value in accepted)
+    coefficient = 0
+    for value in accepted:
+        parts = value.as_tuple()
+        digits = int("".join(map(str, parts.digits)) or "0")
+        if parts.sign:
+            digits = -digits
+        coefficient += digits * 10 ** (parts.exponent - minimum_exponent)
+    return _money_from_coefficient(coefficient, minimum_exponent)
+
+
+def _money_difference(left: Decimal, right: Decimal) -> Decimal:
+    """Return an exact Decimal difference without inheriting ambient context precision."""
+    return _money_sum((left, right.copy_negate()))
+
+
+def _money_product(left: Decimal, right: Decimal | int) -> Decimal:
+    """Return an exact finite Decimal product without inheriting ambient precision."""
+    if not isinstance(left, Decimal) or not left.is_finite():
+        raise LargeLLMError("money multiplication requires finite Decimals")
+    if not isinstance(right, (Decimal, int)) or isinstance(right, bool):
+        raise LargeLLMError("money multiplication requires a Decimal or integer")
+    if isinstance(right, Decimal) and not right.is_finite():
+        raise LargeLLMError("money multiplication requires finite Decimals")
+    left_parts = left.as_tuple()
+    right_decimal = Decimal(right)
+    right_parts = right_decimal.as_tuple()
+    left_coefficient = int("".join(map(str, left_parts.digits)) or "0")
+    right_coefficient = int("".join(map(str, right_parts.digits)) or "0")
+    if left_parts.sign:
+        left_coefficient = -left_coefficient
+    if right_parts.sign:
+        right_coefficient = -right_coefficient
+    return _money_from_coefficient(
+        left_coefficient * right_coefficient,
+        left_parts.exponent + right_parts.exponent,
+    )
+
+
+def _money_ratio_upward(value: Decimal, multiplier: int, divisor: int) -> Decimal:
+    """Scale non-negative money deterministically, rounding any repeat upward."""
+    if (
+        not isinstance(value, Decimal)
+        or not value.is_finite()
+        or value < Decimal("0")
+        or not isinstance(multiplier, int)
+        or isinstance(multiplier, bool)
+        or multiplier < 0
+        or not isinstance(divisor, int)
+        or isinstance(divisor, bool)
+        or divisor <= 0
+    ):
+        raise LargeLLMError("money ratio arguments are invalid")
+    scaled = _money_product(value, multiplier)
+    digits = len(scaled.as_tuple().digits)
+    with localcontext() as context:
+        # 34 significant digits is ample for published metrics; include the
+        # operand length so a caller's low precision can never reduce it.
+        context.prec = max(34, digits + 34)
+        context.rounding = ROUND_CEILING
+        return scaled / Decimal(divisor)
+
+
+def _money_from_coefficient(coefficient: int, exponent: int) -> Decimal:
+    if coefficient == 0:
+        return Decimal("0")
+    digits = tuple(int(digit) for digit in str(abs(coefficient)))
+    return Decimal((int(coefficient < 0), digits, exponent))
 
 
 def _required_text(value: object, label: str) -> str:

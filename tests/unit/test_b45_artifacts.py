@@ -4,8 +4,11 @@ import asyncio
 import hashlib
 import json
 import os
+import subprocess
+import sys
+import time
 from dataclasses import replace
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -248,6 +251,38 @@ def test_fresh_journal_creation_does_not_clobber_racing_file(
         )
 
     assert request_log.read_bytes() == foreign
+
+
+def test_per_journal_lock_serializes_two_process_writers(tmp_path: Path) -> None:
+    """A second evaluator cannot accept/resume the same journal while one is live."""
+    request_log = tmp_path / "request.jsonl"
+    ready = tmp_path / "lock-held"
+    code = """
+from pathlib import Path
+import sys
+import time
+from nl2sparql.models.b45.artifacts import request_journal_lock
+
+with request_journal_lock(Path(sys.argv[1])):
+    Path(sys.argv[2]).write_text("held", encoding="utf-8")
+    time.sleep(0.35)
+"""
+    process = subprocess.Popen(
+        [sys.executable, "-c", code, str(request_log), str(ready)],
+        cwd=Path.cwd(),
+    )
+    try:
+        deadline = time.monotonic() + 3
+        while not ready.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert ready.exists(), "child process did not acquire the journal lock"
+
+        started = time.monotonic()
+        with artifacts.request_journal_lock(request_log):
+            assert time.monotonic() - started >= 0.2
+    finally:
+        process.wait(timeout=3)
+    assert process.returncode == 0
 
 
 def test_fresh_publication_does_not_clobber_file_created_after_preflight(
@@ -1082,6 +1117,78 @@ def test_outputs_cannot_alias_inputs_or_each_other(tmp_path: Path) -> None:
         artifacts.publish_large_run(
             complete_synthetic_run(), paths=paths, protected_paths=(source,)
         )
+
+
+def test_duplicate_and_non_regular_output_paths_are_rejected(tmp_path: Path) -> None:
+    """Publication must fail closed for duplicate destinations and FIFOs."""
+    duplicate = tmp_path / "duplicate.jsonl"
+    with pytest.raises(LargeLLMError, match="alias"):
+        artifacts.publish_large_run(
+            complete_synthetic_run(),
+            paths=artifact_paths(tmp_path, predictions=duplicate, request_log=duplicate),
+        )
+
+    fifo = tmp_path / "predictions.fifo"
+    os.mkfifo(fifo)
+    with pytest.raises(LargeLLMError, match="unsafe existing artifact alias"):
+        artifacts.publish_large_run(
+            complete_synthetic_run(), paths=artifact_paths(tmp_path, predictions=fifo)
+        )
+
+
+def test_output_cannot_alias_the_private_journal_lock_path(tmp_path: Path) -> None:
+    """A user-selected output must not let a second process bypass the journal lock."""
+    lock_alias = tmp_path / ".request.jsonl.lock"
+    with pytest.raises(LargeLLMError, match="journal lock path"):
+        artifacts.validate_artifact_paths(artifact_paths(tmp_path, predictions=lock_alias))
+
+
+def test_low_precision_context_preserves_report_derived_spend(tmp_path: Path) -> None:
+    """Report totals must not inherit a caller's lossy Decimal context."""
+    checkpoint = BudgetSnapshot(
+        cap_usd=Decimal("20"),
+        spent_usd=Decimal("0.001026"),
+        reserved_usd=Decimal("0"),
+        remaining_usd=Decimal("19.998974"),
+        unresolved_request_ids=(),
+    )
+    outcome = completed_outcome(cost=Decimal("0.000513"), budget_checkpoint=checkpoint)
+    metrics = LargeEvaluationMetrics(
+        total=1,
+        completed=1,
+        extraction_failed=0,
+        request_failed=0,
+        budget_blocked=0,
+        cost_unresolved=0,
+        p50_latency_ms=12.5,
+        p95_latency_ms=12.5,
+        input_tokens=10,
+        output_tokens=5,
+        charged_cost_usd=Decimal("0.000513"),
+        cost_per_1k_queries_usd=Decimal("0.513"),
+        extraction_status_counts=(("ok", 1),),
+        difficulty_counts=(("easy", 1),),
+        category_counts=(("entity_lookup", 1),),
+        unattributed_spend_usd=Decimal("0.000513"),
+    )
+    run = replace(
+        complete_synthetic_run(),
+        outcomes=(outcome,),
+        metrics=metrics,
+        budget=checkpoint,
+        blockers=(
+            "expected_100_cases",
+            "non_three_run_evidence",
+            "synthetic_backend",
+            "unattributed_spend",
+        ),
+    )
+
+    with localcontext() as context:
+        context.prec = 2
+        report = json.loads(artifacts.serialize_report(run))
+
+    assert report["total_spent_usd"] == "0.001026"
 
 
 def test_hard_link_and_symlink_outputs_are_rejected(tmp_path: Path) -> None:

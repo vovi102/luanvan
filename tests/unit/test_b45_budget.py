@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 import pytest
 
@@ -31,6 +31,34 @@ def test_conservative_cost_counts_utf8_bytes_and_maximum_output() -> None:
     messages = (ChatMessage("system", "\u0111"), ChatMessage("user", "x"))
 
     assert conservative_request_cost(messages, config()) == Decimal("0.000515")
+
+
+def test_low_precision_context_cannot_round_down_a_reservation_or_snapshot() -> None:
+    """Ambient Decimal precision must not create budget headroom that does not exist."""
+
+    async def scenario() -> None:
+        with localcontext() as context:
+            context.prec = 2
+            ledger = BudgetLedger(config("0.001025"))
+            messages = (ChatMessage("user", "x"),)
+
+            first = await ledger.reserve("case-1", messages)
+            second = await ledger.reserve("case-2", messages)
+
+            assert first is not None
+            assert first.maximum_cost_usd == Decimal("0.000513")
+            assert second is None
+            snapshot = BudgetSnapshot(
+                cap_usd=Decimal("0.001027"),
+                spent_usd=Decimal("0.000513"),
+                reserved_usd=Decimal("0.000513"),
+                remaining_usd=Decimal("0.000001"),
+                unresolved_request_ids=("case-1",),
+                unresolved_reservations=(BudgetReservation("case-1", Decimal("0.000513")),),
+            )
+            assert snapshot.remaining_usd == Decimal("0.000001")
+
+    asyncio.run(scenario())
 
 
 def test_ledger_exposes_read_only_config_fingerprint() -> None:

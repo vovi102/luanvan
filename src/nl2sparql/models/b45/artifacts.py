@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import fcntl
 import hashlib
 import io
 import json
@@ -10,7 +11,8 @@ import os
 import re
 import stat
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -23,6 +25,8 @@ from nl2sparql.models.b45.contracts import (
     LargeLLMError,
     LargeLLMPrediction,
     RemoteCompletion,
+    _money_difference,
+    _money_sum,
     _openrouter_completion,
     canonical_money,
 )
@@ -458,6 +462,60 @@ def _paths_alias(left: Path, right: Path) -> bool:
         raise LargeLLMError(f"unable to compare artifact paths: {error}") from error
 
 
+def _journal_lock_path(path: Path) -> Path:
+    """Return the private sibling lock path for one request journal."""
+    return path.with_name(f".{path.name}.lock")
+
+
+@contextmanager
+def request_journal_lock(path: Path) -> Iterator[None]:
+    """Hold an exclusive, alias-safe POSIX lock for a complete journal run.
+
+    Args:
+        path: Request-journal path whose accepting/resuming writer is serialized.
+
+    Yields:
+        ``None`` while the calling process exclusively owns the journal lock.
+
+    Raises:
+        LargeLLMError: If the journal or private lock path is unsafe or unavailable.
+    """
+    if not isinstance(path, Path):
+        raise LargeLLMError("request journal path must be a pathlib.Path")
+    lock_path = _journal_lock_path(path)
+    if _paths_alias(path, lock_path):
+        raise LargeLLMError("request journal lock path must not alias its journal")
+    descriptor: int | None = None
+    try:
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        _existing_bytes(lock_path)
+        descriptor = os.open(
+            lock_path,
+            os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0),
+            0o600,
+        )
+        details = os.fstat(descriptor)
+        named = lock_path.stat(follow_symlinks=False)
+        if (
+            not stat.S_ISREG(details.st_mode)
+            or details.st_nlink != 1
+            or (details.st_dev, details.st_ino) != (named.st_dev, named.st_ino)
+        ):
+            raise LargeLLMError(f"unsafe request journal lock alias: {lock_path}")
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    except LargeLLMError:
+        raise
+    except OSError as error:
+        raise LargeLLMError(f"unable to acquire request journal lock: {error}") from error
+    finally:
+        if descriptor is not None:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
+
 def _existing_bytes(path: Path) -> bytes | None:
     if not path.exists() and not path.is_symlink():
         return None
@@ -742,6 +800,14 @@ def validate_artifact_paths(paths: ArtifactPaths, *, protected_paths: Sequence[P
                 raise LargeLLMError(
                     f"output path must not alias protected input: {left} and {source}"
                 )
+    journal_lock = _journal_lock_path(paths.request_log)
+    _existing_bytes(journal_lock)
+    for path in (*outputs, *protected):
+        if _paths_alias(journal_lock, path):
+            raise LargeLLMError(
+                "request journal lock path must not alias an artifact path: "
+                f"{journal_lock} and {path}"
+            )
 
 
 def _validate_digest(value: object, label: str, *, optional: bool = False) -> None:
@@ -1302,9 +1368,8 @@ def _validate_attempt_checkpoint_transition(
         else:
             if current.reservation_id in current_reservations:
                 raise LargeLLMError("request journal reconciled attempt remains reserved")
-            if (
-                current_snapshot.spent_usd
-                < previous_snapshot.spent_usd + current.authoritative_cost_usd
+            if current_snapshot.spent_usd < _money_sum(
+                (previous_snapshot.spent_usd, current.authoritative_cost_usd)
             ):
                 raise LargeLLMError("request journal reconciled spend is missing")
         return
@@ -1588,7 +1653,7 @@ def _upgrade_legacy_resume_log(
         upgraded_records.append(upgraded)
         previous_record_sha256 = str(upgraded["record_sha256"])
         assert outcome.authoritative_cost_usd is not None
-        attributed_spend += outcome.authoritative_cost_usd
+        attributed_spend = _money_sum((attributed_spend, outcome.authoritative_cost_usd))
         budget_checkpoint = outcome.budget_checkpoint
     if budget_checkpoint is not None and budget_checkpoint.spent_usd < attributed_spend:
         raise LargeLLMError("request journal budget spent is below accepted outcome costs")
@@ -2130,7 +2195,7 @@ def load_resume_state(
         )
         budget_checkpoint = outcome.budget_checkpoint
         assert outcome.authoritative_cost_usd is not None
-        cost += outcome.authoritative_cost_usd
+        cost = _money_sum((cost, outcome.authoritative_cost_usd))
     if expected_prompt_sha256_by_case is not _UNSET:
         actual_prompt_hashes = {
             str(record["case_id"]): record.get("prompt_sha256") for record in outcome_records
@@ -2196,7 +2261,7 @@ def load_resume_state(
             schema_version=schema_version,
         )
     assert budget_checkpoint is not None
-    unattributed_spend = budget_checkpoint.spent_usd - cost
+    unattributed_spend = _money_difference(budget_checkpoint.spent_usd, cost)
     if unattributed_spend < Decimal("0"):
         raise LargeLLMError("request journal budget spent is below accepted outcome costs")
     if terminal_metrics is not None:
@@ -2252,7 +2317,17 @@ def load_resume_state(
 
 
 def serialize_predictions(run: LargeEvaluationRun) -> bytes:
-    """Return deterministic ordered prediction/outcome JSONL for one run."""
+    """Return deterministic ordered prediction/outcome JSONL for one run.
+
+    Args:
+        run: Validated immutable evaluation run to serialize.
+
+    Returns:
+        Canonical UTF-8 JSONL prediction rows.
+
+    Raises:
+        LargeLLMError: If the run cannot produce internally consistent evidence.
+    """
     rows = (
         {
             "run_id": run.run_id,
@@ -2368,13 +2443,33 @@ def _request_log_parts(
 
 
 def serialize_request_log(run: LargeEvaluationRun) -> bytes:
-    """Return a deterministic, hash-chained journal sealed by a terminal checkpoint."""
+    """Return a deterministic journal sealed by a terminal checkpoint.
+
+    Args:
+        run: Validated immutable evaluation run to serialize.
+
+    Returns:
+        Canonical UTF-8 JSONL bytes with a hash-chained terminal row.
+
+    Raises:
+        LargeLLMError: If the run's journal evidence is invalid or inconsistent.
+    """
     header, records, terminal = _request_log_parts(run)
     return b"".join(_canonical_json(record) for record in (header, *records, terminal))
 
 
 def serialize_cost_csv(run: LargeEvaluationRun) -> bytes:
-    """Return deterministic cost rows derived solely from immutable outcomes."""
+    """Return deterministic cost rows derived solely from immutable outcomes.
+
+    Args:
+        run: Validated immutable evaluation run to serialize.
+
+    Returns:
+        Canonical UTF-8 CSV rows including derived totals.
+
+    Raises:
+        LargeLLMError: If the run's cost evidence is invalid or inconsistent.
+    """
     output = io.StringIO(newline="")
     fieldnames = (
         "row_type",
@@ -2401,7 +2496,7 @@ def serialize_cost_csv(run: LargeEvaluationRun) -> bytes:
         completion = prediction.completion if prediction is not None else None
         charged = outcome.authoritative_cost_usd
         assert charged is not None
-        total += charged
+        total = _money_sum((total, charged))
         writer.writerow(
             {
                 "row_type": "request",
@@ -2475,9 +2570,8 @@ def _report_body(run: LargeEvaluationRun) -> dict[str, object]:
             "blockers": run.blockers,
             "outcome_count": len(run.outcomes),
             "outcome_counts": counts,
-            "authoritative_total_cost_usd": sum(
-                (outcome.authoritative_cost_usd for outcome in run.outcomes),
-                start=Decimal("0"),
+            "authoritative_total_cost_usd": _money_sum(
+                outcome.authoritative_cost_usd for outcome in run.outcomes
             ),
             "attributed_spend_usd": run.metrics.attributed_spend_usd,
             "unattributed_spend_usd": run.metrics.unattributed_spend_usd,
@@ -2489,7 +2583,17 @@ def _report_body(run: LargeEvaluationRun) -> dict[str, object]:
 
 
 def serialize_report(run: LargeEvaluationRun) -> bytes:
-    """Return a deterministic report cross-bound to the terminal journal record."""
+    """Return a deterministic report cross-bound to the terminal journal record.
+
+    Args:
+        run: Validated immutable evaluation run to serialize.
+
+    Returns:
+        Canonical UTF-8 JSON report bytes with its self-hash and terminal binding.
+
+    Raises:
+        LargeLLMError: If the run cannot produce a valid terminal report.
+    """
     body = _report_body(run)
     _header, _records, terminal = _request_log_parts(run)
     linked_body = {
@@ -2683,8 +2787,8 @@ def load_large_run_artifacts(report_path: Path, request_log_path: Path) -> Large
     )
     if report.get("budget") != terminal["budget_checkpoint"]:
         raise LargeLLMError("large-run report budget disagrees with terminal checkpoint")
-    attributed = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=Decimal("0"))
-    unattributed = budget.spent_usd - attributed
+    attributed = _money_sum(outcome.authoritative_cost_usd for outcome in outcomes)
+    unattributed = _money_difference(budget.spent_usd, attributed)
     if unattributed < Decimal("0"):
         raise LargeLLMError("large-run budget spent is below outcome costs")
     metrics = _metrics(outcomes, unattributed_spend_usd=unattributed)
@@ -2796,14 +2900,11 @@ def summarize_large_runs(runs: Sequence[LargeEvaluationRun]) -> dict[str, object
         for outcome in run.outcomes
     ):
         blockers.add("synthetic_backend")
-    attributed_cost = sum(
-        (outcome.authoritative_cost_usd for run in accepted for outcome in run.outcomes),
-        start=Decimal("0"),
+    attributed_cost = _money_sum(
+        outcome.authoritative_cost_usd for run in accepted for outcome in run.outcomes
     )
-    unattributed_cost = sum(
-        (run.metrics.unattributed_spend_usd for run in accepted), start=Decimal("0")
-    )
-    total_cost = attributed_cost + unattributed_cost
+    unattributed_cost = _money_sum(run.metrics.unattributed_spend_usd for run in accepted)
+    total_cost = _money_sum((attributed_cost, unattributed_cost))
     if total_cost > accepted[0].budget.cap_usd:
         blockers.add("cost_over_cap")
     reference = accepted[0]
@@ -2840,6 +2941,7 @@ __all__ = [
     "load_large_run_artifacts",
     "load_resume_state",
     "publish_large_run",
+    "request_journal_lock",
     "serialize_cost_csv",
     "serialize_predictions",
     "serialize_report",

@@ -39,8 +39,9 @@
   `allow_fallbacks=false`, `require_parameters=true`, và
   `data_collection="deny"`. Ledger đặt reservation bảo thủ trước request,
   giới hạn hard cap tối đa USD 20, retry chỉ lỗi transient và không có network
-  mặc định. Journal v3 có terminal evidence sealed; journal v2 chỉ được migrate
-  một chiều khi resume. Hash không được coi là chữ ký xác thực.
+  mặc định. Publication mới luôn được seal bằng journal v4; journal v3 đã seal
+  chỉ được đọc để tương thích, còn journal v2 chỉ được migrate một chiều khi
+  resume. Hash không được coi là chữ ký xác thực.
 - **Rationale:** Tách remote billing/retry khỏi B1/B2 giữ so sánh prompt và
   extraction có kiểm soát, trong khi provenance, cost, privacy và resume đều
   fail closed. Readiness local và scientific được báo cáo riêng để test offline

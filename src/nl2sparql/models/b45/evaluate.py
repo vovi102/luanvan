@@ -27,6 +27,9 @@ from nl2sparql.models.b45.contracts import (
     LargeLLMConfig,
     LargeLLMError,
     LargeLLMPrediction,
+    _money_difference,
+    _money_ratio_upward,
+    _money_sum,
 )
 from nl2sparql.models.b45.local_verification import load_local_verification_evidence
 from nl2sparql.models.b45.openrouter import ModelMetadataEvidence, OpenRouterRequestError
@@ -319,7 +322,7 @@ class LargeEvaluationMetrics:
     @property
     def total_spent_usd(self) -> Decimal:
         """Return attributed plus unattributed reconciled budget spend."""
-        return self.charged_cost_usd + self.unattributed_spend_usd
+        return _money_sum((self.charged_cost_usd, self.unattributed_spend_usd))
 
     def __post_init__(self) -> None:
         count_values = (
@@ -496,10 +499,8 @@ class LargeEvaluationRun:
             self.budget.__post_init__()
         except LargeLLMError as error:
             raise LargeLLMError(f"evaluation budget snapshot is invalid: {error}") from error
-        attributed_spend = sum(
-            (outcome.authoritative_cost_usd for outcome in self.outcomes), start=_ZERO
-        )
-        unattributed_spend = self.budget.spent_usd - attributed_spend
+        attributed_spend = _money_sum(outcome.authoritative_cost_usd for outcome in self.outcomes)
+        unattributed_spend = _money_difference(self.budget.spent_usd, attributed_spend)
         if unattributed_spend < _ZERO:
             raise LargeLLMError("evaluation budget spent is below outcome-attributed cost")
         if self.metrics != _metrics(self.outcomes, unattributed_spend_usd=unattributed_spend):
@@ -1039,7 +1040,7 @@ def _metrics(
     latencies = [prediction.latency_ms for prediction in predictions]
     input_tokens = sum(prediction.completion.input_tokens for prediction in predictions)
     output_tokens = sum(prediction.completion.output_tokens for prediction in predictions)
-    charged_cost = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=_ZERO)
+    charged_cost = _money_sum(outcome.authoritative_cost_usd for outcome in outcomes)
     return LargeEvaluationMetrics(
         total=len(outcomes),
         completed=sum(outcome.status == "completed" for outcome in outcomes),
@@ -1052,7 +1053,7 @@ def _metrics(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         charged_cost_usd=charged_cost,
-        cost_per_1k_queries_usd=charged_cost * Decimal(1000) / Decimal(len(outcomes)),
+        cost_per_1k_queries_usd=_money_ratio_upward(charged_cost, 1000, len(outcomes)),
         extraction_status_counts=_counts(
             [prediction.extraction_status for prediction in predictions]
         ),
@@ -1444,8 +1445,8 @@ async def evaluate_large_baseline(
             for outcome in outcomes
         )
     budget = await ledger.snapshot()
-    attributed_spend = sum((outcome.authoritative_cost_usd for outcome in outcomes), start=_ZERO)
-    unattributed_spend = budget.spent_usd - attributed_spend
+    attributed_spend = _money_sum(outcome.authoritative_cost_usd for outcome in outcomes)
+    unattributed_spend = _money_difference(budget.spent_usd, attributed_spend)
     if unattributed_spend < _ZERO:
         raise LargeLLMError("evaluation budget spent is below outcome-attributed cost")
     metrics = _metrics(outcomes, unattributed_spend_usd=unattributed_spend)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from dataclasses import replace
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 import pytest
 
@@ -338,6 +338,35 @@ def test_metrics_use_exact_prediction_accounting_and_sorted_counts() -> None:
         assert run.metrics.extraction_status_counts == (("ok", 2),)
         assert run.metrics.difficulty_counts == (("easy", 1), ("medium", 1))
         assert run.metrics.category_counts == (("entity_lookup", 2), ("ranking", 1))
+
+    asyncio.run(scenario())
+
+
+def test_low_precision_context_preserves_exact_derived_cost_totals() -> None:
+    """Metric/report inputs must not inherit a caller's lossy Decimal context."""
+
+    class AccountingBaseline(DelayedBaseline):
+        async def predict_detailed(self, question: str, *, request_id: str) -> LargeLLMPrediction:
+            reservation = await self.budget_ledger.reserve(
+                request_id, (ChatMessage("user", question),)
+            )
+            assert reservation is not None
+            await self.budget_ledger.reconcile(reservation, Decimal("0.000513"))
+            return prediction_for(question, cost=Decimal("0.000513"))
+
+    async def scenario() -> None:
+        with localcontext() as context:
+            context.prec = 2
+            run = await evaluate_large_baseline(
+                two_synthetic_cases(),
+                AccountingBaseline({"case-1": 0.0, "case-2": 0.0}),
+                run_id="run-1",
+                concurrency=2,
+                model_metadata=metadata(),
+            )
+
+            assert run.metrics.charged_cost_usd == Decimal("0.001026")
+            assert run.budget.spent_usd == Decimal("0.001026")
 
     asyncio.run(scenario())
 

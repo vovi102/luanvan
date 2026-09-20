@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 import nl2sparql.models.b45.local_verification as local_verification
+import scripts.generate_b45_local_verification as verification_generator
 from nl2sparql.models.b45.local_verification import load_local_verification_evidence
 
 
@@ -302,3 +303,22 @@ def test_generator_cli_documents_canonical_output() -> None:
 
     assert result.returncode == 0, result.stderr
     assert "docs/evidence/t5-3-local-verification.json" in result.stdout
+
+
+def test_generator_emits_through_click_output_seam(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The generator must share the CLI-safe output seam instead of raw print."""
+    emitted: list[str] = []
+    evidence = type(
+        "Evidence",
+        (),
+        {"manifest_sha256": "a" * 64, "source_sha256": "b" * 64},
+    )()
+    monkeypatch.setattr(
+        verification_generator,
+        "generate_local_verification_manifest",
+        lambda: evidence,
+    )
+    monkeypatch.setattr(verification_generator.click, "echo", emitted.append)
+
+    assert verification_generator.main([]) == 0
+    assert json.loads(emitted[0])["status"] == "ready"

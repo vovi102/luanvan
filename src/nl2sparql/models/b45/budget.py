@@ -8,7 +8,13 @@ from decimal import Decimal
 from typing import Literal
 
 from nl2sparql.models.b12.contracts import ChatMessage
-from nl2sparql.models.b45.contracts import LargeLLMConfig, LargeLLMError
+from nl2sparql.models.b45.contracts import (
+    LargeLLMConfig,
+    LargeLLMError,
+    _money_difference,
+    _money_product,
+    _money_sum,
+)
 
 MILLION = Decimal(1_000_000)
 _ZERO = Decimal("0")
@@ -112,13 +118,14 @@ class BudgetSnapshot:
         )
         if reservation_ids != self.unresolved_request_ids:
             raise LargeLLMError("budget unresolved reservations must match request IDs")
-        reserved = sum(
-            (reservation.maximum_cost_usd for reservation in self.unresolved_reservations),
-            start=_ZERO,
+        reserved = _money_sum(
+            reservation.maximum_cost_usd for reservation in self.unresolved_reservations
         )
         if reserved != self.reserved_usd:
             raise LargeLLMError("budget reserved total must match unresolved reservations")
-        if self.remaining_usd != self.cap_usd - self.spent_usd - self.reserved_usd:
+        if self.remaining_usd != _money_difference(
+            _money_difference(self.cap_usd, self.spent_usd), self.reserved_usd
+        ):
             raise LargeLLMError("budget remaining must match spent and reserved totals")
         if self.stop_reason is not None and self.stop_reason != "pricing_violation":
             raise LargeLLMError("budget stop reason is invalid")
@@ -136,9 +143,13 @@ def conservative_request_cost(messages: tuple[ChatMessage, ...], config: LargeLL
         The conservative Decimal cost ceiling that a reservation must hold.
     """
     prompt_bytes = sum(len(message.content.encode("utf-8")) for message in messages)
-    prompt = Decimal(prompt_bytes) * config.provider.prompt_price_per_million_usd / MILLION
-    output = Decimal(config.max_tokens) * config.provider.completion_price_per_million_usd / MILLION
-    return prompt + output
+    prompt = _money_product(Decimal(prompt_bytes), config.provider.prompt_price_per_million_usd)
+    output = _money_product(
+        Decimal(config.max_tokens), config.provider.completion_price_per_million_usd
+    )
+    return _money_sum(
+        (_money_product(prompt, Decimal("0.000001")), _money_product(output, Decimal("0.000001")))
+    )
 
 
 class BudgetLedger:
@@ -227,7 +238,7 @@ class BudgetLedger:
 
             maximum_cost_usd = conservative_request_cost(messages, self._config)
             if (
-                self._spent_usd + self._reserved_usd() + maximum_cost_usd
+                _money_sum((self._spent_usd, self._reserved_usd(), maximum_cost_usd))
                 > self._config.max_cost_usd
             ):
                 return None
@@ -269,7 +280,7 @@ class BudgetLedger:
             self._require_active_reservation(reservation)
             del self._reservations[reservation.request_id]
             self._held_reasons.pop(reservation.request_id, None)
-            self._spent_usd += actual_cost_usd
+            self._spent_usd = _money_sum((self._spent_usd, actual_cost_usd))
             if actual_cost_usd > reservation.maximum_cost_usd:
                 self._stop_reason = "pricing_violation"
             return self._snapshot_unlocked()
@@ -308,9 +319,8 @@ class BudgetLedger:
             raise LargeLLMError("budget reservation must be active")
 
     def _reserved_usd(self) -> Decimal:
-        return sum(
-            (reservation.maximum_cost_usd for reservation in self._reservations.values()),
-            start=_ZERO,
+        return _money_sum(
+            reservation.maximum_cost_usd for reservation in self._reservations.values()
         )
 
     def _snapshot_unlocked(self) -> BudgetSnapshot:
@@ -319,7 +329,9 @@ class BudgetLedger:
             cap_usd=self._config.max_cost_usd,
             spent_usd=self._spent_usd,
             reserved_usd=reserved_usd,
-            remaining_usd=self._config.max_cost_usd - self._spent_usd - reserved_usd,
+            remaining_usd=_money_difference(
+                _money_difference(self._config.max_cost_usd, self._spent_usd), reserved_usd
+            ),
             unresolved_request_ids=tuple(sorted(self._reservations)),
             stop_reason=self._stop_reason,
             unresolved_reservations=tuple(

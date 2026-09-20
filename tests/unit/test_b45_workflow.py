@@ -546,6 +546,45 @@ def test_validate_rejects_publication_alias_before_live_seams(
     assert "alias" in json.loads(result.output)["error"]
 
 
+def test_offline_b5_validate_rejects_test_and_training_alias(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Offline validation must reject circular B5 train/test evidence before cache work."""
+    snapshot = tmp_path / "same.jsonl"
+    snapshot.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(workflow, "load_evaluation_cases", lambda _path: (_case(),))
+    monkeypatch.setattr(workflow, "compile_catalog_summary", lambda _path: _summary())
+    monkeypatch.setattr(
+        workflow,
+        "_b5_cache_preflight",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("must reject alias first")),
+    )
+
+    result = CliRunner().invoke(
+        workflow.cli,
+        [
+            "validate",
+            "--baseline",
+            "b5",
+            "--test-set",
+            str(snapshot),
+            "--training",
+            str(snapshot),
+            "--provider",
+            "deepinfra",
+            "--max-cost-usd",
+            "20",
+            "--encoder-revision",
+            "a" * 40,
+            "--accepted-training-sha256",
+            "b" * 64,
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert json.loads(result.output)["error"] == "B5 test-set and training paths must not alias"
+
+
 def test_predict_requires_network_opt_in_before_key_or_client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

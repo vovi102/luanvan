@@ -41,6 +41,7 @@ from nl2sparql.models.b45 import (
     privacy_review_path,
     prompt_set_sha256,
     publish_large_run,
+    request_journal_lock,
     summarize_large_runs,
     validate_artifact_paths,
 )
@@ -626,6 +627,8 @@ def validate_command(**options: Any) -> None:
         else:
             snapshot_blocker = "evaluation_snapshot_missing"
         summary = compile_catalog_summary(options["catalog_path"])
+        if options["baseline_name"] == "b5":
+            _require_distinct_b5_inputs(options["test_set"], options["training_path"])
         paths = _artifact_paths(
             options["baseline_name"],
             options["predictions"],
@@ -781,6 +784,8 @@ def predict_command(**options: Any) -> None:
 @_common_options
 def evaluate_command(**options: Any) -> None:
     """Run and atomically publish one opted-in B4/B5 evaluation."""
+    journal_guard: Any = None
+    journal_guard_active = False
     try:
         config = _validate_primitives(options, evaluation=True)
         if options["allow_network"]:
@@ -855,6 +860,12 @@ def evaluate_command(**options: Any) -> None:
                 for case in cases
             )
         )
+        # Keep the same OS lease from durable resume acceptance through the
+        # terminal publication.  A second process therefore cannot spend from
+        # a stale checkpoint or overwrite journal transitions.
+        journal_guard = request_journal_lock(paths.request_log)
+        journal_guard.__enter__()
+        journal_guard_active = True
         completed_outcomes = ()
         resume_budget_checkpoint = None
         legacy_resume_authorized = False
@@ -968,6 +979,9 @@ def evaluate_command(**options: Any) -> None:
         )
     except (LargeLLMError, SmallLLMError) as error:
         _stop(error)
+    finally:
+        if journal_guard_active:
+            journal_guard.__exit__(None, None, None)
 
 
 def load_large_run_report(report_path: Path, request_log_path: Path) -> LargeEvaluationRun:

@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import json
 
+import click
+
 from nl2sparql.models.b45.local_verification import (
     LOCAL_VERIFICATION_MANIFEST,
     LocalVerificationGenerationError,
@@ -25,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         evidence = generate_local_verification_manifest()
     except LocalVerificationGenerationError as error:
-        print(
+        click.echo(
             json.dumps(
                 {"status": "blocked", "error": str(error)},
                 sort_keys=True,
@@ -33,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 2
-    print(
+    click.echo(
         json.dumps(
             {
                 "status": "ready",
