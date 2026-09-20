@@ -24,6 +24,36 @@
 
 ## Entries
 
+### 2026-09-21 — T5.3 dùng Gemini free tier; Large Llama là optional extension
+
+- **Context:** T5.3 đã triển khai local cho Llama 3.3 70B qua OpenRouter nhưng
+  scientific run còn phụ thuộc tài khoản trả phí, provider availability và test
+  set T3.5. Dự án cần một hosted-model baseline có thể tiếp tục bằng free tier,
+  đồng thời chưa muốn biến Large Llama thành dependency bắt buộc trước khi hoàn
+  thiện hệ thống và trao đổi với giảng viên.
+- **Options considered:** Giữ Large Llama/OpenRouter là B4/B5 bắt buộc; thay hẳn
+  và xóa đường chạy Llama; hoặc dùng Gemini free tier làm B4/B5 chính, giữ Large
+  Llama như thí nghiệm mở rộng tùy chọn.
+- **Decision:** B4 là Gemini zero-shot và B5 là cùng model Gemini với đúng năm
+  examples do B2 retriever chọn. Model stable có trong free tier phải được
+  preflight, pin exact ID và fingerprint metadata trước scientific run. Workflow
+  không tự động nâng lên paid tier. Large Llama/OpenRouter được giữ như optional
+  `B4L/B5L`; không chạy chúng không chặn completion của T5.3.
+- **Rationale:** Cách này giữ phép đo zero-shot so với five-shot và cho phép hoàn
+  thiện pipeline không cần GPU 70B hoặc paid inference. Giữ đường Llama optional
+  tránh mất công triển khai đã có và cho phép bổ sung controlled same-family
+  comparison nếu giảng viên yêu cầu.
+- **Consequences:** Kết luận chính đổi thành so sánh small open-weight local model
+  với hosted proprietary frontier model. Không được quy chênh lệch cho model size
+  vì Gemini và Llama khác kiến trúc, training, tokenizer và serving stack. Free-tier
+  data-use, quota, latency, token usage và `$0 observed API charge` phải được công
+  bố; quota exhaustion phải checkpoint/resume và không fallback sang paid.
+- **Revisit:** Sau khi toàn bộ pipeline và T5.4 hoàn tất, rồi trao đổi với giảng
+  viên về việc có cần chạy optional Large Llama B4L/B5L hay không.
+- **Linked:** `docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md`,
+  `docs/superpowers/specs/2026-09-21-t5-3-gemini-baselines-design.md`,
+  `docs/research/t5-3-alternatives-2026-09-20.md`.
+
 ### 2026-09-07 — T5.3 dùng GoogleSQL B4/B5 remote large-LLM với acceptance hai tầng
 
 - **Context:** Sau Pivot #1, mô tả T5.3 cũ vẫn dùng target và model đã retired,
