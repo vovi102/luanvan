@@ -1,9 +1,24 @@
 # T5.3 — B4 + B5: GoogleSQL Large-LLM Baselines
 
-local implementation complete
+historical Llama/OpenRouter local implementation complete
+Gemini migration pending
 scientific acceptance pending
 
-## Scope
+> **Superseding provisional decision — 2026-09-21:** B4/B5 chính chuyển sang
+> Gemini free tier: B4 zero-shot, B5 cùng model với đúng năm retrieved examples.
+> Exact stable model ID phải được preflight và pin trước scientific run; workflow
+> không tự động chuyển sang paid tier. Large Llama/OpenRouter trở thành optional
+> B4L/B5L và không còn chặn completion của T5.3. Implementation bên dưới mô tả
+> checkpoint Llama hiện có; migration Gemini chưa được triển khai. Xem
+> `docs/superpowers/specs/2026-09-21-t5-3-gemini-baselines-design.md` và decision
+> log ngày 2026-09-21.
+
+## Historical Llama/OpenRouter checkpoint scope
+
+The remainder of this document records the completed Llama/OpenRouter local
+checkpoint and is retained as optional B4L/B5L evidence. Where it conflicts
+with the superseding decision above, the 2026-09-21 Gemini design is
+authoritative.
 
 T5.3 provides two raw-model NL-to-GoogleSQL controls over the managed BigQuery
 analytical catalog:
@@ -19,7 +34,7 @@ output and returns only a read-only, managed GoogleSQL statement; prose,
 multiple statements, invalid SQL, and unsafe SQL fail closed. B5 retains the
 B2 training/cache leakage and provenance checks.
 
-The canonical model is exactly
+For this historical checkpoint, the canonical model is exactly
 `meta-llama/llama-3.3-70b-instruct`. Every run fixes `temperature=0`, `seed=42`,
 `max_tokens=512`, and one returned choice. The model identifier is a run
 contract, not a claim that the provider will keep the model or its pricing
