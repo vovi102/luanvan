@@ -421,6 +421,13 @@ readiness requires three genuine runs with the same baseline/config/test-set/mod
 identity and complete case IDs. For `k` runs, the denominator is
 `N * k * (k - 1) / 2`.
 
+Each evaluation report designates exactly one primary prediction/execution pair.
+Headline accuracy, latency, cost, failure and breakdown metrics come only from that
+primary run and therefore retain denominator `N`. Zero or more compatible replicate
+pairs contribute only to the reproducibility dimension and its readiness checks;
+their case outcomes are not pooled into the primary metrics. The primary run ID is
+explicit, so input ordering cannot silently select it.
+
 `ComparisonReport` requires the same test-set hash and identical case-ID set on both
 sides. It records left and right report hashes, paired case-set hash, metric values,
 `left - right` delta and paired-bootstrap interval. Each sample selects the same case
@@ -458,7 +465,8 @@ ID, tags, note hash and review artifact hash; its source is recorded as
 
 `EvaluationReport` contains:
 
-- baseline/run identity and all prediction/execution artifact hashes;
+- baseline identity, explicit primary run ID and all primary/replicate
+  prediction/execution artifact hashes;
 - test-set and case-set identities;
 - expected and represented population counts;
 - implementation and scientific readiness plus sorted blockers;
@@ -502,8 +510,9 @@ validate           verify one artifact and all available bindings offline
 
 `execute` requires canonical input plus explicit BigQuery project, location,
 timeout, byte caps, pricing policy, cost cap and `--allow-bigquery`. `report` accepts
-one or more prediction/execution pairs for reproducibility. `compare` accepts two
-evaluation reports. `validate` performs no mutation.
+one required primary prediction/execution pair plus zero or more explicitly labeled
+replicate pairs for reproducibility. `compare` accepts two evaluation reports.
+`validate` performs no mutation.
 
 Exit code 0 means the requested artifact operation completed, including successful
 creation of a scientifically blocked diagnostic report. Exit code 1 means internal
