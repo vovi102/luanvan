@@ -1,6 +1,11 @@
 # Kế hoạch triển khai chi tiết cho Codex
 ## Dự án: NL2SPARQL cho Blockchain Knowledge Graph
 
+> **LEGACY PLAN A — không dùng để chọn task tiếp theo.** Dự án đã pivot sang
+> NL2SQL/BigQuery ngày 2026-08-09. Backlog canonical và thứ tự hiện tại nằm tại
+> `docs/planning/prioritized-backlog-2026-09-21.md`; các mục SPARQL/Fuseki bên
+> dưới chỉ được giữ làm lịch sử và phải migrate trước khi triển khai.
+
 > **Cách dùng tài liệu này:** Mỗi mục là một "ticket" độc lập có thể giao cho Codex. Mỗi ticket có: mục tiêu, input, output, file cần tạo, acceptance criteria. Codex nên thực hiện theo thứ tự, hoàn thành ticket trước rồi mới sang ticket sau. Khi gặp blocker, dừng lại báo cáo trước khi sang ticket khác.
 
 ---

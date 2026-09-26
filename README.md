@@ -143,6 +143,8 @@ Doc theo thu tu:
 3. `docs/memory/02-TECH_STACK.md` - stack cong nghe duoc chon.
 4. `docs/memory/04-CONVENTIONS.md` - quy uoc code, data, commit.
 5. `docs/tasks/` - backlog trien khai theo phase.
+6. `docs/planning/prioritized-backlog-2026-09-21.md` - backlog canonical sau
+   Pivot #1, dependency va thu tu cong viec hien tai.
 
 ## Quy trinh lam task
 

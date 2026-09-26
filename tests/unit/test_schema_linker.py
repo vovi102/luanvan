@@ -161,6 +161,56 @@ def test_directional_and_measure_synonyms_rank_the_correct_fields() -> None:
     assert gas_matches[0].element_id == "transaction_facts.receipt_gas_used"
 
 
+def test_temporal_cues_rank_the_timestamp_field_ahead_of_incidental_terms() -> None:
+    base = _index()
+    fields = (
+        _element(
+            "transaction_facts.amount",
+            "field",
+            "transactions analytical amount",
+        ),
+        _element(
+            "transaction_facts.block_timestamp",
+            "field",
+            "transaction block timestamp date time when mined created",
+        ),
+    )
+    metadata = replace(base.metadata, field_elements=fields)
+    field_embeddings = np.asarray([[1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
+    field_embeddings.setflags(write=False)
+    index = SchemaIndex(metadata, base.relation_embeddings, field_embeddings)
+    linker = SchemaLinker(
+        index,
+        ConstantEncoder(),
+        {"timestamp": ("date", "time", "when")},
+    )
+
+    result = linker.link("How many transactions occurred each day in June 2026?", top_k=2)
+
+    assert result.fields[0].element_id == "transaction_facts.block_timestamp"
+
+
+def test_temporal_field_expansion_does_not_distort_relation_ranking() -> None:
+    base = _index()
+    relations = (
+        _element("contract_dimension", "relation", "token contract registry"),
+        _element("transaction_facts", "relation", "timestamp date time when"),
+    )
+    metadata = replace(base.metadata, relation_elements=relations)
+    relation_embeddings = np.asarray([[1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
+    relation_embeddings.setflags(write=False)
+    index = SchemaIndex(metadata, relation_embeddings, base.field_embeddings)
+    linker = SchemaLinker(
+        index,
+        ConstantEncoder(),
+        {"timestamp": ("date", "time", "when")},
+    )
+
+    result = linker.link("Which token contracts existed before July 2026?", top_k=2)
+
+    assert result.relations[0].element_id == "contract_dimension"
+
+
 def test_link_uses_stable_element_id_ties_and_does_not_mutate_index() -> None:
     index = _index()
     relation_before = index.relation_embeddings.copy()

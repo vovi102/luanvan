@@ -1,0 +1,16 @@
+{
+  "catalog_version": "1.0.0",
+  "counts": {
+    "class_resolver": 50,
+    "entity_linker": 100,
+    "schema_linker": 50
+  },
+  "created_on": "2026-09-24",
+  "dictionary_sha256": {
+    "aliases": "9a79ba50a29d449903c623729902fdf6461c9a21b02959e8505db710973e4fb6",
+    "concepts": "3f707fa1507d6fa902057f5c6e6172656cc631f0f464c5f768ce7a921b2b4608",
+    "entities": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e"
+  },
+  "promotion_rule": "A human reviewer must record ACCEPT or a corrected REVISE before a row may enter data/eval. REJECT rows remain only in this draft set.",
+  "status": "DRAFT \u2014 agent-authored; not ground truth; not for training or publication"
+}
