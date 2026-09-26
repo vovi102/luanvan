@@ -296,29 +296,46 @@ class ResultField:
 
     name: str
     type_name: str
+    mode: Literal["NULLABLE", "REQUIRED", "REPEATED"] = "NULLABLE"
+    fields: tuple[ResultField, ...] = ()
 
     def __post_init__(self) -> None:
         _require_text(self.name, "name")
         _require_text(self.type_name, "type_name")
+        if self.mode not in ("NULLABLE", "REQUIRED", "REPEATED"):
+            raise EvaluationError("unknown result field mode")
+        nested_names = tuple(field.name for field in self.fields)
+        if len(nested_names) != len(set(nested_names)):
+            raise EvaluationError("nested result field names must be unique")
 
 
 @dataclass(frozen=True)
 class QueryResultEvidence:
-    """Typed query result retained until compact evaluation derivation."""
+    """Digest-only typed query result evidence."""
 
     fields: tuple[ResultField, ...]
-    rows: tuple[tuple[Any, ...], ...]
     schema_sha256: str
+    row_count: int
+    arity: int
+    order_sensitive: bool
+    row_digests: tuple[str, ...]
+    result_sha256: str
 
     def __post_init__(self) -> None:
         _require_sha256(self.schema_sha256, "schema_sha256")
-        if any(len(row) != len(self.fields) for row in self.rows):
-            raise EvaluationError("every result row must match result schema arity")
-
-    @property
-    def row_count(self) -> int:
-        """Return the number of result rows."""
-        return len(self.rows)
+        _require_non_negative_int(self.row_count, "row_count")
+        _require_non_negative_int(self.arity, "arity")
+        if self.arity != len(self.fields):
+            raise EvaluationError("result arity must equal schema length")
+        if self.row_count != len(self.row_digests):
+            raise EvaluationError("row_count must equal row digest count")
+        if not isinstance(self.order_sensitive, bool):
+            raise EvaluationError("order_sensitive must be boolean")
+        for digest in self.row_digests:
+            _require_sha256(digest, "row_sha256")
+        if not self.order_sensitive and self.row_digests != tuple(sorted(self.row_digests)):
+            raise EvaluationError("unordered result row digests must be sorted")
+        _require_sha256(self.result_sha256, "result_sha256")
 
 
 @dataclass(frozen=True)
