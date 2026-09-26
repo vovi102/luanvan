@@ -522,13 +522,13 @@ class ConfidenceInterval:
 class RatioMetric:
     """A rate that never loses its numerator or denominator."""
 
-    numerator: int
+    numerator: float
     denominator: int
     value: float | None
     interval: ConfidenceInterval | None
 
     def __post_init__(self) -> None:
-        _require_non_negative_int(self.numerator, "numerator")
+        _require_finite_non_negative(self.numerator, "numerator")
         _require_non_negative_int(self.denominator, "denominator")
         if self.numerator > self.denominator:
             raise EvaluationError("numerator cannot exceed denominator")
@@ -543,19 +543,30 @@ class RatioMetric:
 class DistributionMetric:
     """Compact finite latency or cost distribution summary."""
 
-    count: int
-    median: float | None
+    expected_count: int
+    observed_count: int
+    missing_count: int
+    p50: float | None
     p95: float | None
     p99: float | None
+    p50_interval: ConfidenceInterval | None
+    p95_interval: ConfidenceInterval | None
+    p99_interval: ConfidenceInterval | None
 
     def __post_init__(self) -> None:
-        _require_non_negative_int(self.count, "count")
-        for name, value in (("median", self.median), ("p95", self.p95), ("p99", self.p99)):
+        _require_non_negative_int(self.expected_count, "expected_count")
+        _require_non_negative_int(self.observed_count, "observed_count")
+        _require_non_negative_int(self.missing_count, "missing_count")
+        if self.observed_count + self.missing_count != self.expected_count:
+            raise EvaluationError("observed and missing counts must equal expected_count")
+        for name, value in (("p50", self.p50), ("p95", self.p95), ("p99", self.p99)):
             _require_finite_non_negative(value, name, optional=True)
-        if self.count == 0 and any(
-            value is not None for value in (self.median, self.p95, self.p99)
-        ):
+        values = (self.p50, self.p95, self.p99)
+        intervals = (self.p50_interval, self.p95_interval, self.p99_interval)
+        if self.observed_count == 0 and any(value is not None for value in values + intervals):
             raise EvaluationError("empty distribution requires null percentiles")
+        if self.observed_count > 0 and any(value is None for value in values + intervals):
+            raise EvaluationError("observed distribution requires percentiles and intervals")
 
 
 @dataclass(frozen=True)
