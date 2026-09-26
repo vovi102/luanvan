@@ -20,7 +20,17 @@ PredictionStatus: TypeAlias = Literal[
 MeasurementStatus: TypeAlias = Literal["observed", "unmeasured"]
 DataEgress: TypeAlias = Literal["none", "provider", "unknown"]
 ExecutionStatus: TypeAlias = Literal[
-    "ok", "error", "timeout", "guard_blocked", "not_run", "unresolved_cost"
+    "ok",
+    "error",
+    "timeout",
+    "guard_blocked",
+    "not_run",
+    "unresolved_cost",
+    "skipped_no_output",
+    "skipped_invalid_sql",
+    "skipped_unsafe_sql",
+    "skipped_generation_error",
+    "skipped_inference_timeout",
 ]
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -374,6 +384,11 @@ class QueryExecution:
             "guard_blocked",
             "not_run",
             "unresolved_cost",
+            "skipped_no_output",
+            "skipped_invalid_sql",
+            "skipped_unsafe_sql",
+            "skipped_generation_error",
+            "skipped_inference_timeout",
         ):
             raise EvaluationError("unknown execution status")
         _require_finite_non_negative(self.latency_ms, "latency_ms", optional=True)
