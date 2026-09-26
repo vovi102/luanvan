@@ -260,7 +260,7 @@ class CanonicalPredictionRun:
     baseline_id: str
     run_id: str
     seed: int
-    generated_at: datetime
+    generated_at: datetime | None
     test_set_sha256: str
     test_case_count: int
     provenance: RunProvenance
@@ -274,7 +274,8 @@ class CanonicalPredictionRun:
         _require_text(self.run_id, "run_id")
         if isinstance(self.seed, bool) or not isinstance(self.seed, int):
             raise EvaluationError("seed must be an integer")
-        _require_utc(self.generated_at, "generated_at")
+        if self.generated_at is not None:
+            _require_utc(self.generated_at, "generated_at")
         _require_sha256(self.test_set_sha256, "test_set_sha256")
         _require_non_negative_int(self.test_case_count, "test_case_count")
         _require_text(self.adapter_id, "adapter_id")
