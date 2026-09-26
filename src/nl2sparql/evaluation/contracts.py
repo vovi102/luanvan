@@ -735,6 +735,7 @@ class ManualFailureReview:
     tags: tuple[str, ...]
     note_sha256: str
     review_artifact_sha256: str
+    source: Literal["manual_review"] = "manual_review"
 
     def __post_init__(self) -> None:
         _require_text(self.case_id, "case_id")
@@ -742,6 +743,8 @@ class ManualFailureReview:
         _require_sorted_unique(self.tags, "tags")
         _require_sha256(self.note_sha256, "note_sha256")
         _require_sha256(self.review_artifact_sha256, "review_artifact_sha256")
+        if self.source != "manual_review":
+            raise EvaluationError("manual failure review source must be manual_review")
 
 
 CanonicalArtifact: TypeAlias = (
