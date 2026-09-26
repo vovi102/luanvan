@@ -248,9 +248,9 @@ class RunProvenance:
         keys = tuple(key for key, _ in self.fingerprints)
         if keys != tuple(sorted(set(keys))):
             raise EvaluationError("fingerprint keys must be sorted unique")
-        for key, digest in self.fingerprints:
+        for key, value in self.fingerprints:
             _require_text(key, "fingerprint key")
-            _require_sha256(digest, f"fingerprint {key}")
+            _require_text(value, f"fingerprint {key}")
 
 
 @dataclass(frozen=True)
