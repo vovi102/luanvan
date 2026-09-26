@@ -467,6 +467,60 @@ def test_lowercase_token_symbol_alias_requires_signal_at_exact_stage(
     assert linker.link("PAYME")[0].target_id == "owner:Payme"
 
 
+def test_exact_canonical_owner_surface_bypasses_token_signal_gate(
+    token_symbol_corpus: EntityCorpus, token_symbol_index: EntityIndex
+) -> None:
+    linker = EntityLinker(
+        token_symbol_corpus,
+        token_symbol_index,
+        FixedEncoder([-1.0, 0.0]),
+    )
+
+    match = linker.link("Payme")[0]
+
+    assert (match.target_id, match.stage) == ("owner:Payme", "exact")
+
+
+def test_exact_alias_collision_prefers_owner_matching_original_surface() -> None:
+    token_metadata = {
+        "categories": ("token_contract",),
+        "concept_classes": ("TokenContract",),
+    }
+    lowercase_owner = _target(
+        "owner:Bitmex",
+        "Bitmex",
+        ("bitmex",),
+        **token_metadata,
+    )
+    uppercase_owner = _target(
+        "owner:BitMEX",
+        "BitMEX",
+        ("bitmex",),
+        **token_metadata,
+    )
+    collision_corpus = EntityCorpus(
+        targets=(uppercase_owner, lowercase_owner),
+        targets_by_id={
+            uppercase_owner.target_id: uppercase_owner,
+            lowercase_owner.target_id: lowercase_owner,
+        },
+        phrase_targets={"bitmex": (uppercase_owner.target_id, lowercase_owner.target_id)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    linker = EntityLinker(
+        collision_corpus,
+        _index_for(collision_corpus, np.eye(2, dtype=np.float32)),
+        FixedEncoder([-1.0, 0.0]),
+    )
+
+    match = linker.link("Bitmex")[0]
+
+    assert match.target_id == "owner:Bitmex"
+
+
 def test_lowercase_token_symbol_alias_requires_signal_at_fuzzy_stage(
     token_symbol_corpus: EntityCorpus, token_symbol_index: EntityIndex
 ) -> None:
@@ -775,6 +829,26 @@ def test_fuzzy_stage_recovers_unique_misspelling(linker: EntityLinker) -> None:
 
     assert (match.target_id, match.stage) == ("owner:Binance", "fuzzy")
     assert match.span == "binnance"
+
+
+def test_fuzzy_windows_with_function_words_at_the_boundary_are_discarded() -> None:
+    target = _target("concept:switch-token", None, ("switch token",))
+    fuzzy_corpus = EntityCorpus(
+        targets=(target,),
+        targets_by_id={target.target_id: target},
+        phrase_targets={"switch token": (target.target_id,)},
+        address_targets={},
+        entities_sha256="a" * 64,
+        aliases_sha256="b" * 64,
+        concepts_sha256="c" * 64,
+    )
+    linker = EntityLinker(
+        fuzzy_corpus,
+        _index_for(fuzzy_corpus, np.asarray([[1.0]], dtype=np.float32)),
+        FixedEncoder([-1.0]),
+    )
+
+    assert linker.link("Which token transfers") == ()
 
 
 def test_embedding_near_tie_returns_ambiguous(corpus: EntityCorpus, index: EntityIndex) -> None:

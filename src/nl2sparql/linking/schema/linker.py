@@ -21,6 +21,11 @@ from nl2sparql.linking.schema.index import SchemaIndex
 MAX_QUESTION_CHARS = 2_000
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
+_TEMPORAL_CUE_RE = re.compile(
+    r"\b(?:january|february|march|april|may|june|july|august|september|october|"
+    r"november|december|20\d{2}|daily|days?|before|during)\b"
+)
+_TEMPORAL_QUERY_TERMS = ("timestamp", "date", "time", "when")
 
 
 @dataclass(frozen=True)
@@ -53,6 +58,13 @@ def _tokens(value: str) -> tuple[str, ...]:
 
 def _normalized_tokens(value: str) -> tuple[str, ...]:
     return tuple(_TOKEN_RE.findall(value))
+
+
+def _ranking_query_tokens(normalized_question: str) -> tuple[str, ...]:
+    tokens = _normalized_tokens(normalized_question)
+    if not _TEMPORAL_CUE_RE.search(normalized_question):
+        return tokens
+    return tuple(dict.fromkeys((*tokens, *_TEMPORAL_QUERY_TERMS)))
 
 
 def _contains_phrase(tokens: tuple[str, ...], phrase: tuple[str, ...]) -> bool:
@@ -206,6 +218,7 @@ class SchemaLinker:
         question_tokens = _normalized_tokens(normalized)
         if not question_tokens:
             raise SchemaLinkerError("question must contain at least one text token")
+        field_query_tokens = _ranking_query_tokens(normalized)
         maximum = max(
             len(self._index.metadata.relation_elements),
             len(self._index.metadata.field_elements),
@@ -230,7 +243,7 @@ class SchemaLinker:
         fields = _rank(
             self._index.metadata.field_elements,
             field_scores,
-            question_tokens,
+            field_query_tokens,
             self._synonym_groups,
             weights.semantic,
             weights.lexical,

@@ -1,0 +1,201 @@
+component,id,decision,reviewer_note
+schema_linker,schema-candidate-01,REVISE,gold_fields exactly = [transaction_facts.block_timestamp]; transaction_hash is not needed for COUNT(*) by day
+schema_linker,schema-candidate-02,REVISE,gold_fields exactly = [transaction_facts.block_timestamp | transaction_facts.is_success]; transaction_hash is extraneous
+schema_linker,schema-candidate-03,REVISE,gold_fields exactly = [transaction_facts.from_address | transaction_facts.block_timestamp]; transaction_hash is extraneous
+schema_linker,schema-candidate-04,REVISE,gold_fields exactly = [transaction_facts.to_address | transaction_facts.block_timestamp]; transaction_hash is extraneous
+schema_linker,schema-candidate-05,ACCEPT,Relation and fields are necessary and sufficient for the requested grouped sum
+schema_linker,schema-candidate-06,ACCEPT,Relation and fields are necessary and sufficient for the requested grouped sum
+schema_linker,schema-candidate-07,REVISE,gold_fields exactly = [transaction_facts.transaction_hash | transaction_facts.receipt_gas_used | transaction_facts.block_timestamp]; used gas means receipt gas used rather than gas limit
+schema_linker,schema-candidate-08,ACCEPT,Timestamp and receipt gas used are the required fields
+schema_linker,schema-candidate-09,REVISE,gold_fields exactly = [transaction_facts.is_success | transaction_facts.block_timestamp]; transaction_hash is extraneous for COUNT(*)
+schema_linker,schema-candidate-10,ACCEPT,The transaction identifier creation indicator and time filter are all required
+schema_linker,schema-candidate-11,REVISE,gold_fields exactly = [transaction_facts.transaction_type | transaction_facts.block_timestamp]; transaction_hash is extraneous for grouped COUNT(*)
+schema_linker,schema-candidate-12,ACCEPT,Block identity count and timestamp match the top-block question
+schema_linker,schema-candidate-13,ACCEPT,Timestamp and block gas used are necessary and sufficient
+schema_linker,schema-candidate-14,REVISE,nl exactly = Which block beneficiary addresses were listed on the most blocks in June 2026?; gold_fields exactly = [block_facts.beneficiary_address | block_facts.block_timestamp]; avoids claiming the beneficiary produced the block and removes the extraneous block number
+schema_linker,schema-candidate-15,ACCEPT,Base fee and timestamp match the requested maximum in the date range
+schema_linker,schema-candidate-16,REVISE,gold_fields exactly = [block_facts.block_timestamp]; block_number is extraneous for COUNT(*) by day
+schema_linker,schema-candidate-17,REVISE,gold_fields exactly = [token_transfer_facts.token_address | token_transfer_facts.block_timestamp]; transfer primary-key fields are extraneous for COUNT(*)
+schema_linker,schema-candidate-18,REVISE,gold_fields exactly = [token_transfer_facts.token_symbol | token_transfer_facts.block_timestamp]; transfer primary-key fields are extraneous for COUNT(*)
+schema_linker,schema-candidate-19,REVISE,gold_fields exactly = [token_transfer_facts.from_address | token_transfer_facts.block_timestamp]; transfer primary-key fields are extraneous for COUNT(*)
+schema_linker,schema-candidate-20,REVISE,gold_fields exactly = [token_transfer_facts.to_address | token_transfer_facts.block_timestamp]; transfer primary-key fields are extraneous for COUNT(*)
+schema_linker,schema-candidate-21,ACCEPT,Token identity raw value and timestamp are necessary for the grouped sum
+schema_linker,schema-candidate-22,ACCEPT,Symbol normalized amount and timestamp are necessary for the grouped sum
+schema_linker,schema-candidate-23,REVISE,gold_fields exactly = [token_transfer_facts.is_erc20 | token_transfer_facts.block_timestamp]; transfer primary-key fields are extraneous for COUNT(*)
+schema_linker,schema-candidate-24,REVISE,gold_fields exactly = [token_transfer_facts.is_erc721 | token_transfer_facts.block_timestamp]; transfer primary-key fields are extraneous for COUNT(*)
+schema_linker,schema-candidate-25,ACCEPT,The transfer primary key validity flag and timestamp are required to list matching transfers
+schema_linker,schema-candidate-26,REVISE,gold_fields exactly = [token_transfer_facts.token_name | token_transfer_facts.token_decimals | token_transfer_facts.token_address | token_transfer_facts.block_timestamp]; transfer primary-key fields are extraneous for frequency ranking
+schema_linker,schema-candidate-27,REVISE,nl exactly = Which ERC-20 contracts existed before July 2026?; keep the current relation and fields because contract_dimension is bounded by end_date and does not prove first-seen semantics
+schema_linker,schema-candidate-28,REVISE,gold_fields exactly = [contract_dimension.is_erc721]; address is extraneous for COUNT(*) over the address-keyed dimension
+schema_linker,schema-candidate-29,ACCEPT,The bounded dimension exposes the latest observed row and its block number per address
+schema_linker,schema-candidate-30,REVISE,gold_fields exactly = [token_dimension.symbol | token_dimension.decimals]; address is not required to answer which symbols have the most decimals
+schema_linker,schema-candidate-31,ACCEPT,Token name and address exactly match the requested projection
+schema_linker,schema-candidate-32,REVISE,gold_fields exactly = [entity_labels_v1.primary_label | entity_labels_v1.concept_class]; the question asks for labels rather than owners
+schema_linker,schema-candidate-33,ACCEPT,Address and category are necessary and sufficient for the requested DEX rows
+schema_linker,schema-candidate-34,ACCEPT,Primary label and categorical confidence match the question
+schema_linker,schema-candidate-35,ACCEPT,Owner is the filter and aliases are the requested output
+schema_linker,schema-candidate-36,ACCEPT,Primary label and verified date support the requested ordering
+schema_linker,schema-candidate-37,REVISE,gold_fields exactly = [entity_labels_v1.primary_label | entity_labels_v1.address_role]; the question asks which labels rather than which owners
+schema_linker,schema-candidate-38,ACCEPT,Concept class supplies the filter and sources contains the requested URLs
+schema_linker,schema-candidate-39,REVISE,gold_fields exactly = [entity_labels_v1.category]; address is extraneous for COUNT(*) by category
+schema_linker,schema-candidate-40,ACCEPT,Owner filter address and primary label are all required
+schema_linker,schema-candidate-41,REVISE,gold_fields exactly = [transaction_facts.from_address | entity_labels_v1.address | entity_labels_v1.concept_class]; transaction identity and timestamp are not requested
+schema_linker,schema-candidate-42,REVISE,gold_fields exactly = [transaction_facts.to_address | entity_labels_v1.address | entity_labels_v1.concept_class]; transaction identity and timestamp are not requested
+schema_linker,schema-candidate-43,REVISE,gold_fields exactly = [token_transfer_facts.from_address | token_transfer_facts.block_timestamp | entity_labels_v1.address | entity_labels_v1.concept_class]; transfer primary-key fields are extraneous for COUNT(*)
+schema_linker,schema-candidate-44,REVISE,gold_fields exactly = [token_transfer_facts.to_address | token_transfer_facts.block_timestamp | entity_labels_v1.address | entity_labels_v1.category]; transfer primary-key fields are extraneous for COUNT(*)
+schema_linker,schema-candidate-45,REVISE,gold_fields exactly = [token_transfer_facts.to_address | token_transfer_facts.token_symbol | token_transfer_facts.block_timestamp | entity_labels_v1.owner | entity_labels_v1.address]; transfer primary-key fields are not needed to return symbols
+schema_linker,schema-candidate-46,REVISE,nl exactly = Which blocks had the greatest transaction counts and high gas use in June 2026?; keep the current relation and fields to remove the ambiguous daily aggregation reading
+schema_linker,schema-candidate-47,ACCEPT,Transaction identity success flag gas used and timestamp all match the question
+schema_linker,schema-candidate-48,ACCEPT,Address and both token-standard flags are necessary and sufficient
+schema_linker,schema-candidate-49,ACCEPT,Owner category and verified date exactly match the requested projection and filter
+schema_linker,schema-candidate-50,ACCEPT,Transfer primary key amount and timestamp are required for the requested ranked transfer list
+entity_linker,entity-candidate-001,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-002,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-003,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-004,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-005,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-006,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-007,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-008,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-009,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-010,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-011,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-012,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-013,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-014,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-015,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-016,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-017,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-018,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-019,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-020,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-021,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-022,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-023,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-024,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-025,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-026,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-027,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-028,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-029,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-030,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-031,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-032,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-033,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-034,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-035,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-036,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-037,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-038,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-039,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-040,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-041,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-042,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-043,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-044,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-045,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-046,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-047,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-048,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-049,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-050,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-051,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-052,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-053,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-054,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-055,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-056,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-057,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-058,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-059,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-060,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-061,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-062,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-063,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-064,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-065,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-066,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-067,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-068,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-069,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-070,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-071,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-072,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-073,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-074,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-075,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-076,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-077,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-078,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-079,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-080,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-081,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-082,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-083,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-084,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-085,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-086,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-087,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-088,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-089,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-090,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-091,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-092,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-093,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-094,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-095,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-096,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-097,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-098,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-099,ACCEPT,Exact span and offset map to a unique canonical owner target
+entity_linker,entity-candidate-100,ACCEPT,Exact span and offset map to a unique canonical owner target
+class_resolver,resolver-candidate-01,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-02,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-03,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-04,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-05,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-06,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-07,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-08,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-09,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-10,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-11,ACCEPT,Instance resolution is correct despite the owner having multiple semantic categories
+class_resolver,resolver-candidate-12,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-13,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-14,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-15,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-16,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-17,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-18,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-19,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-20,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-21,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-22,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-23,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-24,ACCEPT,Verified owner instance with an explicit to cue and supported address coverage
+class_resolver,resolver-candidate-25,ACCEPT,Verified owner instance with an explicit from cue and supported address coverage
+class_resolver,resolver-candidate-26,REVISE,question exactly = Show token transfers from bridge in June 2026.; keep the current semantic labels and remove the artificial review-case suffix
+class_resolver,resolver-candidate-27,REVISE,question exactly = Show token transfers to decentralized exchange in June 2026.; keep the current semantic labels and remove the artificial review-case suffix
+class_resolver,resolver-candidate-28,REVISE,question exactly = Count transactions from exchange in June 2026.; keep the current semantic labels and remove the artificial review-case suffix
+class_resolver,resolver-candidate-29,REVISE,question exactly = List transactions received by lending in June 2026.; keep the current semantic labels and remove the artificial review-case suffix
+class_resolver,resolver-candidate-30,REVISE,question exactly = Find activity involving mev in June 2026.; keep concept and unspecified direction labels with coverage_gap and partial status
+class_resolver,resolver-candidate-31,REVISE,question exactly = Show token transfers from mixer in June 2026.; keep concept from coverage_gap and partial labels
+class_resolver,resolver-candidate-32,REVISE,question exactly = Show token transfers to nft marketplace in June 2026.; keep concept to coverage_gap and partial labels
+class_resolver,resolver-candidate-33,REVISE,question exactly = Count transactions from stablecoin in June 2026.; keep concept from coverage_gap and partial labels because the catalog has no role policy
+class_resolver,resolver-candidate-34,REVISE,question exactly = List transactions received by staking in June 2026.; keep concept to coverage_gap and partial labels because the catalog has no role policy
+class_resolver,resolver-candidate-35,REVISE,question exactly = Find activity involving token contract in June 2026.; keep concept unspecified supported and partial labels
+class_resolver,resolver-candidate-36,ACCEPT,Human-approved ambiguous evidence correctly fails closed
+class_resolver,resolver-candidate-37,ACCEPT,Human-approved ambiguous evidence correctly fails closed
+class_resolver,resolver-candidate-38,ACCEPT,Human-approved ambiguous evidence correctly fails closed
+class_resolver,resolver-candidate-39,ACCEPT,Human-approved missing-direction case correctly remains partial
+class_resolver,resolver-candidate-40,ACCEPT,Human-approved conflicting-direction case correctly remains partial
+class_resolver,resolver-candidate-41,ACCEPT,Human-approved conflicting-direction case correctly remains partial
+class_resolver,resolver-candidate-42,ACCEPT,Human-approved source and destination multi-mention case
+class_resolver,resolver-candidate-43,ACCEPT,Human-approved same-direction multi-mention conflict case
+class_resolver,resolver-candidate-44,ACCEPT,Human-approved instance and concept multi-mention case
+class_resolver,resolver-candidate-45,ACCEPT,Human-approved raw-address source case
+class_resolver,resolver-candidate-46,ACCEPT,Human-approved raw-address destination case
+class_resolver,resolver-candidate-47,ACCEPT,Human-approved raw-address unspecified-direction case
+class_resolver,resolver-candidate-48,ACCEPT,Human-approved bridge concept paraphrase
+class_resolver,resolver-candidate-49,ACCEPT,Human-approved DEX concept paraphrase
+class_resolver,resolver-candidate-50,ACCEPT,Human-approved lending concept paraphrase

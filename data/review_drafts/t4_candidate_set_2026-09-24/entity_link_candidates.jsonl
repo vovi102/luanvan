@@ -1,0 +1,100 @@
+{"id": "entity-candidate-001", "mentions": [{"span": "Binance", "span_offset": [26, 33], "target_id": "owner:Binance"}], "question": "Show token transfers from Binance in June 2026."}
+{"id": "entity-candidate-002", "mentions": [{"span": "Bitfinex", "span_offset": [39, 47], "target_id": "owner:Bitfinex"}], "question": "Which token transfers were received by Bitfinex in June 2026?"}
+{"id": "entity-candidate-003", "mentions": [{"span": "Bitget", "span_offset": [31, 37], "target_id": "owner:Bitget"}], "question": "How many transactions involved Bitget in June 2026?"}
+{"id": "entity-candidate-004", "mentions": [{"span": "Bitkub", "span_offset": [23, 29], "target_id": "owner:Bitkub"}], "question": "List transfers sent to Bitkub during June 2026."}
+{"id": "entity-candidate-005", "mentions": [{"span": "Bitmex", "span_offset": [26, 32], "target_id": "owner:Bitmex"}], "question": "Show token transfers from Bitmex in June 2026."}
+{"id": "entity-candidate-006", "mentions": [{"span": "Bitrue", "span_offset": [39, 45], "target_id": "owner:Bitrue"}], "question": "Which token transfers were received by Bitrue in June 2026?"}
+{"id": "entity-candidate-007", "mentions": [{"span": "Bitstamp", "span_offset": [31, 39], "target_id": "owner:Bitstamp"}], "question": "How many transactions involved Bitstamp in June 2026?"}
+{"id": "entity-candidate-008", "mentions": [{"span": "Bitunix", "span_offset": [23, 30], "target_id": "owner:Bitunix"}], "question": "List transfers sent to Bitunix during June 2026."}
+{"id": "entity-candidate-009", "mentions": [{"span": "Bitvavo", "span_offset": [26, 33], "target_id": "owner:Bitvavo"}], "question": "Show token transfers from Bitvavo in June 2026."}
+{"id": "entity-candidate-010", "mentions": [{"span": "Bybit", "span_offset": [39, 44], "target_id": "owner:Bybit"}], "question": "Which token transfers were received by Bybit in June 2026?"}
+{"id": "entity-candidate-011", "mentions": [{"span": "CoinEx", "span_offset": [31, 37], "target_id": "owner:CoinEx"}], "question": "How many transactions involved CoinEx in June 2026?"}
+{"id": "entity-candidate-012", "mentions": [{"span": "Crypto-com", "span_offset": [23, 33], "target_id": "owner:Crypto-com"}], "question": "List transfers sent to Crypto-com during June 2026."}
+{"id": "entity-candidate-013", "mentions": [{"span": "Deribit", "span_offset": [26, 33], "target_id": "owner:Deribit"}], "question": "Show token transfers from Deribit in June 2026."}
+{"id": "entity-candidate-014", "mentions": [{"span": "Gate.io", "span_offset": [39, 46], "target_id": "owner:Gate.io"}], "question": "Which token transfers were received by Gate.io in June 2026?"}
+{"id": "entity-candidate-015", "mentions": [{"span": "Gemini", "span_offset": [31, 37], "target_id": "owner:Gemini"}], "question": "How many transactions involved Gemini in June 2026?"}
+{"id": "entity-candidate-016", "mentions": [{"span": "HTX", "span_offset": [23, 26], "target_id": "owner:HTX"}], "question": "List transfers sent to HTX during June 2026."}
+{"id": "entity-candidate-017", "mentions": [{"span": "HashKey Exchange", "span_offset": [26, 42], "target_id": "owner:HashKey%20Exchange"}], "question": "Show token transfers from HashKey Exchange in June 2026."}
+{"id": "entity-candidate-018", "mentions": [{"span": "Indodax", "span_offset": [39, 46], "target_id": "owner:Indodax"}], "question": "Which token transfers were received by Indodax in June 2026?"}
+{"id": "entity-candidate-019", "mentions": [{"span": "Korbit", "span_offset": [31, 37], "target_id": "owner:Korbit"}], "question": "How many transactions involved Korbit in June 2026?"}
+{"id": "entity-candidate-020", "mentions": [{"span": "KuCoin", "span_offset": [23, 29], "target_id": "owner:KuCoin"}], "question": "List transfers sent to KuCoin during June 2026."}
+{"id": "entity-candidate-021", "mentions": [{"span": "MEXC", "span_offset": [26, 30], "target_id": "owner:MEXC"}], "question": "Show token transfers from MEXC in June 2026."}
+{"id": "entity-candidate-022", "mentions": [{"span": "Nexo", "span_offset": [39, 43], "target_id": "owner:Nexo"}], "question": "Which token transfers were received by Nexo in June 2026?"}
+{"id": "entity-candidate-023", "mentions": [{"span": "OKX", "span_offset": [31, 34], "target_id": "owner:OKX"}], "question": "How many transactions involved OKX in June 2026?"}
+{"id": "entity-candidate-024", "mentions": [{"span": "OSL HK", "span_offset": [23, 29], "target_id": "owner:OSL%20HK"}], "question": "List transfers sent to OSL HK during June 2026."}
+{"id": "entity-candidate-025", "mentions": [{"span": "Phemex", "span_offset": [26, 32], "target_id": "owner:Phemex"}], "question": "Show token transfers from Phemex in June 2026."}
+{"id": "entity-candidate-026", "mentions": [{"span": "Poloniex", "span_offset": [39, 47], "target_id": "owner:Poloniex"}], "question": "Which token transfers were received by Poloniex in June 2026?"}
+{"id": "entity-candidate-027", "mentions": [{"span": "Robinhood", "span_offset": [31, 40], "target_id": "owner:Robinhood"}], "question": "How many transactions involved Robinhood in June 2026?"}
+{"id": "entity-candidate-028", "mentions": [{"span": "SwissBorg", "span_offset": [23, 32], "target_id": "owner:SwissBorg"}], "question": "List transfers sent to SwissBorg during June 2026."}
+{"id": "entity-candidate-029", "mentions": [{"span": "VALR", "span_offset": [26, 30], "target_id": "owner:VALR"}], "question": "Show token transfers from VALR in June 2026."}
+{"id": "entity-candidate-030", "mentions": [{"span": "WEEX", "span_offset": [39, 43], "target_id": "owner:WEEX"}], "question": "Which token transfers were received by WEEX in June 2026?"}
+{"id": "entity-candidate-031", "mentions": [{"span": "Curve DEX", "span_offset": [31, 40], "target_id": "owner:Curve%20DEX"}], "question": "How many transactions involved Curve DEX in June 2026?"}
+{"id": "entity-candidate-032", "mentions": [{"span": "PancakeSwap AMM", "span_offset": [23, 38], "target_id": "owner:PancakeSwap%20AMM"}], "question": "List transfers sent to PancakeSwap AMM during June 2026."}
+{"id": "entity-candidate-033", "mentions": [{"span": "Uniswap V2", "span_offset": [26, 36], "target_id": "owner:Uniswap%20V2"}], "question": "Show token transfers from Uniswap V2 in June 2026."}
+{"id": "entity-candidate-034", "mentions": [{"span": "Uniswap V3", "span_offset": [39, 49], "target_id": "owner:Uniswap%20V3"}], "question": "Which token transfers were received by Uniswap V3 in June 2026?"}
+{"id": "entity-candidate-035", "mentions": [{"span": "Uniswap V4", "span_offset": [31, 41], "target_id": "owner:Uniswap%20V4"}], "question": "How many transactions involved Uniswap V4 in June 2026?"}
+{"id": "entity-candidate-036", "mentions": [{"span": "Aave V3", "span_offset": [23, 30], "target_id": "owner:Aave%20V3"}], "question": "List transfers sent to Aave V3 during June 2026."}
+{"id": "entity-candidate-037", "mentions": [{"span": "Avalon USDa", "span_offset": [26, 37], "target_id": "owner:Avalon%20USDa"}], "question": "Show token transfers from Avalon USDa in June 2026."}
+{"id": "entity-candidate-038", "mentions": [{"span": "Compound V3", "span_offset": [39, 50], "target_id": "owner:Compound%20V3"}], "question": "Which token transfers were received by Compound V3 in June 2026?"}
+{"id": "entity-candidate-039", "mentions": [{"span": "Fluid Lending", "span_offset": [31, 44], "target_id": "owner:Fluid%20Lending"}], "question": "How many transactions involved Fluid Lending in June 2026?"}
+{"id": "entity-candidate-040", "mentions": [{"span": "Lista Lending", "span_offset": [23, 36], "target_id": "owner:Lista%20Lending"}], "question": "List transfers sent to Lista Lending during June 2026."}
+{"id": "entity-candidate-041", "mentions": [{"span": "Maple", "span_offset": [26, 31], "target_id": "owner:Maple"}], "question": "Show token transfers from Maple in June 2026."}
+{"id": "entity-candidate-042", "mentions": [{"span": "Morpho Blue", "span_offset": [39, 50], "target_id": "owner:Morpho%20Blue"}], "question": "Which token transfers were received by Morpho Blue in June 2026?"}
+{"id": "entity-candidate-043", "mentions": [{"span": "Sky Lending", "span_offset": [31, 42], "target_id": "owner:Sky%20Lending"}], "question": "How many transactions involved Sky Lending in June 2026?"}
+{"id": "entity-candidate-044", "mentions": [{"span": "Aster Bridge", "span_offset": [23, 35], "target_id": "owner:Aster%20Bridge"}], "question": "List transfers sent to Aster Bridge during June 2026."}
+{"id": "entity-candidate-045", "mentions": [{"span": "CCIP", "span_offset": [26, 30], "target_id": "owner:CCIP"}], "question": "Show token transfers from CCIP in June 2026."}
+{"id": "entity-candidate-046", "mentions": [{"span": "Merlins Seal", "span_offset": [39, 51], "target_id": "owner:Merlins%20Seal"}], "question": "Which token transfers were received by Merlins Seal in June 2026?"}
+{"id": "entity-candidate-047", "mentions": [{"span": "Optimism Bridge", "span_offset": [31, 46], "target_id": "owner:Optimism%20Bridge"}], "question": "How many transactions involved Optimism Bridge in June 2026?"}
+{"id": "entity-candidate-048", "mentions": [{"span": "SolvBTC", "span_offset": [23, 30], "target_id": "owner:SolvBTC"}], "question": "List transfers sent to SolvBTC during June 2026."}
+{"id": "entity-candidate-049", "mentions": [{"span": "USDT0", "span_offset": [26, 31], "target_id": "owner:USDT0"}], "question": "Show token transfers from USDT0 in June 2026."}
+{"id": "entity-candidate-050", "mentions": [{"span": "EigenCloud", "span_offset": [39, 49], "target_id": "owner:EigenCloud"}], "question": "Which token transfers were received by EigenCloud in June 2026?"}
+{"id": "entity-candidate-051", "mentions": [{"span": "Kelp", "span_offset": [31, 35], "target_id": "owner:Kelp"}], "question": "How many transactions involved Kelp in June 2026?"}
+{"id": "entity-candidate-052", "mentions": [{"span": "Lido", "span_offset": [23, 27], "target_id": "owner:Lido"}], "question": "List transfers sent to Lido during June 2026."}
+{"id": "entity-candidate-053", "mentions": [{"span": "StakeWise V2", "span_offset": [26, 38], "target_id": "owner:StakeWise%20V2"}], "question": "Show token transfers from StakeWise V2 in June 2026."}
+{"id": "entity-candidate-054", "mentions": [{"span": "ether.fi Stake", "span_offset": [39, 53], "target_id": "owner:ether.fi%20Stake"}], "question": "Which token transfers were received by ether.fi Stake in June 2026?"}
+{"id": "entity-candidate-055", "mentions": [{"span": "Gauntlet", "span_offset": [31, 39], "target_id": "owner:Gauntlet"}], "question": "How many transactions involved Gauntlet in June 2026?"}
+{"id": "entity-candidate-056", "mentions": [{"span": "Sentora", "span_offset": [23, 30], "target_id": "owner:Sentora"}], "question": "List transfers sent to Sentora during June 2026."}
+{"id": "entity-candidate-057", "mentions": [{"span": "M0", "span_offset": [26, 28], "target_id": "owner:M0"}], "question": "Show token transfers from M0 in June 2026."}
+{"id": "entity-candidate-058", "mentions": [{"span": "$AIBOT IYI", "span_offset": [39, 49], "target_id": "owner:%24AIBOT%20IYI"}], "question": "Which token transfers were received by $AIBOT IYI in June 2026?"}
+{"id": "entity-candidate-059", "mentions": [{"span": "$XBO Token", "span_offset": [31, 41], "target_id": "owner:%24XBO%20Token"}], "question": "How many transactions involved $XBO Token in June 2026?"}
+{"id": "entity-candidate-060", "mentions": [{"span": "\ub9c8\ub77c\ub3c4\uc758 \ud30c\uc218\uafbc (The Guardian of Marado)", "span_offset": [23, 56], "target_id": "owner:%EB%A7%88%EB%9D%BC%EB%8F%84%EC%9D%98%20%ED%8C%8C%EC%88%98%EA%BE%BC%20%28The%20Guardian%20of%20Marado%29"}], "question": "List transfers sent to \ub9c8\ub77c\ub3c4\uc758 \ud30c\uc218\uafbc (The Guardian of Marado) during June 2026."}
+{"id": "entity-candidate-061", "mentions": [{"span": "\ud83c\udf3b\u1515\u14aa\u144cG\u14aaO\u1587\u15ea\ud83c\udf3b", "span_offset": [26, 36], "target_id": "owner:%F0%9F%8C%BB%E1%94%95%E1%92%AA%E1%91%8CG%E1%92%AAO%E1%96%87%E1%97%AA%F0%9F%8C%BB"}], "question": "Show token transfers from \ud83c\udf3b\u1515\u14aa\u144cG\u14aaO\u1587\u15ea\ud83c\udf3b in June 2026."}
+{"id": "entity-candidate-062", "mentions": [{"span": "0.exchange", "span_offset": [39, 49], "target_id": "owner:0.exchange"}], "question": "Which token transfers were received by 0.exchange in June 2026?"}
+{"id": "entity-candidate-063", "mentions": [{"span": "00 Token", "span_offset": [31, 39], "target_id": "owner:00%20Token"}], "question": "How many transactions involved 00 Token in June 2026?"}
+{"id": "entity-candidate-064", "mentions": [{"span": "0G", "span_offset": [23, 25], "target_id": "owner:0G"}], "question": "List transfers sent to 0G during June 2026."}
+{"id": "entity-candidate-065", "mentions": [{"span": "0x Leverage", "span_offset": [26, 37], "target_id": "owner:0x%20Leverage"}], "question": "Show token transfers from 0x Leverage in June 2026."}
+{"id": "entity-candidate-066", "mentions": [{"span": "0x Protocol", "span_offset": [39, 50], "target_id": "owner:0x%20Protocol"}], "question": "Which token transfers were received by 0x Protocol in June 2026?"}
+{"id": "entity-candidate-067", "mentions": [{"span": "0x0", "span_offset": [31, 34], "target_id": "owner:0x0"}], "question": "How many transactions involved 0x0 in June 2026?"}
+{"id": "entity-candidate-068", "mentions": [{"span": "0xBitcoin", "span_offset": [23, 32], "target_id": "owner:0xBitcoin"}], "question": "List transfers sent to 0xBitcoin during June 2026."}
+{"id": "entity-candidate-069", "mentions": [{"span": "0xGasless", "span_offset": [26, 35], "target_id": "owner:0xGasless"}], "question": "Show token transfers from 0xGasless in June 2026."}
+{"id": "entity-candidate-070", "mentions": [{"span": "0xGen", "span_offset": [39, 44], "target_id": "owner:0xGen"}], "question": "Which token transfers were received by 0xGen in June 2026?"}
+{"id": "entity-candidate-071", "mentions": [{"span": "0xShadow", "span_offset": [31, 39], "target_id": "owner:0xShadow"}], "question": "How many transactions involved 0xShadow in June 2026?"}
+{"id": "entity-candidate-072", "mentions": [{"span": "1INCH", "span_offset": [23, 28], "target_id": "owner:1INCH"}], "question": "List transfers sent to 1INCH during June 2026."}
+{"id": "entity-candidate-073", "mentions": [{"span": "1INCH yVault", "span_offset": [26, 38], "target_id": "owner:1INCH%20yVault"}], "question": "Show token transfers from 1INCH yVault in June 2026."}
+{"id": "entity-candidate-074", "mentions": [{"span": "1MillionNFTs", "span_offset": [39, 51], "target_id": "owner:1MillionNFTs"}], "question": "Which token transfers were received by 1MillionNFTs in June 2026?"}
+{"id": "entity-candidate-075", "mentions": [{"span": "21.co Wrapped AVAX", "span_offset": [31, 49], "target_id": "owner:21.co%20Wrapped%20AVAX"}], "question": "How many transactions involved 21.co Wrapped AVAX in June 2026?"}
+{"id": "entity-candidate-076", "mentions": [{"span": "21.co Wrapped BCH", "span_offset": [23, 40], "target_id": "owner:21.co%20Wrapped%20BCH"}], "question": "List transfers sent to 21.co Wrapped BCH during June 2026."}
+{"id": "entity-candidate-077", "mentions": [{"span": "21.co Wrapped BNB", "span_offset": [26, 43], "target_id": "owner:21.co%20Wrapped%20BNB"}], "question": "Show token transfers from 21.co Wrapped BNB in June 2026."}
+{"id": "entity-candidate-078", "mentions": [{"span": "21.co Wrapped SOL", "span_offset": [39, 56], "target_id": "owner:21.co%20Wrapped%20SOL"}], "question": "Which token transfers were received by 21.co Wrapped SOL in June 2026?"}
+{"id": "entity-candidate-079", "mentions": [{"span": "2x Ether ETF (Dinari Tokenized ETF)", "span_offset": [31, 66], "target_id": "owner:2x%20Ether%20ETF%20%28Dinari%20Tokenized%20ETF%29"}], "question": "How many transactions involved 2x Ether ETF (Dinari Tokenized ETF) in June 2026?"}
+{"id": "entity-candidate-080", "mentions": [{"span": "3A", "span_offset": [23, 25], "target_id": "owner:3A"}], "question": "List transfers sent to 3A during June 2026."}
+{"id": "entity-candidate-081", "mentions": [{"span": "3F x Steakhouse USDC Morpho Vault", "span_offset": [26, 59], "target_id": "owner:3F%20x%20Steakhouse%20USDC%20Morpho%20Vault"}], "question": "Show token transfers from 3F x Steakhouse USDC Morpho Vault in June 2026."}
+{"id": "entity-candidate-082", "mentions": [{"span": "3SPACE ART", "span_offset": [39, 49], "target_id": "owner:3SPACE%20ART"}], "question": "Which token transfers were received by 3SPACE ART in June 2026?"}
+{"id": "entity-candidate-083", "mentions": [{"span": "47th POTUS", "span_offset": [31, 41], "target_id": "owner:47th%20POTUS"}], "question": "How many transactions involved 47th POTUS in June 2026?"}
+{"id": "entity-candidate-084", "mentions": [{"span": "4Chan", "span_offset": [23, 28], "target_id": "owner:4Chan"}], "question": "List transfers sent to 4Chan during June 2026."}
+{"id": "entity-candidate-085", "mentions": [{"span": "4EVERLAND", "span_offset": [26, 35], "target_id": "owner:4EVERLAND"}], "question": "Show token transfers from 4EVERLAND in June 2026."}
+{"id": "entity-candidate-086", "mentions": [{"span": "4th Pillar FOUR", "span_offset": [39, 54], "target_id": "owner:4th%20Pillar%20FOUR"}], "question": "Which token transfers were received by 4th Pillar FOUR in June 2026?"}
+{"id": "entity-candidate-087", "mentions": [{"span": "5ire", "span_offset": [31, 35], "target_id": "owner:5ire"}], "question": "How many transactions involved 5ire in June 2026?"}
+{"id": "entity-candidate-088", "mentions": [{"span": "69420", "span_offset": [23, 28], "target_id": "owner:69420"}], "question": "List transfers sent to 69420 during June 2026."}
+{"id": "entity-candidate-089", "mentions": [{"span": "88mph", "span_offset": [26, 31], "target_id": "owner:88mph"}], "question": "Show token transfers from 88mph in June 2026."}
+{"id": "entity-candidate-090", "mentions": [{"span": "8Pay", "span_offset": [39, 43], "target_id": "owner:8Pay"}], "question": "Which token transfers were received by 8Pay in June 2026?"}
+{"id": "entity-candidate-091", "mentions": [{"span": "99 Bitcoins", "span_offset": [31, 42], "target_id": "owner:99%20Bitcoins"}], "question": "How many transactions involved 99 Bitcoins in June 2026?"}
+{"id": "entity-candidate-092", "mentions": [{"span": "A Hunters Dream", "span_offset": [23, 38], "target_id": "owner:A%20Hunters%20Dream"}], "question": "List transfers sent to A Hunters Dream during June 2026."}
+{"id": "entity-candidate-093", "mentions": [{"span": "A2DAO", "span_offset": [26, 31], "target_id": "owner:A2DAO"}], "question": "Show token transfers from A2DAO in June 2026."}
+{"id": "entity-candidate-094", "mentions": [{"span": "A7A5", "span_offset": [39, 43], "target_id": "owner:A7A5"}], "question": "Which token transfers were received by A7A5 in June 2026?"}
+{"id": "entity-candidate-095", "mentions": [{"span": "AAON (Ondo Tokenized)", "span_offset": [31, 52], "target_id": "owner:AAON%20%28Ondo%20Tokenized%29"}], "question": "How many transactions involved AAON (Ondo Tokenized) in June 2026?"}
+{"id": "entity-candidate-096", "mentions": [{"span": "ABDS Token", "span_offset": [23, 33], "target_id": "owner:ABDS%20Token"}], "question": "List transfers sent to ABDS Token during June 2026."}
+{"id": "entity-candidate-097", "mentions": [{"span": "ACM Research (Ondo Tokenized)", "span_offset": [26, 55], "target_id": "owner:ACM%20Research%20%28Ondo%20Tokenized%29"}], "question": "Show token transfers from ACM Research (Ondo Tokenized) in June 2026."}
+{"id": "entity-candidate-098", "mentions": [{"span": "ACORE AI Token", "span_offset": [39, 53], "target_id": "owner:ACORE%20AI%20Token"}], "question": "Which token transfers were received by ACORE AI Token in June 2026?"}
+{"id": "entity-candidate-099", "mentions": [{"span": "ADAPad", "span_offset": [31, 37], "target_id": "owner:ADAPad"}], "question": "How many transactions involved ADAPad in June 2026?"}
+{"id": "entity-candidate-100", "mentions": [{"span": "ADI", "span_offset": [23, 26], "target_id": "owner:ADI"}], "question": "List transfers sent to ADI during June 2026."}

@@ -8,6 +8,7 @@ import unicodedata
 from dataclasses import dataclass
 
 import numpy as np
+from rapidfuzz import process
 from rapidfuzz.fuzz import ratio
 
 from nl2sparql.linking.entity.contracts import (
@@ -186,6 +187,7 @@ class EntityLinker:
         self._linker_policy = linker_policy
         self._target_embeddings = matrix.copy()
         self._target_embeddings.setflags(write=False)
+        self._phrases = tuple(corpus.phrase_targets)
         self._signal_required_target_ids = frozenset(
             target.target_id
             for target in corpus.targets
@@ -236,14 +238,31 @@ class EntityLinker:
                     source_start = normalized.starts[start]
                     source_end = normalized.ends[end - 1]
                     source_span = question[source_start:source_end]
+                    exact_owner_ids = tuple(
+                        target_id
+                        for target_id in target_ids
+                        if self._corpus.targets_by_id[target_id].owner == source_span
+                    )
+                    ordered_target_ids = exact_owner_ids + tuple(
+                        target_id for target_id in target_ids if target_id not in exact_owner_ids
+                    )
                     if not any(
                         source_start < address.end and address.start < source_end
                         for address in addresses
-                    ) and not self._requires_entity_signal(
-                        phrase, target_ids, source_span.isupper()
+                    ) and (
+                        exact_owner_ids
+                        or not self._requires_entity_signal(
+                            phrase, target_ids, source_span.isupper()
+                        )
                     ):
                         proposals.append(
-                            _Proposal(source_start, source_end, target_ids[:3], "exact", 1.0)
+                            _Proposal(
+                                source_start,
+                                source_end,
+                                ordered_target_ids[:3],
+                                "exact",
+                                1.0,
+                            )
                         )
                 start = normalized.text.find(phrase, start + 1)
         return tuple(proposals)
@@ -256,17 +275,32 @@ class EntityLinker:
     ) -> tuple[_Proposal, ...]:
         proposals: list[_Proposal] = []
         for window in self._uncovered_windows(normalized, covered):
+            words = tuple(token.group() for token in _TOKEN_RE.finditer(window.text))
             scores: dict[str, float] = {}
-            for phrase, target_ids in self._corpus.phrase_targets.items():
+            matches = process.extract(
+                window.text,
+                self._phrases,
+                scorer=ratio,
+                score_cutoff=self._linker_policy.fuzzy_threshold * 100.0,
+                limit=None,
+            )
+            for phrase, raw_score, _ in matches:
+                phrase_words = tuple(token.group() for token in _TOKEN_RE.finditer(phrase))
+                if (
+                    words[0] in _STOPWORDS
+                    and words[0] != phrase_words[0]
+                    or words[-1] in _STOPWORDS
+                    and words[-1] != phrase_words[-1]
+                ):
+                    continue
+                target_ids = self._corpus.phrase_targets[phrase]
                 if window.token_count == 1 and self._requires_entity_signal(
                     phrase,
                     target_ids,
                     question[window.source_start : window.source_end].isupper(),
                 ):
                     continue
-                score = ratio(window.text, phrase) / 100.0
-                if score < self._linker_policy.fuzzy_threshold:
-                    continue
+                score = raw_score / 100.0
                 for target_id in target_ids:
                     scores[target_id] = max(scores.get(target_id, 0.0), score)
             ranked = self._rank_accepted_scores(scores, self._linker_policy.fuzzy_threshold)
