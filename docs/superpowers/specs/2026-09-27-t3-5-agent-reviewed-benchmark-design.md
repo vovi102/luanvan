@@ -228,13 +228,17 @@ evaluation code and adds explicit provenance:
 - `review_provenance="single_human_reviewer"`;
 - `provenance_profile="agent_authored_human_reviewed_v1"`;
 - pseudonymous reviewer ID;
-- candidate, accepted-content, selection, live-evidence, catalog, and manifest
-  SHA-256 values; and
+- candidate, accepted-content, selection, live-evidence, and catalog SHA-256
+  values;
+- `provenance_bundle_sha256`, computed from the ordered non-self-referential
+  digests above; and
 - `verified_executable=true` with the authoritative UTC verification time.
 
 The final manifest includes a machine-readable limitations array containing at
 least `agent_authored`, `single_human_reviewer`, `no_independent_authorship`,
-`no_inter_rater_agreement`, and `no_kappa_claim`.
+`no_inter_rater_agreement`, and `no_kappa_claim`. It records the final JSONL
+SHA-256 and the same provenance-bundle digest. Final rows do not contain the
+manifest hash, avoiding a circular digest dependency.
 
 Once finalized, the 100 questions and their variants are forbidden inputs to:
 
