@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from decimal import Decimal
 
 from nl2sparql.dataset.testset.contracts import TestSetError
@@ -16,6 +17,7 @@ from nl2sparql.evaluation.contracts import (
     ExecutionCaseEvidence,
     ExecutionEvidence,
     ExecutionPolicy,
+    PredictionCase,
     QueryExecution,
 )
 from nl2sparql.evaluation.executor import ExecutionJournal, QueryExecutor, QueryRequest
@@ -30,16 +32,15 @@ def _terminal(status: str, error_code: str) -> QueryExecution:
     return QueryExecution(status, None, None, None, _unmeasured(), None, error_code)
 
 
-def _prediction_request(case: object) -> QueryRequest | None:
+def _prediction_request(case: PredictionCase, *, order_sensitive: bool) -> QueryRequest | None:
     status = case.prediction_status
     if status != "ok":
         return None
-    analysis = analyze_sql(case.gold_sql)
     return QueryRequest(
         case.case_id,
         "prediction",
         case.predicted_sql,
-        analysis.result_order == "sequence",
+        order_sensitive,
     )
 
 
@@ -88,24 +89,25 @@ def execute_run(
             "executor": executor.provenance,
         },
     )
+    bind_journal = getattr(executor, "bind_execution_journal", None)
+    if bind_journal is not None:
+        bind_journal(journal)
     gold_requests: dict[str, QueryRequest] = {}
     prediction_requests: dict[str, QueryRequest] = {}
     static_errors: dict[tuple[str, str], str] = {}
     for case in run.cases:
-        gold_analysis = analyze_sql(case.gold_sql)
-        gold = QueryRequest(
-            case.case_id,
-            "gold",
-            case.gold_sql,
-            gold_analysis.result_order == "sequence",
-        )
+        order_sensitive = False
         try:
+            gold_analysis = analyze_sql(case.gold_sql)
+            order_sensitive = gold_analysis.result_order == "sequence"
+            gold = QueryRequest(case.case_id, "gold", case.gold_sql, order_sensitive)
             _validate_request(gold)
         except (TestSetError, ValueError) as exc:
             static_errors[(case.case_id, "gold")] = type(exc).__name__
+            gold = QueryRequest(case.case_id, "gold", case.gold_sql, False)
         gold_requests[case.case_id] = gold
         try:
-            predicted = _prediction_request(case)
+            predicted = _prediction_request(case, order_sensitive=order_sensitive)
             if predicted is not None:
                 _validate_request(predicted)
                 prediction_requests[case.case_id] = predicted
@@ -128,15 +130,27 @@ def execute_run(
             )
 
     effective_estimates = {key: item.estimated_bytes for key, item in first_preflights.items()}
+    billed_estimates = {
+        key: policy.pricing.conservative_billed_bytes(item.estimated_bytes)
+        for key, item in first_preflights.items()
+    }
     aggregate = sum(effective_estimates.values())
+    pending_billed_estimate = sum(billed_estimates.values())
+    observed_billed = 0
     aggregate_cost = sum(
         (policy.pricing.estimate_cost(value) for value in effective_estimates.values()),
         start=Decimal(0),
     )
     aggregate_blocked = (
         aggregate > policy.aggregate_byte_cap
+        or pending_billed_estimate > policy.billed_byte_cap
         or aggregate_cost > policy.estimated_cost_cap
         or any(not _guarded(item, policy) for item in first_preflights.values())
+    )
+    live_halt_reason = (
+        "gold_initial_validation_or_preflight_failure"
+        if any(role == "gold" for _, role in static_errors)
+        else None
     )
     outcomes: list[ExecutionCaseEvidence] = []
     for case in run.cases:
@@ -154,10 +168,12 @@ def execute_run(
                 )
                 continue
             key = (case.case_id, role)
-            if aggregate_blocked:
-                pair[role] = _terminal("guard_blocked", "aggregate_preflight_guard")
-            elif key in static_errors:
+            if key in static_errors:
                 pair[role] = _terminal("error", static_errors[key])
+            elif aggregate_blocked:
+                pair[role] = _terminal("guard_blocked", "aggregate_preflight_guard")
+            elif live_halt_reason is not None:
+                pair[role] = _terminal("not_run", live_halt_reason)
             else:
                 try:
                     immediate = executor.dry_run(request, policy)
@@ -170,26 +186,80 @@ def execute_run(
                         - policy.pricing.estimate_cost(effective_estimates[key])
                         + policy.pricing.estimate_cost(immediate.estimated_bytes)
                     )
+                    immediate_billed_estimate = policy.pricing.conservative_billed_bytes(
+                        immediate.estimated_bytes
+                    )
+                    revised_pending_billed = (
+                        pending_billed_estimate - billed_estimates[key] + immediate_billed_estimate
+                    )
                     if (
                         revised_aggregate > policy.aggregate_byte_cap
+                        or observed_billed + revised_pending_billed > policy.billed_byte_cap
                         or revised_cost > policy.estimated_cost_cap
                     ):
                         pair[role] = _terminal("guard_blocked", "immediate_aggregate_guard")
+                        pending_billed_estimate -= billed_estimates[key]
                     elif not _guarded(immediate, policy):
                         pair[role] = _terminal("guard_blocked", "immediate_preflight_guard")
+                        pending_billed_estimate -= billed_estimates[key]
                     else:
                         aggregate = revised_aggregate
                         aggregate_cost = revised_cost
                         effective_estimates[key] = immediate.estimated_bytes
+                        billed_estimates[key] = immediate_billed_estimate
+                        pending_billed_estimate = revised_pending_billed - immediate_billed_estimate
                         pair[role] = executor.execute(request, policy, immediate)
+                        if pair[role].job_id is not None:
+                            if pair[role].billed_bytes is None:
+                                live_halt_reason = "unresolved_submitted_job_cost"
+                            else:
+                                observed_billed += pair[role].billed_bytes
+                                if observed_billed > policy.billed_byte_cap:
+                                    pair[role] = replace(
+                                        pair[role],
+                                        status="error",
+                                        error_code="aggregate_billed_byte_cap_exceeded",
+                                    )
+                                    live_halt_reason = "aggregate_billed_byte_guard"
+                                elif (
+                                    observed_billed + pending_billed_estimate
+                                    > policy.billed_byte_cap
+                                ):
+                                    live_halt_reason = "aggregate_billed_byte_guard"
                 except Exception as exc:  # executor boundary is intentionally fail-closed
                     pair[role] = _terminal("error", type(exc).__name__)
             journal.append(
                 "execution",
                 {"case_id": case.case_id, "role": role, "outcome": pair[role]},
             )
+            if role == "gold" and pair[role].status != "ok":
+                live_halt_reason = f"gold_{pair[role].status}"
         outcomes.append(ExecutionCaseEvidence(case.case_id, pair["gold"], pair["prediction"]))
     terminal = journal.seal({"case_count": len(outcomes)})
+    submitted = tuple(
+        query
+        for case in outcomes
+        for query in (case.gold, case.prediction)
+        if query.job_id is not None
+    )
+    billing_complete = all(
+        query.billed_bytes is not None and query.cost.amount is not None for query in submitted
+    )
+    currencies = {query.cost.currency for query in submitted if query.cost.currency is not None}
+    if billing_complete and len(currencies) <= 1:
+        aggregate_cost = CostEvidence(
+            "estimated"
+            if any(query.cost.measurement_status == "estimated" for query in submitted)
+            else "observed",
+            sum(
+                (query.cost.amount for query in submitted if query.cost.amount is not None),
+                Decimal(0),
+            ),
+            next(iter(currencies), policy.pricing.currency),
+            "execution-evidence-aggregate",
+        )
+    else:
+        aggregate_cost = _unmeasured()
     return ExecutionEvidence(
         execution_id=execution_id,
         prediction_run_sha256=prediction_sha,
@@ -197,4 +267,13 @@ def execute_run(
         executor=executor.provenance,
         journal_terminal_sha256=terminal,
         cases=tuple(outcomes),
+        policy=policy,
+        test_set_sha256=run.test_set_sha256,
+        estimated_bytes_total=sum(item.estimated_bytes for item in first_preflights.values()),
+        billed_bytes_total=(
+            sum(query.billed_bytes for query in submitted if query.billed_bytes is not None)
+            if billing_complete
+            else None
+        ),
+        execution_cost=aggregate_cost,
     )

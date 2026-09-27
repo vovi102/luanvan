@@ -160,6 +160,23 @@ def test_adapter_rejects_cross_run_test_hash_and_tampered_report(tmp_path: Path)
         adapt_b0(B0AdaptRequest(test_set, predictions, report, "b0-run", synthetic=True))
 
 
+def test_adapter_rejects_report_mixed_with_different_prediction_payload(
+    tmp_path: Path,
+) -> None:
+    test_set, predictions, report, _ = _artifacts(tmp_path)
+    rows = [
+        _prediction("q1", f"{SQL} WHERE transaction_hash = '0x1'"),
+        _prediction("q2", None, 4.0),
+    ]
+    predictions.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(EvaluationError, match="prediction payload binding"):
+        adapt_b0(B0AdaptRequest(test_set, predictions, report, "b0-run", synthetic=True))
+
+
 @pytest.mark.parametrize("mutation", ["duplicate", "missing", "extra"])
 def test_adapter_rejects_non_exact_prediction_case_ids(tmp_path: Path, mutation: str) -> None:
     test_set, predictions_path, report_path, test_sha = _artifacts(tmp_path)

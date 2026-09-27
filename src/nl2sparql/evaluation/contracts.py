@@ -408,8 +408,34 @@ class QueryExecution:
             "unknown",
         ):
             raise EvaluationError("unknown cancellation_status")
-        if self.status == "ok" and self.job_id is None:
-            raise EvaluationError("successful execution requires job_id")
+        if self.status == "ok":
+            if self.job_id is None or self.result is None or self.billed_bytes is None:
+                raise EvaluationError(
+                    "successful execution requires job, result and billed-byte evidence"
+                )
+            if self.cost.measurement_status == "unmeasured" or self.error_code is not None:
+                raise EvaluationError("successful execution requires measured cost and no error")
+        if self.status == "unresolved_cost":
+            if self.job_id is None or self.result is None:
+                raise EvaluationError("unresolved cost requires a submitted completed job")
+            if self.billed_bytes is not None or self.cost.measurement_status != "unmeasured":
+                raise EvaluationError("unresolved cost requires unknown billing evidence")
+        if self.status.startswith("skipped_") or self.status in ("guard_blocked", "not_run"):
+            if (
+                any(
+                    value is not None
+                    for value in (
+                        self.job_id,
+                        self.latency_ms,
+                        self.billed_bytes,
+                        self.result,
+                        self.processed_bytes,
+                        self.cache_hit,
+                    )
+                )
+                or self.cost.measurement_status != "unmeasured"
+            ):
+                raise EvaluationError("non-submitted execution cannot carry job evidence")
 
 
 @dataclass(frozen=True)
@@ -471,6 +497,7 @@ class ExecutionPolicy:
     aggregate_byte_cap: int
     estimated_cost_cap: Decimal
     pricing: PricingPolicy
+    aggregate_billed_byte_cap: int | None = None
 
     def __post_init__(self) -> None:
         _require_text(self.project, "project")
@@ -478,10 +505,23 @@ class ExecutionPolicy:
         _require_finite_non_negative(self.timeout_seconds, "timeout_seconds")
         if self.timeout_seconds == 0:
             raise EvaluationError("timeout_seconds must be positive")
+        object.__setattr__(self, "timeout_seconds", float(self.timeout_seconds))
         _require_non_negative_int(self.per_query_byte_cap, "per_query_byte_cap")
         _require_non_negative_int(self.aggregate_byte_cap, "aggregate_byte_cap")
+        _require_non_negative_int(
+            self.aggregate_billed_byte_cap,
+            "aggregate_billed_byte_cap",
+            optional=True,
+        )
+        if self.aggregate_billed_byte_cap == 0:
+            raise EvaluationError("aggregate_billed_byte_cap must be positive when present")
         if not self.estimated_cost_cap.is_finite() or self.estimated_cost_cap < 0:
             raise EvaluationError("estimated_cost_cap must be finite and non-negative")
+
+    @property
+    def billed_byte_cap(self) -> int:
+        """Return the explicit billed cap or the legacy aggregate cap fallback."""
+        return self.aggregate_billed_byte_cap or self.aggregate_byte_cap
 
 
 @dataclass(frozen=True)
@@ -510,12 +550,22 @@ class ExecutionEvidence:
     executor: ExecutorProvenance
     journal_terminal_sha256: str
     cases: tuple[ExecutionCaseEvidence, ...]
+    policy: ExecutionPolicy | None = None
+    test_set_sha256: str | None = None
+    estimated_bytes_total: int | None = None
+    billed_bytes_total: int | None = None
+    execution_cost: CostEvidence | None = None
 
     def __post_init__(self) -> None:
         _require_text(self.execution_id, "execution_id")
         _require_sha256(self.prediction_run_sha256, "prediction_run_sha256")
         _require_sha256(self.policy_sha256, "policy_sha256")
         _require_sha256(self.journal_terminal_sha256, "journal_terminal_sha256")
+        _require_sha256(self.test_set_sha256, "test_set_sha256", optional=True)
+        _require_non_negative_int(
+            self.estimated_bytes_total, "estimated_bytes_total", optional=True
+        )
+        _require_non_negative_int(self.billed_bytes_total, "billed_bytes_total", optional=True)
         case_ids = tuple(case.case_id for case in self.cases)
         if len(case_ids) != len(set(case_ids)):
             raise EvaluationError("execution case IDs must be unique")
@@ -523,10 +573,14 @@ class ExecutionEvidence:
     @property
     def status(self) -> Literal["complete", "invalid_gold_failure", "unresolved_cost"]:
         """Derive validity from immutable case outcomes."""
-        if any(case.gold.status != "ok" for case in self.cases):
+        if any(case.gold.status != "ok" or case.gold.result is None for case in self.cases):
             return "invalid_gold_failure"
         if any(
             query.status == "unresolved_cost"
+            or (
+                query.job_id is not None
+                and (query.billed_bytes is None or query.cost.measurement_status == "unmeasured")
+            )
             for case in self.cases
             for query in (case.gold, case.prediction)
         ):

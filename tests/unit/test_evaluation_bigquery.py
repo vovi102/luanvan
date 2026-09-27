@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -10,7 +11,7 @@ from nl2sparql.evaluation.contracts import (
     ExecutionPolicy,
     PricingPolicy,
 )
-from nl2sparql.evaluation.executor import QueryRequest
+from nl2sparql.evaluation.executor import MemoryExecutionJournal, QueryRequest
 
 SHA = "a" * 64
 NOW = datetime(2026, 9, 26, tzinfo=UTC)
@@ -87,6 +88,15 @@ class _Client:
         return self.jobs.pop(0)
 
 
+def _executor(client: _Client):
+    executor = create_bigquery_executor(
+        _policy(), allow_bigquery=True, client_factory=lambda: client
+    )
+    journal = MemoryExecutionJournal()
+    executor.bind_execution_journal(journal)  # type: ignore[attr-defined]
+    return executor, journal
+
+
 def test_factory_requires_explicit_opt_in_before_client_creation() -> None:
     called = False
 
@@ -100,6 +110,24 @@ def test_factory_requires_explicit_opt_in_before_client_creation() -> None:
     assert called is False
 
 
+def test_factory_rejects_non_positive_live_pricing_before_client_creation() -> None:
+    called = False
+
+    def factory() -> object:
+        nonlocal called
+        called = True
+        raise AssertionError("must not initialize credentials")
+
+    policy = _policy()
+    policy = replace(
+        policy,
+        pricing=replace(policy.pricing, amount_per_tib=Decimal("0")),
+    )
+    with pytest.raises(EvaluationError, match="amount_per_tib"):
+        create_bigquery_executor(policy, allow_bigquery=True, client_factory=factory)
+    assert called is False
+
+
 def test_dry_run_and_execution_capture_guarded_job_evidence() -> None:
     dry_job = _Job(job_id="dry-1", processed=1234, billed=None)
     live_job = _Job(
@@ -109,9 +137,7 @@ def test_dry_run_and_execution_capture_guarded_job_evidence() -> None:
         rows=[("alpha", {"count": 2})],
     )
     client = _Client([dry_job, live_job])
-    executor = create_bigquery_executor(
-        _policy(), allow_bigquery=True, client_factory=lambda: client
-    )
+    executor, journal = _executor(client)
     request = QueryRequest("q1", "gold", "SELECT 'alpha'", False)
 
     preflight = executor.dry_run(request, _policy())
@@ -135,13 +161,16 @@ def test_dry_run_and_execution_capture_guarded_job_evidence() -> None:
     assert outcome.cost.measurement_status == "estimated"
     expected = Decimal(10 * 2**20) / Decimal(2**40) * Decimal("5")
     assert outcome.cost.amount == expected
+    assert [record["record_type"] for record in journal.records] == [
+        "submission_intent",
+        "submitted",
+    ]
+    assert journal.records[1]["body"]["job_id"] == "live-1"
 
 
 def test_execute_rejects_preflight_above_guard_without_submitting() -> None:
     client = _Client([])
-    executor = create_bigquery_executor(
-        _policy(), allow_bigquery=True, client_factory=lambda: client
-    )
+    executor, _ = _executor(client)
 
     with pytest.raises(EvaluationError, match="preflight"):
         executor.execute(
@@ -155,9 +184,7 @@ def test_execute_rejects_preflight_above_guard_without_submitting() -> None:
 def test_timeout_requests_cancellation_without_inventing_zero_billing() -> None:
     timed_out = _Job(job_id="live-timeout", processed=None, billed=None, timeout=True)
     client = _Client([timed_out])
-    executor = create_bigquery_executor(
-        _policy(), allow_bigquery=True, client_factory=lambda: client
-    )
+    executor, _ = _executor(client)
 
     outcome = executor.execute(
         QueryRequest("q1", "prediction", "SELECT 1", False),
@@ -171,3 +198,22 @@ def test_timeout_requests_cancellation_without_inventing_zero_billing() -> None:
     assert outcome.billed_bytes is None
     assert outcome.cost.measurement_status == "unmeasured"
     assert outcome.cost.amount is None
+
+
+def test_result_canonicalization_failure_preserves_submitted_job_billing() -> None:
+    job = _Job(job_id="live-bad-result", processed=20, billed=10, rows=[("value",)])
+    job.schema = (_Field("value", "INTERVAL"),)
+    client = _Client([job])
+    executor, _ = _executor(client)
+
+    outcome = executor.execute(
+        QueryRequest("q1", "gold", "SELECT 1", False),
+        _policy(),
+        DryRunEvidence(20, NOW, True),
+    )
+
+    assert outcome.status == "error"
+    assert outcome.error_code == "EvaluationError"
+    assert outcome.job_id == "live-bad-result"
+    assert outcome.billed_bytes == 10
+    assert outcome.cost.measurement_status == "estimated"

@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
+from click.testing import CliRunner
+
 from nl2sparql.evaluation import (
     B0AdaptRequest,
     adapt_baseline_artifacts,
@@ -21,6 +23,7 @@ from nl2sparql.evaluation.artifacts import (
     serialize_execution_evidence,
     serialize_prediction_run,
 )
+from nl2sparql.evaluation.cli import create_cli
 from nl2sparql.evaluation.contracts import (
     BootstrapPolicy,
     CostEvidence,
@@ -76,6 +79,7 @@ def _native_b0(tmp_path: Path) -> B0AdaptRequest:
         "input_sha256": test_sha,
         "synthetic": True,
         "config_sha256": "b" * 64,
+        "predictions_sha256": hashlib.sha256(predictions.read_bytes()).hexdigest(),
     }
     report = tmp_path / "native-report.json"
     report.write_bytes(
@@ -125,7 +129,14 @@ def test_synthetic_native_to_comparison_pipeline_is_deterministic_and_blocked(
         100,
         200,
         Decimal("1"),
-        PricingPolicy("test", "USD", Decimal("5"), "a" * 64),
+        PricingPolicy(
+            "test",
+            "USD",
+            Decimal("5"),
+            "a" * 64,
+            minimum_billed_bytes=0,
+            billing_increment_bytes=1,
+        ),
     )
     journal = FileExecutionJournal.create(
         tmp_path / "execution.jsonl", header={"kind": "synthetic"}, protected_paths=(run_path,)
@@ -153,7 +164,32 @@ def test_synthetic_native_to_comparison_pipeline_is_deterministic_and_blocked(
     )
     comparison = compare_reports(report, second, bootstrap_policy=bootstrap)
 
+    def forbidden_factory(*args, **kwargs):
+        raise AssertionError("offline report must not initialize BigQuery")
+
+    cli_report_path = tmp_path / "cli-report.json"
+    cli_result = CliRunner().invoke(
+        create_cli(bigquery_executor_factory=forbidden_factory),
+        [
+            "report",
+            "--primary-run",
+            str(run_path),
+            "--primary-evidence",
+            str(evidence_path),
+            "--primary-journal",
+            str(tmp_path / "execution.jsonl"),
+            "--bootstrap-samples",
+            "100",
+            "--bootstrap-seed",
+            "42",
+            "--output",
+            str(cli_report_path),
+        ],
+    )
+
     assert serialize_evaluation_report(report) == serialize_evaluation_report(second)
+    assert cli_result.exit_code == 0, cli_result.output
+    assert cli_report_path.read_bytes() == serialize_evaluation_report(report)
     assert serialize_comparison_report(comparison) == serialize_comparison_report(
         compare_reports(report, second, bootstrap_policy=bootstrap)
     )

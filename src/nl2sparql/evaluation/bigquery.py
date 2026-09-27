@@ -16,7 +16,7 @@ from nl2sparql.evaluation.contracts import (
     QueryExecution,
     ResultField,
 )
-from nl2sparql.evaluation.executor import QueryExecutor, QueryRequest
+from nl2sparql.evaluation.executor import ExecutionJournal, QueryExecutor, QueryRequest
 from nl2sparql.evaluation.result_semantics import canonicalize_result
 
 
@@ -66,6 +66,7 @@ class BigQueryExecutor:
         self._client = client
         self._query_job_config = query_job_config
         self._policy = policy
+        self._journal: ExecutionJournal | None = None
         self._provenance = ExecutorProvenance(
             "bigquery",
             f"{policy.project}:{policy.location}",
@@ -77,12 +78,22 @@ class BigQueryExecutor:
     def provenance(self) -> ExecutorProvenance:
         return self._provenance
 
+    def bind_execution_journal(self, journal: ExecutionJournal) -> None:
+        """Bind the durable submission journal before any live query is accepted."""
+        self._journal = journal
+
     @staticmethod
     def _validate_policy(policy: ExecutionPolicy) -> None:
         if policy.per_query_byte_cap <= 0 or policy.aggregate_byte_cap <= 0:
             raise EvaluationError("BigQuery byte caps must be positive")
         if policy.estimated_cost_cap <= Decimal(0):
             raise EvaluationError("BigQuery estimated cost cap must be positive")
+        if policy.pricing.amount_per_tib <= Decimal(0):
+            raise EvaluationError("BigQuery pricing amount_per_tib must be positive")
+
+    def _require_bound_policy(self, policy: ExecutionPolicy) -> None:
+        if policy != self._policy:
+            raise EvaluationError("execution policy differs from executor construction policy")
 
     def _config(self, *, dry_run: bool, policy: ExecutionPolicy) -> object:
         return self._query_job_config(
@@ -94,6 +105,7 @@ class BigQueryExecutor:
 
     def dry_run(self, request: QueryRequest, policy: ExecutionPolicy) -> DryRunEvidence:
         self._validate_policy(policy)
+        self._require_bound_policy(policy)
         job = self._client.query(  # type: ignore[attr-defined]
             request.sql,
             job_config=self._config(dry_run=True, policy=policy),
@@ -111,10 +123,21 @@ class BigQueryExecutor:
         preflight: DryRunEvidence,
     ) -> QueryExecution:
         self._validate_policy(policy)
+        self._require_bound_policy(policy)
         if preflight.estimated_bytes > policy.per_query_byte_cap:
             raise EvaluationError("preflight exceeds per-query byte cap")
         if policy.pricing.estimate_cost(preflight.estimated_bytes) > policy.estimated_cost_cap:
             raise EvaluationError("preflight exceeds estimated cost cap")
+        if self._journal is None:
+            raise EvaluationError("BigQuery executor requires a bound execution journal")
+        self._journal.append(
+            "submission_intent",
+            {
+                "case_id": request.case_id,
+                "role": request.role,
+                "preflight": preflight,
+            },
+        )
 
         started = time.monotonic()
         job = self._client.query(  # type: ignore[attr-defined]
@@ -123,6 +146,14 @@ class BigQueryExecutor:
             location=policy.location,
         )
         job_id = getattr(job, "job_id", None)
+        self._journal.append(
+            "submitted",
+            {
+                "case_id": request.case_id,
+                "role": request.role,
+                "job_id": str(job_id) if job_id is not None else None,
+            },
+        )
         try:
             rows = job.result(timeout=policy.timeout_seconds)
         except TimeoutError:
@@ -161,9 +192,34 @@ class BigQueryExecutor:
 
         billed = _non_negative_stat(job, "total_bytes_billed")
         processed = _non_negative_stat(job, "total_bytes_processed")
-        schema_source = getattr(rows, "schema", None) or getattr(job, "schema", ())
-        schema = tuple(_result_field(field) for field in schema_source)
-        result = canonicalize_result(rows, schema, order_sensitive=request.order_sensitive)
+        try:
+            schema_source = getattr(rows, "schema", None) or getattr(job, "schema", ())
+            schema = tuple(_result_field(field) for field in schema_source)
+            result = canonicalize_result(rows, schema, order_sensitive=request.order_sensitive)
+        except Exception as exc:
+            return QueryExecution(
+                status="error",
+                job_id=str(job_id) if job_id is not None else None,
+                latency_ms=(time.monotonic() - started) * 1000,
+                billed_bytes=billed,
+                cost=_estimated_cost(billed, policy),
+                result=None,
+                error_code=type(exc).__name__,
+                processed_bytes=processed,
+                cache_hit=getattr(job, "cache_hit", None),
+            )
+        if job_id is None:
+            return QueryExecution(
+                status="error",
+                job_id=None,
+                latency_ms=(time.monotonic() - started) * 1000,
+                billed_bytes=billed,
+                cost=_estimated_cost(billed, policy),
+                result=result,
+                error_code="missing_job_id",
+                processed_bytes=processed,
+                cache_hit=getattr(job, "cache_hit", None),
+            )
         status = "ok" if billed is not None else "unresolved_cost"
         return QueryExecution(
             status=status,

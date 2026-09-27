@@ -130,6 +130,8 @@ def adapt_b0(request: B0AdaptRequest) -> CanonicalPredictionRun:
     by_id = {row["case_id"]: row for row in rows}
 
     report = _load_report(request.report_path)
+    if report.get("predictions_sha256") != sha256_file(request.predictions_path):
+        raise EvaluationError("B0 report prediction payload binding mismatch")
     if report.get("input_sha256") != authoritative.sha256:
         raise EvaluationError("B0 report test-set hash does not match authoritative input")
     if report.get("case_count") != len(rows):

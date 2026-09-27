@@ -69,9 +69,11 @@ uv run python scripts/19_nl2sql_evaluation.py execute \
   --journal data/eval/evidence/b0-exec-01.jsonl \
   --output data/eval/evidence/b0-exec-01.json \
   --allow-bigquery \
+  --executor bigquery \
   --project <gcp-project> --location <location> \
   --timeout-seconds <seconds> \
   --per-query-byte-cap <bytes> --aggregate-byte-cap <bytes> \
+  --aggregate-billed-byte-cap <bytes> \
   --estimated-cost-cap <usd> \
   --pricing-id <policy-id> --price-per-tib <usd> \
   --pricing-source-sha256 <64-lowercase-hex>

@@ -81,7 +81,9 @@ def _run(*, second_status: str = "ok") -> CanonicalPredictionRun:
     )
 
 
-def _policy(aggregate_cap: int = 100) -> ExecutionPolicy:
+def _policy(
+    aggregate_cap: int = 100, *, aggregate_billed_cap: int | None = None
+) -> ExecutionPolicy:
     return ExecutionPolicy(
         project="project",
         location="US",
@@ -89,7 +91,15 @@ def _policy(aggregate_cap: int = 100) -> ExecutionPolicy:
         per_query_byte_cap=50,
         aggregate_byte_cap=aggregate_cap,
         estimated_cost_cap=Decimal("1"),
-        pricing=PricingPolicy("test", "USD", Decimal("5"), SHA_A),
+        pricing=PricingPolicy(
+            "test",
+            "USD",
+            Decimal("5"),
+            SHA_A,
+            minimum_billed_bytes=0,
+            billing_increment_bytes=1,
+        ),
+        aggregate_billed_byte_cap=aggregate_billed_cap,
     )
 
 
@@ -159,11 +169,10 @@ def test_non_executable_prediction_is_explicitly_skipped_and_kept() -> None:
     assert all(call != "dry:q2:prediction" for call in fake.calls)
 
 
-def test_gold_failure_invalidates_evidence_but_prediction_timeout_is_terminal_false() -> None:
+def test_gold_live_failure_invalidates_evidence_and_stops_later_submissions() -> None:
     run = _run()
     fake = _fake(run)
     fake.executions[("q1", "gold")] = _execution("error")
-    fake.executions[("q2", "prediction")] = _execution("timeout")
 
     evidence = execute_run(
         run,
@@ -175,7 +184,79 @@ def test_gold_failure_invalidates_evidence_but_prediction_timeout_is_terminal_fa
 
     assert evidence.status == "invalid_gold_failure"
     assert evidence.cases[0].gold.status == "error"
-    assert evidence.cases[1].prediction.status == "timeout"
+    assert evidence.cases[0].prediction.status == "not_run"
+    assert evidence.cases[1].gold.status == "not_run"
+    assert fake.calls[-1] == "execute:q1:gold"
+
+
+def test_prediction_timeout_is_terminal_false_and_does_not_stop_later_gold() -> None:
+    run = _run()
+    fake = _fake(run)
+    fake.executions[("q1", "prediction")] = _execution("timeout")
+
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(),
+        executor=fake,
+        journal=MemoryExecutionJournal(),
+    )
+
+    assert evidence.status == "complete"
+    assert evidence.cases[0].prediction.status == "timeout"
+    assert evidence.cases[1].gold.status == "ok"
+
+
+def test_gold_initial_dry_run_failure_prevents_every_live_submission() -> None:
+    run = _run()
+    fake = _fake(run)
+    fake.dry_runs[("q2", "gold")][0] = RuntimeError("dry run unavailable")
+
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(),
+        executor=fake,
+        journal=MemoryExecutionJournal(),
+    )
+
+    assert not any(call.startswith("execute:") for call in fake.calls)
+    assert evidence.status == "invalid_gold_failure"
+    assert evidence.cases[1].gold.status == "error"
+    assert evidence.cases[0].gold.status == "not_run"
+
+
+def test_invalid_gold_sql_is_recorded_and_prevents_live_submission() -> None:
+    run = _run()
+    run = CanonicalPredictionRun(
+        **(
+            run.__dict__
+            | {
+                "cases": (
+                    PredictionCase(
+                        **(
+                            run.cases[0].__dict__
+                            | {"gold_sql": "DELETE FROM `project.dataset.table`"}
+                        )
+                    ),
+                    run.cases[1],
+                )
+            }
+        )
+    )
+    fake = _fake(run)
+
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(),
+        executor=fake,
+        journal=MemoryExecutionJournal(),
+    )
+
+    assert not any(call.startswith("execute:") for call in fake.calls)
+    assert evidence.cases[0].gold.status == "error"
+    assert evidence.status == "invalid_gold_failure"
 
 
 def test_aggregate_estimate_guard_blocks_before_any_live_job() -> None:
@@ -197,6 +278,48 @@ def test_aggregate_estimate_guard_blocks_before_any_live_job() -> None:
     assert all(case.gold.status == "guard_blocked" for case in evidence.cases)
 
 
+def test_separate_aggregate_billed_guard_blocks_before_live_jobs() -> None:
+    run = _run()
+    fake = _fake(run)
+
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(aggregate_billed_cap=3),
+        executor=fake,
+        journal=MemoryExecutionJournal(),
+    )
+
+    assert not any(call.startswith("execute:") for call in fake.calls)
+    assert all(case.gold.status == "guard_blocked" for case in evidence.cases)
+
+
+def test_observed_billing_overrun_invalidates_gold_and_stops_later_jobs() -> None:
+    run = _run()
+    fake = _fake(run)
+    fake.executions[("q1", "gold")] = QueryExecution(
+        "ok",
+        "job",
+        1.0,
+        5,
+        _cost(),
+        _execution().result,
+        None,
+    )
+
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(aggregate_billed_cap=4),
+        executor=fake,
+        journal=MemoryExecutionJournal(),
+    )
+
+    assert evidence.cases[0].gold.error_code == "aggregate_billed_byte_cap_exceeded"
+    assert evidence.cases[0].prediction.status == "not_run"
+    assert evidence.status == "invalid_gold_failure"
+
+
 def test_larger_immediate_dry_run_rechecks_aggregate_before_submit() -> None:
     run = _run()
     fake = _fake(run)
@@ -213,6 +336,7 @@ def test_larger_immediate_dry_run_rechecks_aggregate_before_submit() -> None:
     )
 
     assert "execute:q1:gold" not in fake.calls
+    assert not any(call.startswith("execute:") for call in fake.calls)
     assert evidence.cases[0].gold.status == "guard_blocked"
     assert evidence.cases[0].gold.error_code == "immediate_aggregate_guard"
 
@@ -231,6 +355,7 @@ def test_evidence_binds_policy_executor_and_terminal_journal_hash() -> None:
 
     assert evidence.executor.kind == "fake"
     assert evidence.executor.synthetic is True
+    assert evidence.policy == _policy()
     assert len(evidence.policy_sha256) == 64
     assert evidence.journal_terminal_sha256 == journal.terminal_sha256
     assert json.loads(canonical_json(BootstrapPolicy()))["samples"] == 10_000

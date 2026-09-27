@@ -140,6 +140,12 @@ def _serialize(artifact: CanonicalArtifact) -> bytes:
     artifact_type = _CLASS_TO_ARTIFACT.get(type(artifact))
     if artifact_type is None:
         raise EvaluationError(f"unsupported canonical artifact: {type(artifact).__name__}")
+    if (
+        isinstance(artifact, ExecutionEvidence)
+        and artifact.policy is not None
+        and artifact.policy_sha256 != _digest(artifact.policy)
+    ):
+        raise EvaluationError("execution evidence policy hash mismatch")
     base = {
         "artifact_type": artifact_type,
         "schema_version": SCHEMA_VERSION,
@@ -228,7 +234,11 @@ def _decode(value: object, annotation: object) -> object:
         if value not in arguments:
             raise EvaluationError("unknown literal value")
         return value
-    if annotation in (str, int, float, bool):
+    if annotation is float:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise EvaluationError("expected float")
+        return float(value)
+    if annotation in (str, int, bool):
         if not isinstance(value, annotation) or (annotation is int and isinstance(value, bool)):
             raise EvaluationError(f"expected {annotation.__name__}")
         return value
@@ -344,11 +354,14 @@ def publish_immutable(path: Path, payload: bytes, *, protected_paths: Sequence[P
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
-        if path.exists():
+        try:
+            os.link(temporary_path, path)
+        except FileExistsError as exc:
             if path.read_bytes() == payload:
                 return
-            raise EvaluationError("immutable destination already contains different content")
-        os.replace(temporary_path, path)
+            raise EvaluationError(
+                "immutable destination already contains different content"
+            ) from exc
         directory_fd = os.open(path.parent, os.O_RDONLY)
         try:
             os.fsync(directory_fd)
@@ -356,6 +369,14 @@ def publish_immutable(path: Path, payload: bytes, *, protected_paths: Sequence[P
             os.close(directory_fd)
     finally:
         temporary_path.unlink(missing_ok=True)
+
+
+def validate_new_artifact_path(path: Path, *, protected_paths: Sequence[Path] = ()) -> None:
+    """Fail before expensive work unless a publication target is new and unaliased."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _reject_alias(path, protected_paths)
+    if path.exists():
+        raise EvaluationError("artifact destination already exists")
 
 
 def _read_journal(path: Path) -> tuple[list[dict[str, object]], str, bool]:
@@ -456,7 +477,7 @@ class FileExecutionJournal:
         try:
             with path.open("xb") as handle:
                 fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-                cls._append_to_locked(handle, "header", header, _ZERO_DIGEST)
+                cls._append_to_locked(handle, "journal_created", header, _ZERO_DIGEST)
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
         except FileExistsError as exc:
             raise EvaluationError("execution journal already exists; resume is forbidden") from exc
@@ -510,6 +531,22 @@ class FileExecutionJournal:
 
 def verify_execution_evidence_journal(evidence: ExecutionEvidence, path: Path) -> None:
     """Verify a sealed journal and its terminal binding to execution evidence."""
-    terminal = verify_sealed_journal(path)
+    records, terminal, sealed = _read_journal(path)
+    if not sealed:
+        raise EvaluationError("journal is unsealed")
     if not hmac.compare_digest(terminal, evidence.journal_terminal_sha256):
         raise EvaluationError("execution evidence journal terminal mismatch")
+    headers = [record for record in records if record["record_type"] == "header"]
+    if len(headers) != 1:
+        raise EvaluationError("execution journal requires exactly one bound header")
+    expected_header = {
+        "execution_id": evidence.execution_id,
+        "prediction_run_sha256": evidence.prediction_run_sha256,
+        "policy_sha256": evidence.policy_sha256,
+        "executor": _json_value(evidence.executor),
+    }
+    if headers[0]["body"] != expected_header:
+        raise EvaluationError("execution journal header binding mismatch")
+    terminal_body = records[-1]["body"]
+    if terminal_body != {"case_count": len(evidence.cases)}:
+        raise EvaluationError("execution journal terminal body mismatch")

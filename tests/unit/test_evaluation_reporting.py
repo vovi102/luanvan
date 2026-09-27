@@ -160,6 +160,9 @@ def test_primary_metrics_keep_full_denominator_and_overlapping_breakdowns() -> N
     assert dimensions["prediction_execution_latency_ms"].missing_count == 1
     assert dimensions["inference_cost_usd"].observed_count == 4
     assert dimensions["execution_cost_usd"].observed_count == 3
+    assert dimensions["privacy_evidence"] == (("documented:none", 4),)
+    assert dict(dimensions["cost_summary"])["inference"]["coverage"] == 1.0
+    assert dimensions["total_query_execution_latency_ms"].missing_count == 1
     assert dimensions["failure_rates"]
     breakdowns = dict(report.breakdowns)
     assert dict(breakdowns["difficulty"])["easy"]["case_count"] == 2
@@ -282,6 +285,34 @@ def test_synthetic_fake_and_missing_privacy_blockers_are_derived_and_sorted() ->
     blockers = report.readiness.scientific_blockers
     assert blockers == tuple(sorted(blockers))
     assert {"synthetic_input", "fake_executor", "missing_privacy_evidence"} <= set(blockers)
+
+
+def test_submitted_timeout_with_unknown_billing_derives_unresolved_cost_blocker() -> None:
+    run = _run()
+    evidence = _evidence(run)
+    unresolved = QueryExecution(
+        "timeout",
+        "job-timeout",
+        30.0,
+        None,
+        CostEvidence("unmeasured", None, None, None),
+        None,
+        "bigquery_timeout",
+        cancellation_status="unknown",
+    )
+    evidence = replace(
+        evidence,
+        cases=(replace(evidence.cases[0], prediction=unresolved), *evidence.cases[1:]),
+    )
+
+    report = build_report(
+        primary_run=run,
+        primary_evidence=evidence,
+        bootstrap_policy=POLICY,
+    )
+
+    assert evidence.status == "unresolved_cost"
+    assert "unresolved_submitted_job_cost" in report.readiness.scientific_blockers
 
 
 def test_report_and_comparison_round_trip_with_typed_dimension_values(tmp_path: Path) -> None:

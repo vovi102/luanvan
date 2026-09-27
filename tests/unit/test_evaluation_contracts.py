@@ -21,6 +21,7 @@ from nl2sparql.evaluation.contracts import (
     PrivacyEvidence,
     PrivacyReview,
     QueryExecution,
+    QueryResultEvidence,
     Readiness,
     RunProvenance,
 )
@@ -106,7 +107,7 @@ def _query(status: str) -> QueryExecution:
             currency="USD" if status == "ok" else None,
             source="bigquery-job" if status == "ok" else None,
         ),
-        result=None,
+        result=(QueryResultEvidence((), SHA_A, 0, 0, False, (), SHA_B) if status == "ok" else None),
         error_code=None if status == "ok" else "query_failed",
     )
 

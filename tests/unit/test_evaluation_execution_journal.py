@@ -36,13 +36,23 @@ def test_file_journal_fsync_seal_cross_hash_and_tamper_detection(tmp_path: Path)
         header={"execution_id": "exec-1"},
         protected_paths=(protected,),
     )
+    provenance = ExecutorProvenance("fake", "test", "1", True)
+    journal.append(
+        "header",
+        {
+            "execution_id": "exec-1",
+            "prediction_run_sha256": SHA,
+            "policy_sha256": SHA,
+            "executor": provenance,
+        },
+    )
     journal.append("execution", {"case_id": "q1", "status": "ok"})
     terminal = journal.seal({"case_count": 0})
     evidence = ExecutionEvidence(
         execution_id="exec-1",
         prediction_run_sha256=SHA,
         policy_sha256=SHA,
-        executor=ExecutorProvenance("fake", "test", "1", True),
+        executor=provenance,
         journal_terminal_sha256=terminal,
         cases=(),
     )

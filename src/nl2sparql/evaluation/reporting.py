@@ -187,6 +187,23 @@ def _distribution(values: Sequence[float | None], policy: BootstrapPolicy) -> Di
     return distribution_metric(values, len(values), policy)
 
 
+def _cost_summary(costs: Sequence[CostEvidence | None]) -> dict[str, object]:
+    values = _cost_values(costs)
+    observed = tuple(value for value in values if value is not None)
+    complete = len(observed) == len(values)
+    total = sum(observed) if complete else None
+    return {
+        "expected_count": len(values),
+        "observed_count": len(observed),
+        "coverage": len(observed) / len(values) if values else None,
+        "observed_subtotal_usd": sum(observed),
+        "total_usd": total,
+        "cost_per_1000_cases_usd": (
+            total / len(values) * 1000 if total is not None and values else None
+        ),
+    }
+
+
 def _failure_rates(
     cases: Sequence[CaseEvaluation], policy: BootstrapPolicy
 ) -> tuple[tuple[str, RatioMetric], ...]:
@@ -251,6 +268,19 @@ def _headline_dimensions(
             _distribution(tuple(case.gold_execution_latency_ms for case in cases), policy),
         ),
         (
+            "total_query_execution_latency_ms",
+            _distribution(
+                tuple(
+                    case.gold_execution_latency_ms + case.execution_latency_ms
+                    if case.gold_execution_latency_ms is not None
+                    and case.execution_latency_ms is not None
+                    else None
+                    for case in cases
+                ),
+                policy,
+            ),
+        ),
+        (
             "inference_cost_usd",
             _distribution(_cost_values(tuple(case.inference_cost for case in cases)), policy),
         ),
@@ -261,6 +291,20 @@ def _headline_dimensions(
         (
             "gold_execution_cost_usd",
             _distribution(_cost_values(tuple(case.gold_execution_cost for case in cases)), policy),
+        ),
+        (
+            "cost_summary",
+            (
+                ("inference", _cost_summary(tuple(case.inference_cost for case in cases))),
+                (
+                    "prediction_execution",
+                    _cost_summary(tuple(case.execution_cost for case in cases)),
+                ),
+                (
+                    "gold_execution",
+                    _cost_summary(tuple(case.gold_execution_cost for case in cases)),
+                ),
+            ),
         ),
         ("failure_rates", _failure_rates(cases, policy)),
     )
@@ -336,7 +380,13 @@ def _readiness(
         blockers.add("missing_privacy_evidence")
     if any(evidence.status == "invalid_gold_failure" for evidence in evidences):
         blockers.add("gold_execution_failure")
-    if any(evidence.status == "unresolved_cost" for evidence in evidences):
+    if any(
+        query.job_id is not None
+        and (query.billed_bytes is None or query.cost.measurement_status == "unmeasured")
+        for evidence in evidences
+        for case in evidence.cases
+        for query in (case.gold, case.prediction)
+    ):
         blockers.add("unresolved_submitted_job_cost")
     if len(runs) < 2:
         blockers.add("incomplete_reproducibility")
@@ -375,6 +425,10 @@ def build_report(
     all_runs = (primary_run, *(run for run, _ in sorted_replicates))
     all_evidence = (primary_evidence, *(evidence for _, evidence in sorted_replicates))
     dimensions = list(_headline_dimensions(cases, bootstrap_policy))
+    privacy_counts: dict[str, int] = defaultdict(int)
+    for case in primary_run.cases:
+        privacy_counts[f"{case.privacy.documentation_status}:{case.privacy.data_egress}"] += 1
+    dimensions.append(("privacy_evidence", tuple(sorted(privacy_counts.items()))))
     if len(all_runs) >= 2:
         dimensions.extend(
             (
@@ -470,6 +524,15 @@ def compare_reports(
         ("inference_latency_ms", lambda case: case.inference_latency_ms),
         ("prediction_execution_latency_ms", lambda case: case.execution_latency_ms),
         ("gold_execution_latency_ms", lambda case: case.gold_execution_latency_ms),
+        (
+            "total_query_execution_latency_ms",
+            lambda case: (
+                case.gold_execution_latency_ms + case.execution_latency_ms
+                if case.gold_execution_latency_ms is not None
+                and case.execution_latency_ms is not None
+                else None
+            ),
+        ),
         (
             "inference_cost_usd",
             lambda case: (

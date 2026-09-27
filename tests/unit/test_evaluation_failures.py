@@ -13,6 +13,7 @@ from nl2sparql.evaluation.contracts import (
     PredictionCase,
     PrivacyEvidence,
     QueryExecution,
+    QueryResultEvidence,
 )
 from nl2sparql.evaluation.failures import classify_failure, load_manual_failure_reviews
 
@@ -29,13 +30,14 @@ def _cost(observed: bool = False) -> CostEvidence:
 
 
 def _execution(status: str = "ok") -> QueryExecution:
+    submitted = status in ("ok", "unresolved_cost")
     return QueryExecution(
         status=status,
-        job_id="job" if status == "ok" else None,
-        latency_ms=1.0 if status == "ok" else None,
+        job_id="job" if submitted else None,
+        latency_ms=1.0 if submitted else None,
         billed_bytes=0 if status == "ok" else None,
         cost=_cost(status == "ok"),
-        result=None,
+        result=(QueryResultEvidence((), SHA_A, 0, 0, False, (), SHA_B) if submitted else None),
         error_code=None if status == "ok" else status,
     )
 
