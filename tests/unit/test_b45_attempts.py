@@ -285,7 +285,9 @@ def test_completed_attempt_only_resume_attributes_only_the_new_outcome(
         async def create(self, **_kwargs: object) -> object:
             type(self).calls += 1
             response = _response()
-            response.choices[0].message.content = (
+            response.choices[
+                0
+            ].message.content = (
                 "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
             )
             return response

@@ -88,6 +88,30 @@ Mỗi lần retry giữ liability reservation riêng; failure/cancellation đư�
 vào checkpoint để resume không bỏ mất chi phí chưa rõ. Không có lệnh README
 nào tự chạy live inference.
 
+## T5.4-A NL2SQL evaluation
+
+Framework T5.4-A chuẩn hóa prediction/evidence và tạo report sáu chiều cho
+GoogleSQL. Help và validation dưới đây hoàn toàn offline: không đọc credential,
+không tạo BigQuery client và không mở network.
+
+```bash
+uv run python scripts/19_nl2sql_evaluation.py --help
+uv run python scripts/19_nl2sql_evaluation.py execute --help
+uv run python scripts/19_nl2sql_evaluation.py report --help
+uv run python scripts/19_nl2sql_evaluation.py validate \
+  data/eval/canonical/example-run.json
+```
+
+`adapt b0|b12|b45`, `report`, `compare` và `validate` là các workflow local.
+Live `execute` chỉ chạy khi người vận hành chủ động thêm `--allow-bigquery` và
+truyền đầy đủ project/location, timeout, byte caps, estimated-cost cap cùng
+pricing policy đã pin. Không lệnh CI hoặc ví dụ offline nào tự thêm opt-in này.
+
+T5.4-A chỉ hoàn tất implementation framework. Genuine runs, live BigQuery
+evidence, số liệu so sánh và kết luận khoa học thuộc T5.4-B; synthetic/fake
+pipeline phải giữ `scientific_status=blocked`. Xem contract đầy đủ tại
+`docs/tasks/phase-5-baselines/04-evaluation-framework.md`.
+
 Du lieu lon va artifact train/KG khong commit vao git. Xem `.gitignore` va `docs/memory/04-CONVENTIONS.md`.
 
 ## Cau truc thu muc

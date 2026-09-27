@@ -241,9 +241,7 @@ def test_comparison_is_paired_left_minus_right_and_marks_incomplete_measures() -
     right_evidence = _evidence(right_run)
     right_evidence = replace(
         right_evidence,
-        cases=tuple(
-            replace(pair, prediction=_query(["wrong"])) for pair in right_evidence.cases
-        ),
+        cases=tuple(replace(pair, prediction=_query(["wrong"])) for pair in right_evidence.cases),
     )
     right = build_report(
         primary_run=right_run,
