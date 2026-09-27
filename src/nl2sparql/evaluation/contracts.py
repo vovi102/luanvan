@@ -572,14 +572,18 @@ class ConfidenceInterval:
 class RatioMetric:
     """A rate that never loses its numerator or denominator."""
 
-    numerator: float
+    numerator: float | None
     denominator: int
     value: float | None
     interval: ConfidenceInterval | None
 
     def __post_init__(self) -> None:
-        _require_finite_non_negative(self.numerator, "numerator")
         _require_non_negative_int(self.denominator, "denominator")
+        if self.numerator is None:
+            if self.value is not None or self.interval is not None:
+                raise EvaluationError("invalid ratio requires null value and interval")
+            return
+        _require_finite_non_negative(self.numerator, "numerator")
         if self.numerator > self.denominator:
             raise EvaluationError("numerator cannot exceed denominator")
         if self.denominator == 0:
@@ -647,13 +651,15 @@ class CaseEvaluation:
     categories: tuple[str, ...]
     exact_match: bool
     structural_match: bool
-    execution_match: bool
-    answer_scores: AnswerScores
+    execution_match: bool | None
+    answer_scores: AnswerScores | None
     inference_latency_ms: float | None
     execution_latency_ms: float | None
     inference_cost: CostEvidence
     execution_cost: CostEvidence
     failure_tags: tuple[str, ...]
+    gold_execution_latency_ms: float | None = None
+    gold_execution_cost: CostEvidence | None = None
 
     def __post_init__(self) -> None:
         _require_text(self.case_id, "case_id")
@@ -665,6 +671,11 @@ class CaseEvaluation:
         _require_finite_non_negative(
             self.execution_latency_ms, "execution_latency_ms", optional=True
         )
+        _require_finite_non_negative(
+            self.gold_execution_latency_ms, "gold_execution_latency_ms", optional=True
+        )
+        if self.execution_match is not None and not isinstance(self.execution_match, bool):
+            raise EvaluationError("execution_match must be boolean or null")
 
 
 @dataclass(frozen=True)

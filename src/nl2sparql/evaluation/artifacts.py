@@ -172,7 +172,11 @@ def _decode_any(value: object) -> object:
     if isinstance(value, list):
         return tuple(_decode_any(item) for item in value)
     if isinstance(value, dict):
-        return tuple((key, _decode_any(item)) for key, item in sorted(value.items()))
+        field_set = set(value)
+        for cls in sorted(_KNOWN_DATACLASSES, key=lambda item: item.__name__):
+            if field_set == {field.name for field in fields(cls)}:
+                return _decode_dataclass(value, cls)
+        return {key: _decode_any(item) for key, item in value.items()}
     return value
 
 
