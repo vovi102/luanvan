@@ -83,9 +83,12 @@ class _Client:
         self.jobs = list(jobs)
         self.calls: list[tuple[str, object, str]] = []
 
-    def query(self, sql: str, *, job_config: object, location: str):
+    def query(self, sql: str, *, job_config: object, location: str, job_id: str | None = None):
         self.calls.append((sql, job_config, location))
-        return self.jobs.pop(0)
+        job = self.jobs.pop(0)
+        if job_id is not None:
+            job.job_id = job_id
+        return job
 
 
 def _executor(client: _Client):
@@ -93,7 +96,7 @@ def _executor(client: _Client):
         _policy(), allow_bigquery=True, client_factory=lambda: client
     )
     journal = MemoryExecutionJournal()
-    executor.bind_execution_journal(journal)  # type: ignore[attr-defined]
+    executor.bind_execution_journal(journal, execution_id="exec-1")  # type: ignore[attr-defined]
     return executor, journal
 
 
@@ -152,7 +155,8 @@ def test_dry_run_and_execution_capture_guarded_job_evidence() -> None:
     assert live_config.maximum_bytes_billed == _policy().per_query_byte_cap
     assert [call[2] for call in client.calls] == ["EU", "EU"]
     assert live_job.result_timeouts == [7.5]
-    assert outcome.job_id == "live-1"
+    assert outcome.job_id is not None
+    assert outcome.job_id.startswith("nl2sql_eval_")
     assert outcome.processed_bytes == 1234
     assert outcome.billed_bytes == 1
     assert outcome.cache_hit is False
@@ -165,7 +169,8 @@ def test_dry_run_and_execution_capture_guarded_job_evidence() -> None:
         "submission_intent",
         "submitted",
     ]
-    assert journal.records[1]["body"]["job_id"] == "live-1"
+    assert journal.records[0]["body"]["job_id"] == outcome.job_id
+    assert journal.records[1]["body"]["job_id"] == outcome.job_id
 
 
 def test_execute_rejects_preflight_above_guard_without_submitting() -> None:
@@ -179,6 +184,25 @@ def test_execute_rejects_preflight_above_guard_without_submitting() -> None:
             DryRunEvidence(_policy().per_query_byte_cap + 1, NOW, True),
         )
     assert client.calls == []
+
+
+def test_submission_request_error_remains_unresolved_and_journaled() -> None:
+    client = _Client([])
+    executor, journal = _executor(client)
+
+    outcome = executor.execute(
+        QueryRequest("q1", "gold", "SELECT 1", False),
+        _policy(),
+        DryRunEvidence(1, NOW, True),
+    )
+
+    assert outcome.status == "error"
+    assert outcome.submission_attempted is True
+    assert outcome.submission_acknowledged is False
+    assert outcome.submission_job_id is not None
+    assert outcome.billed_bytes is None
+    assert outcome.cost.measurement_status == "unmeasured"
+    assert [record["record_type"] for record in journal.records] == ["submission_intent"]
 
 
 def test_timeout_requests_cancellation_without_inventing_zero_billing() -> None:
@@ -214,6 +238,7 @@ def test_result_canonicalization_failure_preserves_submitted_job_billing() -> No
 
     assert outcome.status == "error"
     assert outcome.error_code == "EvaluationError"
-    assert outcome.job_id == "live-bad-result"
+    assert outcome.job_id is not None
+    assert outcome.job_id.startswith("nl2sql_eval_")
     assert outcome.billed_bytes == 10
     assert outcome.cost.measurement_status == "estimated"

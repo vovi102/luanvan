@@ -49,7 +49,7 @@ from nl2sparql.evaluation.contracts import (
     RunProvenance,
 )
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 _ENVELOPE_FIELDS = {"artifact_type", "schema_version", "body", "artifact_sha256"}
 _JOURNAL_FIELDS = {"record_type", "body", "previous_sha256", "record_sha256"}
 _ZERO_DIGEST = "0" * 64
@@ -140,12 +140,16 @@ def _serialize(artifact: CanonicalArtifact) -> bytes:
     artifact_type = _CLASS_TO_ARTIFACT.get(type(artifact))
     if artifact_type is None:
         raise EvaluationError(f"unsupported canonical artifact: {type(artifact).__name__}")
-    if (
-        isinstance(artifact, ExecutionEvidence)
-        and artifact.policy is not None
-        and artifact.policy_sha256 != _digest(artifact.policy)
-    ):
-        raise EvaluationError("execution evidence policy hash mismatch")
+    if isinstance(artifact, ExecutionEvidence):
+        if (
+            artifact.policy is None
+            or artifact.test_set_sha256 is None
+            or artifact.estimated_bytes_total is None
+            or artifact.execution_cost is None
+        ):
+            raise EvaluationError("execution evidence is missing required audit fields")
+        if artifact.policy_sha256 != _digest(artifact.policy):
+            raise EvaluationError("execution evidence policy hash mismatch")
     base = {
         "artifact_type": artifact_type,
         "schema_version": SCHEMA_VERSION,
@@ -321,7 +325,7 @@ def load_privacy_review(path: Path) -> PrivacyReview:
 
 
 def load_and_verify_artifact(path: Path) -> CanonicalArtifact:
-    """Load any known version-one artifact and verify all canonical bindings."""
+    """Load a current-version artifact and verify all canonical bindings."""
     return _load(path)
 
 
@@ -547,6 +551,215 @@ def verify_execution_evidence_journal(evidence: ExecutionEvidence, path: Path) -
     }
     if headers[0]["body"] != expected_header:
         raise EvaluationError("execution journal header binding mismatch")
+
+    expected_queries = {
+        (case.case_id, role): getattr(case, role)
+        for case in evidence.cases
+        for role in ("gold", "prediction")
+    }
+    expected_order = tuple(expected_queries)
+    allowed_types = {
+        "journal_created",
+        "header",
+        "initial_dry_run",
+        "initial_dry_run_error",
+        "immediate_dry_run",
+        "immediate_dry_run_error",
+        "submission_intent",
+        "submitted",
+        "execution",
+        "skipped",
+        "terminal_seal",
+    }
+    if any(record["record_type"] not in allowed_types for record in records):
+        raise EvaluationError("execution journal contains an unknown record type")
+
+    def request_key(request: object, *, query: QueryExecution | None = None) -> tuple[str, str]:
+        if not isinstance(request, dict) or set(request) != {
+            "case_id",
+            "role",
+            "sql",
+            "order_sensitive",
+        }:
+            raise EvaluationError("execution journal request body is invalid")
+        key = (request["case_id"], request["role"])
+        if (
+            not all(isinstance(item, str) for item in key)
+            or not isinstance(request["sql"], str)
+            or not isinstance(request["order_sensitive"], bool)
+            or key not in expected_queries
+        ):
+            raise EvaluationError("execution journal request has an unknown query")
+        typed_key = (str(key[0]), str(key[1]))
+        bound = query or expected_queries[typed_key]
+        if bound.request_sha256 != _digest(request):
+            raise EvaluationError("execution journal request hash mismatch")
+        return typed_key
+
+    initial_records = [
+        record
+        for record in records
+        if record["record_type"] in ("initial_dry_run", "initial_dry_run_error")
+    ]
+    expected_initial_order = tuple(
+        key
+        for role in ("gold", "prediction")
+        for key, query in expected_queries.items()
+        if key[1] == role
+        and (query.initial_preflight is not None or query.initial_preflight_error is not None)
+    )
+    actual_initial_order: list[tuple[str, str]] = []
+    for record in initial_records:
+        body = record["body"]
+        if not isinstance(body, dict):
+            raise EvaluationError("execution journal initial dry-run body is invalid")
+        key = request_key(body.get("request"))
+        query = expected_queries[key]
+        actual_initial_order.append(key)
+        if record["record_type"] == "initial_dry_run":
+            if set(body) != {"request", "evidence"} or body["evidence"] != _json_value(
+                query.initial_preflight
+            ):
+                raise EvaluationError("execution journal initial dry-run evidence mismatch")
+        elif set(body) != {"request", "error"} or body["error"] != query.initial_preflight_error:
+            raise EvaluationError("execution journal initial dry-run error mismatch")
+    if tuple(actual_initial_order) != expected_initial_order:
+        raise EvaluationError("execution journal initial dry-run order mismatch")
+
+    terminal_records = [
+        record for record in records if record["record_type"] in ("execution", "skipped")
+    ]
+    terminal_keys = tuple(
+        (str(record["body"].get("case_id")), str(record["body"].get("role")))
+        for record in terminal_records
+        if isinstance(record["body"], dict)
+    )
+    if terminal_keys != expected_order:
+        raise EvaluationError("execution journal terminal query order mismatch")
+    for record, key in zip(terminal_records, expected_order, strict=True):
+        query = expected_queries[key]
+        if record["record_type"] == "skipped":
+            expected_body = {"case_id": key[0], "role": key[1], "status": query.status}
+            if record["body"] != expected_body:
+                raise EvaluationError("execution journal outcome binding mismatch")
+        else:
+            body = record["body"]
+            if not isinstance(body, dict) or set(body) != {
+                "case_id",
+                "role",
+                "request",
+                "outcome",
+            }:
+                raise EvaluationError("execution journal outcome body is invalid")
+            if (body["case_id"], body["role"]) != key:
+                raise EvaluationError("execution journal outcome query mismatch")
+            request_key(body["request"], query=query)
+            if body["outcome"] != _json_value(query):
+                raise EvaluationError("execution journal outcome binding mismatch")
+
+    operational = [
+        record
+        for record in records
+        if record["record_type"]
+        in (
+            "immediate_dry_run",
+            "immediate_dry_run_error",
+            "submission_intent",
+            "submitted",
+            "execution",
+            "skipped",
+        )
+    ]
+    actual_sequence: list[tuple[str, tuple[str, str]]] = []
+    for record in operational:
+        record_type = str(record["record_type"])
+        body = record["body"]
+        if not isinstance(body, dict):
+            raise EvaluationError(f"execution journal {record_type} body is invalid")
+        if record_type in ("immediate_dry_run", "immediate_dry_run_error"):
+            key = request_key(body.get("request"))
+            query = expected_queries[key]
+            expected_field = (
+                _json_value(query.immediate_preflight)
+                if record_type == "immediate_dry_run"
+                else query.immediate_preflight_error
+            )
+            field = "evidence" if record_type == "immediate_dry_run" else "error"
+            if set(body) != {"request", field} or body[field] != expected_field:
+                raise EvaluationError(f"execution journal {record_type} evidence mismatch")
+        elif record_type == "submission_intent":
+            key = request_key(body.get("request"))
+            query = expected_queries[key]
+            expected_job_id = (
+                "nl2sql_eval_"
+                + hashlib.sha256(
+                    (
+                        f"{evidence.execution_id}\0{body['request']['case_id']}\0"
+                        f"{body['request']['role']}\0{body['request']['sql']}"
+                    ).encode()
+                ).hexdigest()[:40]
+            )
+            if (
+                body
+                != {
+                    "case_id": key[0],
+                    "role": key[1],
+                    "request": body["request"],
+                    "job_id": expected_job_id,
+                    "preflight": _json_value(query.immediate_preflight),
+                }
+                or query.submission_job_id != expected_job_id
+            ):
+                raise EvaluationError("execution journal submission intent binding mismatch")
+        else:
+            key = (str(body.get("case_id")), str(body.get("role")))
+            if key not in expected_queries:
+                raise EvaluationError(f"execution journal {record_type} has an unknown query")
+            if record_type == "submitted" and body != {
+                "case_id": key[0],
+                "role": key[1],
+                "job_id": expected_queries[key].submission_job_id,
+            }:
+                raise EvaluationError("execution journal submitted-job binding mismatch")
+        actual_sequence.append((record_type, key))
+
+    expected_sequence: list[tuple[str, tuple[str, str]]] = []
+    for key, query in expected_queries.items():
+        if query.status.startswith("skipped_"):
+            expected_sequence.append(("skipped", key))
+            continue
+        if query.immediate_preflight is not None:
+            expected_sequence.append(("immediate_dry_run", key))
+        elif query.immediate_preflight_error is not None:
+            expected_sequence.append(("immediate_dry_run_error", key))
+        if query.submission_attempted:
+            expected_sequence.append(("submission_intent", key))
+            if query.submission_acknowledged:
+                expected_sequence.append(("submitted", key))
+        expected_sequence.append(("execution", key))
+    if actual_sequence != expected_sequence:
+        raise EvaluationError("execution journal record state sequence mismatch")
+
+    created = [record for record in records if record["record_type"] == "journal_created"]
+    if len(created) > 1:
+        raise EvaluationError("execution journal permits at most one creation record")
+    expected_stream = (
+        (["journal_created"] if created else [])
+        + ["header"]
+        + [str(record["record_type"]) for record in initial_records]
+        + [str(record["record_type"]) for record in operational]
+        + ["terminal_seal"]
+    )
+    if [record["record_type"] for record in records] != expected_stream:
+        raise EvaluationError("execution journal global record order mismatch")
+
+    expected_estimate_total = sum(
+        (query.immediate_preflight or query.initial_preflight).estimated_bytes
+        for query in expected_queries.values()
+        if query.immediate_preflight is not None or query.initial_preflight is not None
+    )
+    if evidence.estimated_bytes_total != expected_estimate_total:
+        raise EvaluationError("execution estimated-byte aggregate is inconsistent")
     terminal_body = records[-1]["body"]
     if terminal_body != {"case_count": len(evidence.cases)}:
         raise EvaluationError("execution journal terminal body mismatch")

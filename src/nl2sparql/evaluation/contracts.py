@@ -380,6 +380,14 @@ class QueryExecution:
     cancellation_status: Literal["not_requested", "succeeded", "failed", "unknown"] = (
         "not_requested"
     )
+    submission_attempted: bool = False
+    submission_job_id: str | None = None
+    initial_preflight: DryRunEvidence | None = None
+    immediate_preflight: DryRunEvidence | None = None
+    request_sha256: str | None = None
+    initial_preflight_error: str | None = None
+    immediate_preflight_error: str | None = None
+    submission_acknowledged: bool = False
 
     def __post_init__(self) -> None:
         if self.status not in (
@@ -408,6 +416,27 @@ class QueryExecution:
             "unknown",
         ):
             raise EvaluationError("unknown cancellation_status")
+        if not isinstance(self.submission_attempted, bool):
+            raise EvaluationError("submission_attempted must be boolean")
+        if self.job_id is not None and not self.submission_attempted:
+            object.__setattr__(self, "submission_attempted", True)
+        if self.job_id is not None and self.submission_job_id is None:
+            object.__setattr__(self, "submission_job_id", self.job_id)
+        if self.submission_attempted and self.submission_job_id is None:
+            raise EvaluationError("attempted submission requires its deterministic job ID")
+        if not self.submission_attempted and self.submission_job_id is not None:
+            raise EvaluationError("unattempted execution cannot carry a submission job ID")
+        if self.job_id is not None and not self.submission_acknowledged:
+            object.__setattr__(self, "submission_acknowledged", True)
+        if self.submission_acknowledged and not self.submission_attempted:
+            raise EvaluationError("acknowledged submission requires an attempted submission")
+        if self.job_id is not None and self.job_id != self.submission_job_id:
+            raise EvaluationError("returned job ID differs from submitted job ID")
+        _require_sha256(self.request_sha256, "request_sha256", optional=True)
+        if self.initial_preflight_error is not None:
+            _require_text(self.initial_preflight_error, "initial_preflight_error")
+        if self.immediate_preflight_error is not None:
+            _require_text(self.immediate_preflight_error, "immediate_preflight_error")
         if self.status == "ok":
             if self.job_id is None or self.result is None or self.billed_bytes is None:
                 raise EvaluationError(
@@ -434,6 +463,9 @@ class QueryExecution:
                     )
                 )
                 or self.cost.measurement_status != "unmeasured"
+                or self.submission_attempted
+                or self.submission_job_id is not None
+                or self.submission_acknowledged
             ):
                 raise EvaluationError("non-submitted execution cannot carry job evidence")
 
@@ -571,14 +603,26 @@ class ExecutionEvidence:
             raise EvaluationError("execution case IDs must be unique")
 
     @property
-    def status(self) -> Literal["complete", "invalid_gold_failure", "unresolved_cost"]:
+    def status(
+        self,
+    ) -> Literal["complete", "invalid_gold_failure", "unresolved_cost", "policy_breach"]:
         """Derive validity from immutable case outcomes."""
+        if any(
+            query.error_code
+            in (
+                "aggregate_billed_byte_cap_exceeded",
+                "aggregate_execution_cost_cap_exceeded",
+            )
+            for case in self.cases
+            for query in (case.gold, case.prediction)
+        ):
+            return "policy_breach"
         if any(case.gold.status != "ok" or case.gold.result is None for case in self.cases):
             return "invalid_gold_failure"
         if any(
             query.status == "unresolved_cost"
             or (
-                query.job_id is not None
+                query.submission_attempted
                 and (query.billed_bytes is None or query.cost.measurement_status == "unmeasured")
             )
             for case in self.cases

@@ -274,7 +274,7 @@ def create_cli(*, bigquery_executor_factory: BigQueryExecutorFactory | None = No
                 (prediction_run, journal),
             )
             _emit({"artifact": str(output), "status": evidence.status})
-            if any(
+            if evidence.status == "policy_breach" or any(
                 query.status == "guard_blocked"
                 for case in evidence.cases
                 for query in (case.gold, case.prediction)

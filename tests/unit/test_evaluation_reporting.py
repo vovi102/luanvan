@@ -1,3 +1,4 @@
+import hashlib
 import json
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -7,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from nl2sparql.evaluation.artifacts import (
+    canonical_json,
     load_comparison_report,
     load_evaluation_report,
     serialize_comparison_report,
@@ -20,9 +22,11 @@ from nl2sparql.evaluation.contracts import (
     EvaluationError,
     ExecutionCaseEvidence,
     ExecutionEvidence,
+    ExecutionPolicy,
     ExecutorProvenance,
     InferenceEvidence,
     PredictionCase,
+    PricingPolicy,
     PrivacyEvidence,
     QueryExecution,
     ResultField,
@@ -125,16 +129,30 @@ def _evidence(run: CanonicalPredictionRun, *, fake: bool = False) -> ExecutionEv
         ),
         (_query([]), _query([])),
     )
+    execution_policy = ExecutionPolicy(
+        project="project",
+        location="US",
+        timeout_seconds=30,
+        per_query_byte_cap=100,
+        aggregate_byte_cap=1_000,
+        estimated_cost_cap=Decimal("1"),
+        pricing=PricingPolicy("test", "USD", Decimal("1"), SHA_A, minimum_billed_bytes=0),
+    )
     return ExecutionEvidence(
         f"exec-{run.run_id}",
         _artifact_sha(serialize_prediction_run(run)),
-        SHA_B,
+        hashlib.sha256(canonical_json(execution_policy)).hexdigest(),
         ExecutorProvenance("fake" if fake else "bigquery", "test", "1", fake),
         SHA_A,
         tuple(
             ExecutionCaseEvidence(case.case_id, gold, prediction)
             for case, (gold, prediction) in zip(run.cases, pairs, strict=True)
         ),
+        policy=execution_policy,
+        test_set_sha256=run.test_set_sha256,
+        estimated_bytes_total=0,
+        billed_bytes_total=70,
+        execution_cost=CostEvidence("estimated", Decimal("0.07"), "USD", "aggregate"),
     )
 
 
@@ -245,6 +263,8 @@ def test_comparison_is_paired_left_minus_right_and_marks_incomplete_measures() -
     right_evidence = replace(
         right_evidence,
         cases=tuple(replace(pair, prediction=_query(["wrong"])) for pair in right_evidence.cases),
+        billed_bytes_total=80,
+        execution_cost=CostEvidence("estimated", Decimal("0.08"), "USD", "aggregate"),
     )
     right = build_report(
         primary_run=right_run,
@@ -303,6 +323,8 @@ def test_submitted_timeout_with_unknown_billing_derives_unresolved_cost_blocker(
     evidence = replace(
         evidence,
         cases=(replace(evidence.cases[0], prediction=unresolved), *evidence.cases[1:]),
+        billed_bytes_total=None,
+        execution_cost=CostEvidence("unmeasured", None, None, None),
     )
 
     report = build_report(
@@ -313,6 +335,25 @@ def test_submitted_timeout_with_unknown_billing_derives_unresolved_cost_blocker(
 
     assert evidence.status == "unresolved_cost"
     assert "unresolved_submitted_job_cost" in report.readiness.scientific_blockers
+
+
+def test_policy_breach_is_a_scientific_readiness_blocker() -> None:
+    run = _run()
+    evidence = _evidence(run)
+    breached = replace(
+        evidence.cases[-1].prediction,
+        status="error",
+        error_code="aggregate_execution_cost_cap_exceeded",
+    )
+    evidence = replace(
+        evidence,
+        cases=(*evidence.cases[:-1], replace(evidence.cases[-1], prediction=breached)),
+    )
+
+    report = build_report(primary_run=run, primary_evidence=evidence, bootstrap_policy=POLICY)
+
+    assert evidence.status == "policy_breach"
+    assert "execution_policy_breach" in report.readiness.scientific_blockers
 
 
 def test_report_and_comparison_round_trip_with_typed_dimension_values(tmp_path: Path) -> None:

@@ -118,12 +118,12 @@ def test_loader_rejects_unknown_fields_version_tampering_and_noncanonical_bytes(
         load_privacy_review(path)
 
     document.pop("extra")
-    document["schema_version"] = 2
+    document["schema_version"] = 3
     path.write_bytes(canonical_json(document))
     with pytest.raises(EvaluationError, match="schema version"):
         load_privacy_review(path)
 
-    document["schema_version"] = 1
+    document["schema_version"] = 2
     document["body"]["provider"] = "changed"
     path.write_bytes(canonical_json(document))
     with pytest.raises(EvaluationError, match="self-hash"):

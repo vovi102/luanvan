@@ -16,7 +16,12 @@ from nl2sparql.evaluation.contracts import (
     QueryExecution,
     ResultField,
 )
-from nl2sparql.evaluation.executor import ExecutionJournal, QueryExecutor, QueryRequest
+from nl2sparql.evaluation.executor import (
+    ExecutionJournal,
+    QueryExecutor,
+    QueryRequest,
+    deterministic_job_id,
+)
 from nl2sparql.evaluation.result_semantics import canonicalize_result
 
 
@@ -67,6 +72,7 @@ class BigQueryExecutor:
         self._query_job_config = query_job_config
         self._policy = policy
         self._journal: ExecutionJournal | None = None
+        self._execution_id: str | None = None
         self._provenance = ExecutorProvenance(
             "bigquery",
             f"{policy.project}:{policy.location}",
@@ -78,9 +84,10 @@ class BigQueryExecutor:
     def provenance(self) -> ExecutorProvenance:
         return self._provenance
 
-    def bind_execution_journal(self, journal: ExecutionJournal) -> None:
+    def bind_execution_journal(self, journal: ExecutionJournal, *, execution_id: str) -> None:
         """Bind the durable submission journal before any live query is accepted."""
         self._journal = journal
+        self._execution_id = execution_id
 
     @staticmethod
     def _validate_policy(policy: ExecutionPolicy) -> None:
@@ -128,30 +135,47 @@ class BigQueryExecutor:
             raise EvaluationError("preflight exceeds per-query byte cap")
         if policy.pricing.estimate_cost(preflight.estimated_bytes) > policy.estimated_cost_cap:
             raise EvaluationError("preflight exceeds estimated cost cap")
-        if self._journal is None:
+        if self._journal is None or self._execution_id is None:
             raise EvaluationError("BigQuery executor requires a bound execution journal")
+        submitted_job_id = deterministic_job_id(self._execution_id, request)
         self._journal.append(
             "submission_intent",
             {
                 "case_id": request.case_id,
                 "role": request.role,
+                "request": request,
+                "job_id": submitted_job_id,
                 "preflight": preflight,
             },
         )
 
         started = time.monotonic()
-        job = self._client.query(  # type: ignore[attr-defined]
-            request.sql,
-            job_config=self._config(dry_run=False, policy=policy),
-            location=policy.location,
-        )
+        try:
+            job = self._client.query(  # type: ignore[attr-defined]
+                request.sql,
+                job_config=self._config(dry_run=False, policy=policy),
+                location=policy.location,
+                job_id=submitted_job_id,
+            )
+        except Exception as exc:
+            return QueryExecution(
+                status="error",
+                job_id=None,
+                latency_ms=(time.monotonic() - started) * 1000,
+                billed_bytes=None,
+                cost=CostEvidence("unmeasured", None, None, None),
+                result=None,
+                error_code=type(exc).__name__,
+                submission_attempted=True,
+                submission_job_id=submitted_job_id,
+            )
         job_id = getattr(job, "job_id", None)
         self._journal.append(
             "submitted",
             {
                 "case_id": request.case_id,
                 "role": request.role,
-                "job_id": str(job_id) if job_id is not None else None,
+                "job_id": submitted_job_id,
             },
         )
         try:
@@ -175,6 +199,9 @@ class BigQueryExecutor:
                 processed_bytes=_non_negative_stat(job, "total_bytes_processed"),
                 cache_hit=getattr(job, "cache_hit", None),
                 cancellation_status=cancellation_status,
+                submission_attempted=True,
+                submission_job_id=submitted_job_id,
+                submission_acknowledged=True,
             )
         except Exception as exc:
             billed = _non_negative_stat(job, "total_bytes_billed")
@@ -188,6 +215,9 @@ class BigQueryExecutor:
                 error_code=type(exc).__name__,
                 processed_bytes=_non_negative_stat(job, "total_bytes_processed"),
                 cache_hit=getattr(job, "cache_hit", None),
+                submission_attempted=True,
+                submission_job_id=submitted_job_id,
+                submission_acknowledged=True,
             )
 
         billed = _non_negative_stat(job, "total_bytes_billed")
@@ -207,6 +237,9 @@ class BigQueryExecutor:
                 error_code=type(exc).__name__,
                 processed_bytes=processed,
                 cache_hit=getattr(job, "cache_hit", None),
+                submission_attempted=True,
+                submission_job_id=submitted_job_id,
+                submission_acknowledged=True,
             )
         if job_id is None:
             return QueryExecution(
@@ -219,6 +252,9 @@ class BigQueryExecutor:
                 error_code="missing_job_id",
                 processed_bytes=processed,
                 cache_hit=getattr(job, "cache_hit", None),
+                submission_attempted=True,
+                submission_job_id=submitted_job_id,
+                submission_acknowledged=True,
             )
         status = "ok" if billed is not None else "unresolved_cost"
         return QueryExecution(
@@ -231,6 +267,9 @@ class BigQueryExecutor:
             error_code=None if status == "ok" else "unresolved_billing",
             processed_bytes=processed,
             cache_hit=getattr(job, "cache_hit", None),
+            submission_attempted=True,
+            submission_job_id=submitted_job_id,
+            submission_acknowledged=True,
         )
 
 

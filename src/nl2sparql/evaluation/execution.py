@@ -49,6 +49,10 @@ def _validate_request(request: QueryRequest) -> None:
     analyze_sql(request.sql)
 
 
+def _request_sha(request: QueryRequest) -> str:
+    return hashlib.sha256(canonical_json(request)).hexdigest()
+
+
 def _guarded(estimate: DryRunEvidence, policy: ExecutionPolicy) -> bool:
     if estimate.estimated_bytes > policy.per_query_byte_cap:
         return False
@@ -91,7 +95,7 @@ def execute_run(
     )
     bind_journal = getattr(executor, "bind_execution_journal", None)
     if bind_journal is not None:
-        bind_journal(journal)
+        bind_journal(journal, execution_id=execution_id)
     gold_requests: dict[str, QueryRequest] = {}
     prediction_requests: dict[str, QueryRequest] = {}
     static_errors: dict[tuple[str, str], str] = {}
@@ -115,6 +119,7 @@ def execute_run(
             static_errors[(case.case_id, "prediction")] = type(exc).__name__
 
     first_preflights: dict[tuple[str, str], DryRunEvidence] = {}
+    initial_preflight_errors: dict[tuple[str, str], str] = {}
     for request in (*gold_requests.values(), *prediction_requests.values()):
         key = (request.case_id, request.role)
         if key in static_errors:
@@ -125,6 +130,7 @@ def execute_run(
             journal.append("initial_dry_run", {"request": request, "evidence": estimate})
         except Exception as exc:  # executor boundary is intentionally fail-closed
             static_errors[key] = type(exc).__name__
+            initial_preflight_errors[key] = type(exc).__name__
             journal.append(
                 "initial_dry_run_error", {"request": request, "error": type(exc).__name__}
             )
@@ -137,14 +143,15 @@ def execute_run(
     aggregate = sum(effective_estimates.values())
     pending_billed_estimate = sum(billed_estimates.values())
     observed_billed = 0
-    aggregate_cost = sum(
+    pending_cost_estimate = sum(
         (policy.pricing.estimate_cost(value) for value in effective_estimates.values()),
         start=Decimal(0),
     )
+    observed_cost = Decimal(0)
     aggregate_blocked = (
         aggregate > policy.aggregate_byte_cap
         or pending_billed_estimate > policy.billed_byte_cap
-        or aggregate_cost > policy.estimated_cost_cap
+        or pending_cost_estimate > policy.estimated_cost_cap
         or any(not _guarded(item, policy) for item in first_preflights.values())
     )
     live_halt_reason = (
@@ -156,6 +163,8 @@ def execute_run(
     for case in run.cases:
         pair: dict[str, QueryExecution] = {}
         for role in ("gold", "prediction"):
+            immediate: DryRunEvidence | None = None
+            immediate_error: str | None = None
             request = (
                 gold_requests[case.case_id]
                 if role == "gold"
@@ -181,8 +190,8 @@ def execute_run(
                     revised_aggregate = (
                         aggregate - effective_estimates[key] + immediate.estimated_bytes
                     )
-                    revised_cost = (
-                        aggregate_cost
+                    revised_pending_cost = (
+                        pending_cost_estimate
                         - policy.pricing.estimate_cost(effective_estimates[key])
                         + policy.pricing.estimate_cost(immediate.estimated_bytes)
                     )
@@ -195,25 +204,38 @@ def execute_run(
                     if (
                         revised_aggregate > policy.aggregate_byte_cap
                         or observed_billed + revised_pending_billed > policy.billed_byte_cap
-                        or revised_cost > policy.estimated_cost_cap
+                        or observed_cost + revised_pending_cost > policy.estimated_cost_cap
                     ):
                         pair[role] = _terminal("guard_blocked", "immediate_aggregate_guard")
                         pending_billed_estimate -= billed_estimates[key]
+                        pending_cost_estimate -= policy.pricing.estimate_cost(
+                            effective_estimates[key]
+                        )
                     elif not _guarded(immediate, policy):
                         pair[role] = _terminal("guard_blocked", "immediate_preflight_guard")
                         pending_billed_estimate -= billed_estimates[key]
+                        pending_cost_estimate -= policy.pricing.estimate_cost(
+                            effective_estimates[key]
+                        )
                     else:
                         aggregate = revised_aggregate
-                        aggregate_cost = revised_cost
                         effective_estimates[key] = immediate.estimated_bytes
                         billed_estimates[key] = immediate_billed_estimate
                         pending_billed_estimate = revised_pending_billed - immediate_billed_estimate
+                        pending_cost_estimate = revised_pending_cost - policy.pricing.estimate_cost(
+                            immediate.estimated_bytes
+                        )
                         pair[role] = executor.execute(request, policy, immediate)
-                        if pair[role].job_id is not None:
-                            if pair[role].billed_bytes is None:
+                        if pair[role].submission_attempted:
+                            if (
+                                pair[role].billed_bytes is None
+                                or pair[role].cost.amount is None
+                                or pair[role].cost.measurement_status == "unmeasured"
+                            ):
                                 live_halt_reason = "unresolved_submitted_job_cost"
                             else:
                                 observed_billed += pair[role].billed_bytes
+                                observed_cost += pair[role].cost.amount
                                 if observed_billed > policy.billed_byte_cap:
                                     pair[role] = replace(
                                         pair[role],
@@ -221,16 +243,47 @@ def execute_run(
                                         error_code="aggregate_billed_byte_cap_exceeded",
                                     )
                                     live_halt_reason = "aggregate_billed_byte_guard"
+                                elif observed_cost > policy.estimated_cost_cap:
+                                    pair[role] = replace(
+                                        pair[role],
+                                        status="error",
+                                        error_code="aggregate_execution_cost_cap_exceeded",
+                                    )
+                                    live_halt_reason = "aggregate_execution_cost_guard"
                                 elif (
                                     observed_billed + pending_billed_estimate
                                     > policy.billed_byte_cap
                                 ):
                                     live_halt_reason = "aggregate_billed_byte_guard"
+                                elif (
+                                    observed_cost + pending_cost_estimate
+                                    > policy.estimated_cost_cap
+                                ):
+                                    live_halt_reason = "aggregate_execution_cost_guard"
                 except Exception as exc:  # executor boundary is intentionally fail-closed
+                    if immediate is None:
+                        immediate_error = type(exc).__name__
+                        journal.append(
+                            "immediate_dry_run_error",
+                            {"request": request, "error": immediate_error},
+                        )
                     pair[role] = _terminal("error", type(exc).__name__)
+            pair[role] = replace(
+                pair[role],
+                initial_preflight=first_preflights.get((case.case_id, role)),
+                immediate_preflight=immediate,
+                request_sha256=_request_sha(request),
+                initial_preflight_error=initial_preflight_errors.get((case.case_id, role)),
+                immediate_preflight_error=immediate_error,
+            )
             journal.append(
                 "execution",
-                {"case_id": case.case_id, "role": role, "outcome": pair[role]},
+                {
+                    "case_id": case.case_id,
+                    "role": role,
+                    "request": request,
+                    "outcome": pair[role],
+                },
             )
             if role == "gold" and pair[role].status != "ok":
                 live_halt_reason = f"gold_{pair[role].status}"
@@ -240,13 +293,13 @@ def execute_run(
         query
         for case in outcomes
         for query in (case.gold, case.prediction)
-        if query.job_id is not None
+        if query.submission_attempted
     )
     billing_complete = all(
         query.billed_bytes is not None and query.cost.amount is not None for query in submitted
     )
     currencies = {query.cost.currency for query in submitted if query.cost.currency is not None}
-    if billing_complete and len(currencies) <= 1:
+    if submitted and billing_complete and len(currencies) <= 1:
         aggregate_cost = CostEvidence(
             "estimated"
             if any(query.cost.measurement_status == "estimated" for query in submitted)
@@ -258,8 +311,12 @@ def execute_run(
             next(iter(currencies), policy.pricing.currency),
             "execution-evidence-aggregate",
         )
-    else:
+    elif submitted:
         aggregate_cost = _unmeasured()
+    else:
+        aggregate_cost = CostEvidence(
+            "estimated", Decimal(0), policy.pricing.currency, "no-live-submissions"
+        )
     return ExecutionEvidence(
         execution_id=execution_id,
         prediction_run_sha256=prediction_sha,
@@ -269,7 +326,12 @@ def execute_run(
         cases=tuple(outcomes),
         policy=policy,
         test_set_sha256=run.test_set_sha256,
-        estimated_bytes_total=sum(item.estimated_bytes for item in first_preflights.values()),
+        estimated_bytes_total=sum(
+            (query.immediate_preflight or query.initial_preflight).estimated_bytes
+            for case in outcomes
+            for query in (case.gold, case.prediction)
+            if query.immediate_preflight is not None or query.initial_preflight is not None
+        ),
         billed_bytes_total=(
             sum(query.billed_bytes for query in submitted if query.billed_bytes is not None)
             if billing_complete

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 from nl2sparql.evaluation.artifacts import canonical_json
@@ -51,6 +51,12 @@ class ExecutionJournal(Protocol):
     def seal(self, body: Mapping[str, object]) -> str: ...
 
 
+def deterministic_job_id(execution_id: str, request: QueryRequest) -> str:
+    """Return the retry-stable BigQuery job ID for one execution slot."""
+    payload = f"{execution_id}\0{request.case_id}\0{request.role}\0{request.sql}".encode()
+    return f"nl2sql_eval_{hashlib.sha256(payload).hexdigest()[:40]}"
+
+
 class ScriptedQueryExecutor:
     """Deterministic fake executor with per-case queues and observable call order."""
 
@@ -63,6 +69,8 @@ class ScriptedQueryExecutor:
         self.dry_runs = {key: list(values) for key, values in dry_runs.items()}
         self.executions = dict(executions)
         self.calls: list[str] = []
+        self._journal: ExecutionJournal | None = None
+        self._execution_id: str | None = None
 
     @property
     def provenance(self) -> ExecutorProvenance:
@@ -80,13 +88,17 @@ class ScriptedQueryExecutor:
             raise outcome
         return outcome
 
+    def bind_execution_journal(self, journal: ExecutionJournal, *, execution_id: str) -> None:
+        self._journal = journal
+        self._execution_id = execution_id
+
     def execute(
         self,
         request: QueryRequest,
         policy: ExecutionPolicy,
         preflight: DryRunEvidence,
     ) -> QueryExecution:
-        del policy, preflight
+        del policy
         self.calls.append(f"execute:{request.case_id}:{request.role}")
         key = (request.case_id, request.role)
         try:
@@ -95,6 +107,33 @@ class ScriptedQueryExecutor:
             raise EvaluationError(f"missing scripted execution for {key}") from exc
         if isinstance(outcome, Exception):
             raise outcome
+        if self._journal is None or self._execution_id is None:
+            raise EvaluationError("scripted executor requires a bound execution journal")
+        if outcome.submission_attempted:
+            submitted_job_id = deterministic_job_id(self._execution_id, request)
+            outcome = replace(
+                outcome,
+                job_id=submitted_job_id if outcome.job_id is not None else None,
+                submission_job_id=submitted_job_id,
+            )
+            self._journal.append(
+                "submission_intent",
+                {
+                    "case_id": request.case_id,
+                    "role": request.role,
+                    "request": request,
+                    "job_id": submitted_job_id,
+                    "preflight": preflight,
+                },
+            )
+            self._journal.append(
+                "submitted",
+                {
+                    "case_id": request.case_id,
+                    "role": request.role,
+                    "job_id": submitted_job_id,
+                },
+            )
         return outcome
 
 

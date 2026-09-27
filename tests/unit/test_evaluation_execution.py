@@ -1,13 +1,22 @@
 import json
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 
-from nl2sparql.evaluation.artifacts import canonical_json
+import pytest
+
+from nl2sparql.evaluation.artifacts import (
+    FileExecutionJournal,
+    canonical_json,
+    verify_execution_evidence_journal,
+)
 from nl2sparql.evaluation.contracts import (
     BootstrapPolicy,
     CanonicalPredictionRun,
     CostEvidence,
     DryRunEvidence,
+    EvaluationError,
     ExecutionPolicy,
     InferenceEvidence,
     PredictionCase,
@@ -317,7 +326,58 @@ def test_observed_billing_overrun_invalidates_gold_and_stops_later_jobs() -> Non
 
     assert evidence.cases[0].gold.error_code == "aggregate_billed_byte_cap_exceeded"
     assert evidence.cases[0].prediction.status == "not_run"
-    assert evidence.status == "invalid_gold_failure"
+    assert evidence.status == "policy_breach"
+
+
+def test_observed_cost_overrun_invalidates_gold_and_stops_later_jobs() -> None:
+    run = _run()
+    fake = _fake(run)
+    fake.executions[("q1", "gold")] = QueryExecution(
+        "ok",
+        "job",
+        1.0,
+        1,
+        CostEvidence("observed", Decimal("2"), "USD", "fake"),
+        _execution().result,
+        None,
+    )
+
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(),
+        executor=fake,
+        journal=MemoryExecutionJournal(),
+    )
+
+    assert evidence.cases[0].gold.error_code == "aggregate_execution_cost_cap_exceeded"
+    assert evidence.cases[0].prediction.status == "not_run"
+    assert evidence.status == "policy_breach"
+
+
+def test_final_prediction_cost_overrun_marks_the_whole_run_as_policy_breach() -> None:
+    run = _run()
+    fake = _fake(run)
+    fake.executions[("q2", "prediction")] = QueryExecution(
+        "ok",
+        "job",
+        1.0,
+        1,
+        CostEvidence("observed", Decimal("2"), "USD", "fake"),
+        _execution().result,
+        None,
+    )
+
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(),
+        executor=fake,
+        journal=MemoryExecutionJournal(),
+    )
+
+    assert evidence.cases[-1].prediction.error_code == "aggregate_execution_cost_cap_exceeded"
+    assert evidence.status == "policy_breach"
 
 
 def test_larger_immediate_dry_run_rechecks_aggregate_before_submit() -> None:
@@ -359,3 +419,40 @@ def test_evidence_binds_policy_executor_and_terminal_journal_hash() -> None:
     assert len(evidence.policy_sha256) == 64
     assert evidence.journal_terminal_sha256 == journal.terminal_sha256
     assert json.loads(canonical_json(BootstrapPolicy()))["samples"] == 10_000
+
+
+def test_file_journal_binds_every_preflight_submission_and_outcome(tmp_path: Path) -> None:
+    run = _run()
+    journal_path = tmp_path / "execution.jsonl"
+    journal = FileExecutionJournal.create(
+        journal_path,
+        header={"execution_id": "exec-1"},
+        protected_paths=(),
+    )
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(),
+        executor=_fake(run),
+        journal=journal,
+    )
+
+    verify_execution_evidence_journal(evidence, journal_path)
+    changed_gold = replace(evidence.cases[0].gold, latency_ms=2.0)
+    changed = replace(
+        evidence,
+        cases=(replace(evidence.cases[0], gold=changed_gold), *evidence.cases[1:]),
+    )
+    with pytest.raises(EvaluationError, match="outcome binding"):
+        verify_execution_evidence_journal(changed, journal_path)
+
+    changed_request = replace(
+        evidence.cases[0].gold,
+        request_sha256="c" * 64,
+    )
+    changed = replace(
+        evidence,
+        cases=(replace(evidence.cases[0], gold=changed_request), *evidence.cases[1:]),
+    )
+    with pytest.raises(EvaluationError, match="request hash"):
+        verify_execution_evidence_journal(changed, journal_path)

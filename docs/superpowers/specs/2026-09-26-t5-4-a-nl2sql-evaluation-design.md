@@ -129,7 +129,7 @@ Every standalone JSON artifact uses this logical envelope:
 ```json
 {
   "artifact_type": "nl2sql_prediction_run",
-  "schema_version": 1,
+  "schema_version": 2,
   "body": {},
   "artifact_sha256": "lowercase SHA-256"
 }
@@ -525,11 +525,11 @@ the artifact.
 Default paths are:
 
 ```text
-data/eval/framework/canonical/<baseline>/<run-id>/prediction-run.v1.json
-data/eval/framework/execution/<baseline>/<run-id>/<execution-id>/execution-journal.v1.jsonl
-data/eval/framework/execution/<baseline>/<run-id>/<execution-id>/execution-evidence.v1.json
-reports/evaluation/<baseline>/<run-id>/evaluation-report.v1.json
-reports/evaluation/comparisons/<left>__<right>/comparison-report.v1.json
+data/eval/framework/canonical/<baseline>/<run-id>/prediction-run.v2.json
+data/eval/framework/execution/<baseline>/<run-id>/<execution-id>/execution-journal.v2.jsonl
+data/eval/framework/execution/<baseline>/<run-id>/<execution-id>/execution-evidence.v2.json
+reports/evaluation/<baseline>/<run-id>/evaluation-report.v2.json
+reports/evaluation/comparisons/<left>__<right>/comparison-report.v2.json
 ```
 
 The execution journal contains a header bound to prediction/policy/executor hashes,

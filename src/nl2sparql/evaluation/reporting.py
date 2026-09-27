@@ -7,6 +7,7 @@ import json
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import replace
+from decimal import Decimal
 
 from nl2sparql.evaluation.artifacts import (
     canonical_json,
@@ -73,6 +74,44 @@ def _validate_pair(run: CanonicalPredictionRun, evidence: ExecutionEvidence) -> 
     evidence_ids = tuple(case.case_id for case in evidence.cases)
     if evidence_ids != _case_ids(run):
         raise EvaluationError("execution case IDs do not match canonical run")
+    if evidence.test_set_sha256 != run.test_set_sha256:
+        raise EvaluationError("execution test-set binding does not match canonical run")
+    if (
+        evidence.policy is None
+        or evidence.policy_sha256 != hashlib.sha256(canonical_json(evidence.policy)).hexdigest()
+    ):
+        raise EvaluationError("execution policy binding is missing or invalid")
+    submitted = tuple(
+        query
+        for case in evidence.cases
+        for query in (case.gold, case.prediction)
+        if query.submission_attempted
+    )
+    measured_billed = tuple(query.billed_bytes for query in submitted)
+    expected_billed = (
+        sum(value for value in measured_billed if value is not None)
+        if all(value is not None for value in measured_billed)
+        else None
+    )
+    if evidence.billed_bytes_total != expected_billed:
+        raise EvaluationError("execution billed-byte aggregate is inconsistent")
+    expected_estimated = sum(
+        (query.immediate_preflight or query.initial_preflight).estimated_bytes
+        for case in evidence.cases
+        for query in (case.gold, case.prediction)
+        if query.immediate_preflight is not None or query.initial_preflight is not None
+    )
+    if evidence.estimated_bytes_total != expected_estimated:
+        raise EvaluationError("execution estimated-byte aggregate is inconsistent")
+    measured_costs = tuple(query.cost.amount for query in submitted)
+    if evidence.execution_cost is None:
+        raise EvaluationError("execution cost aggregate is missing")
+    if all(value is not None for value in measured_costs):
+        expected_cost = sum((value for value in measured_costs if value is not None), Decimal(0))
+        if evidence.execution_cost.amount != expected_cost:
+            raise EvaluationError("execution cost aggregate is inconsistent")
+    elif evidence.execution_cost.measurement_status != "unmeasured":
+        raise EvaluationError("incomplete execution cost must remain unmeasured")
 
 
 def _identity(run: CanonicalPredictionRun) -> tuple[object, ...]:
@@ -188,18 +227,27 @@ def _distribution(values: Sequence[float | None], policy: BootstrapPolicy) -> Di
 
 
 def _cost_summary(costs: Sequence[CostEvidence | None]) -> dict[str, object]:
-    values = _cost_values(costs)
+    values = tuple(
+        cost.amount
+        if cost is not None
+        and cost.measurement_status in ("observed", "estimated")
+        and cost.amount is not None
+        else None
+        for cost in costs
+    )
     observed = tuple(value for value in values if value is not None)
     complete = len(observed) == len(values)
-    total = sum(observed) if complete else None
+    total = sum(observed, Decimal(0)) if complete else None
     return {
         "expected_count": len(values),
         "observed_count": len(observed),
         "coverage": len(observed) / len(values) if values else None,
-        "observed_subtotal_usd": sum(observed),
-        "total_usd": total,
+        "observed_subtotal_usd": str(sum(observed, Decimal(0))),
+        "total_usd": str(total) if total is not None else None,
         "cost_per_1000_cases_usd": (
-            total / len(values) * 1000 if total is not None and values else None
+            str(total / Decimal(len(values)) * Decimal(1000))
+            if total is not None and values
+            else None
         ),
     }
 
@@ -380,8 +428,10 @@ def _readiness(
         blockers.add("missing_privacy_evidence")
     if any(evidence.status == "invalid_gold_failure" for evidence in evidences):
         blockers.add("gold_execution_failure")
+    if any(evidence.status == "policy_breach" for evidence in evidences):
+        blockers.add("execution_policy_breach")
     if any(
-        query.job_id is not None
+        query.submission_attempted
         and (query.billed_bytes is None or query.cost.measurement_status == "unmeasured")
         for evidence in evidences
         for case in evidence.cases
