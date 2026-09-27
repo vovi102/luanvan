@@ -1,235 +1,152 @@
-# T5.4 — Evaluation Framework (6 dimensions)
+# T5.4-A — NL2SQL Evaluation Framework
 
 ## Mục tiêu
 
-Xây dựng evaluation framework đo 6 chiều: Accuracy, Latency, Cost, Privacy, Reproducibility, Failure Mode. Khung này dùng cho TẤT CẢ baselines + Full system.
+T5.4-A cung cấp framework offline-first để chuẩn hóa, kiểm chứng và so sánh bằng
+chứng của các baseline NL2SQL B0, B1, B2, B4 và B5. Framework đo sáu chiều:
+accuracy, latency, cost, privacy, reproducibility và failure modes. Đây là task
+triển khai công cụ; việc tạo và diễn giải kết quả khoa học thật thuộc T5.4-B.
 
-## Bối cảnh & lý do
+## Phạm vi và phụ thuộc
 
-Evaluation framework là sản phẩm khoa học độc lập, có thể publish riêng. Nó cũng là cốt lõi RQ1 (RQ1 trả lời được khi compare 6 dimensions, không chỉ accuracy).
+- Đầu vào gold là snapshot T3.5 đã review, chứa GoogleSQL cho BigQuery.
+- Prediction và log native đến từ T5.1–T5.3; adapter không tin các metric tổng
+  hợp sẵn trong report native.
+- T5.4-A không chạy baseline inference, không tạo kết luận nghiên cứu và không
+  tự động truy cập BigQuery.
+- T5.4-B sở hữu genuine runs, live execution evidence, bảng kết quả và phân tích
+  luận văn sau khi snapshot T3.5 được chốt.
 
-## Phụ thuộc
+## Artifact và module
 
-- T3.5 — Test set 100 câu (gold).
-- Predictions từ T5.1-T5.3 (B0, B1, B2, B4, B5).
-- Sau này: T6.1 (B3), T7.1 (Full system).
+Các artifact canonical là immutable JSON có schema version và SHA-256 tự ràng
+buộc. Journal execution là canonical JSONL hash-chain, fsync sau mỗi record và
+chỉ được chấp nhận khi có terminal seal.
 
-## Đầu vào
+- `CanonicalPredictionRun`: test-set identity, provenance, privacy và đủ mọi case.
+- `ExecutionEvidence`: policy, executor provenance, dry-run/live outcomes và
+  terminal journal hash.
+- `EvaluationReport`: primary run tường minh, replicate identities, six
+  dimensions, breakdowns và readiness.
+- `ComparisonReport`: paired left-minus-right deltas; không có winner/ranking.
+- `PrivacyReview`: sidecar review được hash-bind với baseline và test snapshot.
 
-- `data/dataset/test/test-100.jsonl` (gold).
-- Predictions per baseline (jsonl).
-- Inference logs (latency, tokens, cost).
+Mã nguồn nằm trong `src/nl2sparql/evaluation/`; entry point là
+`scripts/19_nl2sql_evaluation.py`.
 
-## Đầu ra
+## Workflow an toàn
 
-- Module `src/nl2sparql/evaluation/`:
-  - `metrics.py` — accuracy metrics.
-  - `executor.py` — chạy SPARQL trên Fuseki và compare results.
-  - `failure_classifier.py` — phân loại lỗi.
-  - `report.py` — generate Markdown + LaTeX tables.
-- `data/eval/results/<baseline>_metrics.json`.
-- `docs/eval/baseline_comparison.md` — bảng so sánh.
-
-## Acceptance criteria
-
-- [ ] Tất cả 6 dimensions implement và compute được.
-- [ ] Per-baseline report chạy `python -m src.evaluation.report --baseline b1` < 60s.
-- [ ] Stratified breakdown theo difficulty (Easy/Medium/Hard) và category.
-- [ ] Report có CI (95%) cho accuracy metrics (bootstrap 1000).
-
-## Hướng dẫn triển khai
-
-### Dimension 1: Accuracy
-
-3 metrics:
-
-**(a) Exact Match (EM)** — chuỗi SPARQL giống hệt sau normalize.
-
-```python
-def normalize_sparql(s):
-    s = re.sub(r"\s+", " ", s).strip()
-    s = s.lower()  # case-insensitive (SPARQL keywords)
-    return s
-
-def exact_match(pred, gold):
-    return normalize_sparql(pred) == normalize_sparql(gold)
-```
-
-**(b) Execution Accuracy (ExecAcc)** — chạy cả 2 SPARQL trên Fuseki, compare result sets.
-
-```python
-def execution_accuracy(pred_sparql, gold_sparql, endpoint):
-    try:
-        pred_result = run_query(pred_sparql, endpoint, timeout=30)
-    except Exception:
-        return False
-    try:
-        gold_result = run_query(gold_sparql, endpoint, timeout=30)
-    except Exception:
-        # Should not happen on gold
-        return False
-    return canonicalize(pred_result) == canonicalize(gold_result)
-
-def canonicalize(result):
-    """Sort rows, remove ORDER-dependent diffs unless query has ORDER BY."""
-    # Hash each row, sort by hash, return tuple.
-    rows = [tuple(sorted(row.items())) for row in result]
-    return frozenset(rows)
-```
-
-**(c) Answer F1** — F1 trên set rows (cho queries không SELECT trả lại đúng số row).
-
-```python
-def answer_f1(pred_rows, gold_rows):
-    pred_set = canonicalize_rows(pred_rows)
-    gold_set = canonicalize_rows(gold_rows)
-    if not pred_set and not gold_set:
-        return 1.0
-    if not pred_set or not gold_set:
-        return 0.0
-    tp = len(pred_set & gold_set)
-    p = tp / len(pred_set)
-    r = tp / len(gold_set)
-    return 2*p*r/(p+r) if (p+r) > 0 else 0.0
-```
-
-### Dimension 2: Latency
-
-Đã đo trong inference logs. Report:
-- Median, P50, P95, P99.
-- Stratified by difficulty (Hard có thể slower).
-
-### Dimension 3: Cost
-
-- B0/B1/B2/B3: cost = 0 (local). (Có thể đo electricity nếu rigorous nhưng skip.)
-- B4/B5: cost từ OpenRouter logs.
-- Report: cost per 1k queries.
-
-```python
-def cost_per_1k(predictions):
-    total_cost = sum(p["cost"] for p in predictions)
-    n = len(predictions)
-    return total_cost / n * 1000
-```
-
-### Dimension 4: Privacy (qualitative)
-
-Không phải metric số. Tạo bảng đánh giá:
-
-| Baseline | Data leaves device? | PII risk | Use cases viable |
-|---|---|---|---|
-| B0 | No | None | All (forensic, AML, internal) |
-| B1/B2/B3/Full | No | None | All |
-| B4/B5 (API) | Yes (to provider) | High | Research only |
-
-Document trong thesis chapter.
-
-### Dimension 5: Reproducibility
-
-Run baseline 3 lần (với same input, temp=0). Compute:
-
-```python
-def reproducibility_score(runs):
-    # runs: List[List[str]] — list of predictions over runs
-    n = len(runs)
-    matches = 0
-    total = 0
-    for i in range(n):
-        for j in range(i+1, n):
-            for p1, p2 in zip(runs[i], runs[j]):
-                if normalize_sparql(p1) == normalize_sparql(p2):
-                    matches += 1
-                total += 1
-    return matches / total
-```
-
-API-based baselines có thể có variance dù temp=0 (server-side stochasticity).
-
-### Dimension 6: Failure mode classification
-
-Phân loại lỗi cho mỗi prediction sai:
-
-```python
-class FailureType(Enum):
-    SYNTAX = "syntax_error"           # SPARQL không parse
-    HALLUCINATION = "hallucination"   # dùng prefix/property không tồn tại
-    SCHEMA = "wrong_schema"           # property sai (e.g. :hasFrom vs :initiatedBy)
-    LOGIC = "logic_error"             # đúng schema nhưng sai logic (filter sai, join sai)
-    SEMANTIC = "semantic_drift"       # query khác hoàn toàn ý câu hỏi
-    EMPTY = "no_output"               # model không generate được
-
-def classify_failure(pred, gold, ontology, endpoint):
-    if not pred:
-        return FailureType.EMPTY
-    try:
-        ast = parse_sparql(pred)
-    except SPARQLSyntaxError:
-        return FailureType.SYNTAX
-    used_uris = extract_uris(ast)
-    if any(u not in ontology.uris for u in used_uris):
-        return FailureType.HALLUCINATION
-    # Run pred. Compare structure with gold.
-    if execution_accuracy(pred, gold, endpoint):
-        return None  # success
-    # Compare property usage
-    if used_props(ast) != used_props(parse_sparql(gold)):
-        return FailureType.SCHEMA
-    # Compare filter clauses
-    if filters(ast) != filters(parse_sparql(gold)):
-        return FailureType.LOGIC
-    return FailureType.SEMANTIC
-```
-
-### Stratified report
-
-Per difficulty (Easy/Medium/Hard) + per category:
-
-```
-| Baseline | All EM | All ExecAcc | Easy ExecAcc | Med ExecAcc | Hard ExecAcc |
-|----------|--------|-------------|--------------|-------------|--------------|
-| B0       | 28%    | 35%         | 70%          | 30%         | 5%           |
-| B1       | 15%    | 32%         | 60%          | 35%         | 10%          |
-| B2       | 22%    | 45%         | 72%          | 50%         | 18%          |
-| B4       | 35%    | 65%         | 85%          | 70%         | 35%          |
-| B5       | 40%    | 70%         | 88%          | 75%         | 40%          |
-| B3 (FT)  | 38%    | 60%         | 82%          | 65%         | 30%          |
-| Full     | 50%    | 78%         | 92%          | 82%         | 55%          |
-```
-
-(Numbers placeholder — actual sẽ fill sau.)
-
-### Bootstrap CI
-
-```python
-def bootstrap_ci(scores, n=1000, alpha=0.05):
-    boots = [np.mean(np.random.choice(scores, len(scores), replace=True))
-             for _ in range(n)]
-    lo = np.percentile(boots, 100*alpha/2)
-    hi = np.percentile(boots, 100*(1-alpha/2))
-    return lo, hi
-```
-
-### CLI
+Các lệnh help và validate chỉ đọc local artifact, không khởi tạo credential,
+BigQuery client hay network:
 
 ```bash
-python -m src.evaluation.report \
-  --predictions data/eval/predictions/b1_test.jsonl \
-  --gold data/dataset/test/test-100.jsonl \
-  --baseline b1 \
-  --output data/eval/results/b1_metrics.json
+uv run python scripts/19_nl2sql_evaluation.py --help
+uv run python scripts/19_nl2sql_evaluation.py validate \
+  data/eval/canonical/b0-run.json
+uv run python scripts/19_nl2sql_evaluation.py report --help
+uv run python scripts/19_nl2sql_evaluation.py compare --help
 ```
 
-## Rủi ro & note
+Adapter nhận input native riêng cho từng baseline:
 
-- **Result canonicalization:** SPARQL result order phụ thuộc ORDER BY. Nếu không có ORDER BY → set comparison; nếu có → list comparison. Detect tự động từ AST.
-- **Timeout queries:** một số gold queries cũng slow → tăng timeout 60s. Mark "timeout" → không count vào denominator.
-- **Floating point trong values:** "1.0" vs "1.00" — round to 6 decimals khi compare.
-- **DataType mismatch:** SPARQL trả `xsd:integer` vs `xsd:decimal` — normalize datatype trong canonicalize.
+```bash
+uv run python scripts/19_nl2sql_evaluation.py adapt b0 \
+  --test-set data/dataset/test/test-100.jsonl \
+  --predictions data/eval/b0/predictions.jsonl \
+  --report data/eval/b0/report.json \
+  --run-id b0-run-01 \
+  --output data/eval/canonical/b0-run-01.json
+```
 
-## Estimated effort
+Live execution luôn yêu cầu `--allow-bigquery` cùng project, location, timeout,
+per-query/aggregate byte caps, estimated USD cap và pricing policy đã pin. Không
+có giá trị mặc định ngầm cho live cost guard:
 
-3 ngày (framework lớn).
+```bash
+uv run python scripts/19_nl2sql_evaluation.py execute \
+  --prediction-run data/eval/canonical/b0-run-01.json \
+  --execution-id b0-exec-01 \
+  --journal data/eval/evidence/b0-exec-01.jsonl \
+  --output data/eval/evidence/b0-exec-01.json \
+  --allow-bigquery \
+  --executor bigquery \
+  --project <gcp-project> --location <location> \
+  --timeout-seconds <seconds> \
+  --per-query-byte-cap <bytes> --aggregate-byte-cap <bytes> \
+  --aggregate-billed-byte-cap <bytes> \
+  --estimated-cost-cap <usd> \
+  --pricing-id <policy-id> --price-per-tib <usd> \
+  --pricing-source-sha256 <64-lowercase-hex>
+```
+
+Đây là thao tác live thủ công, có thể phát sinh chi phí. CI, test và tài liệu
+không được thêm `--allow-bigquery`.
+
+## Semantics
+
+### Accuracy và denominator
+
+- Exact match dùng canonical GoogleSQL; structural match bỏ khác biệt alias nhưng
+  giữ literal và cấu trúc typed.
+- Execution comparison giữ thứ tự khi gold có `ORDER BY`; trường hợp còn lại là
+  multiset, không làm mất duplicate.
+- Exact, structural, execution accuracy và macro answer precision/recall/F1 dùng
+  full denominator `N` của snapshot. Missing, invalid, unsafe, timeout,
+  guard-blocked và execution-error đều ở lại denominator với điểm 0.
+- Nếu bất kỳ gold execution nào lỗi, execution và answer numerator/value/CI là
+  null cho toàn report; framework không công bố partial-success accuracy.
+
+### Bootstrap và breakdown
+
+Mặc định là 10,000 bootstrap samples, seed 42, percentile CI 95%. Resampling theo
+case index. Difficulty groups không chồng lấp; category groups có thể chồng lấp.
+Mọi ratio giữ numerator, denominator, value và interval.
+
+### Latency và cost
+
+Inference, predicted-query execution và gold-query execution được báo riêng với
+expected/observed/missing counts cùng P50/P95/P99. Skipped query không được gán
+latency 0.
+
+Inference cost và BigQuery cost là hai nhánh riêng. Billed bytes quan sát được có
+thể dùng để tạo estimated on-demand USD theo billing floor/rounding đã pin; nó
+không được gọi là observed invoice charge. Submitted job chưa rõ billing giữ
+`unmeasured`/`unresolved`, không được bịa thành 0. Local inference thiếu billing
+evidence cũng là unmeasured, không mặc định USD 0.
+
+### Privacy, reproducibility và failure modes
+
+- Privacy lấy từ sidecar được hash-bind; thiếu review là scientific blocker.
+- Reproducibility tính agreement trên mọi cặp run tương thích. Có thể tính từ hai
+  run, nhưng scientific readiness cần ít nhất ba genuine runs.
+- Failure classification là multi-label. Automated classifier chỉ dùng facts có
+  bằng chứng như `wrong_relation`, `wrong_filter`, `timeout` và
+  `answer_mismatch`; `semantic_drift` chỉ đến từ manual review sidecar.
+
+## Readiness
+
+`implementation_status=ready` nghĩa là artifact hoàn chỉnh và integrity-valid;
+nó không khẳng định nghiên cứu đã hoàn tất. `scientific_status=ready` chỉ đạt khi
+không còn blocker, bao gồm finalized T3.5 provenance, privacy evidence, ba genuine
+compatible runs, non-fake executor, gold execution hợp lệ và resolved submitted
+cost.
+
+Synthetic fixtures và scripted executor được phép chứng minh pipeline với
+`implementation_status=ready`, nhưng luôn giữ `scientific_status=blocked`.
+
+## Acceptance criteria T5.4-A
+
+- [x] Strict canonical codecs, immutable publication và tamper detection.
+- [x] Adapter B0/B1/B2/B4/B5 kiểm tra cross-file identity.
+- [x] GoogleSQL/result semantics giữ order, type và duplicate multiplicity.
+- [x] Double dry-run, fail-closed aggregate/cost guards và explicit BigQuery opt-in.
+- [x] Deterministic six-dimension report, breakdown và paired comparison.
+- [x] Offline CLI/help/validate không truy cập credential hoặc network.
+- [x] Synthetic end-to-end pipeline có implementation ready và scientific blocked.
+- [ ] Genuine baseline artifacts, live BigQuery execution và scientific tables —
+  thuộc T5.4-B, không phải completion gate của T5.4-A.
 
 ## Trạng thái
 
-todo
+Implementation T5.4-A: complete khi toàn bộ test/lint/format gates của branch pass.
+Scientific completion: no; chờ T5.4-B và external evidence thật.

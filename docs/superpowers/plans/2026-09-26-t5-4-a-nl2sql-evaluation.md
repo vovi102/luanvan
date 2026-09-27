@@ -199,7 +199,7 @@ Expected: import failure for artifact functions.
 
 - [ ] **Step 3: Implement canonical envelopes and strict typed codecs**
 
-Use schema version 1 and artifact types
+Use schema version 2 and artifact types
 `nl2sql_prediction_run`, `nl2sql_execution_evidence`,
 `nl2sql_evaluation_report`, `nl2sql_comparison_report` and
 `nl2sql_privacy_review`. Hash the envelope without

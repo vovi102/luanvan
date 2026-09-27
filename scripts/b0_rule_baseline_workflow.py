@@ -259,7 +259,9 @@ def publish_evaluation_artifacts(
     """
     previous_predictions = _existing_bytes(predictions_path)
     prediction_payload = b"".join(_canonical_json(dict(row)) for row in prediction_rows)
-    report_body = dict(report)
+    report_body = dict(report) | {
+        "predictions_sha256": hashlib.sha256(prediction_payload).hexdigest()
+    }
     report_payload = _canonical_json(
         {
             **report_body,
