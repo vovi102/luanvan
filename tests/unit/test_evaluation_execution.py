@@ -197,6 +197,26 @@ def test_aggregate_estimate_guard_blocks_before_any_live_job() -> None:
     assert all(case.gold.status == "guard_blocked" for case in evidence.cases)
 
 
+def test_larger_immediate_dry_run_rechecks_aggregate_before_submit() -> None:
+    run = _run()
+    fake = _fake(run)
+    for estimates in fake.dry_runs.values():
+        estimates[0] = DryRunEvidence(20, NOW, True)
+    fake.dry_runs[("q1", "gold")][1] = DryRunEvidence(50, NOW, True)
+
+    evidence = execute_run(
+        run,
+        execution_id="exec-1",
+        policy=_policy(aggregate_cap=100),
+        executor=fake,
+        journal=MemoryExecutionJournal(),
+    )
+
+    assert "execute:q1:gold" not in fake.calls
+    assert evidence.cases[0].gold.status == "guard_blocked"
+    assert evidence.cases[0].gold.error_code == "immediate_aggregate_guard"
+
+
 def test_evidence_binds_policy_executor_and_terminal_journal_hash() -> None:
     run = _run()
     fake = _fake(run)

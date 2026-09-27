@@ -51,7 +51,7 @@ def _validate_request(request: QueryRequest) -> None:
 def _guarded(estimate: DryRunEvidence, policy: ExecutionPolicy) -> bool:
     if estimate.estimated_bytes > policy.per_query_byte_cap:
         return False
-    cost = Decimal(estimate.estimated_bytes) / Decimal(2**40) * policy.pricing.amount_per_tib
+    cost = policy.pricing.estimate_cost(estimate.estimated_bytes)
     return cost <= policy.estimated_cost_cap
 
 
@@ -127,9 +127,18 @@ def execute_run(
                 "initial_dry_run_error", {"request": request, "error": type(exc).__name__}
             )
 
-    aggregate = sum(item.estimated_bytes for item in first_preflights.values())
-    aggregate_blocked = aggregate > policy.aggregate_byte_cap or any(
-        not _guarded(item, policy) for item in first_preflights.values()
+    effective_estimates = {
+        key: item.estimated_bytes for key, item in first_preflights.items()
+    }
+    aggregate = sum(effective_estimates.values())
+    aggregate_cost = sum(
+        (policy.pricing.estimate_cost(value) for value in effective_estimates.values()),
+        start=Decimal(0),
+    )
+    aggregate_blocked = (
+        aggregate > policy.aggregate_byte_cap
+        or aggregate_cost > policy.estimated_cost_cap
+        or any(not _guarded(item, policy) for item in first_preflights.values())
     )
     outcomes: list[ExecutionCaseEvidence] = []
     for case in run.cases:
@@ -155,9 +164,29 @@ def execute_run(
                 try:
                     immediate = executor.dry_run(request, policy)
                     journal.append("immediate_dry_run", {"request": request, "evidence": immediate})
-                    if not _guarded(immediate, policy):
+                    revised_aggregate = (
+                        aggregate
+                        - effective_estimates[key]
+                        + immediate.estimated_bytes
+                    )
+                    revised_cost = (
+                        aggregate_cost
+                        - policy.pricing.estimate_cost(effective_estimates[key])
+                        + policy.pricing.estimate_cost(immediate.estimated_bytes)
+                    )
+                    if (
+                        revised_aggregate > policy.aggregate_byte_cap
+                        or revised_cost > policy.estimated_cost_cap
+                    ):
+                        pair[role] = _terminal(
+                            "guard_blocked", "immediate_aggregate_guard"
+                        )
+                    elif not _guarded(immediate, policy):
                         pair[role] = _terminal("guard_blocked", "immediate_preflight_guard")
                     else:
+                        aggregate = revised_aggregate
+                        aggregate_cost = revised_cost
+                        effective_estimates[key] = immediate.estimated_bytes
                         pair[role] = executor.execute(request, policy, immediate)
                 except Exception as exc:  # executor boundary is intentionally fail-closed
                     pair[role] = _terminal("error", type(exc).__name__)

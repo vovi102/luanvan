@@ -17,7 +17,7 @@ class EvaluationError(ValueError):
 PredictionStatus: TypeAlias = Literal[
     "ok", "no_output", "invalid_sql", "unsafe_sql", "generation_error", "timeout"
 ]
-MeasurementStatus: TypeAlias = Literal["observed", "unmeasured"]
+MeasurementStatus: TypeAlias = Literal["observed", "estimated", "unmeasured"]
 DataEgress: TypeAlias = Literal["none", "provider", "unknown"]
 ExecutionStatus: TypeAlias = Literal[
     "ok",
@@ -111,7 +111,7 @@ class ArtifactRef:
 
 @dataclass(frozen=True)
 class CostEvidence:
-    """Exact observed cost or an explicit statement that cost was unmeasured."""
+    """Observed, policy-estimated, or explicitly unmeasured monetary cost."""
 
     measurement_status: MeasurementStatus
     amount: Decimal | None
@@ -119,16 +119,16 @@ class CostEvidence:
     source: str | None
 
     def __post_init__(self) -> None:
-        if self.measurement_status not in ("observed", "unmeasured"):
+        if self.measurement_status not in ("observed", "estimated", "unmeasured"):
             raise EvaluationError("unknown measurement_status")
         if self.measurement_status == "unmeasured":
             if self.amount is not None or self.currency is not None or self.source is not None:
                 raise EvaluationError("unmeasured cost requires null amount, currency and source")
             return
         if not isinstance(self.amount, Decimal) or not self.amount.is_finite() or self.amount < 0:
-            raise EvaluationError("observed cost requires a finite non-negative Decimal amount")
+            raise EvaluationError("measured cost requires a finite non-negative Decimal amount")
         if self.currency is None or self.source is None:
-            raise EvaluationError("observed cost requires currency and source")
+            raise EvaluationError("measured cost requires currency and source")
         _require_text(self.currency, "currency")
         _require_text(self.source, "source")
 
@@ -375,6 +375,11 @@ class QueryExecution:
     cost: CostEvidence
     result: QueryResultEvidence | None
     error_code: str | None
+    processed_bytes: int | None = None
+    cache_hit: bool | None = None
+    cancellation_status: Literal["not_requested", "succeeded", "failed", "unknown"] = (
+        "not_requested"
+    )
 
     def __post_init__(self) -> None:
         if self.status not in (
@@ -393,6 +398,16 @@ class QueryExecution:
             raise EvaluationError("unknown execution status")
         _require_finite_non_negative(self.latency_ms, "latency_ms", optional=True)
         _require_non_negative_int(self.billed_bytes, "billed_bytes", optional=True)
+        _require_non_negative_int(self.processed_bytes, "processed_bytes", optional=True)
+        if self.cache_hit is not None and not isinstance(self.cache_hit, bool):
+            raise EvaluationError("cache_hit must be boolean or null")
+        if self.cancellation_status not in (
+            "not_requested",
+            "succeeded",
+            "failed",
+            "unknown",
+        ):
+            raise EvaluationError("unknown cancellation_status")
         if self.status == "ok" and self.job_id is None:
             raise EvaluationError("successful execution requires job_id")
 
@@ -417,6 +432,8 @@ class PricingPolicy:
     currency: str
     amount_per_tib: Decimal
     source_sha256: str
+    minimum_billed_bytes: int = 10 * 2**20
+    billing_increment_bytes: int = 2**20
 
     def __post_init__(self) -> None:
         _require_text(self.policy_id, "policy_id")
@@ -424,6 +441,23 @@ class PricingPolicy:
         if not self.amount_per_tib.is_finite() or self.amount_per_tib < 0:
             raise EvaluationError("amount_per_tib must be finite and non-negative")
         _require_sha256(self.source_sha256, "source_sha256")
+        _require_non_negative_int(self.minimum_billed_bytes, "minimum_billed_bytes")
+        _require_non_negative_int(self.billing_increment_bytes, "billing_increment_bytes")
+        if self.billing_increment_bytes == 0:
+            raise EvaluationError("billing_increment_bytes must be positive")
+
+    def conservative_billed_bytes(self, processed_bytes: int) -> int:
+        """Apply the pinned nonzero floor and increment, always rounding upward."""
+        _require_non_negative_int(processed_bytes, "processed_bytes")
+        if processed_bytes == 0:
+            return 0
+        floored = max(processed_bytes, self.minimum_billed_bytes)
+        increment = self.billing_increment_bytes
+        return ((floored + increment - 1) // increment) * increment
+
+    def estimate_cost(self, processed_bytes: int) -> Decimal:
+        billed = self.conservative_billed_bytes(processed_bytes)
+        return Decimal(billed) / Decimal(2**40) * self.amount_per_tib
 
 
 @dataclass(frozen=True)

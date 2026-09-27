@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import hmac
 import json
@@ -427,3 +428,84 @@ def verify_sealed_journal(path: Path) -> str:
     if not sealed:
         raise EvaluationError("journal is unsealed")
     return terminal
+
+
+class FileExecutionJournal:
+    """Create-once, fsync-before-return execution journal with no resume API."""
+
+    def __init__(self, path: Path, *, _created: bool = False) -> None:
+        if not _created:
+            raise EvaluationError("file execution journals must be created with create()")
+        self.path = path
+        self._sealed = False
+
+    @classmethod
+    def create(
+        cls,
+        path: Path,
+        *,
+        header: Mapping[str, object],
+        protected_paths: Sequence[Path],
+    ) -> FileExecutionJournal:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _reject_alias(path, protected_paths)
+        try:
+            with path.open("xb") as handle:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                cls._append_to_locked(handle, "header", header, _ZERO_DIGEST)
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        except FileExistsError as exc:
+            raise EvaluationError("execution journal already exists; resume is forbidden") from exc
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+        return cls(path, _created=True)
+
+    @staticmethod
+    def _append_to_locked(
+        handle: Any,
+        record_type: str,
+        body: Mapping[str, object],
+        previous: str,
+    ) -> str:
+        base = {
+            "record_type": record_type,
+            "body": dict(body),
+            "previous_sha256": previous,
+        }
+        digest = _digest(base)
+        handle.seek(0, os.SEEK_END)
+        handle.write(canonical_json(base | {"record_sha256": digest}))
+        handle.flush()
+        os.fsync(handle.fileno())
+        return digest
+
+    def append(self, record_type: str, body: Mapping[str, object]) -> str:
+        if not record_type:
+            raise EvaluationError("journal record_type must be non-empty")
+        if self._sealed:
+            raise EvaluationError("sealed journal cannot be appended")
+        with self.path.open("r+b") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            _, previous, sealed = _read_journal(self.path)
+            if sealed:
+                raise EvaluationError("sealed journal cannot be appended")
+            digest = self._append_to_locked(handle, record_type, body, previous)
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        return digest
+
+    def seal(self, body: Mapping[str, object]) -> str:
+        terminal = self.append("terminal_seal", body)
+        if verify_sealed_journal(self.path) != terminal:
+            raise EvaluationError("journal terminal verification failed")
+        self._sealed = True
+        return terminal
+
+
+def verify_execution_evidence_journal(evidence: ExecutionEvidence, path: Path) -> None:
+    """Verify a sealed journal and its terminal binding to execution evidence."""
+    terminal = verify_sealed_journal(path)
+    if not hmac.compare_digest(terminal, evidence.journal_terminal_sha256):
+        raise EvaluationError("execution evidence journal terminal mismatch")
