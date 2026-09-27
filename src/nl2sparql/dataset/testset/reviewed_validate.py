@@ -6,19 +6,24 @@ import csv
 import hashlib
 import json
 import unicodedata
-from collections import Counter
-from dataclasses import dataclass
+from collections import Counter, defaultdict
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
 from sqlglot import exp, parse_one
 from sqlglot.errors import SqlglotError
 
-from nl2sparql.dataset.testset.contracts import TestSetError
+from nl2sparql.dataset.testset.contracts import SelectionRecord, TestSetError
 from nl2sparql.dataset.testset.reviewed_contracts import (
     AGENT_REVIEWED_PROFILE,
+    AcceptedCandidate,
     CandidateRecord,
+    ReviewedTestSetPaths,
+    ReviewEvent,
     load_candidates,
+    load_review_events,
+    load_reviewed_selections,
 )
 from nl2sparql.dataset.testset.sql_safety import validate_sql_text
 from nl2sparql.sql.schema import SchemaCatalogError, load_catalog, validate_catalog
@@ -53,8 +58,41 @@ class CandidatePackReport:
     source_commit: str
 
 
+@dataclass(frozen=True)
+class ReviewedBundle:
+    """Candidate, event, and explicit-selection inputs for human review."""
+
+    candidates: tuple[CandidateRecord, ...]
+    events: tuple[ReviewEvent, ...]
+    selections: tuple[SelectionRecord, ...]
+
+
+@dataclass(frozen=True)
+class ReviewBundleReport:
+    """Hash-bound evidence that human review and selection are complete."""
+
+    status: str
+    provenance_profile: str
+    candidate_count: int
+    reviewed_count: int
+    accepted_count: int
+    revised_count: int
+    rejected_count: int
+    reviewer_id: str
+    selected_count: int
+    difficulty_counts: tuple[tuple[str, int], ...]
+    accepted_content_sha256: str
+    review_sha256: str
+    selection_sha256: str
+
+
 def _canonical_nl(value: str) -> str:
     return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+
+
+def _canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _is_excluded_leakage_path(path: Path, repo_root: Path) -> bool:
@@ -146,6 +184,15 @@ def _read_leakage_questions(path: Path) -> tuple[str, ...]:
     if path.suffix.casefold() == ".csv":
         return _read_csv_questions(path)
     return _read_json_questions(path, lines=path.suffix.casefold() == ".jsonl")
+
+
+def _leakage_index(repo_root: Path) -> frozenset[str]:
+    questions = {
+        _canonical_nl(question)
+        for path in canonical_leakage_paths(repo_root.resolve())
+        for question in _read_leakage_questions(path)
+    }
+    return frozenset(questions)
 
 
 def _catalog_ids(catalog_path: Path) -> tuple[frozenset[str], frozenset[str], str]:
@@ -281,4 +328,201 @@ def validate_candidate_pack(
         catalog_sha256=catalog_sha256,
         leakage_sources=tuple(leakage_sources),
         source_commit=next(iter(source_commits)),
+    )
+
+
+def load_reviewed_bundle(paths: ReviewedTestSetPaths) -> ReviewedBundle:
+    """Load candidate source, append-only review events, and explicit selection."""
+    return ReviewedBundle(
+        candidates=load_candidates(paths.candidates),
+        events=load_review_events(paths.review_events),
+        selections=load_reviewed_selections(paths.final_selection),
+    )
+
+
+def _accepted_candidate(candidate: CandidateRecord, event: ReviewEvent) -> AcceptedCandidate:
+    candidate_sha256 = _canonical_sha256(asdict(candidate))
+    accepted_content = {
+        "ambiguity_flag": candidate.ambiguity_flag,
+        "categories": candidate.categories,
+        "cq_ids": candidate.cq_ids,
+        "difficulty": event.difficulty,
+        "entity_kinds": candidate.entity_kinds,
+        "expected_columns": candidate.expected_columns,
+        "expected_empty": candidate.expected_empty,
+        "nl": candidate.nl,
+        "question_id": candidate.question_id,
+        "reviewer_id": event.reviewer_id,
+        "schema_elements": candidate.schema_elements,
+        "sql": candidate.sql,
+    }
+    return AcceptedCandidate(
+        question_id=candidate.question_id,
+        reviewer_id=event.reviewer_id,
+        nl=candidate.nl,
+        sql=candidate.sql,
+        expected_columns=candidate.expected_columns,
+        expected_empty=candidate.expected_empty,
+        ambiguity_flag=candidate.ambiguity_flag,
+        difficulty=event.difficulty,
+        categories=candidate.categories,
+        entity_kinds=candidate.entity_kinds,
+        schema_elements=candidate.schema_elements,
+        cq_ids=candidate.cq_ids,
+        candidate_sha256=candidate_sha256,
+        accepted_content_sha256=_canonical_sha256(accepted_content),
+    )
+
+
+def resolve_review_state(
+    bundle: ReviewedBundle,
+    *,
+    repo_root: Path,
+    catalog_path: Path,
+) -> tuple[AcceptedCandidate, ...]:
+    """Resolve append-only human events into explicitly accepted content."""
+    candidate_ids = tuple(candidate.question_id for candidate in bundle.candidates)
+    if len(candidate_ids) != len(set(candidate_ids)):
+        raise TestSetError("candidate IDs must be unique")
+    candidates_by_id = {candidate.question_id: candidate for candidate in bundle.candidates}
+    events_by_id: defaultdict[str, list[ReviewEvent]] = defaultdict(list)
+    for event in bundle.events:
+        if event.question_id not in candidates_by_id:
+            raise TestSetError(f"review event has unknown candidate {event.question_id}")
+        events_by_id[event.question_id].append(event)
+    if set(events_by_id) != set(candidate_ids):
+        raise TestSetError("every candidate requires at least one human review event")
+    reviewers = {event.reviewer_id for event in bundle.events}
+    if len(reviewers) != 1:
+        raise TestSetError("the candidate pack requires one stable reviewer identity")
+
+    schema_ids, cq_ids, catalog_sha256 = _catalog_ids(catalog_path)
+    leaked_questions = _leakage_index(repo_root)
+    accepted: list[AcceptedCandidate] = []
+    terminal_questions: list[str] = []
+    for candidate in bundle.candidates:
+        current = candidate
+        _validate_candidate_content(
+            current,
+            schema_ids=schema_ids,
+            cq_ids=cq_ids,
+            catalog_sha256=catalog_sha256,
+        )
+        rows = events_by_id[candidate.question_id]
+        rounds = [row.review_round for row in rows]
+        if sorted(rounds) != list(range(1, len(rows) + 1)) or len(rounds) != len(set(rounds)):
+            raise TestSetError(
+                f"{candidate.question_id} review rounds must be unique and contiguous"
+            )
+        terminal = False
+        for index, event in enumerate(sorted(rows, key=lambda row: row.review_round)):
+            if terminal:
+                raise TestSetError(
+                    f"{candidate.question_id} has an event after a terminal decision"
+                )
+            if event.decision == "REVISE":
+                current = replace(
+                    current,
+                    nl=event.revised_nl or current.nl,
+                    sql=event.revised_sql or current.sql,
+                )
+                _validate_candidate_content(
+                    current,
+                    schema_ids=schema_ids,
+                    cq_ids=cq_ids,
+                    catalog_sha256=catalog_sha256,
+                )
+                if _canonical_nl(current.nl) in leaked_questions:
+                    raise TestSetError(
+                        f"{candidate.question_id} revised NL has a leakage collision"
+                    )
+                continue
+            if index != len(rows) - 1:
+                raise TestSetError(
+                    f"{candidate.question_id} has an event after a terminal decision"
+                )
+            if event.decision == "ACCEPT":
+                if event.nl_quality < 4 or event.sql_faithfulness < 4:
+                    raise TestSetError("ACCEPT requires NL and SQL scores of at least 4")
+                accepted.append(_accepted_candidate(current, event))
+            terminal_questions.append(current.nl)
+            terminal = True
+        if not terminal:
+            raise TestSetError(f"{candidate.question_id} remains pending after REVISE")
+    normalized = [_canonical_nl(question) for question in terminal_questions]
+    if len(normalized) != len(set(normalized)):
+        raise TestSetError("post-review normalized NL values must remain unique")
+    return tuple(accepted)
+
+
+def validate_reviewed_selection(
+    bundle: ReviewedBundle,
+    *,
+    repo_root: Path,
+    catalog_path: Path,
+) -> ReviewBundleReport:
+    """Validate explicit accepted selection and return hash-bound review evidence."""
+    accepted = resolve_review_state(bundle, repo_root=repo_root, catalog_path=catalog_path)
+    accepted_by_id = {candidate.question_id: candidate for candidate in accepted}
+    if len(bundle.selections) != 100:
+        raise TestSetError("final selection requires exactly 100 rows")
+    selection_ids = tuple(selection.question_id for selection in bundle.selections)
+    if len(selection_ids) != len(set(selection_ids)):
+        raise TestSetError("final selection IDs must be unique")
+    if not set(selection_ids) <= set(accepted_by_id):
+        raise TestSetError("final selection may contain only accepted candidates")
+
+    difficulty_counts = Counter(selection.final_difficulty for selection in bundle.selections)
+    if difficulty_counts != {"easy": 30, "medium": 50, "hard": 20}:
+        raise TestSetError(f"final selection difficulty quota mismatch: {dict(difficulty_counts)}")
+    categories = {category for selection in bundle.selections for category in selection.categories}
+    if len(categories) < 6:
+        raise TestSetError("final selection must cover at least six categories")
+    entity_kinds = {kind for selection in bundle.selections for kind in selection.entity_kinds}
+    if entity_kinds != {"address_only", "concept_class", "named_entity"}:
+        raise TestSetError("final selection must cover all three entity kinds")
+    schema_ids, cq_ids, _ = _catalog_ids(catalog_path)
+    for selection in bundle.selections:
+        unknown_schema = set(selection.schema_elements) - schema_ids
+        if unknown_schema:
+            raise TestSetError(
+                f"{selection.question_id} has unknown schema annotations: {sorted(unknown_schema)}"
+            )
+        unknown_cqs = set(selection.cq_ids) - cq_ids
+        if unknown_cqs:
+            raise TestSetError(
+                f"{selection.question_id} has unknown CQ annotations: {sorted(unknown_cqs)}"
+            )
+
+    event_ids = {event.question_id for event in bundle.events}
+    rejected_count = len(event_ids - set(accepted_by_id))
+    revised_count = len(
+        {event.question_id for event in bundle.events if event.decision == "REVISE"}
+    )
+    reviewer_id = next(iter({event.reviewer_id for event in bundle.events}))
+    accepted_payload = [asdict(candidate) for candidate in accepted]
+    review_payload = [asdict(event) for event in bundle.events]
+    selection_payload = [
+        {
+            **asdict(selection),
+            "accepted_content_sha256": accepted_by_id[
+                selection.question_id
+            ].accepted_content_sha256,
+        }
+        for selection in bundle.selections
+    ]
+    return ReviewBundleReport(
+        status="review_ready",
+        provenance_profile=AGENT_REVIEWED_PROFILE,
+        candidate_count=len(bundle.candidates),
+        reviewed_count=len(event_ids),
+        accepted_count=len(accepted),
+        revised_count=revised_count,
+        rejected_count=rejected_count,
+        reviewer_id=reviewer_id,
+        selected_count=len(bundle.selections),
+        difficulty_counts=tuple(sorted(difficulty_counts.items())),
+        accepted_content_sha256=_canonical_sha256(accepted_payload),
+        review_sha256=_canonical_sha256(review_payload),
+        selection_sha256=_canonical_sha256(selection_payload),
     )
