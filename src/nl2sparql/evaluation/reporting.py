@@ -183,9 +183,7 @@ def _cost_values(costs: Sequence[CostEvidence | None]) -> tuple[float | None, ..
     )
 
 
-def _distribution(
-    values: Sequence[float | None], policy: BootstrapPolicy
-) -> DistributionMetric:
+def _distribution(values: Sequence[float | None], policy: BootstrapPolicy) -> DistributionMetric:
     return distribution_metric(values, len(values), policy)
 
 
@@ -212,9 +210,7 @@ def _headline_dimensions(
             "execution_accuracy",
             _rate(
                 cases,
-                lambda case: None
-                if case.execution_match is None
-                else float(case.execution_match),
+                lambda case: None if case.execution_match is None else float(case.execution_match),
                 policy,
             ),
         ),
@@ -325,8 +321,7 @@ def _readiness(
     if any(run.provenance.synthetic for run in runs):
         blockers.add("synthetic_input")
     if any(
-        evidence.executor.synthetic or evidence.executor.kind == "fake"
-        for evidence in evidences
+        evidence.executor.synthetic or evidence.executor.kind == "fake" for evidence in evidences
     ):
         blockers.add("fake_executor")
     if any(not run.provenance.reviewed or not run.provenance.live_verified for run in runs):
@@ -385,22 +380,16 @@ def build_report(
             (
                 (
                     "reproducibility_raw",
-                    reproducibility_metric(
-                        all_runs, normalized_sql=False, policy=bootstrap_policy
-                    ),
+                    reproducibility_metric(all_runs, normalized_sql=False, policy=bootstrap_policy),
                 ),
                 (
                     "reproducibility_normalized_sql",
-                    reproducibility_metric(
-                        all_runs, normalized_sql=True, policy=bootstrap_policy
-                    ),
+                    reproducibility_metric(all_runs, normalized_sql=True, policy=bootstrap_policy),
                 ),
             )
         )
     else:
-        dimensions.extend(
-            (("reproducibility_raw", None), ("reproducibility_normalized_sql", None))
-        )
+        dimensions.extend((("reproducibility_raw", None), ("reproducibility_normalized_sql", None)))
 
     ids = _case_ids(primary_run)
     return EvaluationReport(
@@ -459,9 +448,7 @@ def compare_reports(
     left_cases = tuple(left_map[case_id] for case_id in ids)
     right_cases = tuple(right_map[case_id] for case_id in ids)
 
-    extractors: tuple[
-        tuple[str, Callable[[CaseEvaluation], float | None]], ...
-    ] = (
+    extractors: tuple[tuple[str, Callable[[CaseEvaluation], float | None]], ...] = (
         ("exact_match", lambda case: float(case.exact_match)),
         ("structural_match", lambda case: float(case.structural_match)),
         (
@@ -485,28 +472,32 @@ def compare_reports(
         ("gold_execution_latency_ms", lambda case: case.gold_execution_latency_ms),
         (
             "inference_cost_usd",
-            lambda case: float(case.inference_cost.amount)
-            if case.inference_cost.amount is not None
-            else None,
+            lambda case: (
+                float(case.inference_cost.amount)
+                if case.inference_cost.amount is not None
+                else None
+            ),
         ),
         (
             "execution_cost_usd",
-            lambda case: float(case.execution_cost.amount)
-            if case.execution_cost.amount is not None
-            else None,
+            lambda case: (
+                float(case.execution_cost.amount)
+                if case.execution_cost.amount is not None
+                else None
+            ),
         ),
         (
             "gold_execution_cost_usd",
-            lambda case: float(case.gold_execution_cost.amount)
-            if case.gold_execution_cost is not None
-            and case.gold_execution_cost.amount is not None
-            else None,
+            lambda case: (
+                float(case.gold_execution_cost.amount)
+                if case.gold_execution_cost is not None
+                and case.gold_execution_cost.amount is not None
+                else None
+            ),
         ),
     )
     deltas: list[MetricDelta] = []
-    blockers = set(left.readiness.scientific_blockers) | set(
-        right.readiness.scientific_blockers
-    )
+    blockers = set(left.readiness.scientific_blockers) | set(right.readiness.scientific_blockers)
     blockers.update(left.readiness.implementation_blockers)
     blockers.update(right.readiness.implementation_blockers)
     for metric, extractor in extractors:

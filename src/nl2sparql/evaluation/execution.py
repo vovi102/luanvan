@@ -127,9 +127,7 @@ def execute_run(
                 "initial_dry_run_error", {"request": request, "error": type(exc).__name__}
             )
 
-    effective_estimates = {
-        key: item.estimated_bytes for key, item in first_preflights.items()
-    }
+    effective_estimates = {key: item.estimated_bytes for key, item in first_preflights.items()}
     aggregate = sum(effective_estimates.values())
     aggregate_cost = sum(
         (policy.pricing.estimate_cost(value) for value in effective_estimates.values()),
@@ -165,9 +163,7 @@ def execute_run(
                     immediate = executor.dry_run(request, policy)
                     journal.append("immediate_dry_run", {"request": request, "evidence": immediate})
                     revised_aggregate = (
-                        aggregate
-                        - effective_estimates[key]
-                        + immediate.estimated_bytes
+                        aggregate - effective_estimates[key] + immediate.estimated_bytes
                     )
                     revised_cost = (
                         aggregate_cost
@@ -178,9 +174,7 @@ def execute_run(
                         revised_aggregate > policy.aggregate_byte_cap
                         or revised_cost > policy.estimated_cost_cap
                     ):
-                        pair[role] = _terminal(
-                            "guard_blocked", "immediate_aggregate_guard"
-                        )
+                        pair[role] = _terminal("guard_blocked", "immediate_aggregate_guard")
                     elif not _guarded(immediate, policy):
                         pair[role] = _terminal("guard_blocked", "immediate_preflight_guard")
                     else:
