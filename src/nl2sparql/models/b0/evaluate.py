@@ -24,7 +24,9 @@ _CASE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{1,63}$")
 _DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _DIFFICULTIES = frozenset({"easy", "medium", "hard"})
-_FINAL_FIELDS = frozenset(
+THREE_POOL_PROFILE = "three_pool_v1"
+AGENT_REVIEWED_PROFILE = "agent_authored_human_reviewed_v1"
+_THREE_POOL_FIELDS = frozenset(
     {
         "ambiguity_flag",
         "categories",
@@ -42,6 +44,27 @@ _FINAL_FIELDS = frozenset(
         "verified_at",
         "verified_executable",
     }
+)
+_REVIEWED_FIELDS = _THREE_POOL_FIELDS | frozenset(
+    {
+        "accepted_content_sha256",
+        "candidate_sha256",
+        "catalog_sha256",
+        "live_evidence_sha256",
+        "provenance_bundle_sha256",
+        "provenance_profile",
+        "review_provenance",
+        "selection_sha256",
+    }
+)
+_REVIEWED_DIGEST_FIELDS = (
+    "accepted_content_sha256",
+    "candidate_sha256",
+    "catalog_sha256",
+    "evidence_sha256",
+    "live_evidence_sha256",
+    "provenance_bundle_sha256",
+    "selection_sha256",
 )
 
 
@@ -90,6 +113,7 @@ class B0CaseSet:
     cases: tuple[B0EvaluationCase, ...]
     input_sha256: str
     synthetic: bool
+    provenance_profile: str = THREE_POOL_PROFILE
 
     def __post_init__(self) -> None:
         if not isinstance(self.cases, tuple) or not self.cases:
@@ -103,6 +127,8 @@ class B0CaseSet:
             raise B0EvaluationError("evaluation input fingerprint is invalid")
         if not isinstance(self.synthetic, bool):
             raise B0EvaluationError("synthetic marker must be boolean")
+        if self.provenance_profile not in {THREE_POOL_PROFILE, AGENT_REVIEWED_PROFILE}:
+            raise B0EvaluationError("evaluation provenance profile is invalid")
 
 
 @dataclass(frozen=True)
@@ -166,9 +192,43 @@ def _string_list(value: object, label: str, *, nonempty: bool = False) -> tuple[
     return tuple(value)
 
 
-def _parse_row(raw: object, row_number: int, *, synthetic: bool) -> B0EvaluationCase:
-    if not isinstance(raw, Mapping) or set(raw) != _FINAL_FIELDS:
-        raise B0EvaluationError(f"row {row_number} must use the finalized T3.5 fields")
+def _row_profile(raw: object, row_number: int) -> str:
+    if not isinstance(raw, Mapping):
+        raise B0EvaluationError(f"row {row_number} must use a finalized T3.5 object schema")
+    fields = set(raw)
+    if fields == _THREE_POOL_FIELDS:
+        return THREE_POOL_PROFILE
+    if fields == _REVIEWED_FIELDS:
+        return AGENT_REVIEWED_PROFILE
+    raise B0EvaluationError(f"row {row_number} must use one exact finalized T3.5 schema")
+
+
+def _validate_reviewed_provenance(raw: Mapping[str, object], row_number: int) -> None:
+    if raw["provenance_profile"] != AGENT_REVIEWED_PROFILE:
+        raise B0EvaluationError(f"row {row_number} provenance profile is invalid")
+    if raw["source"] != "agent":
+        raise B0EvaluationError(f"row {row_number} source must be agent")
+    if raw["pool_b_writer"] != "agent":
+        raise B0EvaluationError(f"row {row_number} pool_b_writer must be agent")
+    reviewers = _string_list(raw["pool_c_reviewers"], "reviewers", nonempty=True)
+    if len(reviewers) != 1 or not _CASE_ID_RE.fullmatch(reviewers[0]) or reviewers[0] == "agent":
+        raise B0EvaluationError(f"row {row_number} requires one pseudonymous human reviewer")
+    if raw["review_provenance"] != "single_human_reviewer":
+        raise B0EvaluationError(f"row {row_number} review provenance is invalid")
+    if any(
+        not isinstance(raw[field], str) or not _DIGEST_RE.fullmatch(raw[field])
+        for field in _REVIEWED_DIGEST_FIELDS
+    ):
+        raise B0EvaluationError(f"row {row_number} reviewed provenance fingerprint is invalid")
+
+
+def _parse_row(
+    raw: Mapping[str, object],
+    row_number: int,
+    *,
+    synthetic: bool,
+    provenance_profile: str,
+) -> B0EvaluationCase:
     _string_list(raw["categories"], "categories", nonempty=True)
     _string_list(raw["cq_ids"], "CQ IDs", nonempty=True)
     _string_list(raw["schema_elements"], "schema elements", nonempty=True)
@@ -181,7 +241,7 @@ def _parse_row(raw: object, row_number: int, *, synthetic: bool) -> B0Evaluation
     verified = raw["verified_executable"]
     if not isinstance(verified, bool):
         raise B0EvaluationError(f"row {row_number} verified marker is invalid")
-    if not synthetic and not verified:
+    if (not synthetic or provenance_profile == AGENT_REVIEWED_PROFILE) and not verified:
         raise B0EvaluationError(f"row {row_number} must be verified executable")
     sql = raw["sql"]
     if not isinstance(sql, str):
@@ -199,6 +259,8 @@ def _parse_row(raw: object, row_number: int, *, synthetic: bool) -> B0Evaluation
         raw[key] is not None for key in ("evidence_sha256", "verified_at", "expected_result_size")
     ):
         raise B0EvaluationError(f"row {row_number} unverified evidence must be null")
+    if provenance_profile == AGENT_REVIEWED_PROFILE:
+        _validate_reviewed_provenance(raw, row_number)
     return B0EvaluationCase(
         case_id=raw["id"],
         question=raw["nl"],
@@ -233,12 +295,25 @@ def load_b0_cases(path: Path, *, synthetic: bool = False) -> B0CaseSet:
     author_ids: set[str] = set()
     writer_ids: set[str] = set()
     reviewer_ids: set[str] = set()
+    provenance_profile: str | None = None
     try:
         for row_number, line in enumerate(text.splitlines(), start=1):
             if not line.strip():
                 raise B0EvaluationError(f"row {row_number} must not be blank")
             raw = json.loads(line, object_pairs_hook=_json_object)
-            cases.append(_parse_row(raw, row_number, synthetic=synthetic))
+            row_profile = _row_profile(raw, row_number)
+            if provenance_profile is None:
+                provenance_profile = row_profile
+            elif row_profile != provenance_profile:
+                raise B0EvaluationError("evaluation snapshot must be homogeneous; mixed profiles")
+            cases.append(
+                _parse_row(
+                    raw,
+                    row_number,
+                    synthetic=synthetic,
+                    provenance_profile=row_profile,
+                )
+            )
             author_ids.add(str(raw["source"]))
             writer_ids.add(str(raw["pool_b_writer"]))
             reviewer_ids.update(raw["pool_c_reviewers"])
@@ -249,12 +324,17 @@ def load_b0_cases(path: Path, *, synthetic: bool = False) -> B0CaseSet:
     ids = tuple(case.case_id for case in cases)
     if len(ids) != len(set(ids)):
         raise B0EvaluationError("evaluation input contains duplicate case IDs")
-    if author_ids & writer_ids or author_ids & reviewer_ids or writer_ids & reviewer_ids:
+    if provenance_profile == THREE_POOL_PROFILE and (
+        author_ids & writer_ids or author_ids & reviewer_ids or writer_ids & reviewer_ids
+    ):
         raise B0EvaluationError("Pool A, Pool B, and Pool C identities must remain independent")
+    if provenance_profile is None:
+        raise B0EvaluationError("evaluation input must contain at least one case")
     return B0CaseSet(
         cases=tuple(cases),
         input_sha256=hashlib.sha256(snapshot).hexdigest(),
         synthetic=synthetic,
+        provenance_profile=provenance_profile,
     )
 
 

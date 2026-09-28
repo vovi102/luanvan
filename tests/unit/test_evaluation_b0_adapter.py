@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from nl2sparql.evaluation.adapters.b0 import B0AdaptRequest, adapt_b0
+from nl2sparql.evaluation.adapters.common import load_authoritative_test_set
 from nl2sparql.evaluation.artifacts import publish_immutable, serialize_privacy_review
 from nl2sparql.evaluation.contracts import EvaluationError, PrivacyReview
 from scripts.b0_rule_baseline_workflow import publish_evaluation_artifacts
@@ -31,6 +32,22 @@ def _gold(case_id: str, *, question: str | None = None) -> dict[str, object]:
         "sql": SQL,
         "verified_at": "2026-09-26T00:00:00Z",
         "verified_executable": True,
+    }
+
+
+def _reviewed_gold(case_id: str) -> dict[str, object]:
+    return _gold(case_id) | {
+        "accepted_content_sha256": "1" * 64,
+        "candidate_sha256": "2" * 64,
+        "catalog_sha256": "3" * 64,
+        "live_evidence_sha256": "4" * 64,
+        "pool_b_writer": "agent",
+        "pool_c_reviewers": ["reviewer_01"],
+        "provenance_bundle_sha256": "5" * 64,
+        "provenance_profile": "agent_authored_human_reviewed_v1",
+        "review_provenance": "single_human_reviewer",
+        "selection_sha256": "6" * 64,
+        "source": "agent",
     }
 
 
@@ -113,6 +130,18 @@ def test_adapter_uses_authoritative_gold_and_maps_unmatched_without_inventing_co
     assert {ref.role for ref in run.source_artifacts} == {"predictions", "report", "test_set"}
     assert not hasattr(run, "coverage")
     assert run.cases[0].privacy.documentation_status == "undocumented"
+
+
+def test_authoritative_loader_exposes_agent_reviewed_profile_truthfully(tmp_path: Path) -> None:
+    path = tmp_path / "reviewed.jsonl"
+    _write_test_set(path, [_reviewed_gold("t35-001")])
+
+    case_set = load_authoritative_test_set(path, synthetic=False)
+
+    assert case_set.provenance_profile == "agent_authored_human_reviewed_v1"
+    assert case_set.reviewed is True
+    assert case_set.live_verified is True
+    assert case_set.synthetic is False
 
 
 def test_matching_privacy_review_is_bound_and_mismatch_rejected(tmp_path: Path) -> None:

@@ -38,6 +38,27 @@ def _row(case_id: str, *, verified: bool = True) -> dict[str, object]:
     }
 
 
+def _reviewed_row(case_id: str, *, verified: bool = True) -> dict[str, object]:
+    row = _row(case_id, verified=verified)
+    return row | {
+        "accepted_content_sha256": "1" * 64,
+        "candidate_sha256": "2" * 64,
+        "catalog_sha256": "3" * 64,
+        "live_evidence_sha256": "4" * 64,
+        "pool_b_writer": "agent",
+        "pool_c_reviewers": ["reviewer_01"],
+        "provenance_bundle_sha256": "5" * 64,
+        "provenance_profile": "agent_authored_human_reviewed_v1",
+        "review_provenance": "single_human_reviewer",
+        "selection_sha256": "6" * 64,
+        "source": "agent",
+    }
+
+
+def _reviewed_rows() -> list[dict[str, object]]:
+    return [_reviewed_row(f"t35-{index:03d}") for index in range(1, 101)]
+
+
 def _write_jsonl(tmp_path: Path, rows: list[dict[str, object]]) -> Path:
     path = tmp_path / "cases.jsonl"
     path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
@@ -95,6 +116,51 @@ def test_reviewed_rows_require_disjoint_pool_identities(tmp_path: Path) -> None:
     path = _write_jsonl(tmp_path, [row])
 
     with pytest.raises(B0EvaluationError, match="independent"):
+        load_b0_cases(path, synthetic=False)
+
+
+def test_agent_reviewed_snapshot_loads_without_false_independence_claim(
+    tmp_path: Path,
+) -> None:
+    path = _write_jsonl(tmp_path, _reviewed_rows())
+
+    cases = load_b0_cases(path, synthetic=False)
+
+    assert len(cases.cases) == 100
+    assert cases.provenance_profile == "agent_authored_human_reviewed_v1"
+    assert cases.synthetic is False
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ({"provenance_profile": None}, "profile"),
+        ({"source": "author_1"}, "source"),
+        ({"pool_b_writer": "writer_1"}, "pool_b_writer"),
+        ({"pool_c_reviewers": []}, "reviewer"),
+        ({"pool_c_reviewers": ["one", "two"]}, "reviewer"),
+        ({"review_provenance": "independent_review"}, "review provenance"),
+        ({"candidate_sha256": "A" * 64}, "fingerprint"),
+        ({"live_evidence_sha256": "short"}, "fingerprint"),
+    ),
+)
+def test_agent_reviewed_snapshot_rejects_provenance_confusion(
+    tmp_path: Path,
+    mutation: dict[str, object],
+    message: str,
+) -> None:
+    rows = _reviewed_rows()
+    rows[0] |= mutation
+    path = _write_jsonl(tmp_path, rows)
+
+    with pytest.raises(B0EvaluationError, match=message):
+        load_b0_cases(path, synthetic=False)
+
+
+def test_snapshot_may_not_mix_legacy_and_agent_reviewed_rows(tmp_path: Path) -> None:
+    path = _write_jsonl(tmp_path, [_row("Q001"), _reviewed_row("t35-001")])
+
+    with pytest.raises(B0EvaluationError, match="mixed|homogeneous"):
         load_b0_cases(path, synthetic=False)
 
 
