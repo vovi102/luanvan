@@ -10,6 +10,11 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-27-t3-5-agent-reviewed-benchmark-design.md`
 
+**Implementation status (2026-09-28):** Tasks 1–7 are committed and Task 8
+published the hash-bound `draft_ready` evidence. The implementation deliberately
+stops before human review, live BigQuery verification, and final publication;
+those external gates remain listed in the handoff below.
+
 ## Global Constraints
 
 - The active provenance profile is exactly `agent_authored_human_reviewed_v1`; `three_pool_v1` behavior and tests remain intact.

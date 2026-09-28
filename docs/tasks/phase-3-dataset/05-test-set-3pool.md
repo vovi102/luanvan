@@ -1,131 +1,97 @@
-# T3.5 — Test set 100 cặp (3-pool cross-validation, GoogleSQL)
+# T3.5 — Benchmark agent-authored, human-reviewed (GoogleSQL)
 
-## Mục tiêu
+## Mục tiêu và provenance
 
-Xây dựng benchmark độc lập khoảng 100 cặp NL–GoogleSQL chất lượng cao, viết và
-review bởi nhiều người theo quy trình 3-pool. Benchmark này đo generalization,
-không chỉ mức độ ghi nhớ các template synthetic của T3.2–T3.4.
+Tạo benchmark cuối gồm 100 cặp NL–GoogleSQL để đánh giá generalization trên
+BigQuery analytical catalog. Profile active là
+`agent_authored_human_reviewed_v1`: Codex soạn 120 ứng viên, user review toàn bộ
+và chọn 100 câu. Vì cùng một agent soạn NL và SQL và chỉ có một human reviewer,
+artifact không được claim independent authorship, independent review,
+inter-rater agreement hoặc Cohen's kappa.
 
-## Quyết định kiến trúc
+Thiết kế three-pool tháng 8 (`three_pool_v1`) vẫn được giữ trong code, spec và
+test như một đường lịch sử/optional. Nó không còn là acceptance path active và
+không được dùng để mô tả provenance của benchmark mới.
 
-Sau Pivot #1, target của task là read-only GoogleSQL trên BigQuery analytical
-catalog; SPARQL/Fuseki trong bản task cũ là lịch sử Plan A và không còn là
-acceptance runtime. Pool A vẫn viết câu hỏi tự nhiên không xem schema, Pool B
-viết SQL gold, và Pool C review độc lập. Kappa cần hai reviewer trên subset 30,
-nên `review_pool_c.csv` lưu `reviewer_id` thay vì giả định chỉ một reviewer.
+## Artifact active
 
-## Phụ thuộc và blocker
+Draft review nằm tại
+`data/review_drafts/t3_5_candidate_set_2026-09-27/`:
 
-- T2-SQL-1/2/3, entity dictionary và SQL catalog đã có local evidence.
-- Final acceptance cần ≥3 cộng tác viên Pool A, Pool B/C độc lập, consent, và
-  BigQuery credentials. Agent không tự tạo dữ liệu người thật hoặc claim live
-  execution khi thiếu các đầu vào này.
-- T3.3 live paraphrasing và T3.4 final Stage D cũng còn credential-gated; các
-  blocker này không được lẫn vào benchmark độc lập.
+- `candidates.jsonl`: 120 dòng immutable, ID `t35-001..t35-120`, quota đề xuất
+  36 easy / 60 medium / 24 hard;
+- `review_events.csv`: append-only human decisions; hiện chỉ có header;
+- `final_selection.csv`: lựa chọn 100 câu; hiện chỉ có header;
+- `REVIEW_GUIDE.md`: quy tắc score, revise/accept và handoff;
+- `manifest.json`, `validation-report.json`: evidence `draft_ready`, hash-bound
+  với candidate source, catalog và leakage corpora.
 
-## Đầu ra và contract
+Final output chỉ được publish tại `data/dataset/test/test-100.jsonl` sau khi đủ
+review, selection và live evidence. File final này chưa tồn tại ở trạng thái
+`draft_ready`.
 
-Tooling nằm ở `src/nl2sparql/dataset/testset/` và CLI
-`scripts/12_test_set_workflow.py`:
-
-- `raw_pool_a.csv`: `question_id,author_id,nl,persona,source_batch`.
-- `sql_pool_b.csv`: `question_id,writer_id,sql,expected_columns,expected_empty,ambiguity_flag,notes`.
-- `review_pool_c.csv`: `question_id,reviewer_id,nl_quality,faithfulness,difficulty,decision,notes`.
-- `final_selection.csv`: `question_id,final_difficulty,categories,entity_kinds,schema_elements,cq_ids,selection_note`.
-- `test-100.jsonl`: SQL-native final records with NL, SQL, difficulty, categories,
-  schema/CQ provenance, reviewer IDs, result size, SQL evidence hash and UTC
-  verification time. Không có field SPARQL/Fuseki.
-- `PROCESS.md` và `CONSENT.md`: brief, pseudonym/consent/privacy handoff; không
-  chứa email hoặc dữ liệu định danh công khai.
-
-Các mode CLI:
-
-```text
-scaffold      tạo header và tài liệu handoff, không overwrite file có dữ liệu
-validate      chạy toàn bộ validation offline, không cần credentials
-verify-live   dry-run toàn bộ rồi execute SQL bounded với BigQuery
-finalize      chỉ publish test-100 khi bundle + live evidence + selection pass
-```
-
-## Acceptance criteria
-
-### Đã hoàn thành offline
-
-- [x] Design/plan T3.5 GoogleSQL được ghi tại spec/plan ngày 2026-08-15.
-- [x] Typed CSV contracts fail closed với header, ID, text/control-character,
-  pseudonym và boolean lỗi.
-- [x] Bundle validator kiểm tra NL dedup, Pool A/B join, ≥3 author và ≥20 câu/
-  author, ba tập identity Pool A/B/C pairwise-disjoint, review ownership, reject
-  rate, đúng một reviewer pair ổn định trên double-review subset và Cohen's kappa
-  không degenerate.
-- [x] Selection validator yêu cầu đúng 100 dòng, quota `easy=30, medium=50,
-  hard=20`, ≥6 category và ≥3 entity kinds sau trim/normalize/deduplicate theo
-  vocabulary; `schema_elements`/`cq_ids` bắt buộc tồn tại trong catalog canonical.
-- [x] Offline validator và SQL adapter dùng SQLGlot BigQuery AST để enforce một
-  read-only query, explicit projections và kiểm tra mọi direct relation/table
-  function theo allowlist (kể cả unquoted/mixed join/CTE); 20 GiB/query, 64 GiB
-  aggregate, cache-off, complete dry-run preflight, batch-wide re-preflight và
-  bounded result preview; Pool B bắt buộc khai báo ordered `expected_columns`
-  và live result phải khớp chính xác.
-- [x] Scaffold/report/finalizer/CLI có atomic publication, hash evidence và
-  metadata provenance, structured blocked behavior và fail-closed evidence
-  validation; ready report yêu cầu full lowercase commit SHA và ghi tracked
-  worktree dirty provenance; deterministic BigQuery `BadRequest` là `failed`,
-  transient API failure là `blocked`; offline mode không khởi tạo BigQuery client.
-- [x] Focused verification sau final review fix wave: 68 tests pass; full
-  repository: 558 tests pass;
-  Ruff và format pass; scaffold/CLI help chạy không cần credentials; empty
-  scaffold validate fail closed.
-
-### Còn pending — external acceptance
-
-- [ ] ≥100 final pairs pass review; target raw 110–120 rồi filter còn 100.
-- [ ] Difficulty final đúng 30 Easy / 50 Medium / 20 Hard từ lead selection.
-- [ ] 100% SQL execute trên BigQuery, non-empty hoặc `expected_empty=true` rõ ràng.
-- [ ] Pool A có ≥3 author, mỗi author ≥20 câu, và consent tương ứng.
-- [ ] Pool C reject rate <30%.
-- [ ] Kappa ≥0.7 trên subset 30 được hai reviewer độc lập chấm.
-
-## Brief cộng tác viên
-
-### Pool A
-
-Viết 30–40 câu hỏi tiếng Anh tự nhiên về Ethereum cho persona journalist,
-compliance officer hoặc researcher; không xem schema/catalog; dùng tên entity
-được cung cấp và đa dạng filter, aggregation, top-k, time range, multi-hop.
-
-### Pool B
-
-Với mỗi câu Pool A, viết một GoogleSQL read-only đúng nhất trên catalog kèm theo;
-ghi thứ tự `expected_columns` phân cách bằng `|`, `expected_empty`,
-`ambiguity_flag`, notes và chạy thử khi credentials sẵn.
-Nếu intent mơ hồ, flag để Pool C quyết định; không âm thầm chọn một diễn giải.
-
-### Pool C
-
-Mỗi reviewer chấm NL quality, faithfulness (1–5), difficulty và
-`ACCEPT/REVISE/REJECT`. Hai reviewer độc lập cùng chấm subset 30 để tính kappa;
-reviewer không tham gia Pool A/B; identity của ba pool tách biệt trên toàn process.
-
-## Handoff và kiểm chứng
-
-Chạy offline:
+## Workflow
 
 ```bash
-UV_CACHE_DIR=.uv-cache uv run python scripts/12_test_set_workflow.py scaffold
-UV_CACHE_DIR=.uv-cache uv run python scripts/12_test_set_workflow.py validate
+# Offline; không khởi tạo credential hoặc BigQuery client
+.venv/bin/python scripts/12_test_set_workflow.py reviewed validate-candidates \
+  --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
+
+.venv/bin/python scripts/12_test_set_workflow.py reviewed validate-review \
+  --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
+
+# Chỉ chạy sau khi user duyệt và cho phép live access rõ ràng
+.venv/bin/python scripts/12_test_set_workflow.py reviewed verify-live \
+  --allow-bigquery --project <gcp-project> \
+  --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
+
+.venv/bin/python scripts/12_test_set_workflow.py reviewed finalize \
+  --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
 ```
 
-`validate` phải fail với status/error rõ ràng khi scaffold còn trống. Khi đủ
-bundle và credentials, chạy `verify-live`, sau đó `finalize`; không sửa tay
-`test-100.jsonl` sau khi hash evidence được tạo.
+Live policy cố định là 20 GiB/query, 64 GiB aggregate, location `US`, query cache
+tắt, dry-run toàn batch trước execution. Finalizer yêu cầu evidence hiện hành cho
+đúng 100 selected rows và publish JSONL/manifest immutable.
 
-## Trạng thái
+## Acceptance status
 
-`implementation complete — external collaborator/credential gates pending`
+### Hoàn tất
+
+- [x] Contract/profile strict, review state machine và exact final schemas.
+- [x] Offline SQL/catalog/CQ/leakage validation và guarded CLI.
+- [x] Immutable live-evidence/finalization contract và downstream B0–B5 support.
+- [x] 120 candidate rows đạt `draft_ready`, đúng quota 36/60/24 và coverage.
+- [x] Draft manifest/report pin candidate, catalog, leakage và repository commit.
+- [x] Review/selection source tách riêng; tooling không tự tạo human decision.
+
+### Còn pending — human/live gates
+
+- [ ] User review đủ 120 candidates với một reviewer ID ổn định; mọi `REVISE`
+  phải có event `ACCEPT` sau đó và score acceptance tối thiểu 4/5.
+- [ ] User chọn đúng 100 accepted rows với quota 30 easy / 50 medium / 20 hard,
+  ít nhất sáu categories và đủ ba entity kinds.
+- [ ] Codex chạy lại offline `validate-review` và xử lý lỗi deterministic cùng user.
+- [ ] User cho phép explicit live BigQuery run; 100 SQL có current bounded evidence.
+- [ ] `finalize` publish immutable `test-100.jsonl` và manifest. Chỉ lúc đó mới
+  mở genuine B0–B5 accuracy evaluation.
+
+## Chống leakage
+
+Candidate/final questions và mọi biến thể bị cấm dùng cho training, fine-tuning,
+few-shot retrieval corpus, prompt/linker tuning, hyperparameter search hoặc sửa hệ
+thống dựa trên lỗi trước khi primary evaluation được khóa. Downstream chỉ consume
+final snapshot theo hash manifest.
+
+## Historical three-pool path
+
+Spec/plan tháng 8 và các top-level CLI `scaffold`, `validate`, `verify-live`,
+`finalize` tiếp tục tái lập `three_pool_v1`; không bị rewrite. Chúng yêu cầu ba
+vai độc lập và có thể tính kappa khi có cộng tác viên thật. Profile active dùng
+subgroup `reviewed` và tuyệt đối không thừa kế các claim đó.
 
 Linked:
 
-- Spec: `docs/superpowers/specs/2026-08-15-t3-5-google-sql-test-set-design.md`
-- Plan: `docs/superpowers/plans/2026-08-15-t3-5-google-sql-test-set.md`
+- Active spec: `docs/superpowers/specs/2026-09-27-t3-5-agent-reviewed-benchmark-design.md`
+- Active plan: `docs/superpowers/plans/2026-09-27-t3-5-agent-reviewed-benchmark.md`
+- Historical spec: `docs/superpowers/specs/2026-08-15-t3-5-google-sql-test-set-design.md`
 - Code: `src/nl2sparql/dataset/testset/`, `scripts/12_test_set_workflow.py`
