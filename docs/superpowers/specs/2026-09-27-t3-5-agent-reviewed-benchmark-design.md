@@ -1,9 +1,9 @@
 # T3.5 — Agent-authored, human-reviewed GoogleSQL benchmark
 
-**Date:** 2026-09-27  
-**Status:** approved in conversation; implementation planning pending written-spec review  
+**Date:** 2026-09-27
+**Status:** approved in conversation; implementation planning pending written-spec review
 **Supersedes for active work:** the three-pool provenance requirements in
-`2026-08-15-t3-5-google-sql-test-set-design.md`  
+`2026-08-15-t3-5-google-sql-test-set-design.md`
 **Canonical decision source:**
 `docs/planning/prioritized-backlog-2026-09-21.md`
 
