@@ -191,9 +191,7 @@ def test_reviewed_live_evidence_round_trips_and_detects_tampering(tmp_path: Path
     assert read_reviewed_live_evidence(path) == evidence
     assert evidence.project == "nl2sparql-thesis"
     assert evidence.policy.location == "US"
-    assert {record.project for record in evidence.execution.records} == {
-        "nl2sparql-thesis"
-    }
+    assert {record.project for record in evidence.execution.records} == {"nl2sparql-thesis"}
     assert {record.location for record in evidence.execution.records} == {"US"}
     assert {record.verified_at for record in evidence.execution.records} == {
         evidence.execution.generated_at
