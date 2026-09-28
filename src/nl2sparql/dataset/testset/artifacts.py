@@ -136,6 +136,19 @@ def write_report(
     policy: SqlPolicy | None = None,
 ) -> None:
     """Atomically write canonical report data and provenance metadata."""
+    write_reports(report, (path,), input_paths=input_paths, policy=policy)
+
+
+def write_reports(
+    report: Mapping[str, Any] | object,
+    paths: tuple[Path, ...],
+    *,
+    input_paths: tuple[Path, ...] = (),
+    policy: SqlPolicy | None = None,
+) -> None:
+    """Write identical reports using one timestamp and Git provenance snapshot."""
+    if not paths:
+        raise TestSetError("report paths must not be empty")
     if is_dataclass(report):
         payload = asdict(report)
     elif isinstance(report, Mapping):
@@ -158,8 +171,10 @@ def write_report(
     }
     digest = hashlib.sha256(_canonical_json(body)).hexdigest()
     output = {**body, "report_sha256": digest}
-    path.parent.mkdir(parents=True, exist_ok=True)
-    _atomic_write(path, _canonical_json(output))
+    serialized = _canonical_json(output)
+    for output_path in paths:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        _atomic_write(output_path, serialized)
 
 
 def read_report(path: Path) -> dict[str, Any]:

@@ -61,6 +61,7 @@ def _candidate_report(tmp_path: Path) -> CandidatePackReport:
         catalog_sha256="b" * 64,
         leakage_sources=(LeakageSource(tmp_path / "leakage.jsonl", "c" * 64, 2),),
         source_commit="d" * 40,
+        sql_shape_count=30,
     )
 
 
@@ -120,6 +121,7 @@ def test_validate_candidates_writes_draft_ready_manifest_and_report(
         assert artifact["candidate_sha256"] == "a" * 64
         assert artifact["catalog_sha256"] == "b" * 64
         assert artifact["source_commit"] == "d" * 40
+        assert artifact["sql_shape_count"] == 30
         assert artifact["limitations"] == list(LIMITATIONS)
         assert artifact["leakage_sources"][0]["sha256"] == "c" * 64
 

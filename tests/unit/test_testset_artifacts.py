@@ -17,6 +17,7 @@ from nl2sparql.dataset.testset.artifacts import (
     finalize_bundle,
     read_report,
     write_report,
+    write_reports,
     write_scaffold,
 )
 from nl2sparql.dataset.testset.contracts import (
@@ -190,6 +191,26 @@ def test_write_report_adds_a_stable_digest(tmp_path: Path) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(TestSetError, match="digest mismatch"):
         read_report(path)
+
+
+def test_write_reports_uses_one_provenance_snapshot_for_all_outputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = 0
+
+    def provenance() -> tuple[str, bool]:
+        nonlocal calls
+        calls += 1
+        return "a" * 40, False
+
+    monkeypatch.setattr(artifacts_module, "_git_provenance", provenance)
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+
+    write_reports({"status": "draft_ready"}, (first, second))
+
+    assert calls == 1
+    assert first.read_bytes() == second.read_bytes()
 
 
 @pytest.mark.parametrize(

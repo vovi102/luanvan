@@ -16,6 +16,7 @@ from nl2sparql.dataset.testset.artifacts import (
     finalize_bundle,
     read_report,
     write_report,
+    write_reports,
     write_scaffold,
 )
 from nl2sparql.dataset.testset.contracts import FinalCase, TestSetError, TestSetPaths
@@ -226,15 +227,9 @@ def reviewed_validate_candidates(
         )
         payload = _candidate_payload(report)
         if not check_only:
-            write_report(
+            write_reports(
                 payload,
-                paths.validation_report,
-                input_paths=(paths.candidates, CATALOG_REPORT_PATH),
-                policy=REVIEWED_POLICY,
-            )
-            write_report(
-                payload,
-                paths.candidate_manifest,
+                (paths.validation_report, paths.candidate_manifest),
                 input_paths=(paths.candidates, CATALOG_REPORT_PATH),
                 policy=REVIEWED_POLICY,
             )
