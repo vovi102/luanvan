@@ -122,6 +122,14 @@ def test_resolve_review_state_requires_one_stable_reviewer_and_contiguous_rounds
             catalog_path=CATALOG,
         )
 
+    agent_events = tuple(replace(event, reviewer_id="agent") for event in bundle.events)
+    with pytest.raises(TestSetError, match="human reviewer|reserved"):
+        resolve_review_state(
+            replace(bundle, events=agent_events),
+            repo_root=tmp_path,
+            catalog_path=CATALOG,
+        )
+
     extra = ReviewEvent("t35-001", 3, "reviewer_01", 4, 4, "easy", "ACCEPT")
     with pytest.raises(TestSetError, match="contiguous"):
         resolve_review_state(
@@ -170,6 +178,42 @@ def test_revise_then_accept_binds_revised_content_and_digest(tmp_path: Path) -> 
     assert first.sql == revised_sql
     assert first.accepted_content_sha256 != first.candidate_sha256
     assert len(first.accepted_content_sha256) == 64
+
+
+def test_review_rounds_must_be_append_only_file_order(tmp_path: Path) -> None:
+    bundle = _bundle()
+    revision = ReviewEvent(
+        "t35-001",
+        1,
+        "reviewer_01",
+        3,
+        3,
+        "easy",
+        "REVISE",
+        "Revised append-only question",
+        "",
+    )
+    acceptance = ReviewEvent("t35-001", 2, "reviewer_01", 5, 5, "easy", "ACCEPT")
+
+    with pytest.raises(TestSetError, match="file order|append-only"):
+        resolve_review_state(
+            replace(bundle, events=(acceptance, revision, *bundle.events[1:])),
+            repo_root=tmp_path,
+            catalog_path=CATALOG,
+        )
+
+
+def test_review_validation_replays_complete_candidate_contract(tmp_path: Path) -> None:
+    bundle = _bundle()
+    selected_ids = {row.question_id for row in bundle.selections}
+    shortened = replace(
+        bundle,
+        candidates=tuple(row for row in bundle.candidates if row.question_id in selected_ids),
+        events=tuple(row for row in bundle.events if row.question_id in selected_ids),
+    )
+
+    with pytest.raises(TestSetError, match="120|candidate IDs|quota"):
+        validate_reviewed_selection(shortened, repo_root=tmp_path, catalog_path=CATALOG)
 
 
 @pytest.mark.parametrize("mode", ("unsafe_sql", "leaked_nl"))

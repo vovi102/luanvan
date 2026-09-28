@@ -151,6 +151,9 @@ Offline validation requires:
 - at least six categories and all three supported entity kinds;
 - coverage of filters, aggregations, grouped comparison, top-k, time range,
   named-entity, address-only, class-level, and multi-relation questions;
+- operation coverage derived from the parsed SQL AST plus at least 30 normalized
+  SQL operation shapes (temporal/entity variants may intentionally share one
+  shape);
 - no exact or normalized-NL duplicate within the pack; and
 - no exact or normalized-NL overlap with Stage A–D, T4 evaluation sets, or other
   finalized benchmark material discoverable in the repository.
@@ -248,7 +251,10 @@ Once finalized, the 100 questions and their variants are forbidden inputs to:
 - model training or fine-tuning; and
 - manual error-driven system changes before the primary evaluation is locked.
 
-Downstream evaluation may consume the snapshot only by its manifest hash.
+Downstream evaluation requires the sibling manifest, validates its final-row
+bindings, and records both the snapshot and manifest SHA-256 values. The
+manifest is published last and acts as the readiness marker; a JSONL without a
+valid matching manifest is incomplete and rejected.
 
 ## CLI behavior
 

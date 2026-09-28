@@ -34,6 +34,7 @@ class AuthoritativeCaseSet:
     live_verified: bool
     synthetic: bool
     provenance_profile: str
+    manifest_sha256: str | None
 
 
 def sha256_file(path: Path) -> str:
@@ -102,4 +103,5 @@ def load_authoritative_test_set(path: Path, *, synthetic: bool) -> Authoritative
         live_verified=all(row["verified_executable"] is True for row in rows),
         synthetic=synthetic,
         provenance_profile=validated.provenance_profile,
+        manifest_sha256=validated.manifest_sha256,
     )

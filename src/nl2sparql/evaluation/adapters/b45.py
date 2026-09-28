@@ -161,11 +161,15 @@ def adapt_b45(request: B45AdaptRequest) -> CanonicalPredictionRun:
             canonical_json(tuple(asdict(attempt) for attempt in native.attempts))
         ).hexdigest()
     generated_at = datetime.fromisoformat(native.generated_at_utc.replace("Z", "+00:00"))
-    refs = (
+    refs = [
         ArtifactRef("report", "application/json", sha256_file(request.report_path), 1),
         ArtifactRef("request_log", "application/jsonl", sha256_file(request.request_log_path), 1),
         ArtifactRef("test_set", "application/jsonl", authoritative.sha256, 1),
-    )
+    ]
+    if authoritative.manifest_sha256 is not None:
+        refs.append(
+            ArtifactRef("test_set_manifest", "application/json", authoritative.manifest_sha256, 1)
+        )
     synthetic_backend = any(
         outcome.prediction is not None and outcome.prediction.completion.synthetic_backend
         for outcome in native.outcomes

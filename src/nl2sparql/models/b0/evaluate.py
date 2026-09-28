@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import math
 import re
@@ -66,6 +67,28 @@ _REVIEWED_DIGEST_FIELDS = (
     "provenance_bundle_sha256",
     "selection_sha256",
 )
+_REVIEWED_MANIFEST_FIELDS = frozenset(
+    {
+        "schema_version",
+        "provenance_profile",
+        "review_provenance",
+        "limitations",
+        "record_count",
+        "output_sha256",
+        "provenance_bundle_sha256",
+        "review_sha256",
+        "selection_sha256",
+        "live_evidence_sha256",
+        "catalog_sha256",
+    }
+)
+_REVIEWED_LIMITATIONS = (
+    "agent_authored",
+    "single_human_reviewer",
+    "no_independent_authorship",
+    "no_inter_rater_agreement",
+    "no_kappa_claim",
+)
 
 
 class B0EvaluationError(ValueError):
@@ -114,6 +137,7 @@ class B0CaseSet:
     input_sha256: str
     synthetic: bool
     provenance_profile: str = THREE_POOL_PROFILE
+    manifest_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.cases, tuple) or not self.cases:
@@ -129,6 +153,13 @@ class B0CaseSet:
             raise B0EvaluationError("synthetic marker must be boolean")
         if self.provenance_profile not in {THREE_POOL_PROFILE, AGENT_REVIEWED_PROFILE}:
             raise B0EvaluationError("evaluation provenance profile is invalid")
+        if self.provenance_profile == AGENT_REVIEWED_PROFILE:
+            if not isinstance(self.manifest_sha256, str) or not _DIGEST_RE.fullmatch(
+                self.manifest_sha256
+            ):
+                raise B0EvaluationError("reviewed evaluation manifest fingerprint is invalid")
+        elif self.manifest_sha256 is not None:
+            raise B0EvaluationError("legacy evaluation input must not claim a reviewed manifest")
 
 
 @dataclass(frozen=True)
@@ -211,7 +242,11 @@ def _validate_reviewed_provenance(raw: Mapping[str, object], row_number: int) ->
     if raw["pool_b_writer"] != "agent":
         raise B0EvaluationError(f"row {row_number} pool_b_writer must be agent")
     reviewers = _string_list(raw["pool_c_reviewers"], "reviewers", nonempty=True)
-    if len(reviewers) != 1 or not _CASE_ID_RE.fullmatch(reviewers[0]) or reviewers[0] == "agent":
+    if (
+        len(reviewers) != 1
+        or not _CASE_ID_RE.fullmatch(reviewers[0])
+        or reviewers[0].casefold() in {"agent", "assistant", "codex"}
+    ):
         raise B0EvaluationError(f"row {row_number} requires one pseudonymous human reviewer")
     if raw["review_provenance"] != "single_human_reviewer":
         raise B0EvaluationError(f"row {row_number} review provenance is invalid")
@@ -220,6 +255,62 @@ def _validate_reviewed_provenance(raw: Mapping[str, object], row_number: int) ->
         for field in _REVIEWED_DIGEST_FIELDS
     ):
         raise B0EvaluationError(f"row {row_number} reviewed provenance fingerprint is invalid")
+
+
+def _reviewed_manifest_sha256(
+    path: Path,
+    snapshot: bytes,
+    rows: Sequence[Mapping[str, object]],
+) -> str:
+    if len(rows) != 100:
+        raise B0EvaluationError("reviewed evaluation snapshot requires exactly 100 rows")
+    manifest_path = path.parent / "manifest.json"
+    try:
+        payload = manifest_path.read_bytes()
+        manifest = json.loads(payload, object_pairs_hook=_json_object)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, _DuplicateKey) as exc:
+        raise B0EvaluationError(
+            f"reviewed evaluation manifest is unavailable or invalid: {exc}"
+        ) from exc
+    if not isinstance(manifest, Mapping) or set(manifest) != _REVIEWED_MANIFEST_FIELDS:
+        raise B0EvaluationError("reviewed evaluation manifest schema is invalid")
+    if (
+        manifest["schema_version"] != "1.0.0"
+        or manifest["provenance_profile"] != AGENT_REVIEWED_PROFILE
+        or manifest["review_provenance"] != "single_human_reviewer"
+        or manifest["limitations"] != list(_REVIEWED_LIMITATIONS)
+        or manifest["record_count"] != 100
+    ):
+        raise B0EvaluationError("reviewed evaluation manifest identity is invalid")
+    output_sha256 = hashlib.sha256(snapshot).hexdigest()
+    if not hmac.compare_digest(str(manifest["output_sha256"]), output_sha256):
+        raise B0EvaluationError("reviewed evaluation manifest output fingerprint mismatch")
+    for field in (
+        "output_sha256",
+        "provenance_bundle_sha256",
+        "review_sha256",
+        "selection_sha256",
+        "live_evidence_sha256",
+        "catalog_sha256",
+    ):
+        if not isinstance(manifest[field], str) or not _DIGEST_RE.fullmatch(manifest[field]):
+            raise B0EvaluationError(f"reviewed evaluation manifest {field} is invalid")
+    bindings = {
+        "provenance_bundle_sha256": manifest["provenance_bundle_sha256"],
+        "selection_sha256": manifest["selection_sha256"],
+        "live_evidence_sha256": manifest["live_evidence_sha256"],
+        "catalog_sha256": manifest["catalog_sha256"],
+    }
+    for field, expected in bindings.items():
+        observed = {row[field] for row in rows}
+        if observed != {expected}:
+            raise B0EvaluationError(
+                f"reviewed evaluation rows require one consistent {field} matching manifest"
+            )
+    reviewers = {tuple(row["pool_c_reviewers"]) for row in rows}
+    if len(reviewers) != 1:
+        raise B0EvaluationError("reviewed evaluation rows require one consistent reviewer")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _parse_row(
@@ -296,6 +387,7 @@ def load_b0_cases(path: Path, *, synthetic: bool = False) -> B0CaseSet:
     writer_ids: set[str] = set()
     reviewer_ids: set[str] = set()
     provenance_profile: str | None = None
+    raw_rows: list[Mapping[str, object]] = []
     try:
         for row_number, line in enumerate(text.splitlines(), start=1):
             if not line.strip():
@@ -317,6 +409,7 @@ def load_b0_cases(path: Path, *, synthetic: bool = False) -> B0CaseSet:
             author_ids.add(str(raw["source"]))
             writer_ids.add(str(raw["pool_b_writer"]))
             reviewer_ids.update(raw["pool_c_reviewers"])
+            raw_rows.append(raw)
     except _DuplicateKey as exc:
         raise B0EvaluationError(f"duplicate JSON key {exc.args[0]!r}") from exc
     except json.JSONDecodeError as exc:
@@ -330,11 +423,17 @@ def load_b0_cases(path: Path, *, synthetic: bool = False) -> B0CaseSet:
         raise B0EvaluationError("Pool A, Pool B, and Pool C identities must remain independent")
     if provenance_profile is None:
         raise B0EvaluationError("evaluation input must contain at least one case")
+    manifest_sha256 = (
+        _reviewed_manifest_sha256(path, snapshot, raw_rows)
+        if provenance_profile == AGENT_REVIEWED_PROFILE
+        else None
+    )
     return B0CaseSet(
         cases=tuple(cases),
         input_sha256=hashlib.sha256(snapshot).hexdigest(),
         synthetic=synthetic,
         provenance_profile=provenance_profile,
+        manifest_sha256=manifest_sha256,
     )
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import re
 import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, replace
@@ -56,6 +57,7 @@ class CandidatePackReport:
     catalog_sha256: str
     leakage_sources: tuple[LeakageSource, ...]
     source_commit: str
+    sql_shape_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -234,6 +236,40 @@ def _output_aliases(sql: str) -> tuple[str, ...]:
     return tuple(aliases)
 
 
+def _sql_features(sql: str) -> frozenset[str]:
+    """Derive operation coverage from parsed SQL instead of trusting labels."""
+    query = parse_one(sql, read="bigquery")
+    features: set[str] = set()
+    if query.find(exp.Where) is not None or query.find(exp.CountIf) is not None:
+        features.add("filter")
+    if query.find(exp.AggFunc) is not None:
+        features.add("aggregation")
+    if any(
+        select.args.get("group") and select.find(exp.AggFunc)
+        for select in query.find_all(exp.Select)
+    ):
+        features.add("grouped_comparison")
+    if query.find(exp.Order) is not None and query.find(exp.Limit) is not None:
+        features.add("top_k")
+    if len(re.findall(r"\bDATE\s*'[^']+'", sql, flags=re.IGNORECASE)) >= 2:
+        features.add("time_range")
+    managed_tables = [
+        table
+        for table in query.find_all(exp.Table)
+        if (table.catalog and table.db) or isinstance(table.this, exp.Anonymous)
+    ]
+    if len(managed_tables) >= 2:
+        features.add("multi_relation")
+    return frozenset(features)
+
+
+def _sql_shape(sql: str) -> str:
+    """Normalize dates/text while retaining material numeric operation choices."""
+    normalized = re.sub(r"\bDATE\s*'[^']+'", "DATE '?'", sql, flags=re.IGNORECASE)
+    normalized = re.sub(r"'[^']*'", "'?'", normalized)
+    return " ".join(normalized.casefold().split())
+
+
 def _validate_candidate_content(
     candidate: CandidateRecord,
     *,
@@ -296,6 +332,21 @@ def validate_candidate_pack(
             cq_ids=cq_ids,
             catalog_sha256=catalog_sha256,
         )
+    observed_features = frozenset(
+        feature for candidate in candidates for feature in _sql_features(candidate.sql)
+    )
+    required_features = frozenset(
+        {"filter", "aggregation", "grouped_comparison", "top_k", "time_range", "multi_relation"}
+    )
+    missing_features = sorted(required_features - observed_features)
+    if missing_features:
+        raise TestSetError(f"candidate SQL operation coverage is missing: {missing_features}")
+    sql_shape_count = len({_sql_shape(candidate.sql) for candidate in candidates})
+    if sql_shape_count < 30:
+        raise TestSetError(
+            "candidate operation diversity requires at least 30 normalized SQL shapes, "
+            f"received {sql_shape_count}"
+        )
     source_commits = {candidate.source_commit for candidate in candidates}
     if len(source_commits) != 1:
         raise TestSetError("candidate source_commit must be identical across the pack")
@@ -328,6 +379,7 @@ def validate_candidate_pack(
         catalog_sha256=catalog_sha256,
         leakage_sources=tuple(leakage_sources),
         source_commit=next(iter(source_commits)),
+        sql_shape_count=sql_shape_count,
     )
 
 
@@ -382,8 +434,23 @@ def resolve_review_state(
 ) -> tuple[AcceptedCandidate, ...]:
     """Resolve append-only human events into explicitly accepted content."""
     candidate_ids = tuple(candidate.question_id for candidate in bundle.candidates)
-    if len(candidate_ids) != len(set(candidate_ids)):
-        raise TestSetError("candidate IDs must be unique")
+    expected_ids = tuple(f"t35-{index:03d}" for index in range(1, 121))
+    if candidate_ids != expected_ids:
+        raise TestSetError("candidate IDs must be the ordered sequence t35-001 through t35-120")
+    difficulty_counts = Counter(candidate.difficulty for candidate in bundle.candidates)
+    if difficulty_counts != _DIFFICULTY_QUOTA:
+        raise TestSetError(f"candidate difficulty quota mismatch: {dict(difficulty_counts)}")
+    normalized_candidates = tuple(_canonical_nl(candidate.nl) for candidate in bundle.candidates)
+    if len(normalized_candidates) != len(set(normalized_candidates)):
+        raise TestSetError("candidate normalized NL values must be unique")
+    categories = {category for candidate in bundle.candidates for category in candidate.categories}
+    if len(categories) < 6:
+        raise TestSetError("candidate pack must cover at least six categories")
+    entity_kinds = {kind for candidate in bundle.candidates for kind in candidate.entity_kinds}
+    if entity_kinds != {"address_only", "concept_class", "named_entity"}:
+        raise TestSetError("candidate pack must cover all three entity kinds")
+    if len({candidate.source_commit for candidate in bundle.candidates}) != 1:
+        raise TestSetError("candidate source_commit must be identical across the pack")
     candidates_by_id = {candidate.question_id: candidate for candidate in bundle.candidates}
     events_by_id: defaultdict[str, list[ReviewEvent]] = defaultdict(list)
     for event in bundle.events:
@@ -395,6 +462,9 @@ def resolve_review_state(
     reviewers = {event.reviewer_id for event in bundle.events}
     if len(reviewers) != 1:
         raise TestSetError("the candidate pack requires one stable reviewer identity")
+    reviewer_id = next(iter(reviewers))
+    if reviewer_id.casefold() in {"agent", "assistant", "codex"}:
+        raise TestSetError("reviewer identity is reserved and must identify a human reviewer")
 
     schema_ids, cq_ids, catalog_sha256 = _catalog_ids(catalog_path)
     leaked_questions = _leakage_index(repo_root)
@@ -408,14 +478,17 @@ def resolve_review_state(
             cq_ids=cq_ids,
             catalog_sha256=catalog_sha256,
         )
+        if _canonical_nl(current.nl) in leaked_questions:
+            raise TestSetError(f"{candidate.question_id} candidate NL has a leakage collision")
         rows = events_by_id[candidate.question_id]
         rounds = [row.review_round for row in rows]
-        if sorted(rounds) != list(range(1, len(rows) + 1)) or len(rounds) != len(set(rounds)):
+        if rounds != list(range(1, len(rows) + 1)):
             raise TestSetError(
-                f"{candidate.question_id} review rounds must be unique and contiguous"
+                f"{candidate.question_id} review rounds must be contiguous and append-only "
+                "in file order"
             )
         terminal = False
-        for index, event in enumerate(sorted(rows, key=lambda row: row.review_round)):
+        for index, event in enumerate(rows):
             if terminal:
                 raise TestSetError(
                     f"{candidate.question_id} has an event after a terminal decision"

@@ -5,9 +5,12 @@ The user is the sole human reviewer and must record every decision explicitly;
 no row is treated as reviewed merely because it appears in `candidates.jsonl`.
 
 The candidates are agent-authored. Record one append-only event per review round
-in `review_events.csv` using a stable pseudonymous reviewer ID. `ACCEPT` requires
-both scores to be at least 4. `REVISE` requires changed NL or SQL and a later
-explicit `ACCEPT`; it never implies acceptance. `REJECT` is terminal.
+in `review_events.csv` using one stable pseudonymous human reviewer ID; reserved
+agent identities such as `agent`, `assistant`, and `codex` are rejected. Rounds
+must remain in file order and contiguous per candidate. `ACCEPT` requires both
+scores to be at least 4. `REVISE` requires changed NL or SQL and a later explicit
+`ACCEPT`; it never implies acceptance. `REJECT` is terminal. The scaffold command
+never overwrites a non-empty human-owned review file.
 
 After all 120 candidates have terminal decisions, list exactly 100 accepted IDs
 in `final_selection.csv` with 30 easy, 50 medium, and 20 hard cases. Do not edit
@@ -15,3 +18,7 @@ in `final_selection.csv` with 30 easy, 50 medium, and 20 hard cases. Do not edit
 until the review files pass offline validation.
 
 Live BigQuery verification is pending and requires a separate explicit opt-in.
+Every later workflow command revalidates the complete 120-row candidate source,
+including SQL-AST operation coverage and at least 30 normalized SQL operation
+shapes. A finalized `test-100.jsonl` is usable only with its sibling validated
+`manifest.json`; downstream reports retain both artifact hashes.

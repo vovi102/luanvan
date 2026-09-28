@@ -16,11 +16,6 @@ from nl2sparql.dataset.testset.reviewed_validate import (
 )
 
 CATALOG = Path("src/nl2sparql/sql/catalog/ethereum_analytics.json")
-SQL = (
-    "SELECT COUNT(*) AS transaction_count "
-    "FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
-    "(DATE '2026-06-01', DATE '2026-07-01')"
-)
 CATEGORIES = (
     "simple_filter",
     "time_range",
@@ -36,6 +31,46 @@ def _candidate_rows(catalog_sha256: str) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for index in range(1, 121):
         difficulty = "easy" if index <= 36 else "medium" if index <= 96 else "hard"
+        sql = (
+            "SELECT COUNTIF(transaction_index >= "
+            f"{index}) AS transaction_count FROM "
+            "`nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+            "(DATE '2026-06-01', DATE '2026-07-01')"
+        )
+        expected_columns = ["transaction_count"]
+        schema_elements = [
+            "transaction_facts",
+            "transaction_facts.transaction_index",
+        ]
+        cq_ids = ["CQ01"]
+        if index == 1:
+            sql = (
+                "SELECT from_address AS sender_address, COUNT(*) AS transaction_count FROM "
+                "`nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+                "(DATE '2026-06-01', DATE '2026-07-01') GROUP BY sender_address "
+                "ORDER BY transaction_count DESC LIMIT 10"
+            )
+            expected_columns = ["sender_address", "transaction_count"]
+            schema_elements = ["transaction_facts", "transaction_facts.from_address"]
+            cq_ids = ["CQ04"]
+        elif index == 2:
+            sql = (
+                "SELECT labels.concept_class AS concept_class, COUNT(*) AS transaction_count "
+                "FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+                "(DATE '2026-06-01', DATE '2026-07-01') AS tx JOIN "
+                "`nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1` AS labels "
+                "ON tx.to_address = labels.address GROUP BY concept_class "
+                "ORDER BY transaction_count DESC LIMIT 10"
+            )
+            expected_columns = ["concept_class", "transaction_count"]
+            schema_elements = [
+                "transaction_facts",
+                "transaction_facts.to_address",
+                "entity_labels_v1",
+                "entity_labels_v1.address",
+                "entity_labels_v1.concept_class",
+            ]
+            cq_ids = ["CQ13"]
         rows.append(
             {
                 "schema_version": "1.0.0",
@@ -43,18 +78,15 @@ def _candidate_rows(catalog_sha256: str) -> list[dict[str, object]]:
                 "question_id": f"t35-{index:03d}",
                 "author_type": "agent",
                 "nl": f"Candidate question {index:03d} about June transaction activity?",
-                "sql": SQL,
-                "expected_columns": ["transaction_count"],
+                "sql": sql,
+                "expected_columns": expected_columns,
                 "expected_empty": False,
                 "ambiguity_flag": False,
                 "difficulty": difficulty,
                 "categories": [CATEGORIES[(index - 1) % len(CATEGORIES)]],
                 "entity_kinds": [ENTITY_KINDS[(index - 1) % len(ENTITY_KINDS)]],
-                "schema_elements": [
-                    "transaction_facts",
-                    "transaction_facts.transaction_hash",
-                ],
-                "cq_ids": ["CQ01"],
+                "schema_elements": schema_elements,
+                "cq_ids": cq_ids,
                 "rationale": f"Hand-checked fixture rationale {index:03d}.",
                 "generation_batch": "t35-agent-batch-01",
                 "catalog_sha256": catalog_sha256,
@@ -93,6 +125,18 @@ def test_validate_candidate_pack_accepts_exact_counts_and_coverage(tmp_path: Pat
     assert report.candidate_sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
     assert report.catalog_sha256 == hashlib.sha256(CATALOG.read_bytes()).hexdigest()
     assert report.source_commit == "b" * 40
+    assert report.sql_shape_count >= 30
+
+
+def test_validate_candidate_pack_rejects_low_operation_diversity(tmp_path: Path) -> None:
+    path, rows = _valid_pack(tmp_path)
+    repeated_sql = rows[2]["sql"]
+    for row in rows[2:]:
+        row["sql"] = repeated_sql
+    _write_pack(path, rows)
+
+    with pytest.raises(TestSetError, match="SQL shapes|operation diversity"):
+        validate_candidate_pack(path, repo_root=tmp_path, catalog_path=CATALOG)
 
 
 @pytest.mark.parametrize(

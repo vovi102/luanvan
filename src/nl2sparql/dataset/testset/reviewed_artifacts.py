@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -64,6 +64,8 @@ class ReviewedLiveEvidence:
 
     provenance_profile: str
     reviewed_bundle_sha256: str
+    project: str
+    policy: SqlPolicy
     execution: LiveEvidence
 
     def __post_init__(self) -> None:
@@ -75,6 +77,10 @@ class ReviewedLiveEvidence:
             or any(character not in "0123456789abcdef" for character in self.reviewed_bundle_sha256)
         ):
             raise TestSetError("reviewed_bundle_sha256 must be a lower-case SHA-256")
+        if not isinstance(self.project, str) or not self.project.strip():
+            raise TestSetError("reviewed live evidence project must be explicit")
+        if not isinstance(self.policy, SqlPolicy):
+            raise TestSetError("reviewed live evidence policy is invalid")
 
 
 @dataclass(frozen=True)
@@ -108,13 +114,33 @@ def _reviewed_bundle_sha256(report: ReviewBundleReport) -> str:
 
 
 def bind_reviewed_live_evidence(
-    report: ReviewBundleReport, execution: LiveEvidence
+    report: ReviewBundleReport,
+    execution: LiveEvidence,
+    *,
+    project: str,
+    policy: SqlPolicy,
 ) -> ReviewedLiveEvidence:
     """Bind a live executor result to the exact reviewed bundle report."""
+    policy_sha256 = _canonical_sha256(asdict(policy))
+    enriched = replace(
+        execution,
+        records=tuple(
+            replace(
+                record,
+                project=project,
+                location=policy.location,
+                verified_at=execution.generated_at,
+                policy_sha256=policy_sha256,
+            )
+            for record in execution.records
+        ),
+    )
     return ReviewedLiveEvidence(
         provenance_profile=AGENT_REVIEWED_PROFILE,
         reviewed_bundle_sha256=_reviewed_bundle_sha256(report),
-        execution=execution,
+        project=project,
+        policy=policy,
+        execution=enriched,
     )
 
 
@@ -132,13 +158,14 @@ def _write_immutable(path: Path, payload: bytes) -> None:
 
 def write_review_scaffold(paths: ReviewedTestSetPaths, *, force: bool = False) -> tuple[Path, ...]:
     """Create empty human-owned review files without inventing decisions."""
+    del force
     contents = (
         (paths.review_events, _REVIEW_HEADER),
         (paths.final_selection, _SELECTION_HEADER),
         (paths.review_guide, _REVIEW_GUIDE),
     )
     for path, content in contents:
-        if path.exists() and path.stat().st_size and not force:
+        if path.exists() and path.stat().st_size:
             raise TestSetError(f"refusing to overwrite non-empty file {path}")
         path.parent.mkdir(parents=True, exist_ok=True)
         _atomic_write(path, content.encode())
@@ -184,6 +211,8 @@ def _evidence_body(evidence: ReviewedLiveEvidence) -> dict[str, object]:
         "schema_version": "1.0.0",
         "provenance_profile": evidence.provenance_profile,
         "reviewed_bundle_sha256": evidence.reviewed_bundle_sha256,
+        "project": evidence.project,
+        "policy": asdict(evidence.policy),
         "execution": asdict(evidence.execution),
     }
 
@@ -212,6 +241,8 @@ def read_reviewed_live_evidence(path: Path) -> ReviewedLiveEvidence:
             "schema_version",
             "provenance_profile",
             "reviewed_bundle_sha256",
+            "project",
+            "policy",
             "execution",
         }
         or raw["schema_version"] != "1.0.0"
@@ -221,6 +252,14 @@ def read_reviewed_live_evidence(path: Path) -> ReviewedLiveEvidence:
     if not isinstance(execution_raw, dict):
         raise TestSetError("reviewed live evidence execution must be an object")
     try:
+        policy_raw = raw["policy"]
+        if not isinstance(policy_raw, dict) or set(policy_raw) != {
+            "per_query_bytes",
+            "total_bytes",
+            "location",
+        }:
+            raise TypeError
+        policy = SqlPolicy(**policy_raw)
         records = tuple(
             LiveEvidenceRecord(**{**record, "columns": tuple(record["columns"])})
             for record in execution_raw["records"]
@@ -238,6 +277,8 @@ def read_reviewed_live_evidence(path: Path) -> ReviewedLiveEvidence:
     return ReviewedLiveEvidence(
         provenance_profile=raw["provenance_profile"],
         reviewed_bundle_sha256=raw["reviewed_bundle_sha256"],
+        project=raw["project"],
+        policy=policy,
         execution=execution,
     )
 
@@ -267,7 +308,10 @@ def _validate_execution(
         raise TestSetError("live evidence processed-byte total is inconsistent")
     if execution.total_billed_bytes != sum(record.billed_bytes for record in records):
         raise TestSetError("live evidence billed-byte total is inconsistent")
-    policy = SqlPolicy()
+    policy = evidence.policy
+    if policy != SqlPolicy():
+        raise TestSetError("live evidence policy does not match the fixed reviewed policy")
+    policy_sha256 = _canonical_sha256(asdict(policy))
     if (
         execution.total_processed_bytes > policy.total_bytes
         or execution.total_billed_bytes > policy.total_bytes
@@ -282,6 +326,10 @@ def _validate_execution(
         or record.row_count < 0
         or record.wall_latency_ms < 0
         or not record.job_id
+        or record.project != evidence.project
+        or record.location != policy.location
+        or record.verified_at != execution.generated_at
+        or record.policy_sha256 != policy_sha256
         for record in records
     ):
         raise TestSetError("live evidence violates per-query policy")
@@ -379,7 +427,7 @@ def finalize_reviewed_bundle(
                 "selection_sha256": review.selection_sha256,
                 "source": "agent",
                 "sql": candidate.sql,
-                "verified_at": evidence.execution.generated_at,
+                "verified_at": live.verified_at,
                 "verified_executable": True,
             }
         )
@@ -402,6 +450,8 @@ def finalize_reviewed_bundle(
     _preflight_immutable(output_path, output_payload)
     _preflight_immutable(manifest_path, manifest_payload)
     _write_immutable(output_path, output_payload)
+    # Consumers treat the validated manifest as the readiness marker, so it is
+    # published only after the complete content-addressed JSONL is durable.
     _write_immutable(manifest_path, manifest_payload)
     return ReviewedFinalizationReport(
         status="finalized",

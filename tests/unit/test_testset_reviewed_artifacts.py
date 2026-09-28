@@ -13,6 +13,7 @@ from nl2sparql.dataset.testset.contracts import SelectionRecord, TestSetError
 from nl2sparql.dataset.testset.live import (
     LiveEvidence,
     LiveEvidenceRecord,
+    SqlPolicy,
     evidence_input_sha256,
 )
 from nl2sparql.dataset.testset.reviewed_artifacts import (
@@ -143,7 +144,12 @@ def _bound_evidence(tmp_path: Path, bundle: ReviewedBundle):
     report = validate_reviewed_selection(bundle, repo_root=tmp_path, catalog_path=CATALOG)
     accepted = resolve_review_state(bundle, repo_root=tmp_path, catalog_path=CATALOG)
     cases = build_live_cases(bundle, accepted)
-    return bind_reviewed_live_evidence(report, _execution(cases))
+    return bind_reviewed_live_evidence(
+        report,
+        _execution(cases),
+        project="nl2sparql-thesis",
+        policy=SqlPolicy(per_query_bytes=20 * 2**30, total_bytes=64 * 2**30, location="US"),
+    )
 
 
 def test_write_review_scaffold_never_invents_or_overwrites_decisions(tmp_path: Path) -> None:
@@ -158,6 +164,8 @@ def test_write_review_scaffold_never_invents_or_overwrites_decisions(tmp_path: P
     paths.review_events.write_text("human data", encoding="utf-8")
     with pytest.raises(TestSetError, match="overwrite"):
         write_review_scaffold(paths)
+    with pytest.raises(TestSetError, match="overwrite"):
+        write_review_scaffold(paths, force=True)
 
 
 def test_build_live_cases_uses_truthful_agent_reviewed_provenance(tmp_path: Path) -> None:
@@ -181,6 +189,16 @@ def test_reviewed_live_evidence_round_trips_and_detects_tampering(tmp_path: Path
     write_reviewed_live_evidence(evidence, path)
 
     assert read_reviewed_live_evidence(path) == evidence
+    assert evidence.project == "nl2sparql-thesis"
+    assert evidence.policy.location == "US"
+    assert {record.project for record in evidence.execution.records} == {
+        "nl2sparql-thesis"
+    }
+    assert {record.location for record in evidence.execution.records} == {"US"}
+    assert {record.verified_at for record in evidence.execution.records} == {
+        evidence.execution.generated_at
+    }
+    assert all(record.policy_sha256 for record in evidence.execution.records)
     raw = json.loads(path.read_text(encoding="utf-8"))
     raw["provenance_profile"] = "three_pool_v1"
     path.write_text(json.dumps(raw), encoding="utf-8")

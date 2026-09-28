@@ -65,6 +65,32 @@ def _write_jsonl(tmp_path: Path, rows: list[dict[str, object]]) -> Path:
     return path
 
 
+def _write_reviewed_manifest(path: Path, rows: list[dict[str, object]]) -> Path:
+    snapshot = path.read_bytes()
+    manifest = {
+        "schema_version": "1.0.0",
+        "provenance_profile": "agent_authored_human_reviewed_v1",
+        "review_provenance": "single_human_reviewer",
+        "limitations": [
+            "agent_authored",
+            "single_human_reviewer",
+            "no_independent_authorship",
+            "no_inter_rater_agreement",
+            "no_kappa_claim",
+        ],
+        "record_count": len(rows),
+        "output_sha256": hashlib.sha256(snapshot).hexdigest(),
+        "provenance_bundle_sha256": rows[0]["provenance_bundle_sha256"],
+        "review_sha256": "7" * 64,
+        "selection_sha256": rows[0]["selection_sha256"],
+        "live_evidence_sha256": rows[0]["live_evidence_sha256"],
+        "catalog_sha256": rows[0]["catalog_sha256"],
+    }
+    manifest_path = path.parent / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
+    return manifest_path
+
+
 def _prediction(sql: str) -> B0Prediction:
     return B0Prediction(
         sql=sql,
@@ -122,13 +148,44 @@ def test_reviewed_rows_require_disjoint_pool_identities(tmp_path: Path) -> None:
 def test_agent_reviewed_snapshot_loads_without_false_independence_claim(
     tmp_path: Path,
 ) -> None:
-    path = _write_jsonl(tmp_path, _reviewed_rows())
+    rows = _reviewed_rows()
+    path = _write_jsonl(tmp_path, rows)
+    _write_reviewed_manifest(path, rows)
 
     cases = load_b0_cases(path, synthetic=False)
 
     assert len(cases.cases) == 100
     assert cases.provenance_profile == "agent_authored_human_reviewed_v1"
+    assert (
+        cases.manifest_sha256
+        == hashlib.sha256((tmp_path / "manifest.json").read_bytes()).hexdigest()
+    )
     assert cases.synthetic is False
+
+
+def test_agent_reviewed_snapshot_requires_matching_final_manifest(tmp_path: Path) -> None:
+    rows = _reviewed_rows()
+    path = _write_jsonl(tmp_path, rows)
+
+    with pytest.raises(B0EvaluationError, match="manifest"):
+        load_b0_cases(path, synthetic=False)
+
+    manifest_path = _write_reviewed_manifest(path, rows)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["output_sha256"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+    with pytest.raises(B0EvaluationError, match="manifest|output"):
+        load_b0_cases(path, synthetic=False)
+
+
+def test_agent_reviewed_snapshot_rejects_cross_row_provenance_mismatch(tmp_path: Path) -> None:
+    rows = _reviewed_rows()
+    rows[1]["selection_sha256"] = "9" * 64
+    path = _write_jsonl(tmp_path, rows)
+    _write_reviewed_manifest(path, rows)
+
+    with pytest.raises(B0EvaluationError, match="consistent|selection"):
+        load_b0_cases(path, synthetic=False)
 
 
 @pytest.mark.parametrize(
@@ -139,6 +196,7 @@ def test_agent_reviewed_snapshot_loads_without_false_independence_claim(
         ({"pool_b_writer": "writer_1"}, "pool_b_writer"),
         ({"pool_c_reviewers": []}, "reviewer"),
         ({"pool_c_reviewers": ["one", "two"]}, "reviewer"),
+        ({"pool_c_reviewers": ["codex"]}, "human reviewer"),
         ({"review_provenance": "independent_review"}, "review provenance"),
         ({"candidate_sha256": "A" * 64}, "fingerprint"),
         ({"live_evidence_sha256": "short"}, "fingerprint"),
@@ -152,6 +210,7 @@ def test_agent_reviewed_snapshot_rejects_provenance_confusion(
     rows = _reviewed_rows()
     rows[0] |= mutation
     path = _write_jsonl(tmp_path, rows)
+    _write_reviewed_manifest(path, rows)
 
     with pytest.raises(B0EvaluationError, match=message):
         load_b0_cases(path, synthetic=False)

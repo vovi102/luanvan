@@ -154,6 +154,7 @@ def test_validate_review_reports_missing_human_decisions_as_blocked(
     candidate = draft / "candidates.jsonl"
     candidate.write_bytes(b"candidate-source")
     before = candidate.read_bytes()
+    monkeypatch.setattr(offline_workflow, "validate_candidate_pack", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
         offline_workflow,
         "load_reviewed_bundle",
@@ -204,6 +205,9 @@ def test_verify_live_requires_opt_in_and_explicit_project_before_client(
     )
 
     assert result.exit_code != 0
+    report = offline_workflow.read_report(tmp_path / "draft" / "validation-report.json")
+    assert report["status"] == "blocked"
+    assert report["command"] == "verify-live"
 
 
 def test_verify_live_validates_review_bundle_before_creating_client(
@@ -218,6 +222,7 @@ def test_verify_live_validates_review_bundle_before_creating_client(
         raise AssertionError("client created before review validation")
 
     monkeypatch.setattr(module.bigquery, "Client", forbidden_client)
+    monkeypatch.setattr(module, "validate_candidate_pack", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
         module,
         "load_reviewed_bundle",

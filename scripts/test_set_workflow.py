@@ -197,12 +197,11 @@ def _final_root_option(function):
 @reviewed.command("scaffold")
 @_draft_root_option
 @_final_root_option
-@click.option("--force", is_flag=True, help="Overwrite non-empty human review files.")
-def reviewed_scaffold(draft_root: Path, final_root: Path, force: bool) -> None:
+def reviewed_scaffold(draft_root: Path, final_root: Path) -> None:
     """Create only the human review headers and review guide."""
     paths = _reviewed_paths(draft_root, final_root)
     try:
-        created = write_review_scaffold(paths, force=force)
+        created = write_review_scaffold(paths)
         click.echo(json.dumps({"status": "ready", "created_count": len(created)}))
     except TestSetError as exc:
         raise click.ClickException(str(exc)) from exc
@@ -257,6 +256,11 @@ def reviewed_validate_review(draft_root: Path, final_root: Path) -> None:
     """Validate explicit human decisions and the final 100-case selection."""
     paths = _reviewed_paths(draft_root, final_root)
     try:
+        validate_candidate_pack(
+            paths.candidates,
+            repo_root=REPOSITORY_ROOT,
+            catalog_path=CATALOG_PATH,
+        )
         bundle = load_reviewed_bundle(paths)
         report = validate_reviewed_selection(
             bundle,
@@ -288,12 +292,21 @@ def reviewed_verify_live(
     project: str | None,
 ) -> None:
     """Verify a review-ready selection with bounded live BigQuery execution."""
-    if not allow_bigquery:
-        raise click.ClickException("live verification requires --allow-bigquery")
-    if not project:
-        raise click.ClickException("live verification requires an explicit --project")
     paths = _reviewed_paths(draft_root, final_root)
+    if not allow_bigquery:
+        error = TestSetError("live verification requires --allow-bigquery")
+        _reviewed_failure(paths, command="verify-live", status="blocked", error=error)
+        raise click.ClickException(str(error))
+    if not project:
+        error = TestSetError("live verification requires an explicit --project")
+        _reviewed_failure(paths, command="verify-live", status="blocked", error=error)
+        raise click.ClickException(str(error))
     try:
+        validate_candidate_pack(
+            paths.candidates,
+            repo_root=REPOSITORY_ROOT,
+            catalog_path=CATALOG_PATH,
+        )
         bundle = load_reviewed_bundle(paths)
         review_report = validate_reviewed_selection(
             bundle,
@@ -308,7 +321,12 @@ def reviewed_verify_live(
         cases = build_live_cases(bundle, accepted)
         client = bigquery.Client(project=project)
         execution = verify_sql(client, cases, policy=REVIEWED_POLICY)
-        evidence = bind_reviewed_live_evidence(review_report, execution)
+        evidence = bind_reviewed_live_evidence(
+            review_report,
+            execution,
+            project=project,
+            policy=REVIEWED_POLICY,
+        )
         write_reviewed_live_evidence(evidence, paths.live_evidence)
         click.echo(json.dumps({"status": "live_ready", "records": len(cases)}))
     except BadRequest as exc:
@@ -332,6 +350,11 @@ def reviewed_finalize(draft_root: Path, final_root: Path) -> None:
     try:
         if not paths.live_evidence.is_file():
             raise FileNotFoundError(f"missing reviewed live evidence: {paths.live_evidence}")
+        validate_candidate_pack(
+            paths.candidates,
+            repo_root=REPOSITORY_ROOT,
+            catalog_path=CATALOG_PATH,
+        )
         bundle = load_reviewed_bundle(paths)
         evidence = read_reviewed_live_evidence(paths.live_evidence)
         report = finalize_reviewed_bundle(
