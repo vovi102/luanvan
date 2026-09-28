@@ -48,6 +48,7 @@ DEFAULT_REVIEWED_DRAFT_ROOT = Path("data/review_drafts/t3_5_candidate_set_2026-0
 DEFAULT_REVIEWED_FINAL_ROOT = Path("data/dataset/test")
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = REPOSITORY_ROOT / "src/nl2sparql/sql/catalog/ethereum_analytics.json"
+CATALOG_REPORT_PATH = Path("src/nl2sparql/sql/catalog/ethereum_analytics.json")
 REVIEWED_POLICY = SqlPolicy(
     per_query_bytes=20 * 2**30,
     total_bytes=64 * 2**30,
@@ -229,13 +230,13 @@ def reviewed_validate_candidates(
             write_report(
                 payload,
                 paths.validation_report,
-                input_paths=(paths.candidates, CATALOG_PATH),
+                input_paths=(paths.candidates, CATALOG_REPORT_PATH),
                 policy=REVIEWED_POLICY,
             )
             write_report(
                 payload,
                 paths.candidate_manifest,
-                input_paths=(paths.candidates, CATALOG_PATH),
+                input_paths=(paths.candidates, CATALOG_REPORT_PATH),
                 policy=REVIEWED_POLICY,
             )
         click.echo(json.dumps({"status": report.status, "candidate_count": 120}))
