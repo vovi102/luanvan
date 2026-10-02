@@ -36,6 +36,7 @@ from nl2sparql.dataset.testset.reviewed_validate import (
     resolve_review_state,
     validate_reviewed_selection,
 )
+from nl2sparql.evaluation.adapters.common import load_authoritative_test_set
 
 CATALOG = Path("src/nl2sparql/sql/catalog/ethereum_analytics.json")
 SQL = (
@@ -244,6 +245,7 @@ def test_finalize_reviewed_bundle_rejects_stale_or_partial_evidence(
             bundle,
             evidence,
             expected_policy=SqlPolicy(),
+            candidate_source_sha256="f" * 64,
             output_path=tmp_path / "test-100.jsonl",
             manifest_path=tmp_path / "manifest.json",
             repo_root=tmp_path,
@@ -263,6 +265,7 @@ def test_finalize_reviewed_bundle_writes_non_circular_immutable_artifacts(
         bundle,
         evidence,
         expected_policy=SqlPolicy(),
+        candidate_source_sha256="f" * 64,
         output_path=output,
         manifest_path=manifest_path,
         repo_root=tmp_path,
@@ -305,12 +308,17 @@ def test_finalize_reviewed_bundle_writes_non_circular_immutable_artifacts(
     assert manifest["output_sha256"] == report.output_sha256
     assert manifest["provenance_bundle_sha256"] == report.provenance_bundle_sha256
     assert hashlib.sha256(manifest_path.read_bytes()).hexdigest() == report.manifest_sha256
+    authoritative = load_authoritative_test_set(output, synthetic=False)
+    assert len(authoritative.cases) == 100
+    assert authoritative.live_verified is True
+    assert authoritative.reviewed is True
 
     assert (
         finalize_reviewed_bundle(
             bundle,
             evidence,
             expected_policy=SqlPolicy(),
+            candidate_source_sha256="f" * 64,
             output_path=output,
             manifest_path=manifest_path,
             repo_root=tmp_path,
@@ -324,6 +332,7 @@ def test_finalize_reviewed_bundle_writes_non_circular_immutable_artifacts(
             bundle,
             evidence,
             expected_policy=SqlPolicy(),
+            candidate_source_sha256="f" * 64,
             output_path=output,
             manifest_path=manifest_path,
             repo_root=tmp_path,
@@ -344,6 +353,7 @@ def test_finalize_reviewed_bundle_accepts_explicit_authorized_policy(tmp_path: P
         bundle,
         evidence,
         expected_policy=policy,
+        candidate_source_sha256="f" * 64,
         output_path=tmp_path / "test-100.jsonl",
         manifest_path=tmp_path / "manifest.json",
         repo_root=tmp_path,

@@ -345,7 +345,7 @@ def reviewed_finalize(draft_root: Path, final_root: Path) -> None:
     try:
         if not paths.live_evidence.is_file():
             raise FileNotFoundError(f"missing reviewed live evidence: {paths.live_evidence}")
-        validate_candidate_pack(
+        candidate_report = validate_candidate_pack(
             paths.candidates,
             repo_root=REPOSITORY_ROOT,
             catalog_path=CATALOG_PATH,
@@ -356,6 +356,7 @@ def reviewed_finalize(draft_root: Path, final_root: Path) -> None:
             bundle,
             evidence,
             expected_policy=REVIEWED_POLICY,
+            candidate_source_sha256=candidate_report.candidate_sha256,
             output_path=paths.final_jsonl,
             manifest_path=paths.final_manifest,
             repo_root=REPOSITORY_ROOT,

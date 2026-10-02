@@ -366,12 +366,19 @@ def finalize_reviewed_bundle(
     evidence: ReviewedLiveEvidence,
     *,
     expected_policy: SqlPolicy,
+    candidate_source_sha256: str,
     output_path: Path,
     manifest_path: Path,
     repo_root: Path,
     catalog_path: Path,
 ) -> ReviewedFinalizationReport:
     """Publish an immutable reviewed benchmark only after every gate passes."""
+    if (
+        not isinstance(candidate_source_sha256, str)
+        or len(candidate_source_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in candidate_source_sha256)
+    ):
+        raise TestSetError("candidate_source_sha256 must be a lower-case SHA-256")
     review = validate_reviewed_selection(bundle, repo_root=repo_root, catalog_path=catalog_path)
     expected_bundle_sha256 = _reviewed_bundle_sha256(review)
     if evidence.provenance_profile != AGENT_REVIEWED_PROFILE:
@@ -391,7 +398,7 @@ def finalize_reviewed_bundle(
             "accepted": [
                 {
                     "accepted_content_sha256": candidate.accepted_content_sha256,
-                    "candidate_sha256": candidate.candidate_sha256,
+                    "candidate_sha256": candidate_source_sha256,
                     "question_id": candidate.question_id,
                 }
                 for candidate in accepted
@@ -410,7 +417,7 @@ def finalize_reviewed_bundle(
             {
                 "accepted_content_sha256": candidate.accepted_content_sha256,
                 "ambiguity_flag": candidate.ambiguity_flag,
-                "candidate_sha256": candidate.candidate_sha256,
+                "candidate_sha256": candidate_source_sha256,
                 "catalog_sha256": catalog_sha256,
                 "categories": list(selection.categories),
                 "cq_ids": list(selection.cq_ids),
