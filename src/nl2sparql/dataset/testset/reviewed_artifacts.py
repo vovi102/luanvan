@@ -287,6 +287,7 @@ def _validate_execution(
     accepted: tuple[AcceptedCandidate, ...],
     bundle: ReviewedBundle,
     evidence: ReviewedLiveEvidence,
+    expected_policy: SqlPolicy,
 ) -> dict[str, LiveEvidenceRecord]:
     execution = evidence.execution
     if execution.status != "ready":
@@ -309,7 +310,7 @@ def _validate_execution(
     if execution.total_billed_bytes != sum(record.billed_bytes for record in records):
         raise TestSetError("live evidence billed-byte total is inconsistent")
     policy = evidence.policy
-    if policy != SqlPolicy():
+    if policy != expected_policy:
         raise TestSetError("live evidence policy does not match the fixed reviewed policy")
     policy_sha256 = _canonical_sha256(asdict(policy))
     if (
@@ -364,6 +365,7 @@ def finalize_reviewed_bundle(
     bundle: ReviewedBundle,
     evidence: ReviewedLiveEvidence,
     *,
+    expected_policy: SqlPolicy,
     output_path: Path,
     manifest_path: Path,
     repo_root: Path,
@@ -378,7 +380,7 @@ def finalize_reviewed_bundle(
         raise TestSetError("live evidence reviewed bundle digest mismatch")
     accepted = resolve_review_state(bundle, repo_root=repo_root, catalog_path=catalog_path)
     accepted_by_id = {candidate.question_id: candidate for candidate in accepted}
-    live_by_id = _validate_execution(accepted, bundle, evidence)
+    live_by_id = _validate_execution(accepted, bundle, evidence, expected_policy)
     try:
         catalog_sha256 = hashlib.sha256(catalog_path.read_bytes()).hexdigest()
     except OSError as exc:

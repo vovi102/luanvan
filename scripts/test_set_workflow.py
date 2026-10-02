@@ -355,6 +355,7 @@ def reviewed_finalize(draft_root: Path, final_root: Path) -> None:
         report = finalize_reviewed_bundle(
             bundle,
             evidence,
+            expected_policy=REVIEWED_POLICY,
             output_path=paths.final_jsonl,
             manifest_path=paths.final_manifest,
             repo_root=REPOSITORY_ROOT,
