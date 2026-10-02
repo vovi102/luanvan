@@ -287,6 +287,7 @@ def _validate_execution(
     accepted: tuple[AcceptedCandidate, ...],
     bundle: ReviewedBundle,
     evidence: ReviewedLiveEvidence,
+    expected_policy: SqlPolicy,
 ) -> dict[str, LiveEvidenceRecord]:
     execution = evidence.execution
     if execution.status != "ready":
@@ -309,7 +310,7 @@ def _validate_execution(
     if execution.total_billed_bytes != sum(record.billed_bytes for record in records):
         raise TestSetError("live evidence billed-byte total is inconsistent")
     policy = evidence.policy
-    if policy != SqlPolicy():
+    if policy != expected_policy:
         raise TestSetError("live evidence policy does not match the fixed reviewed policy")
     policy_sha256 = _canonical_sha256(asdict(policy))
     if (
@@ -364,12 +365,20 @@ def finalize_reviewed_bundle(
     bundle: ReviewedBundle,
     evidence: ReviewedLiveEvidence,
     *,
+    expected_policy: SqlPolicy,
+    candidate_source_sha256: str,
     output_path: Path,
     manifest_path: Path,
     repo_root: Path,
     catalog_path: Path,
 ) -> ReviewedFinalizationReport:
     """Publish an immutable reviewed benchmark only after every gate passes."""
+    if (
+        not isinstance(candidate_source_sha256, str)
+        or len(candidate_source_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in candidate_source_sha256)
+    ):
+        raise TestSetError("candidate_source_sha256 must be a lower-case SHA-256")
     review = validate_reviewed_selection(bundle, repo_root=repo_root, catalog_path=catalog_path)
     expected_bundle_sha256 = _reviewed_bundle_sha256(review)
     if evidence.provenance_profile != AGENT_REVIEWED_PROFILE:
@@ -378,7 +387,7 @@ def finalize_reviewed_bundle(
         raise TestSetError("live evidence reviewed bundle digest mismatch")
     accepted = resolve_review_state(bundle, repo_root=repo_root, catalog_path=catalog_path)
     accepted_by_id = {candidate.question_id: candidate for candidate in accepted}
-    live_by_id = _validate_execution(accepted, bundle, evidence)
+    live_by_id = _validate_execution(accepted, bundle, evidence, expected_policy)
     try:
         catalog_sha256 = hashlib.sha256(catalog_path.read_bytes()).hexdigest()
     except OSError as exc:
@@ -389,7 +398,7 @@ def finalize_reviewed_bundle(
             "accepted": [
                 {
                     "accepted_content_sha256": candidate.accepted_content_sha256,
-                    "candidate_sha256": candidate.candidate_sha256,
+                    "candidate_sha256": candidate_source_sha256,
                     "question_id": candidate.question_id,
                 }
                 for candidate in accepted
@@ -408,7 +417,7 @@ def finalize_reviewed_bundle(
             {
                 "accepted_content_sha256": candidate.accepted_content_sha256,
                 "ambiguity_flag": candidate.ambiguity_flag,
-                "candidate_sha256": candidate.candidate_sha256,
+                "candidate_sha256": candidate_source_sha256,
                 "catalog_sha256": catalog_sha256,
                 "categories": list(selection.categories),
                 "cq_ids": list(selection.cq_ids),

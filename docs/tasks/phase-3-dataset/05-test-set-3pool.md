@@ -49,9 +49,11 @@ review, selection và live evidence. File final này chưa tồn tại ở trạ
   --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
 ```
 
-Live policy cố định là 20 GiB/query, 64 GiB aggregate, location `US`, query cache
-tắt, dry-run toàn batch trước execution. Finalizer yêu cầu evidence hiện hành cho
-đúng 100 selected rows và publish JSONL/manifest immutable.
+Live policy của profile active là 24 GiB/query, 600 GiB aggregate, location `US`,
+query cache tắt, dry-run toàn batch trước execution. Các mức này được duyệt lại
+ngày 2026-10-02 sau khi preflight thật chứng minh selection cân bằng cần khoảng
+557.5 GiB và policy 20/64 GiB cũ không khả thi. Finalizer yêu cầu evidence hiện
+hành cho đúng 100 selected rows và publish JSONL/manifest immutable.
 
 ## Acceptance status
 

@@ -36,6 +36,7 @@ from nl2sparql.dataset.testset.reviewed_validate import (
     resolve_review_state,
     validate_reviewed_selection,
 )
+from nl2sparql.evaluation.adapters.common import load_authoritative_test_set
 
 CATALOG = Path("src/nl2sparql/sql/catalog/ethereum_analytics.json")
 SQL = (
@@ -140,7 +141,17 @@ def _execution(cases: tuple[object, ...]) -> LiveEvidence:
     )
 
 
-def _bound_evidence(tmp_path: Path, bundle: ReviewedBundle):
+def _bound_evidence(
+    tmp_path: Path,
+    bundle: ReviewedBundle,
+    *,
+    policy: SqlPolicy | None = None,
+):
+    policy = policy or SqlPolicy(
+        per_query_bytes=20 * 2**30,
+        total_bytes=64 * 2**30,
+        location="US",
+    )
     report = validate_reviewed_selection(bundle, repo_root=tmp_path, catalog_path=CATALOG)
     accepted = resolve_review_state(bundle, repo_root=tmp_path, catalog_path=CATALOG)
     cases = build_live_cases(bundle, accepted)
@@ -148,7 +159,7 @@ def _bound_evidence(tmp_path: Path, bundle: ReviewedBundle):
         report,
         _execution(cases),
         project="nl2sparql-thesis",
-        policy=SqlPolicy(per_query_bytes=20 * 2**30, total_bytes=64 * 2**30, location="US"),
+        policy=policy,
     )
 
 
@@ -233,6 +244,8 @@ def test_finalize_reviewed_bundle_rejects_stale_or_partial_evidence(
         finalize_reviewed_bundle(
             bundle,
             evidence,
+            expected_policy=SqlPolicy(),
+            candidate_source_sha256="f" * 64,
             output_path=tmp_path / "test-100.jsonl",
             manifest_path=tmp_path / "manifest.json",
             repo_root=tmp_path,
@@ -251,6 +264,8 @@ def test_finalize_reviewed_bundle_writes_non_circular_immutable_artifacts(
     report = finalize_reviewed_bundle(
         bundle,
         evidence,
+        expected_policy=SqlPolicy(),
+        candidate_source_sha256="f" * 64,
         output_path=output,
         manifest_path=manifest_path,
         repo_root=tmp_path,
@@ -293,11 +308,17 @@ def test_finalize_reviewed_bundle_writes_non_circular_immutable_artifacts(
     assert manifest["output_sha256"] == report.output_sha256
     assert manifest["provenance_bundle_sha256"] == report.provenance_bundle_sha256
     assert hashlib.sha256(manifest_path.read_bytes()).hexdigest() == report.manifest_sha256
+    authoritative = load_authoritative_test_set(output, synthetic=False)
+    assert len(authoritative.cases) == 100
+    assert authoritative.live_verified is True
+    assert authoritative.reviewed is True
 
     assert (
         finalize_reviewed_bundle(
             bundle,
             evidence,
+            expected_policy=SqlPolicy(),
+            candidate_source_sha256="f" * 64,
             output_path=output,
             manifest_path=manifest_path,
             repo_root=tmp_path,
@@ -310,8 +331,33 @@ def test_finalize_reviewed_bundle_writes_non_circular_immutable_artifacts(
         finalize_reviewed_bundle(
             bundle,
             evidence,
+            expected_policy=SqlPolicy(),
+            candidate_source_sha256="f" * 64,
             output_path=output,
             manifest_path=manifest_path,
             repo_root=tmp_path,
             catalog_path=CATALOG,
         )
+
+
+def test_finalize_reviewed_bundle_accepts_explicit_authorized_policy(tmp_path: Path) -> None:
+    bundle = _bundle()
+    policy = SqlPolicy(
+        per_query_bytes=24 * 2**30,
+        total_bytes=600 * 2**30,
+        location="US",
+    )
+    evidence = _bound_evidence(tmp_path, bundle, policy=policy)
+
+    report = finalize_reviewed_bundle(
+        bundle,
+        evidence,
+        expected_policy=policy,
+        candidate_source_sha256="f" * 64,
+        output_path=tmp_path / "test-100.jsonl",
+        manifest_path=tmp_path / "manifest.json",
+        repo_root=tmp_path,
+        catalog_path=CATALOG,
+    )
+
+    assert report.status == "finalized"

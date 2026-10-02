@@ -51,8 +51,8 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = REPOSITORY_ROOT / "src/nl2sparql/sql/catalog/ethereum_analytics.json"
 CATALOG_REPORT_PATH = Path("src/nl2sparql/sql/catalog/ethereum_analytics.json")
 REVIEWED_POLICY = SqlPolicy(
-    per_query_bytes=20 * 2**30,
-    total_bytes=64 * 2**30,
+    per_query_bytes=24 * 2**30,
+    total_bytes=600 * 2**30,
     location="US",
 )
 
@@ -345,7 +345,7 @@ def reviewed_finalize(draft_root: Path, final_root: Path) -> None:
     try:
         if not paths.live_evidence.is_file():
             raise FileNotFoundError(f"missing reviewed live evidence: {paths.live_evidence}")
-        validate_candidate_pack(
+        candidate_report = validate_candidate_pack(
             paths.candidates,
             repo_root=REPOSITORY_ROOT,
             catalog_path=CATALOG_PATH,
@@ -355,6 +355,8 @@ def reviewed_finalize(draft_root: Path, final_root: Path) -> None:
         report = finalize_reviewed_bundle(
             bundle,
             evidence,
+            expected_policy=REVIEWED_POLICY,
+            candidate_source_sha256=candidate_report.candidate_sha256,
             output_path=paths.final_jsonl,
             manifest_path=paths.final_manifest,
             repo_root=REPOSITORY_ROOT,

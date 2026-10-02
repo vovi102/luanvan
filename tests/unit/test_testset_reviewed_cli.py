@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import google.auth
 import pytest
@@ -80,6 +81,14 @@ def test_help_exposes_reviewed_subgroup_without_credentials(offline_workflow) ->
         "finalize",
     ):
         assert command in reviewed.output
+
+
+def test_reviewed_live_policy_uses_authorized_bigquery_caps() -> None:
+    module = _workflow()
+
+    assert module.REVIEWED_POLICY.per_query_bytes == 24 * 2**30
+    assert module.REVIEWED_POLICY.total_bytes == 600 * 2**30
+    assert module.REVIEWED_POLICY.location == "US"
 
 
 def test_scaffold_creates_only_human_headers_and_guide(tmp_path: Path, offline_workflow) -> None:
@@ -188,6 +197,37 @@ def test_finalize_without_live_evidence_is_blocked(tmp_path: Path, offline_workf
     assert report["status"] == "blocked"
     assert "live" in report["reason"].casefold()
     assert not (tmp_path / "final" / "test-100.jsonl").exists()
+
+
+def test_finalize_passes_validated_candidate_digest_and_authorized_policy(
+    tmp_path: Path, offline_workflow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    final = tmp_path / "final"
+    final.mkdir()
+    (final / "live-evidence.json").write_text("fixture", encoding="utf-8")
+    monkeypatch.setattr(
+        offline_workflow,
+        "validate_candidate_pack",
+        lambda *_args, **_kwargs: _candidate_report(tmp_path),
+    )
+    monkeypatch.setattr(offline_workflow, "load_reviewed_bundle", lambda *_args: object())
+    monkeypatch.setattr(offline_workflow, "read_reviewed_live_evidence", lambda *_args: object())
+
+    def finalize(*_args, **kwargs):
+        assert kwargs["candidate_source_sha256"] == "a" * 64
+        assert kwargs["expected_policy"].per_query_bytes == 24 * 2**30
+        assert kwargs["expected_policy"].total_bytes == 600 * 2**30
+        return SimpleNamespace(status="finalized", record_count=100)
+
+    monkeypatch.setattr(offline_workflow, "finalize_reviewed_bundle", finalize)
+
+    result = CliRunner().invoke(
+        offline_workflow.main,
+        ["reviewed", "finalize", *_roots(tmp_path)],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output) == {"status": "finalized", "records": 100}
 
 
 @pytest.mark.parametrize(

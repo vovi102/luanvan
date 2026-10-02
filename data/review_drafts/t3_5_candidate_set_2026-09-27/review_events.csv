@@ -1,1 +1,121 @@
 question_id,review_round,reviewer_id,nl_quality,sql_faithfulness,difficulty,decision,revised_nl,revised_sql,notes
+t35-001,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 1
+t35-002,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 1
+t35-003,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 1
+t35-004,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 1
+t35-005,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 1
+t35-006,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 2
+t35-007,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 2
+t35-008,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 2
+t35-009,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 2
+t35-010,1,human-reviewer-01,5,5,easy,ACCEPT,,,Human reviewer accepted batch 2
+t35-011,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-012,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-013,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-014,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-015,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-016,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-017,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-018,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-019,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-020,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-021,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-022,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-023,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-024,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-025,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-026,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-027,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-028,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-029,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-030,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-031,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-032,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-033,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-034,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-035,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-036,1,human-reviewer-01,4,4,easy,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-037,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-038,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-039,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-040,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-041,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-042,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-043,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-044,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-045,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-046,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-047,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-048,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-049,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-050,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-051,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-052,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-053,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-054,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-055,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-056,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-057,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-058,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-059,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-060,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-061,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-062,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-063,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-064,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-065,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-066,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-067,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-068,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-069,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-070,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-071,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-072,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-073,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-074,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-075,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-076,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-077,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-078,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-079,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-080,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-081,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-082,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-083,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-084,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-085,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-086,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-087,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-088,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-089,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-090,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-091,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-092,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-093,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-094,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-095,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-096,1,human-reviewer-01,4,4,medium,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-097,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-098,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-099,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-100,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-101,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-102,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-103,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-104,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-105,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-106,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-107,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-108,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-109,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-110,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-111,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-112,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-113,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-114,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-115,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-116,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-117,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-118,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-119,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold
+t35-120,1,human-reviewer-01,4,4,hard,ACCEPT,,,Human reviewer approved full candidate pack; scores recorded at acceptance threshold

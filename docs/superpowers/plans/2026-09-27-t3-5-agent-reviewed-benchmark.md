@@ -23,7 +23,10 @@ those external gates remain listed in the handoff below.
 - The final artifact must say agent-authored and single-human-reviewed and must never claim independent authorship, inter-rater agreement, or Cohen's kappa.
 - Test-set questions and variants are forbidden from training, prompt tuning, retrieval tuning, linker tuning, and hyperparameter tuning.
 - Offline help, candidate validation, review validation, selection validation, and tests must not initialize credentials, a BigQuery client, or network access.
-- Live verification requires `--allow-bigquery`, a project, and the fixed safety ceilings of 20 GiB per query and 64 GiB aggregate with query cache disabled.
+- Live verification requires `--allow-bigquery`, a project, and the re-authorized
+  safety ceilings of 24 GiB per query and 600 GiB aggregate with query cache
+  disabled. The 2026-10-02 genuine preflight measured about 557.5 GiB for the
+  balanced selection, so the earlier 20/64 GiB ceilings were infeasible.
 - Final publication is atomic and immutable and requires current ready live evidence for all 100 selected cases.
 - Generated candidate source is never edited by review commands; review events and final selection are separate human-owned inputs.
 - No external review, BigQuery execution, or final scientific-readiness claim is performed as part of this implementation plan.
