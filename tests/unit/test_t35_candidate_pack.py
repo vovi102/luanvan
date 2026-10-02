@@ -3,13 +3,13 @@
 from collections import Counter
 from pathlib import Path
 
+from nl2sparql.dataset.testset.reviewed_artifacts import read_reviewed_live_evidence
 from nl2sparql.dataset.testset.reviewed_contracts import (
     ReviewedTestSetPaths,
     load_candidates,
     load_review_events,
     load_reviewed_selections,
 )
-from nl2sparql.dataset.testset.reviewed_artifacts import read_reviewed_live_evidence
 from nl2sparql.dataset.testset.reviewed_validate import (
     load_reviewed_bundle,
     validate_candidate_pack,
