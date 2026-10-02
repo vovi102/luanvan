@@ -24,6 +24,34 @@
 
 ## Entries
 
+### 2026-09-28 — T3.5 active dùng agent-authored, single-human-reviewed provenance
+
+- **Context:** Thiết kế tháng 8 yêu cầu ba pool độc lập, nhiều cộng tác viên và
+  kappa, nhưng không có đủ human authors/reviewers để tạo evidence đó. Tiếp tục
+  gọi dữ liệu do Codex soạn là three-pool sẽ thổi phồng provenance và chặn toàn
+  bộ baseline/fine-tuning downstream.
+- **Options considered:** Chờ vô thời hạn đủ cộng tác viên; tự điền ba vai giả;
+  bỏ benchmark; hoặc tạo profile mới ghi đúng Codex là author và user là một
+  human reviewer, giữ three-pool như đường lịch sử.
+- **Decision:** Chọn profile exact `agent_authored_human_reviewed_v1`. Codex tạo
+  120 NL–GoogleSQL candidates; user review tất cả và chọn 100 theo quota 30/50/20.
+  Artifact bắt buộc công bố các limitation: không independent authorship,
+  independent review, inter-rater agreement hay kappa claim.
+- **Rationale:** Profile mới tạo được benchmark có audit trail trung thực và
+  vẫn giữ human quality gate, thay vì giả evidence hoặc đánh đồng với thiết kế
+  cộng tác viên không thực hiện được.
+- **Consequences:** Draft đã `draft_ready` tại
+  `data/review_drafts/t3_5_candidate_set_2026-09-27/`; review/selection hiện chỉ
+  có header. Cấm dùng candidate/final questions và variants cho training,
+  fine-tuning, few-shot retrieval, prompt/linker/hyperparameter tuning. Genuine
+  B0–B5 accuracy chỉ mở sau user review, explicit live BigQuery verification và
+  immutable finalization.
+- **Revisit:** Chỉ nâng provenance nếu sau này có authors/reviewers độc lập thật;
+  không backfill claim three-pool cho snapshot hiện tại.
+- **Linked:** `docs/tasks/phase-3-dataset/05-test-set-3pool.md`,
+  `docs/superpowers/specs/2026-09-27-t3-5-agent-reviewed-benchmark-design.md`,
+  `data/review_drafts/t3_5_candidate_set_2026-09-27/`.
+
 ### 2026-09-21 — T5.3 dùng Gemini free tier; Large Llama là optional extension
 
 - **Context:** T5.3 đã triển khai local cho Llama 3.3 70B qua OpenRouter nhưng

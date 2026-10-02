@@ -41,6 +41,10 @@ class LiveEvidenceRecord:
     cache_hit: bool
     job_id: str
     wall_latency_ms: float
+    project: str | None = None
+    location: str | None = None
+    verified_at: str | None = None
+    policy_sha256: str | None = None
 
 
 @dataclass(frozen=True)

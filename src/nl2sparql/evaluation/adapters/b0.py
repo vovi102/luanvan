@@ -173,6 +173,10 @@ def adapt_b0(request: B0AdaptRequest) -> CanonicalPredictionRun:
         ArtifactRef("report", "application/json", sha256_file(request.report_path), 1),
         ArtifactRef("test_set", "application/jsonl", authoritative.sha256, 1),
     ]
+    if authoritative.manifest_sha256 is not None:
+        source_refs.append(
+            ArtifactRef("test_set_manifest", "application/json", authoritative.manifest_sha256, 1)
+        )
     if privacy_ref is not None:
         source_refs.append(privacy_ref)
     fingerprints = tuple(

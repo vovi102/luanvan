@@ -17,11 +17,11 @@ Plan A; không nằm trên critical path.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3–T3.5 | Tooling hoàn tất, artifact thật còn thiếu | Critical path; T3.5 do Codex soạn, human-review bởi user |
+| T3.3–T3.5 | T3.5 có 120-candidate draft `draft_ready`; human/live gates còn thiếu | User review T3.5; T3.3–T3.4 vẫn cần genuine artifacts |
 | T4.1–T4.3 | Hoàn tất reviewed development evaluation ngày 2026-09-26; ba report `ready` | Đóng; giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1–T5.2 | Implementation local hoàn tất | Chờ T3.5, training artifact và genuine runs |
 | T5.3 | Gemini primary path và final verification đã hoàn tất | Giữ artifact; không mở lại nếu không có regression |
-| T5.4–T5.5 | Legacy SPARQL, chưa làm | Migrate spec trước khi code |
+| T5.4–T5.5 | T5.4-A NL2SQL framework đã implementation-complete; T5.4-B/T5.5 chờ genuine runs | Finalize T3.5 rồi chạy baseline |
 | Phase 6–7 | Legacy SPARQL, chưa làm | Redesign NL2SQL; chưa implement ticket cũ |
 
 ## Thứ tự thực hiện
@@ -51,8 +51,8 @@ Plan A; không nằm trên critical path.
    3.000 records; hoàn tất audit faithfulness/naturalness và cost evidence.
 6. **T3.4 — Sinh Stage D.** Chạy deterministic noise injection từ Stage C đã
    accept, validate 3.150 records và manual review 30 mẫu.
-7. **T3.5 — Hoàn tất benchmark agent-authored, human-reviewed.** Codex soạn 120
-   ứng viên câu hỏi + GoogleSQL gold; user review, chọn đúng 100 câu (30/50/20),
+7. **T3.5 — Hoàn tất benchmark agent-authored, human-reviewed.** Bộ 120 ứng viên
+   câu hỏi + GoogleSQL gold đã `draft_ready`; user review, chọn đúng 100 câu (30/50/20),
    chạy BigQuery live verification và finalize artifact. Đây là gate chung cho mọi
    claim accuracy; không thay bằng fixture. Báo rõ giới hạn: không claim 3-pool,
    independent authorship hoặc kappa.
@@ -69,7 +69,7 @@ nhưng phải giữ độc lập người viết/reviewer và chống test leaka
 
 ### P2 — Chạy baseline và quyết định scope
 
-9. **T5.4-A — Hoàn thiện evaluation framework NL2SQL.** Chuẩn hóa schema report
+9. **T5.4-A — DONE (implementation) — Evaluation framework NL2SQL.** Đã chuẩn hóa schema report
    dùng chung cho execution accuracy, exact/structural match, answer metrics,
    latency, observed cost, privacy, reproducibility và failure modes. Thêm paired
    bootstrap/CI trước khi chạy toàn bộ baseline.
@@ -141,6 +141,8 @@ Giới hạn WIP đề xuất: một task implementation lớn và một externa
 
 ## Công việc kế tiếp cụ thể
 
-Task code kế tiếp là **T5.4-A NL2SQL evaluation framework**. Song song, Codex
-chuẩn bị T3.5 agent-authored candidate set; user thực hiện Kaggle setup theo
-[`t4-evaluation-and-kaggle-checklist-2026-09-22.md`](t4-evaluation-and-kaggle-checklist-2026-09-22.md).
+Việc kế tiếp trên critical path là **user review bộ T3.5 `draft_ready`** tại
+`data/review_drafts/t3_5_candidate_set_2026-09-27/`, sau đó chọn 100 câu và chạy
+live verification có explicit authorization. Song song có thể hoàn tất genuine
+T3.3–T3.4/training artifacts; chưa chạy hay tune baseline trên T3.5 trước khi
+snapshot final được khóa.

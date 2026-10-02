@@ -242,6 +242,10 @@ def adapt_b12(request: B12AdaptRequest) -> CanonicalPredictionRun:
         ArtifactRef("report", "application/json", sha256_file(request.report_path), 1),
         ArtifactRef("test_set", "application/jsonl", authoritative.sha256, 1),
     ]
+    if authoritative.manifest_sha256 is not None:
+        refs.append(
+            ArtifactRef("test_set_manifest", "application/json", authoritative.manifest_sha256, 1)
+        )
     if privacy_ref is not None:
         refs.append(privacy_ref)
     synthetic_backend = any(bool(row.get("synthetic_backend")) for row in log_rows)
