@@ -51,8 +51,8 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = REPOSITORY_ROOT / "src/nl2sparql/sql/catalog/ethereum_analytics.json"
 CATALOG_REPORT_PATH = Path("src/nl2sparql/sql/catalog/ethereum_analytics.json")
 REVIEWED_POLICY = SqlPolicy(
-    per_query_bytes=20 * 2**30,
-    total_bytes=64 * 2**30,
+    per_query_bytes=24 * 2**30,
+    total_bytes=600 * 2**30,
     location="US",
 )
 

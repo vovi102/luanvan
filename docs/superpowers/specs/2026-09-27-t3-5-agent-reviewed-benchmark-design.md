@@ -212,7 +212,9 @@ The current safety behavior remains mandatory:
 - complete dry-run preflight before any live execution;
 - immediate second dry run before each query;
 - query cache disabled;
-- 20 GiB maximum per query and 64 GiB aggregate;
+- 24 GiB maximum per query and 600 GiB aggregate, explicitly re-authorized on
+  2026-10-02 after genuine dry-run estimates showed the original 20/64 GiB
+  ceilings could not execute any valid 100-case 30/50/20 selection;
 - bounded result previews;
 - exact ordered expected-column validation;
 - positive result size unless `expected_empty=true`; and

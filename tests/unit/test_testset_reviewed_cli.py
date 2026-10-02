@@ -82,6 +82,14 @@ def test_help_exposes_reviewed_subgroup_without_credentials(offline_workflow) ->
         assert command in reviewed.output
 
 
+def test_reviewed_live_policy_uses_authorized_bigquery_caps() -> None:
+    module = _workflow()
+
+    assert module.REVIEWED_POLICY.per_query_bytes == 24 * 2**30
+    assert module.REVIEWED_POLICY.total_bytes == 600 * 2**30
+    assert module.REVIEWED_POLICY.location == "US"
+
+
 def test_scaffold_creates_only_human_headers_and_guide(tmp_path: Path, offline_workflow) -> None:
     result = CliRunner().invoke(offline_workflow.main, ["reviewed", "scaffold", *_roots(tmp_path)])
 
