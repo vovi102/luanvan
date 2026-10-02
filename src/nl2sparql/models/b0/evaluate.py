@@ -307,6 +307,9 @@ def _reviewed_manifest_sha256(
             raise B0EvaluationError(
                 f"reviewed evaluation rows require one consistent {field} matching manifest"
             )
+    candidate_digests = {row["candidate_sha256"] for row in rows}
+    if len(candidate_digests) != 1:
+        raise B0EvaluationError("reviewed evaluation rows require one consistent candidate_sha256")
     reviewers = {tuple(row["pool_c_reviewers"]) for row in rows}
     if len(reviewers) != 1:
         raise B0EvaluationError("reviewed evaluation rows require one consistent reviewer")

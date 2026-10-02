@@ -178,13 +178,16 @@ def test_agent_reviewed_snapshot_requires_matching_final_manifest(tmp_path: Path
         load_b0_cases(path, synthetic=False)
 
 
-def test_agent_reviewed_snapshot_rejects_cross_row_provenance_mismatch(tmp_path: Path) -> None:
+@pytest.mark.parametrize("field", ("selection_sha256", "candidate_sha256"))
+def test_agent_reviewed_snapshot_rejects_cross_row_provenance_mismatch(
+    tmp_path: Path, field: str
+) -> None:
     rows = _reviewed_rows()
-    rows[1]["selection_sha256"] = "9" * 64
+    rows[1][field] = "9" * 64
     path = _write_jsonl(tmp_path, rows)
     _write_reviewed_manifest(path, rows)
 
-    with pytest.raises(B0EvaluationError, match="consistent|selection"):
+    with pytest.raises(B0EvaluationError, match=f"consistent|{field}"):
         load_b0_cases(path, synthetic=False)
 
 
