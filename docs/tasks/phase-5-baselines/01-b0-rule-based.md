@@ -30,7 +30,8 @@ managed relations.
 ## Phụ thuộc
 
 - T3.1 — 25 GoogleSQL templates và typed renderer.
-- T3.5 — finalized three-pool test-set contract và SQL safety validator.
+- T3.5 — finalized `agent_authored_human_reviewed_v1` test-set contract và SQL
+  safety validator.
 - T4.1 — relation/field ranking để phá structural tie duy nhất.
 - T4.2 — entity recognition với source spans và fingerprints.
 - T4.3 — catalog-backed instance/concept resolution và coverage policy.
@@ -40,8 +41,11 @@ managed relations.
 - Public facade: `src/nl2sparql/models/b0_rule_based.py`.
 - Deep module: `src/nl2sparql/models/b0/`.
 - CLI: `scripts/16_b0_rule_baseline.py`.
-- Predictions: `data/eval/predictions/b0_test.jsonl` khi có input hợp lệ.
-- Report: `reports/b0_evaluation.json` khi có input hợp lệ.
+- Native predictions/report: `data/eval/b0/predictions.jsonl` và
+  `data/eval/b0/report.json`.
+- Canonical run/evidence/report: `data/eval/canonical/b0-run-01.json`,
+  `data/eval/evidence/b0-exec-01.{json,jsonl}` và
+  `reports/evaluation/b0-run-01.json`.
 - Notebook reader: `notebooks/13_b0_eval.ipynb`.
 - Design/plan: `docs/superpowers/specs/2026-09-01-t5-1-google-sql-rule-baseline-design.md`
   và `docs/superpowers/plans/2026-09-01-t5-1-google-sql-rule-baseline.md`.
@@ -122,10 +126,10 @@ execution accuracy `>=0.60` trên finalized T3.5 benchmark. AST equality không
   executions `ok` và 100 predictions `skipped_no_output`.
 
 Genuine run được giữ nguyên như negative result; không chỉnh template, parser,
-threshold hoặc linker sau khi xem T3.5 để tránh tune trên test set. Root cause là
-25 seed templates B0 và typed slot extractor yêu cầu bề mặt gần Stage A/ISO,
-trong khi T3.5 dùng query shapes và diễn đạt thời gian tự nhiên khác. Probe chỉ
-thay cụm ngày bằng ISO vẫn cho `0/100`, nên đây không phải lỗi parser ngày đơn lẻ.
+threshold hoặc linker sau khi xem T3.5 để tránh tune trên test set. Source review
+gợi ý mismatch giữa 25 seed templates/typed slot extractor và query shapes/cách
+diễn đạt tự nhiên của T3.5, nhưng đây chỉ là hypothesis chẩn đoán, không phải
+causal claim được artifact bên dưới chứng minh.
 
 Artifacts:
 

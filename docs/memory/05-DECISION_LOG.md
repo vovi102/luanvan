@@ -35,8 +35,9 @@
 - **Decision:** Giữ B0 và T3.5 immutable cho phép đo này, công bố negative result,
   không tối ưu template/parser/linker bằng câu hỏi T3.5.
 - **Rationale:** Sửa B0 dựa trên test set sẽ gây leakage và biến lower-bound thành
-  hệ thống đã tune trên benchmark. Probe chỉ đổi period tự nhiên sang ISO vẫn
-  `0/100`, nên một patch parser ngày không giải quyết root cause.
+  hệ thống đã tune trên benchmark. Causal attribution cho `no_output` chưa có
+  diagnostic artifact hash-bound, nên quyết định chỉ dựa trên nguyên tắc giữ phép
+  đo genuine immutable, không tuyên bố một parser patch cụ thể là root cause.
 - **Consequences:** T5.1 genuine evaluation hoàn tất nhưng acceptance thresholds
   không đạt. T5.4 report ghi `no_output=100%`; B1/B2/B4/B5 phải chứng minh khả
   năng generalize thay vì dùng B0 làm target cần cứu. BigQuery run dùng

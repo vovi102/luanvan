@@ -51,11 +51,10 @@ Plan A; không nằm trên critical path.
    3.000 records; hoàn tất audit faithfulness/naturalness và cost evidence.
 6. **T3.4 — Sinh Stage D.** Chạy deterministic noise injection từ Stage C đã
    accept, validate 3.150 records và manual review 30 mẫu.
-7. **T3.5 — Hoàn tất benchmark agent-authored, human-reviewed.** Bộ 120 ứng viên
-   câu hỏi + GoogleSQL gold đã `draft_ready`; user review, chọn đúng 100 câu (30/50/20),
-   chạy BigQuery live verification và finalize artifact. Đây là gate chung cho mọi
-   claim accuracy; không thay bằng fixture. Báo rõ giới hạn: không claim 3-pool,
-   independent authorship hoặc kappa.
+7. **T3.5 — DONE 2026-10-02.** Benchmark agent-authored, single-human-reviewed
+   đã chọn đúng 100 câu (30/50/20), live-verify `100/100` và finalize immutable.
+   Đây là gate chung cho mọi claim accuracy; không thay bằng fixture và không
+   claim 3-pool, independent authorship/review hoặc kappa.
 8. **T4-EVAL — DONE 2026-09-26 (development acceptance).** User review/gán nhãn 50
    câu schema-link, 100 câu entity-link và 50 câu class-resolver; Codex validate,
    chạy evaluator và publish report hash-bound với accuracy, Recall@K và warm
@@ -64,8 +63,8 @@ Plan A; không nằm trên critical path.
    thiện sau khi xem T4, đây là post-tuning development evidence, không phải
    independent holdout. Các tập không được dùng để tune trên T3.5 test set.
 
-T3.3→T3.4 là chuỗi bắt buộc. T3.5 và T4-EVAL có thể chạy song song với chuỗi đó,
-nhưng phải giữ độc lập người viết/reviewer và chống test leakage.
+T3.3→T3.4 là chuỗi bắt buộc còn mở. T3.5 và T4-EVAL đã khóa immutable; giữ chúng
+ngoài training/tuning và tiếp tục enforce chống test leakage.
 
 ### P2 — Chạy baseline và quyết định scope
 
@@ -144,8 +143,7 @@ Giới hạn WIP đề xuất: một task implementation lớn và một externa
 
 ## Công việc kế tiếp cụ thể
 
-Việc kế tiếp trên critical path là **user review bộ T3.5 `draft_ready`** tại
-`data/review_drafts/t3_5_candidate_set_2026-09-27/`, sau đó chọn 100 câu và chạy
-live verification có explicit authorization. Song song có thể hoàn tất genuine
-T3.3–T3.4/training artifacts; chưa chạy hay tune baseline trên T3.5 trước khi
-snapshot final được khóa.
+Việc kế tiếp trên critical path là **T3.3 live paraphrasing và audit**, sau đó
+sinh/accept Stage D ở **T3.4** để mở T5.2 và eventual fine-tuning. T5.3 Gemini
+genuine runs có thể chạy song song nếu quota/credential sẵn sàng. T3.5 đã khóa;
+không dùng câu hỏi, gold SQL hoặc kết quả B0 để tune bất kỳ baseline nào.
