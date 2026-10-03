@@ -82,9 +82,19 @@ class _Client:
     def __init__(self, jobs: list[_Job]) -> None:
         self.jobs = list(jobs)
         self.calls: list[tuple[str, object, str]] = []
+        self.job_retries: list[object] = []
 
-    def query(self, sql: str, *, job_config: object, location: str, job_id: str | None = None):
+    def query(
+        self,
+        sql: str,
+        *,
+        job_config: object,
+        location: str,
+        job_id: str | None = None,
+        job_retry: object = "unset",
+    ):
         self.calls.append((sql, job_config, location))
+        self.job_retries.append(job_retry)
         job = self.jobs.pop(0)
         if job_id is not None:
             job.job_id = job_id
@@ -154,6 +164,7 @@ def test_dry_run_and_execution_capture_guarded_job_evidence() -> None:
     assert dry_config.use_query_cache is False
     assert live_config.maximum_bytes_billed == _policy().per_query_byte_cap
     assert [call[2] for call in client.calls] == ["EU", "EU"]
+    assert client.job_retries == ["unset", None]
     assert live_job.result_timeouts == [7.5]
     assert outcome.job_id is not None
     assert outcome.job_id.startswith("nl2sql_eval_")

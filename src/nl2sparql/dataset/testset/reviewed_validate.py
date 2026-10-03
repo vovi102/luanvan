@@ -101,6 +101,11 @@ def _is_excluded_leakage_path(path: Path, repo_root: Path) -> bool:
     relative = path.relative_to(repo_root)
     if relative.parts[:3] == ("data", "dataset", "test"):
         return True
+    if relative.parts[:2] == ("data", "eval") and len(relative.parts) > 3:
+        # Direct data/eval files are pre-benchmark T4 leakage inputs. Nested
+        # directories contain post-finalization baseline runs and evidence that
+        # legitimately embed the authoritative T3.5 questions.
+        return True
     return any(part.startswith("t3_5_candidate_set") for part in relative.parts)
 
 
