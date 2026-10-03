@@ -24,6 +24,28 @@
 
 ## Entries
 
+### 2026-10-03 — Giữ T5.1 B0 genuine run như negative result, không tune trên T3.5
+
+- **Context:** B0 được thiết kế trước khi T3.5 final tồn tại. Genuine run trên
+  snapshot 100 câu cho `0/100` output; coverage, structural và execution accuracy
+  đều `0.0`, inference p95 `259.65 ms`. 100 gold SQL vẫn execute thành công.
+- **Options considered:** Hạ threshold; bổ sung parser/template sau khi xem test
+  set; thay T3.5 bằng câu gần seed; hoặc giữ nguyên result và chuyển sang baseline
+  học máy.
+- **Decision:** Giữ B0 và T3.5 immutable cho phép đo này, công bố negative result,
+  không tối ưu template/parser/linker bằng câu hỏi T3.5.
+- **Rationale:** Sửa B0 dựa trên test set sẽ gây leakage và biến lower-bound thành
+  hệ thống đã tune trên benchmark. Probe chỉ đổi period tự nhiên sang ISO vẫn
+  `0/100`, nên một patch parser ngày không giải quyết root cause.
+- **Consequences:** T5.1 genuine evaluation hoàn tất nhưng acceptance thresholds
+  không đạt. T5.4 report ghi `no_output=100%`; B1/B2/B4/B5 phải chứng minh khả
+  năng generalize thay vì dùng B0 làm target cần cứu. BigQuery run dùng
+  `559,594,602,496` billed bytes, estimated cost `$3.180927`.
+- **Revisit:** Chỉ xây rule-based v2 trên một development set tách biệt nếu luận
+  văn cần thí nghiệm mới; không dùng T3.5 để chọn rule hoặc threshold.
+- **Linked:** `docs/tasks/phase-5-baselines/01-b0-rule-based.md`,
+  `data/eval/canonical/b0-run-01.json`, `reports/evaluation/b0-run-01.json`.
+
 ### 2026-09-28 — T3.5 active dùng agent-authored, single-human-reviewed provenance
 
 - **Context:** Thiết kế tháng 8 yêu cầu ba pool độc lập, nhiều cộng tác viên và

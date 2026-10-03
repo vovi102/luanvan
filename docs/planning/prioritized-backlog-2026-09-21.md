@@ -17,11 +17,11 @@ Plan A; không nằm trên critical path.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3–T3.5 | T3.5 có 120-candidate draft `draft_ready`; human/live gates còn thiếu | User review T3.5; T3.3–T3.4 vẫn cần genuine artifacts |
+| T3.3–T3.5 | T3.5 finalized 100 câu, human-reviewed và live-verified; T3.3–T3.4 chưa có genuine artifacts | Chạy T3.3 rồi sinh Stage D ở T3.4 |
 | T4.1–T4.3 | Hoàn tất reviewed development evaluation ngày 2026-09-26; ba report `ready` | Đóng; giữ snapshot/hash immutable; không claim independent holdout |
-| T5.1–T5.2 | Implementation local hoàn tất | Chờ T3.5, training artifact và genuine runs |
+| T5.1–T5.2 | T5.1 genuine B0 đã chạy nhưng không đạt (`0/100`, no output); T5.2 implementation local hoàn tất | Giữ B0 negative result; chờ Stage D rồi chạy T5.2 |
 | T5.3 | Gemini primary path và final verification đã hoàn tất | Giữ artifact; không mở lại nếu không có regression |
-| T5.4–T5.5 | T5.4-A NL2SQL framework đã implementation-complete; T5.4-B/T5.5 chờ genuine runs | Finalize T3.5 rồi chạy baseline |
+| T5.4–T5.5 | T5.4-A complete; đã ingest T5.1 negative result; T5.4-B/T5.5 chờ B1/B2/B4/B5 genuine runs | Hoàn thiện training data rồi chạy các baseline còn lại |
 | Phase 6–7 | Legacy SPARQL, chưa làm | Redesign NL2SQL; chưa implement ticket cũ |
 
 ## Thứ tự thực hiện
@@ -73,7 +73,10 @@ nhưng phải giữ độc lập người viết/reviewer và chống test leaka
    dùng chung cho execution accuracy, exact/structural match, answer metrics,
    latency, observed cost, privacy, reproducibility và failure modes. Thêm paired
    bootstrap/CI trước khi chạy toàn bộ baseline.
-10. **T5.1 — Chạy B0 genuine evaluation** trên T3.5 finalized artifact.
+10. **T5.1 — DONE (genuine negative result, 2026-10-03).** B0 abstain `100/100`:
+    coverage/exact/structural/execution đều `0.0`, inference p95 `259.65 ms`;
+    100 gold executions `ok`, estimated BigQuery cost `$3.180927`. Không tune B0
+    sau khi xem T3.5. Acceptance thresholds không đạt và được giữ làm lower-bound.
 11. **T5.2 — Chạy B1/B2 trên Kaggle T4** với pinned Llama/MiniLM snapshots và
     accepted Stage D training snapshot; publish prediction/log/report artifacts.
 12. **T5.3 — Chạy B4/B5 Gemini** ba run genuine cho mỗi baseline trên cùng test
