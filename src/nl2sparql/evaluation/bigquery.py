@@ -156,6 +156,7 @@ class BigQueryExecutor:
                 job_config=self._config(dry_run=False, policy=policy),
                 location=policy.location,
                 job_id=submitted_job_id,
+                job_retry=None,
             )
         except Exception as exc:
             return QueryExecution(

@@ -30,7 +30,8 @@ managed relations.
 ## Phụ thuộc
 
 - T3.1 — 25 GoogleSQL templates và typed renderer.
-- T3.5 — finalized three-pool test-set contract và SQL safety validator.
+- T3.5 — finalized `agent_authored_human_reviewed_v1` test-set contract và SQL
+  safety validator.
 - T4.1 — relation/field ranking để phá structural tie duy nhất.
 - T4.2 — entity recognition với source spans và fingerprints.
 - T4.3 — catalog-backed instance/concept resolution và coverage policy.
@@ -40,8 +41,11 @@ managed relations.
 - Public facade: `src/nl2sparql/models/b0_rule_based.py`.
 - Deep module: `src/nl2sparql/models/b0/`.
 - CLI: `scripts/16_b0_rule_baseline.py`.
-- Predictions: `data/eval/predictions/b0_test.jsonl` khi có input hợp lệ.
-- Report: `reports/b0_evaluation.json` khi có input hợp lệ.
+- Native predictions/report: `data/eval/b0/predictions.jsonl` và
+  `data/eval/b0/report.json`.
+- Canonical run/evidence/report: `data/eval/canonical/b0-run-01.json`,
+  `data/eval/evidence/b0-exec-01.{json,jsonl}` và
+  `reports/evaluation/b0-run-01.json`.
 - Notebook reader: `notebooks/13_b0_eval.ipynb`.
 - Design/plan: `docs/superpowers/specs/2026-09-01-t5-1-google-sql-rule-baseline-design.md`
   và `docs/superpowers/plans/2026-09-01-t5-1-google-sql-rule-baseline.md`.
@@ -53,7 +57,9 @@ PYTHONPATH=src python scripts/16_b0_rule_baseline.py predict \
   --question "How many transactions happened between 2026-06-15 and 2026-06-16?"
 
 PYTHONPATH=src python scripts/16_b0_rule_baseline.py evaluate \
-  --test-set data/eval/test-100.jsonl
+  --test-set data/dataset/test/test-100.jsonl \
+  --predictions data/eval/b0/predictions.jsonl \
+  --report data/eval/b0/report.json
 ```
 
 `--help`, input preflight và missing-artifact paths không khởi tạo encoder. Lệnh
@@ -106,14 +112,40 @@ execution accuracy `>=0.60` trên finalized T3.5 benchmark. AST equality không
 - Các metric coverage/accuracy/latency bên dưới chưa được tuyên bố vì chưa có
   finalized T3.5 reviewed artifact phù hợp.
 
-### Pending reviewed/live evidence
+### Genuine evaluation — 2026-10-03
 
-- [ ] Finalized T3.5 test set khoảng 100 câu đã review độc lập có mặt local.
-- [ ] Coverage `>=0.40` trên artifact đó.
-- [ ] Structural accuracy `>=0.60` trên matched cases.
-- [ ] Warm p95 `<100 ms` trên artifact đó.
-- [ ] Execution accuracy `>=0.60` với valid warehouse result evidence.
+- [x] Finalized T3.5 gồm 100 câu agent-authored, single-human-reviewed và
+  live-verified có mặt local; test-set SHA-256
+  `5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d`.
+- [ ] Coverage `>=0.40`: **không đạt**, `0/100 = 0.0`.
+- [ ] Structural accuracy `>=0.60` trên matched cases: **không đạt**, report
+  full-denominator là `0/100 = 0.0`; không có matched case để công bố
+  matched-only accuracy.
+- [ ] Warm p95 `<100 ms`: **không đạt**, canonical p95 `259.65499335 ms`.
+- [ ] Execution accuracy `>=0.60`: **không đạt**, `0/100 = 0.0` với 100 gold
+  executions `ok` và 100 predictions `skipped_no_output`.
+
+Genuine run được giữ nguyên như negative result; không chỉnh template, parser,
+threshold hoặc linker sau khi xem T3.5 để tránh tune trên test set. Source review
+gợi ý mismatch giữa 25 seed templates/typed slot extractor và query shapes/cách
+diễn đạt tự nhiên của T3.5, nhưng đây chỉ là hypothesis chẩn đoán, không phải
+causal claim được artifact bên dưới chứng minh.
+
+Artifacts:
+
+- Native: `data/eval/b0/predictions.jsonl`, `data/eval/b0/report.json`.
+- Canonical run: `data/eval/canonical/b0-run-01.json`.
+- Live evidence/journal: `data/eval/evidence/b0-exec-01.json` và
+  `data/eval/evidence/b0-exec-01.jsonl`.
+- Canonical report: `reports/evaluation/b0-run-01.json`, artifact SHA-256
+  `d58a3320f4d5b9c7ee4e0ad07fd4bbc03d91ec7eaac30444470f64eb15c00ac4`.
+- BigQuery: `559,594,602,496` billed bytes, estimated on-demand cost
+  `$3.1809270381927490234375`; guard `24 GiB/query`, `600 GiB` aggregate và
+  `$3.67`.
+- T5.4 report có implementation blockers rỗng nhưng scientific blockers còn
+  `incomplete_reproducibility`, `missing_genuine_baseline_runs` và
+  `missing_privacy_evidence`; các blocker này không được che giấu bằng fixture.
 
 ## Trạng thái
 
-`implementation locally complete — reviewed/live evaluation evidence pending`
+`genuine evaluation complete — B0 acceptance thresholds not met`

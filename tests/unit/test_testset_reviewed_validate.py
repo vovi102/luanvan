@@ -207,6 +207,11 @@ def test_validate_candidate_pack_rejects_normalized_leakage_from_jsonl_csv_and_j
     (evaluation / "questions.csv").write_text(
         "id,question\nq1,Another prior question\n", encoding="utf-8"
     )
+    canonical = evaluation / "canonical"
+    canonical.mkdir()
+    (canonical / "downstream-run.json").write_text(
+        json.dumps({"question": "Existing leakage question"}), encoding="utf-8"
+    )
     review = tmp_path / "data" / "review_drafts" / "t4_candidate_set_2026-09-24"
     review.mkdir(parents=True)
     (review / "questions.json").write_text(

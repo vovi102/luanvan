@@ -17,11 +17,11 @@ Plan A; không nằm trên critical path.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3–T3.5 | T3.5 có 120-candidate draft `draft_ready`; human/live gates còn thiếu | User review T3.5; T3.3–T3.4 vẫn cần genuine artifacts |
+| T3.3–T3.5 | T3.5 finalized 100 câu, human-reviewed và live-verified; T3.3–T3.4 chưa có genuine artifacts | Chạy T3.3 rồi sinh Stage D ở T3.4 |
 | T4.1–T4.3 | Hoàn tất reviewed development evaluation ngày 2026-09-26; ba report `ready` | Đóng; giữ snapshot/hash immutable; không claim independent holdout |
-| T5.1–T5.2 | Implementation local hoàn tất | Chờ T3.5, training artifact và genuine runs |
+| T5.1–T5.2 | T5.1 genuine B0 đã chạy nhưng không đạt (`0/100`, no output); T5.2 implementation local hoàn tất | Giữ B0 negative result; chờ Stage D rồi chạy T5.2 |
 | T5.3 | Gemini primary path và final verification đã hoàn tất | Giữ artifact; không mở lại nếu không có regression |
-| T5.4–T5.5 | T5.4-A NL2SQL framework đã implementation-complete; T5.4-B/T5.5 chờ genuine runs | Finalize T3.5 rồi chạy baseline |
+| T5.4–T5.5 | T5.4-A complete; đã ingest T5.1 negative result; T5.4-B/T5.5 chờ B1/B2/B4/B5 genuine runs | Hoàn thiện training data rồi chạy các baseline còn lại |
 | Phase 6–7 | Legacy SPARQL, chưa làm | Redesign NL2SQL; chưa implement ticket cũ |
 
 ## Thứ tự thực hiện
@@ -51,11 +51,10 @@ Plan A; không nằm trên critical path.
    3.000 records; hoàn tất audit faithfulness/naturalness và cost evidence.
 6. **T3.4 — Sinh Stage D.** Chạy deterministic noise injection từ Stage C đã
    accept, validate 3.150 records và manual review 30 mẫu.
-7. **T3.5 — Hoàn tất benchmark agent-authored, human-reviewed.** Bộ 120 ứng viên
-   câu hỏi + GoogleSQL gold đã `draft_ready`; user review, chọn đúng 100 câu (30/50/20),
-   chạy BigQuery live verification và finalize artifact. Đây là gate chung cho mọi
-   claim accuracy; không thay bằng fixture. Báo rõ giới hạn: không claim 3-pool,
-   independent authorship hoặc kappa.
+7. **T3.5 — DONE 2026-10-02.** Benchmark agent-authored, single-human-reviewed
+   đã chọn đúng 100 câu (30/50/20), live-verify `100/100` và finalize immutable.
+   Đây là gate chung cho mọi claim accuracy; không thay bằng fixture và không
+   claim 3-pool, independent authorship/review hoặc kappa.
 8. **T4-EVAL — DONE 2026-09-26 (development acceptance).** User review/gán nhãn 50
    câu schema-link, 100 câu entity-link và 50 câu class-resolver; Codex validate,
    chạy evaluator và publish report hash-bound với accuracy, Recall@K và warm
@@ -64,8 +63,8 @@ Plan A; không nằm trên critical path.
    thiện sau khi xem T4, đây là post-tuning development evidence, không phải
    independent holdout. Các tập không được dùng để tune trên T3.5 test set.
 
-T3.3→T3.4 là chuỗi bắt buộc. T3.5 và T4-EVAL có thể chạy song song với chuỗi đó,
-nhưng phải giữ độc lập người viết/reviewer và chống test leakage.
+T3.3→T3.4 là chuỗi bắt buộc còn mở. T3.5 và T4-EVAL đã khóa immutable; giữ chúng
+ngoài training/tuning và tiếp tục enforce chống test leakage.
 
 ### P2 — Chạy baseline và quyết định scope
 
@@ -73,7 +72,10 @@ nhưng phải giữ độc lập người viết/reviewer và chống test leaka
    dùng chung cho execution accuracy, exact/structural match, answer metrics,
    latency, observed cost, privacy, reproducibility và failure modes. Thêm paired
    bootstrap/CI trước khi chạy toàn bộ baseline.
-10. **T5.1 — Chạy B0 genuine evaluation** trên T3.5 finalized artifact.
+10. **T5.1 — DONE (genuine negative result, 2026-10-03).** B0 abstain `100/100`:
+    coverage/exact/structural/execution đều `0.0`, inference p95 `259.65 ms`;
+    100 gold executions `ok`, estimated BigQuery cost `$3.180927`. Không tune B0
+    sau khi xem T3.5. Acceptance thresholds không đạt và được giữ làm lower-bound.
 11. **T5.2 — Chạy B1/B2 trên Kaggle T4** với pinned Llama/MiniLM snapshots và
     accepted Stage D training snapshot; publish prediction/log/report artifacts.
 12. **T5.3 — Chạy B4/B5 Gemini** ba run genuine cho mỗi baseline trên cùng test
@@ -141,8 +143,7 @@ Giới hạn WIP đề xuất: một task implementation lớn và một externa
 
 ## Công việc kế tiếp cụ thể
 
-Việc kế tiếp trên critical path là **user review bộ T3.5 `draft_ready`** tại
-`data/review_drafts/t3_5_candidate_set_2026-09-27/`, sau đó chọn 100 câu và chạy
-live verification có explicit authorization. Song song có thể hoàn tất genuine
-T3.3–T3.4/training artifacts; chưa chạy hay tune baseline trên T3.5 trước khi
-snapshot final được khóa.
+Việc kế tiếp trên critical path là **T3.3 live paraphrasing và audit**, sau đó
+sinh/accept Stage D ở **T3.4** để mở T5.2 và eventual fine-tuning. T5.3 Gemini
+genuine runs có thể chạy song song nếu quota/credential sẵn sàng. T3.5 đã khóa;
+không dùng câu hỏi, gold SQL hoặc kết quả B0 để tune bất kỳ baseline nào.
