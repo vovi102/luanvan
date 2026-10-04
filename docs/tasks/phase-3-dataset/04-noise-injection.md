@@ -12,7 +12,7 @@ GoogleSQL, slot facts, entity context, Stage A proof và metadata LLM bất bi�
   `data/dataset/raw/synthetic-stage-c.jsonl` gồm đúng 3.000 records.
 - Entity dictionary T2.2 dùng để bảo vệ owner/primary labels trong câu hỏi.
 
-T3.3 hiện bị chặn bởi `OPENROUTER_API_KEY`, nên implementation và full-size
+T3.3 hiện bị chặn bởi `GEMINI_API_KEY` Free Tier, nên implementation và full-size
 fixture verification của T3.4 đã hoàn tất nhưng final Stage D chưa thể sinh.
 
 ## Contract đã chốt

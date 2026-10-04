@@ -26,9 +26,16 @@ def source_records(count: int = 3) -> list[dict[str, object]]:
 
 
 class FakeClient:
-    def __init__(self, *, fail_first: bool = False, missing_cost: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        fail_first: bool = False,
+        missing_cost: bool = False,
+        cost_usd: float = 0.0,
+    ) -> None:
         self.fail_first = fail_first
         self.missing_cost = missing_cost
+        self.cost_usd = cost_usd
         self.calls: dict[str, int] = {}
 
     async def complete(self, request) -> CompletionResult:
@@ -66,7 +73,7 @@ class FakeClient:
             prompt_tokens=100,
             completion_tokens=20,
             total_tokens=120,
-            cost_usd=None if self.missing_cost else 0.001,
+            cost_usd=None if self.missing_cost else self.cost_usd,
             latency_ms=10.0,
         )
 
@@ -82,7 +89,7 @@ def test_stage_b_stable_order_checkpoint_and_resume(tmp_path: Path) -> None:
 
     assert [record["id"] for record in report.records] == [record["id"] for record in records]
     assert all(record["nl_formal"] == record["nl_seed"] for record in report.records)
-    assert report.total_cost_usd == pytest.approx(0.003)
+    assert report.total_cost_usd == 0.0
     assert len(load_checkpoint(checkpoint)) == 3
 
     resumed = FakeClient()
@@ -90,7 +97,7 @@ def test_stage_b_stable_order_checkpoint_and_resume(tmp_path: Path) -> None:
         run_stage_b(records, resumed, checkpoint, load_entity_index(), concurrency=2)
     )
     assert second.records == report.records
-    assert second.total_cost_usd == pytest.approx(0.003)
+    assert second.total_cost_usd == 0.0
     assert second.resumed_records == 3
     assert resumed.calls == {}
 
@@ -134,7 +141,7 @@ def test_retryable_failure_retries_but_schema_failure_does_not(tmp_path: Path) -
 
 
 def test_missing_cost_and_hard_cost_cap_fail_closed(tmp_path: Path) -> None:
-    with pytest.raises(ParaphraseRunError, match="usage.cost"):
+    with pytest.raises(ParaphraseRunError, match="cost metadata"):
         asyncio.run(
             run_stage_b(
                 source_records(1),
@@ -147,12 +154,32 @@ def test_missing_cost_and_hard_cost_cap_fail_closed(tmp_path: Path) -> None:
         asyncio.run(
             run_stage_b(
                 source_records(1),
-                FakeClient(),
+                FakeClient(cost_usd=0.001),
                 tmp_path / "cap.jsonl",
                 load_entity_index(),
                 cost_cap_usd=0.0001,
             )
         )
+
+
+def test_zero_cost_cap_accepts_free_tier_completion(tmp_path: Path) -> None:
+    class FreeTierClient(FakeClient):
+        async def complete(self, request) -> CompletionResult:
+            result = await super().complete(request)
+            return CompletionResult(**{**result.__dict__, "cost_usd": 0.0})
+
+    report = asyncio.run(
+        run_stage_b(
+            source_records(1),
+            FreeTierClient(),
+            tmp_path / "free-tier.jsonl",
+            load_entity_index(),
+            cost_cap_usd=0.0,
+        )
+    )
+
+    assert report.total_cost_usd == 0.0
+    assert report.completed_calls == 1
 
 
 def test_checkpoint_conflict_is_rejected(tmp_path: Path) -> None:

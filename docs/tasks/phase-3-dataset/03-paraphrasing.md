@@ -16,13 +16,18 @@ Stage A là immutable; LLM chỉ sinh câu hỏi.
 
 - Source: `data/dataset/raw/synthetic-stage-a.jsonl`, đúng 1.000 records, SHA-256
   `a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709`.
-- Stage B: `openai/gpt-4.1-mini`, temperature `0`.
-- Stage C: `google/gemini-2.5-flash`, temperature `0.7`.
-- Gateway: OpenRouter non-streaming, strict JSON Schema và
-  `provider.require_parameters=true`.
+- Stage B: `gemini-3.5-flash`, temperature `0`.
+- Stage C: `gemini-3.5-flash-lite`, temperature `0.7`.
+- Cả hai stage pin `thinkingLevel=minimal` và `maxOutputTokens=1024`; response
+  có `finishReason` khác `STOP` bị từ chối trước checkpoint.
+- Provider: Gemini Developer API trực tiếp, non-streaming, JSON Schema qua
+  `responseMimeType=application/json` và `responseJsonSchema`.
 - Concurrency mặc định 10; tối đa 3 attempts cho 429, 5xx và timeout.
-- Tổng chi phí thực tế từ `usage.cost` không vượt `$30`; thiếu cost thì fail
-  closed.
+- Chỉ chạy bằng project Gemini Free Tier không gắn billing; bắt buộc operator
+  attestation `GEMINI_FREE_TIER_CONFIRMED=1`, cost cap là `$0.00` và không
+  fallback sang paid provider/model. Gemini response không cung cấp authoritative
+  per-request USD cost, nên `$0.00` là recorded contract value, không phải billing
+  evidence độc lập.
 - Checkpoint theo source hash, prompt hash, stage và model; resume không gọi lại
   record đã được chấp nhận và vẫn cộng chi phí lịch sử.
 
@@ -36,9 +41,10 @@ date, numeric, token và entity/address anchors trước khi ghi checkpoint.
   generation Stage B.
 - `synthetic-stage-c.jsonl`: đúng 3.000 child records, có `parent_id`, `version`,
   `nl`, `nl_normalized`, nguyên SQL/provenance và metadata Stage C.
-- `cost_log.csv`: một dòng cho mỗi generation ID, không chứa key hoặc prompt.
+- `cost_log.csv`: một dòng cho mỗi generation ID, ghi `$0.00` theo Free Tier
+  contract và không chứa key hoặc prompt.
 - `paraphrase-config.json`: source/output hashes, pinned models, counts, quality,
-  actual cost và deterministic audit IDs (seed 42).
+  provider/billing tier, recorded cost và deterministic audit IDs (seed 42).
 - `.stage-b.checkpoint.jsonl` và `.stage-c.checkpoint.jsonl`: partial state để
   resume; không phải final artifact.
 
@@ -57,7 +63,8 @@ uv run python scripts/10_paraphrase_stage_a.py --mode validate-only
 Live run sau khi cấu hình key:
 
 ```bash
-export OPENROUTER_API_KEY='<configured outside the repository>'
+export GEMINI_API_KEY='<configured outside the repository>'
+export GEMINI_FREE_TIER_CONFIRMED=1
 uv run python scripts/10_paraphrase_stage_a.py --mode all
 ```
 
@@ -69,7 +76,7 @@ quality summary và audit IDs.
 
 - [x] Source Stage A đúng 1.000 records và pinned SHA-256.
 - [x] Strict Stage B/C response, prompt, fact-anchor và diversity validators.
-- [x] Async runner có retry, concurrency bound, checkpoint/resume và actual-cost
+- [x] Async runner có retry, concurrency bound, checkpoint/resume và zero-cost
   hard cap.
 - [x] Final artifact writers atomic; manifest và audit sample IDs deterministic.
 - [x] Offline unit/integration tests và validate-only không khởi tạo API client.
@@ -77,15 +84,18 @@ quality summary và audit IDs.
   ít nhất 95%.
 - [ ] Stage C live: 3.000 unique records; mean distance >30%; audit 100 parents
   đạt ít nhất 90% natural và 95% faithful.
-- [ ] Tổng actual OpenRouter cost của Stage B + C không vượt `$30`.
+- [ ] Stage B + C chạy bằng operator-attested Free Tier project và tổng recorded
+  cost bằng `$0.00`; báo cáo rõ không có authoritative billing evidence.
 
 ## Trạng thái — external credential gate
 
-Implementation và offline validation đã hoàn tất ngày 2026-08-09. Môi trường
-hiện không có `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, file
-`.env`, hoặc Ollama runtime. Vì vậy 2.000 live calls, final Stage B/C artifacts
-và manual audits chưa thể thực hiện trung thực. Task dừng ở checkpoint có thể
-resume; các acceptance live ở trên không được hạ thấp hoặc đánh dấu hoàn tất.
+OpenRouter contract ngày 2026-08-09 đã được thay thế ngày 2026-10-04 bằng hai
+model Gemini Free Tier gọi trực tiếp. Implementation và offline validation đã
+hoàn tất; môi trường vẫn cần `GEMINI_API_KEY` thuộc project Free Tier không gắn
+billing để chạy 2.000 live calls và đặt `GEMINI_FREE_TIER_CONFIRMED=1`. Quota
+thực tế lấy từ Google AI Studio; khi hết quota, rerun cùng lệnh để resume từ
+checkpoint. Free Tier có thể dùng prompt và response để cải thiện sản phẩm
+Google, nên limitation này phải được công bố.
 
 Chi tiết thiết kế và execution plan:
 

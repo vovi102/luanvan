@@ -4,7 +4,7 @@
 
 T3.3 defines a final Stage C corpus of 3,000 natural English questions paired
 with immutable GoogleSQL and provenance. Its live artifacts are currently
-blocked by the missing `OPENROUTER_API_KEY`, but T3.4's transformation,
+blocked by the missing `GEMINI_API_KEY` Free Tier credential, but T3.4's transformation,
 validation, publication, and audit machinery can be implemented and verified
 offline now. The legacy T3.4 task is probabilistic, still calls the gold field
 SPARQL, permits compound noise labels outside its own acceptance enum, and does

@@ -110,7 +110,10 @@ def test_stage_b_prompt_is_sql_specific_stable_and_context_rich(
     assert first == second
     assert first.stage == "stage_b"
     assert first.model == STAGE_B_MODEL
+    assert first.model == "gemini-3.5-flash"
     assert first.temperature == 0.0
+    assert first.thinking_level == "minimal"
+    assert first.max_output_tokens == 1024
     assert "GoogleSQL" in first.system_prompt
     assert "SPARQL" not in first.system_prompt
     assert record["sql"] in first.user_prompt
@@ -133,7 +136,10 @@ def test_stage_c_prompt_uses_formal_question_not_sql_generation(
 
     assert request.stage == "stage_c"
     assert request.model == STAGE_C_MODEL
+    assert request.model == "gemini-3.5-flash-lite"
     assert request.temperature == 0.7
+    assert request.thinking_level == "minimal"
+    assert request.max_output_tokens == 1024
     assert stage_b_record["nl_formal"] in request.user_prompt
     assert "Do not rewrite or output SQL" in request.system_prompt
     assert request.response_schema["required"] == [

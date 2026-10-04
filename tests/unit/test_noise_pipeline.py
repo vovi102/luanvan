@@ -14,6 +14,7 @@ from nl2sparql.dataset.noise.pipeline import (
     validate_stage_d_records,
 )
 from nl2sparql.dataset.noise.transforms import load_abbreviations
+from nl2sparql.dataset.paraphrase.contracts import STAGE_C_MODEL
 from nl2sparql.dataset.paraphrase.quality import (
     normalize_question,
     normalized_levenshtein,
@@ -38,7 +39,11 @@ def stage_c_records() -> list[dict[str, object]]:
                     "end_date": "2026-06-02",
                 },
                 "entities_used": [],
-                "stage_c": {"pairwise_distances": [0.4, 0.5, 0.6]},
+                "stage_c": {
+                    "pairwise_distances": [0.4, 0.5, 0.6],
+                    "requested_model": STAGE_C_MODEL,
+                    "cost_usd": 0.0,
+                },
             }
         )
     return rows

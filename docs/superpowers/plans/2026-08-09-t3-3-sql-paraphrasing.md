@@ -1,5 +1,9 @@
 # T3.3 GoogleSQL Paraphrasing Implementation Plan
 
+> **Historical:** The OpenRouter adapter/model/cost steps were superseded on
+> 2026-10-04 by the direct Gemini Free Tier migration recorded in the canonical
+> T3.3 task and decision log.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Produce faithful Stage B and diverse Stage C English questions from the 1,000 verified GoogleSQL records through a bounded, resumable two-model pipeline.

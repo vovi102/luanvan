@@ -24,6 +24,35 @@
 
 ## Entries
 
+### 2026-10-04 — T3.3 chuyển từ paid OpenRouter sang Gemini Free Tier trực tiếp
+
+- **Context:** T3.3 cũ pin hai model OpenRouter trả phí cho 2.000 requests, trong
+  khi dự án có ngân sách API bằng 0 và đã chọn Gemini Free Tier cho critical path.
+- **Options considered:** Giữ paid OpenRouter; dùng model OpenRouter `:free` với
+  quota thấp/availability biến động; hoặc gọi Gemini Developer API trực tiếp.
+- **Decision:** Stage B dùng `gemini-3.5-flash` temperature 0 và Stage C dùng
+  `gemini-3.5-flash-lite` temperature 0.7 qua REST API chính thức. Chỉ
+  `GEMINI_API_KEY` từ project Free Tier không gắn billing được phép dùng; cost
+  cap bằng `$0.00`, không có fallback và cần operator attestation
+  `GEMINI_FREE_TIER_CONFIRMED=1`. Cả hai stage pin `thinkingLevel=minimal`,
+  `maxOutputTokens=1024`. JSON Schema, fact anchors, checkpoints, atomic
+  publication và audit thresholds không đổi.
+- **Rationale:** Direct Gemini giữ model identity và structured output ổn định
+  hơn free-model router, tránh OpenRouter paid dependency và tái sử dụng toàn bộ
+  validation/resume pipeline. REST qua `httpx` tránh xung đột `websockets` giữa
+  `google-genai` và Gradio 4.
+- **Consequences:** Live run vẫn cần 2.000 requests và phụ thuộc quota hiển thị
+  trong Google AI Studio; quota exhaustion dừng an toàn và resume ở lần chạy kế
+  tiếp. Free Tier có thể dùng prompt/response để cải thiện sản phẩm Google và
+  limitation này phải được công bố. API response không phải authoritative billing
+  evidence; `$0.00` được ghi là contract value dựa trên operator attestation.
+  Chưa có `GEMINI_API_KEY` nên chưa tạo live Stage B/C artifacts.
+- **Revisit:** Nếu hai stable model mất Free Tier/structured output hoặc pilot
+  không đạt faithfulness/diversity; không đổi model giữa một stage đang chạy.
+- **Linked:** `docs/tasks/phase-3-dataset/03-paraphrasing.md`,
+  `src/nl2sparql/dataset/paraphrase/gemini.py`,
+  `scripts/10_paraphrase_stage_a.py`.
+
 ### 2026-10-03 — Giữ T5.1 B0 genuine run như negative result, không tune trên T3.5
 
 - **Context:** B0 được thiết kế trước khi T3.5 final tồn tại. Genuine run trên
@@ -340,6 +369,8 @@
   `src/nl2sparql/dataset/noise/`, `scripts/11_inject_noise.py`.
 
 ### 2026-08-09 — T3.3 dùng hai model OpenRouter với structured output và actual-cost gate
+
+> Superseded by the 2026-10-04 direct Gemini Free Tier decision.
 
 - **Context:** Stage A đã pivot sang 1.000 GoogleSQL records có live witness,
   nhưng task paraphrase cũ vẫn mô tả SPARQL, model gợi ý chưa pin và cost estimate
@@ -707,14 +738,15 @@
 ## Quyết định chờ ghi (placeholders — điền khi đến)
 
 - [ ] Phase 0: Chốt repo URL, license, .gitignore policy.
-- [ ] Phase 0: Chốt OpenRouter free tier model rotation strategy.
+- [x] Phase 0: Không dùng OpenRouter cho critical path; Gemini Free Tier trực tiếp.
 - [ ] Phase 1: Chốt Plan A khả thi sau pilot (Pivot Point #1 chuẩn bị).
 - [ ] Phase 2: Chốt namespace ontology cuối cùng.
 - [ ] Phase 2: Chốt mức độ extension EthOn (số class/property thêm).
 - [ ] Phase 2: Chốt kích thước slice BigQuery (1 tháng → bao nhiêu transactions thực tế).
 - [x] Phase 2: **Pivot Point #1** — pivot Plan B (2026-08-09).
 - [ ] Phase 3: Chốt số templates cuối cùng (mục tiêu 25-30).
-- [x] Phase 3: Chốt LLM dùng cho paraphrase (GPT-4.1 Mini + Gemini 2.5 Flash qua OpenRouter).
+- [x] Phase 3: Chốt LLM paraphrase (`gemini-3.5-flash` +
+  `gemini-3.5-flash-lite` qua Gemini Free Tier trực tiếp).
 - [ ] Phase 3: Chốt mức noise injection (% items, loại noise nào).
 - [ ] Phase 4: Chốt embedding model cuối (MiniLM-L6 hay multilingual?).
 - [ ] Phase 4: Chốt fuzzy threshold sau hyperparam search.

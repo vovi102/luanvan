@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from nl2sparql.dataset.paraphrase.contracts import (
+    GEMINI_MAX_OUTPUT_TOKENS,
+    GEMINI_THINKING_LEVEL,
     STAGE_B_MODEL,
     STAGE_C_MODEL,
     StageBResponse,
@@ -37,6 +39,8 @@ class PromptRequest:
     source_hash: str
     model: str
     temperature: float
+    thinking_level: str
+    max_output_tokens: int
     system_prompt: str
     user_prompt: str
     response_schema: dict[str, Any]
@@ -68,6 +72,8 @@ def _request(
     source_hash: str,
     model: str,
     temperature: float,
+    thinking_level: str,
+    max_output_tokens: int,
     system_prompt: str,
     user_prompt: str,
     response_schema: dict[str, Any],
@@ -78,6 +84,8 @@ def _request(
                 "stage": stage,
                 "model": model,
                 "temperature": temperature,
+                "thinking_level": thinking_level,
+                "max_output_tokens": max_output_tokens,
                 "system_prompt": system_prompt,
                 "user_prompt": user_prompt,
                 "response_schema": response_schema,
@@ -90,6 +98,8 @@ def _request(
         source_hash=source_hash,
         model=model,
         temperature=temperature,
+        thinking_level=thinking_level,
+        max_output_tokens=max_output_tokens,
         system_prompt=system_prompt,
         user_prompt=user_prompt,
         response_schema=response_schema,
@@ -117,6 +127,8 @@ def build_stage_b_request(
         source_hash=record["record_sha256"],
         model=STAGE_B_MODEL,
         temperature=0.0,
+        thinking_level=GEMINI_THINKING_LEVEL,
+        max_output_tokens=GEMINI_MAX_OUTPUT_TOKENS,
         system_prompt=STAGE_B_SYSTEM,
         user_prompt=user_prompt,
         response_schema=StageBResponse.model_json_schema(),
@@ -143,6 +155,8 @@ def build_stage_c_request(
         source_hash=record["record_sha256"],
         model=STAGE_C_MODEL,
         temperature=0.7,
+        thinking_level=GEMINI_THINKING_LEVEL,
+        max_output_tokens=GEMINI_MAX_OUTPUT_TOKENS,
         system_prompt=STAGE_C_SYSTEM,
         user_prompt=user_prompt,
         response_schema=StageCResponse.model_json_schema(),

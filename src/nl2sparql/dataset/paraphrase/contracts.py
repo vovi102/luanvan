@@ -11,8 +11,10 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from nl2sparql.linking.dictionary import ENTITIES_PATH
 
-STAGE_B_MODEL = "openai/gpt-4.1-mini"
-STAGE_C_MODEL = "google/gemini-2.5-flash"
+STAGE_B_MODEL = "gemini-3.5-flash"
+STAGE_C_MODEL = "gemini-3.5-flash-lite"
+GEMINI_THINKING_LEVEL = "minimal"
+GEMINI_MAX_OUTPUT_TOKENS = 1024
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 
