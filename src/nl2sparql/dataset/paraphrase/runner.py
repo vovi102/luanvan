@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import time
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -39,6 +40,10 @@ class CompletionAPIError(RuntimeError):
     def __init__(self, message: str, *, retryable: bool) -> None:
         super().__init__(message)
         self.retryable = retryable
+
+
+class _StageAborted(ParaphraseRunError):
+    """Raised inside queued workers after another worker has failed."""
 
 
 @dataclass(frozen=True)
@@ -91,6 +96,33 @@ class CostLedger:
             self.spent_usd += cost_usd
 
 
+class _RequestPacer:
+    def __init__(
+        self,
+        requests_per_minute: int | None,
+        *,
+        clock: Callable[[], float],
+        sleeper: Callable[[float], Awaitable[None]],
+    ) -> None:
+        if requests_per_minute is not None and requests_per_minute <= 0:
+            raise ParaphraseRunError("requests per minute must be positive")
+        self._interval = 0.0 if requests_per_minute is None else 60.0 / requests_per_minute
+        self._clock = clock
+        self._sleeper = sleeper
+        self._next_start = 0.0
+        self._lock = asyncio.Lock()
+
+    async def wait(self) -> None:
+        if self._interval == 0.0:
+            return
+        async with self._lock:
+            delay = max(0.0, self._next_start - self._clock())
+            if delay:
+                await self._sleeper(delay)
+            now = self._clock()
+            self._next_start = max(self._next_start, now) + self._interval
+
+
 def _canonical_json(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
@@ -135,9 +167,11 @@ async def _complete_with_retry(
     request: PromptRequest,
     *,
     sleeper: Callable[[float], Awaitable[None]],
+    pacer: _RequestPacer,
 ) -> tuple[CompletionResult, int]:
     for attempt in range(1, 4):
         try:
+            await pacer.wait()
             return await client.complete(request), attempt
         except CompletionAPIError as exc:
             if not exc.retryable or attempt == 3:
@@ -173,6 +207,9 @@ async def _run_stage(
     concurrency: int,
     cost_cap_usd: float,
     sleeper: Callable[[float], Awaitable[None]],
+    requests_per_minute: int | None,
+    pacing_clock: Callable[[], float],
+    pacing_sleeper: Callable[[float], Awaitable[None]],
 ) -> StageRunReport:
     if concurrency <= 0:
         raise ParaphraseRunError("concurrency must be positive")
@@ -200,6 +237,12 @@ async def _run_stage(
     ledger = CostLedger(cost_cap_usd, initial_spent_usd=checkpoint_cost)
     semaphore = asyncio.Semaphore(concurrency)
     checkpoint_lock = asyncio.Lock()
+    stop_event = asyncio.Event()
+    pacer = _RequestPacer(
+        requests_per_minute,
+        clock=pacing_clock,
+        sleeper=pacing_sleeper,
+    )
     resumed = 0
     completed_calls = 0
 
@@ -216,10 +259,17 @@ async def _run_stage(
             resumed += 1
             return existing["output"]
         async with semaphore:
-            await ledger.reserve()
-            result, attempts = await _complete_with_retry(client, request, sleeper=sleeper)
-            await ledger.settle(result.cost_usd)
+            if stop_event.is_set():
+                raise _StageAborted("stage stopped after another request failed")
             try:
+                await ledger.reserve()
+                result, attempts = await _complete_with_retry(
+                    client,
+                    request,
+                    sleeper=sleeper,
+                    pacer=pacer,
+                )
+                await ledger.settle(result.cost_usd)
                 if stage == "stage_b":
                     response = StageBResponse.model_validate_json(result.content)
                     validate_preserved_facts(response.preserved_facts, record)
@@ -247,17 +297,33 @@ async def _run_stage(
                     )
                     output = {**record, "stage_c": metadata}
             except (ValidationError, ParaphraseValidationError) as exc:
+                stop_event.set()
                 raise ParaphraseRunError(
                     f"invalid {stage} response for {record['id']}: {exc}"
                 ) from exc
-            row = {"key": key, "output": output}
-            async with checkpoint_lock:
-                _append_checkpoint(checkpoint_path, row)
-                checkpoint[key] = row
-            completed_calls += 1
-            return output
+            except Exception:
+                stop_event.set()
+                raise
+            else:
+                row = {"key": key, "output": output}
+                async with checkpoint_lock:
+                    _append_checkpoint(checkpoint_path, row)
+                    checkpoint[key] = row
+                completed_calls += 1
+                return output
 
-    outputs = await asyncio.gather(*(process(record) for record in records))
+    results = await asyncio.gather(
+        *(process(record) for record in records),
+        return_exceptions=True,
+    )
+    errors = [result for result in results if isinstance(result, BaseException)]
+    if errors:
+        primary = next(
+            (error for error in errors if not isinstance(error, _StageAborted)),
+            errors[0],
+        )
+        raise primary
+    outputs = [result for result in results if isinstance(result, dict)]
     return StageRunReport(
         stage=stage,
         records=tuple(outputs),
@@ -276,6 +342,9 @@ async def run_stage_b(
     concurrency: int = 10,
     cost_cap_usd: float = DEFAULT_COST_CAP_USD,
     sleeper: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    requests_per_minute: int | None = None,
+    pacing_clock: Callable[[], float] = time.monotonic,
+    pacing_sleeper: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> StageRunReport:
     return await _run_stage(
         stage="stage_b",
@@ -286,6 +355,9 @@ async def run_stage_b(
         concurrency=concurrency,
         cost_cap_usd=cost_cap_usd,
         sleeper=sleeper,
+        requests_per_minute=requests_per_minute,
+        pacing_clock=pacing_clock,
+        pacing_sleeper=pacing_sleeper,
     )
 
 
@@ -298,6 +370,9 @@ async def run_stage_c(
     concurrency: int = 10,
     cost_cap_usd: float = DEFAULT_COST_CAP_USD,
     sleeper: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    requests_per_minute: int | None = None,
+    pacing_clock: Callable[[], float] = time.monotonic,
+    pacing_sleeper: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> StageRunReport:
     return await _run_stage(
         stage="stage_c",
@@ -308,4 +383,7 @@ async def run_stage_c(
         concurrency=concurrency,
         cost_cap_usd=cost_cap_usd,
         sleeper=sleeper,
+        requests_per_minute=requests_per_minute,
+        pacing_clock=pacing_clock,
+        pacing_sleeper=pacing_sleeper,
     )

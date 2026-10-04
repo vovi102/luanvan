@@ -140,6 +140,83 @@ def test_retryable_failure_retries_but_schema_failure_does_not(tmp_path: Path) -
     assert list(invalid.calls.values()) == [1]
 
 
+def test_global_request_pacing_spaces_concurrent_api_starts(tmp_path: Path) -> None:
+    now = 0.0
+    starts: list[float] = []
+
+    def clock() -> float:
+        return now
+
+    async def pacing_sleeper(delay: float) -> None:
+        nonlocal now
+        now += delay
+
+    class TimestampClient(FakeClient):
+        async def complete(self, request) -> CompletionResult:
+            starts.append(clock())
+            return await super().complete(request)
+
+    asyncio.run(
+        run_stage_b(
+            source_records(3),
+            TimestampClient(),
+            tmp_path / "paced.jsonl",
+            load_entity_index(),
+            concurrency=3,
+            requests_per_minute=4,
+            pacing_clock=clock,
+            pacing_sleeper=pacing_sleeper,
+        )
+    )
+
+    assert starts == [0.0, 15.0, 30.0]
+
+
+def test_fatal_failure_drains_in_flight_completion_before_resume(tmp_path: Path) -> None:
+    records = source_records(3)
+    checkpoint = tmp_path / "drain.jsonl"
+
+    class OneFatalClient(FakeClient):
+        def __init__(self) -> None:
+            super().__init__()
+            self.started = 0
+            self.both_started = asyncio.Event()
+
+        async def complete(self, request) -> CompletionResult:
+            self.started += 1
+            if self.started == 2:
+                self.both_started.set()
+            await self.both_started.wait()
+            if request.source_id == records[0]["id"]:
+                raise CompletionAPIError("daily quota", retryable=False)
+            await asyncio.sleep(0.01)
+            return await super().complete(request)
+
+    with pytest.raises(ParaphraseRunError, match="daily quota"):
+        asyncio.run(
+            run_stage_b(
+                records,
+                OneFatalClient(),
+                checkpoint,
+                load_entity_index(),
+                concurrency=2,
+            )
+        )
+
+    accepted_before_resume = load_checkpoint(checkpoint)
+    assert len(accepted_before_resume) == 1
+
+    resumed = FakeClient()
+    report = asyncio.run(
+        run_stage_b(records, resumed, checkpoint, load_entity_index(), concurrency=1)
+    )
+
+    accepted_id = next(iter(accepted_before_resume.values()))["output"]["id"]
+    assert accepted_id not in resumed.calls
+    assert len(resumed.calls) == 2
+    assert report.resumed_records == 1
+
+
 def test_missing_cost_and_hard_cost_cap_fail_closed(tmp_path: Path) -> None:
     with pytest.raises(ParaphraseRunError, match="cost metadata"):
         asyncio.run(

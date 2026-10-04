@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from collections.abc import Callable
 from typing import Any
@@ -17,6 +18,48 @@ GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 class GeminiConfigurationError(ValueError):
     """Raised when the direct Gemini client cannot be configured safely."""
+
+
+def _safe_quota_metadata(response: Any) -> tuple[str, bool]:
+    try:
+        payload = response.json()
+    except (AttributeError, TypeError, ValueError):
+        return "", False
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(error, dict):
+        return "", False
+    reason = error.get("code")
+    daily = reason == "quota_exceeded"
+    quota_id = ""
+    quota_value = ""
+    retry_after = ""
+    details = error.get("details", [])
+    if isinstance(details, list):
+        for detail in details:
+            if not isinstance(detail, dict):
+                continue
+            detail_type = str(detail.get("@type", ""))
+            if detail_type.endswith("google.rpc.QuotaFailure"):
+                violations = detail.get("violations", [])
+                if isinstance(violations, list) and violations and isinstance(violations[0], dict):
+                    violation = violations[0]
+                    quota_id = str(violation.get("quotaId", ""))
+                    quota_value = str(violation.get("quotaValue", ""))
+            elif detail_type.endswith("google.rpc.RetryInfo"):
+                retry_after = str(detail.get("retryDelay", ""))
+    safe = re.compile(r"^[A-Za-z0-9._/-]{1,160}$")
+    quota_id = quota_id if safe.fullmatch(quota_id) else ""
+    quota_value = quota_value if safe.fullmatch(quota_value) else ""
+    retry_after = retry_after if safe.fullmatch(retry_after) else ""
+    daily = daily or "perday" in quota_id.replace("_", "").lower()
+    parts = []
+    if quota_id:
+        parts.append(f"quota={quota_id}")
+    if quota_value:
+        parts.append(f"quota_value={quota_value}")
+    if retry_after:
+        parts.append(f"retry_after={retry_after}")
+    return (f" ({', '.join(parts)})" if parts else ""), daily
 
 
 class GeminiClient:
@@ -77,9 +120,11 @@ class GeminiClient:
             raise CompletionAPIError(str(exc), retryable=True) from exc
         end_ns = self._clock_ns()
         if response.status_code >= 400:
+            quota_metadata, daily_quota = _safe_quota_metadata(response)
             raise CompletionAPIError(
-                f"Gemini API returned HTTP {response.status_code}",
-                retryable=response.status_code == 429 or response.status_code >= 500,
+                f"Gemini API returned HTTP {response.status_code}{quota_metadata}",
+                retryable=(response.status_code == 429 and not daily_quota)
+                or response.status_code >= 500,
             )
         try:
             payload = response.json()

@@ -21,6 +21,7 @@ venv/
 .worktrees/
 .local/
 data/dataset/raw/.noise-publish-*
+data/dataset/raw/.stage-*.checkpoint.jsonl
 
 # Notebooks
 .ipynb_checkpoints/

@@ -24,6 +24,31 @@
 
 ## Entries
 
+### 2026-10-04 — T3.3 pace Free Tier và drain in-flight requests trước khi resume
+
+- **Context:** Live run concurrency 3 gặp 429; concurrency 1 accept thêm đúng năm
+  records rồi tiếp tục 429. Provider sau đó trả quota ID
+  `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, quota value 20 và retry
+  delay 40058 giây. Runner cũ retry mọi 429 sau 1/2 giây và `asyncio.gather` có
+  thể hủy request in-flight trước checkpoint khi một sibling fail.
+- **Options considered:** Lặp resume nhanh; bật billing/đổi provider; hạ
+  concurrency nhưng không pace; hoặc pace toàn cục, phân biệt daily quota và
+  drain request đã bắt đầu.
+- **Decision:** Giữ Gemini Free Tier và model pins; thêm global request-start
+  pacing mặc định 4 RPM, fail-fast cho daily quota metadata đã sanitize, ngừng
+  request mới sau fatal failure nhưng drain/checkpoint mọi request đã bắt đầu.
+- **Rationale:** Pacing tránh burst, fail-fast không đốt quota vô ích, còn drain
+  bảo đảm accepted response không bị gọi lại khi resume. Không giải pháp nào bật
+  billing, dùng paid fallback hay đổi OpenRouter.
+- **Consequences:** Run hiện paused tại 11/1.000 Stage B, 0 Stage C, recorded cost
+  `$0.00`; checkpoint local giữ 11 key/generation ID duy nhất. Final artifacts và
+  agent-reviewed audit chưa tồn tại, nên T3.3 vẫn mở.
+- **Revisit:** Resume sau thời điểm provider reset; chỉ điều chỉnh RPM theo active
+  quota trong AI Studio, không tăng tier.
+- **Linked:** `src/nl2sparql/dataset/paraphrase/runner.py`,
+  `src/nl2sparql/dataset/paraphrase/gemini.py`,
+  `reports/t3-3-live-run-2026-10-04.md`.
+
 ### 2026-10-04 — T3.3 chuyển từ paid OpenRouter sang Gemini Free Tier trực tiếp
 
 - **Context:** T3.3 cũ pin hai model OpenRouter trả phí cho 2.000 requests, trong
@@ -46,7 +71,8 @@
   tiếp. Free Tier có thể dùng prompt/response để cải thiện sản phẩm Google và
   limitation này phải được công bố. API response không phải authoritative billing
   evidence; `$0.00` được ghi là contract value dựa trên operator attestation.
-  Chưa có `GEMINI_API_KEY` nên chưa tạo live Stage B/C artifacts.
+  Live run hiện đã có credential nhưng paused tại daily quota; chưa tạo final
+  Stage B/C artifacts.
 - **Revisit:** Nếu hai stable model mất Free Tier/structured output hoặc pilot
   không đạt faithfulness/diversity; không đổi model giữa một stage đang chạy.
 - **Linked:** `docs/tasks/phase-3-dataset/03-paraphrasing.md`,

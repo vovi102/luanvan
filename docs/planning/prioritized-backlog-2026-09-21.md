@@ -17,7 +17,7 @@ Plan A; không nằm trên critical path.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3–T3.5 | T3.5 finalized 100 câu, human-reviewed và live-verified; T3.3–T3.4 chưa có genuine artifacts | Chạy T3.3 rồi sinh Stage D ở T3.4 |
+| T3.3–T3.5 | T3.5 finalized; T3.3 paused ở 11/1.000 Stage B do Gemini Free Tier daily quota 20; T3.4 chưa có genuine artifact | Resume T3.3 sau quota reset, audit, rồi sinh Stage D |
 | T4.1–T4.3 | Hoàn tất reviewed development evaluation ngày 2026-09-26; ba report `ready` | Đóng; giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1–T5.2 | T5.1 genuine B0 đã chạy nhưng không đạt (`0/100`, no output); T5.2 implementation local hoàn tất | Giữ B0 negative result; chờ Stage D rồi chạy T5.2 |
 | T5.3 | Gemini primary path và final verification đã hoàn tất | Giữ artifact; không mở lại nếu không có regression |
@@ -48,7 +48,10 @@ Plan A; không nằm trên critical path.
 ### P1 — Hoàn thiện dữ liệu và evidence đầu vào
 
 5. **T3.3 — Chạy live paraphrasing và audit.** Tạo Stage B 1.000 records, Stage C
-   3.000 records; hoàn tất audit faithfulness/naturalness và cost evidence.
+   3.000 records; hoàn tất agent-reviewed audit faithfulness/naturalness và cost
+   evidence. Run 2026-10-04 đã checkpoint 11 Stage B records, recorded cost
+   `$0.00`, rồi dừng tại daily quota 20; resume sau provider reset, không publish
+   partial artifact.
 6. **T3.4 — Sinh Stage D.** Chạy deterministic noise injection từ Stage C đã
    accept, validate 3.150 records và manual review 30 mẫu.
 7. **T3.5 — DONE 2026-10-02.** Benchmark agent-authored, single-human-reviewed
@@ -143,7 +146,8 @@ Giới hạn WIP đề xuất: một task implementation lớn và một externa
 
 ## Công việc kế tiếp cụ thể
 
-Việc kế tiếp trên critical path là **T3.3 live paraphrasing và audit**, sau đó
+Việc kế tiếp trên critical path là **resume T3.3 live paraphrasing sau Free Tier
+quota reset và hoàn tất agent-reviewed audit**, sau đó
 sinh/accept Stage D ở **T3.4** để mở T5.2 và eventual fine-tuning. T5.3 Gemini
 genuine runs có thể chạy song song nếu quota/credential sẵn sàng. T3.5 đã khóa;
 không dùng câu hỏi, gold SQL hoặc kết quả B0 để tune bất kỳ baseline nào.

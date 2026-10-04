@@ -144,6 +144,56 @@ def test_gemini_adapter_classifies_http_failures_without_leaking_key(
     assert "secret-key" not in str(error.value)
 
 
+def test_gemini_adapter_fails_fast_and_reports_safe_daily_quota_metadata() -> None:
+    class DailyQuotaHTTP:
+        async def post(self, url, **kwargs):
+            return SimpleNamespace(
+                status_code=429,
+                json=lambda: {
+                    "error": {
+                        "code": 429,
+                        "status": "RESOURCE_EXHAUSTED",
+                        "message": "sensitive provider text must not be copied",
+                        "details": [
+                            {
+                                "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+                                "violations": [
+                                    {
+                                        "quotaMetric": (
+                                            "generativelanguage.googleapis.com/"
+                                            "generate_content_free_tier_requests"
+                                        ),
+                                        "quotaId": (
+                                            "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+                                        ),
+                                        "quotaDimensions": {"model": "gemini-3.5-flash"},
+                                        "quotaValue": "20",
+                                    }
+                                ],
+                            },
+                            {
+                                "@type": "type.googleapis.com/google.rpc.RetryInfo",
+                                "retryDelay": "123s",
+                            },
+                        ],
+                    }
+                },
+            )
+
+    client = GeminiClient(api_key="secret-key", http=DailyQuotaHTTP())
+
+    with pytest.raises(CompletionAPIError) as error:
+        __import__("asyncio").run(client.complete(build_stage_b_request(one_source(), {})))
+
+    text = str(error.value)
+    assert error.value.retryable is False
+    assert "GenerateRequestsPerDayPerProjectPerModel-FreeTier" in text
+    assert "quota_value=20" in text
+    assert "retry_after=123s" in text
+    assert "sensitive provider text" not in text
+    assert "secret-key" not in text
+
+
 def test_gemini_adapter_rejects_malformed_success_response() -> None:
     class MalformedHTTP:
         async def post(self, url, **kwargs):
@@ -334,6 +384,7 @@ def test_all_mode_runs_both_stages_and_closes_client_on_one_event_loop(
 ) -> None:
     script = load_script()
     loop_ids: list[int] = []
+    requested_rates: list[int] = []
 
     class FakeClient:
         @classmethod
@@ -345,10 +396,12 @@ def test_all_mode_runs_both_stages_and_closes_client_on_one_event_loop(
 
     async def fake_stage_b(*args, **kwargs):
         loop_ids.append(id(__import__("asyncio").get_running_loop()))
+        requested_rates.append(kwargs["requests_per_minute"])
         return SimpleNamespace(records=({"id": "one"},), total_cost_usd=0.0)
 
     async def fake_stage_c(*args, **kwargs):
         loop_ids.append(id(__import__("asyncio").get_running_loop()))
+        requested_rates.append(kwargs["requests_per_minute"])
         return SimpleNamespace(records=({"id": "one"},), total_cost_usd=0.0)
 
     monkeypatch.setattr(script, "GeminiClient", FakeClient)
@@ -376,3 +429,4 @@ def test_all_mode_runs_both_stages_and_closes_client_on_one_event_loop(
     assert payload["recorded_cost_usd"] == 0.0
     assert len(set(loop_ids)) == 1
     assert len(loop_ids) == 3
+    assert requested_rates == [4, 4]

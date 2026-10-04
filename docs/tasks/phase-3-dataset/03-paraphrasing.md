@@ -22,7 +22,9 @@ Stage A là immutable; LLM chỉ sinh câu hỏi.
   có `finishReason` khác `STOP` bị từ chối trước checkpoint.
 - Provider: Gemini Developer API trực tiếp, non-streaming, JSON Schema qua
   `responseMimeType=application/json` và `responseJsonSchema`.
-- Concurrency mặc định 10; tối đa 3 attempts cho 429, 5xx và timeout.
+- Concurrency mặc định 10; request starts được pace toàn cục mặc định 4 RPM và
+  tối đa 3 attempts cho 429 ngắn hạn, 5xx và timeout. Daily quota fail-fast;
+  request đã bắt đầu được drain/checkpoint trước khi dừng stage.
 - Chỉ chạy bằng project Gemini Free Tier không gắn billing; bắt buộc operator
   attestation `GEMINI_FREE_TIER_CONFIRMED=1`, cost cap là `$0.00` và không
   fallback sang paid provider/model. Gemini response không cung cấp authoritative
@@ -50,7 +52,8 @@ date, numeric, token và entity/address anchors trước khi ghi checkpoint.
 
 Final JSONL chỉ được atomic replace sau khi toàn stage qua validation. Stage C
 yêu cầu 3.000 câu normalized khác nhau và dataset-wide mean normalized
-Levenshtein distance lớn hơn `0.30`.
+Levenshtein distance lớn hơn `0.30`. Audit cuối do Codex thực hiện phải ghi đúng
+provenance `agent-reviewed`, không được mô tả là independent human review.
 
 ## Cách chạy
 
@@ -80,22 +83,38 @@ quality summary và audit IDs.
   hard cap.
 - [x] Final artifact writers atomic; manifest và audit sample IDs deterministic.
 - [x] Offline unit/integration tests và validate-only không khởi tạo API client.
-- [ ] Stage B live: 1.000/1.000 records; manual faithfulness audit 50 records đạt
-  ít nhất 95%.
+- [ ] Stage B live: 1.000/1.000 records; agent-reviewed faithfulness audit 50
+  records đạt ít nhất 48/50.
 - [ ] Stage C live: 3.000 unique records; mean distance >30%; audit 100 parents
-  đạt ít nhất 90% natural và 95% faithful.
+  agent-reviewed đạt ít nhất 90% natural và 95% faithful.
 - [ ] Stage B + C chạy bằng operator-attested Free Tier project và tổng recorded
   cost bằng `$0.00`; báo cáo rõ không có authoritative billing evidence.
 
-## Trạng thái — external credential gate
+## Trạng thái — paused tại Free Tier daily quota
 
 OpenRouter contract ngày 2026-08-09 đã được thay thế ngày 2026-10-04 bằng hai
-model Gemini Free Tier gọi trực tiếp. Implementation và offline validation đã
-hoàn tất; môi trường vẫn cần `GEMINI_API_KEY` thuộc project Free Tier không gắn
-billing để chạy 2.000 live calls và đặt `GEMINI_FREE_TIER_CONFIRMED=1`. Quota
-thực tế lấy từ Google AI Studio; khi hết quota, rerun cùng lệnh để resume từ
-checkpoint. Free Tier có thể dùng prompt và response để cải thiện sản phẩm
-Google, nên limitation này phải được công bố.
+model Gemini Free Tier gọi trực tiếp. Credential và attestation đã qua preflight.
+Live run ngày 2026-10-04 accept 11/1.000 Stage B records rồi dừng an toàn tại
+`GenerateRequestsPerDayPerProjectPerModel-FreeTier` (`quotaValue=20`); provider
+trả `retryDelay=40058s`. Checkpoint có 11 key và 11 generation ID duy nhất,
+recorded cost `$0.00`; Stage C chưa bắt đầu và không có final artifact nào được
+publish. Acceptance và audit vì vậy vẫn mở.
+
+Resume sau quota reset, từ repository/worktree đang giữ checkpoint:
+
+```bash
+set -a
+source /home/khoavd/WORKSPACE/LuanVan/.env
+set +a
+uv run python scripts/10_paraphrase_stage_a.py --mode all --concurrency 3
+```
+
+Runner pace request starts ở 4 RPM, fail-fast cho daily quota và không gọi lại
+checkpoint đã accept. Free Tier có thể dùng prompt và response để cải thiện sản
+phẩm Google, nên limitation này phải được công bố.
+
+Evidence tạm thời: `reports/t3-3-live-run-2026-10-04.md`. Checkpoint là local
+resume state, không phải version-controlled artifact.
 
 Chi tiết thiết kế và execution plan:
 

@@ -57,6 +57,7 @@ async def _run_live(
     stage_a: list[dict[str, object]],
     source_sha256: str,
     concurrency: int,
+    requests_per_minute: int = 4,
 ) -> dict[str, object]:
     client = GeminiClient.from_env()
     try:
@@ -78,6 +79,7 @@ async def _run_live(
                 entity_index,
                 concurrency=concurrency,
                 cost_cap_usd=DEFAULT_COST_CAP_USD,
+                requests_per_minute=requests_per_minute,
             )
             stage_b_records = list(stage_b_report.records)
             validate_stage_b_records(stage_b_records)
@@ -94,6 +96,7 @@ async def _run_live(
                 entity_index,
                 concurrency=concurrency,
                 cost_cap_usd=DEFAULT_COST_CAP_USD,
+                requests_per_minute=requests_per_minute,
             )
             parents = list(stage_c_report.records)
             children = expand_stage_c_records(parents)
@@ -131,7 +134,14 @@ async def _run_live(
     show_default=True,
 )
 @click.option("--concurrency", type=click.IntRange(1, 20), default=10, show_default=True)
-def main(mode: str, concurrency: int) -> None:
+@click.option(
+    "--requests-per-minute",
+    type=click.IntRange(1, 60),
+    default=4,
+    show_default=True,
+    help="Globally pace request starts to stay within the active Gemini Free Tier quota.",
+)
+def main(mode: str, concurrency: int, requests_per_minute: int) -> None:
     """Keep validation credential-free; construct Gemini only in live modes."""
     try:
         source_bytes = STAGE_A_PATH.read_bytes()
@@ -146,6 +156,7 @@ def main(mode: str, concurrency: int) -> None:
             "source_sha256": source_sha256,
             "provider": "gemini-developer-api",
             "cost_cap_usd": DEFAULT_COST_CAP_USD,
+            "requests_per_minute": requests_per_minute,
         }
         if mode != "validate-only":
             payload.update(
@@ -155,6 +166,7 @@ def main(mode: str, concurrency: int) -> None:
                         stage_a=stage_a,
                         source_sha256=source_sha256,
                         concurrency=concurrency,
+                        requests_per_minute=requests_per_minute,
                     )
                 )
             )
