@@ -1,6 +1,6 @@
 # Bilingual English–Vietnamese NL2SQL Design
 
-**Status:** Approved conversational design; written specification pending user review.
+**Status:** Approved by the user on 2026-10-04.
 
 **Scope:** Make English and Vietnamese input a required thesis capability while
 keeping GoogleSQL as the single output language and preserving the accepted
