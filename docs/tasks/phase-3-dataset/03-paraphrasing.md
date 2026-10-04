@@ -106,7 +106,9 @@ Resume sau quota reset, từ repository/worktree đang giữ checkpoint:
 set -a
 source /home/khoavd/WORKSPACE/LuanVan/.env
 set +a
-uv run python scripts/10_paraphrase_stage_a.py --mode all --concurrency 3
+UV_PROJECT_ENVIRONMENT=/home/khoavd/WORKSPACE/LuanVan/.venv \
+UV_CACHE_DIR=/home/khoavd/WORKSPACE/LuanVan/.uv-cache \
+  uv run --frozen python scripts/10_paraphrase_stage_a.py --mode all --concurrency 3
 ```
 
 Runner pace request starts ở 4 RPM, fail-fast cho daily quota và không gọi lại
