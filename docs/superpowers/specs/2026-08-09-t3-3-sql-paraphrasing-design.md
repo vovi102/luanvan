@@ -1,5 +1,9 @@
 # T3.3 Two-Model GoogleSQL Paraphrasing Design
 
+> **Historical:** Provider/model/cost sections were superseded on 2026-10-04 by
+> the direct Gemini Free Tier contract in
+> `docs/tasks/phase-3-dataset/03-paraphrasing.md` and the decision log.
+
 ## Context
 
 The active Stage A artifact contains 1,000 live-witnessed GoogleSQL records.
@@ -130,4 +134,3 @@ resume/conflict behavior, concurrency-independent ordering, actual-cost gates,
 output expansion, atomic writes, and no-client offline validation. Live closure
 requires 1,000/3,000 final counts, cost at most $30, automated quality gates,
 and documented manual sample results.
-

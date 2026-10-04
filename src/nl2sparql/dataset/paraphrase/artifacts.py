@@ -9,7 +9,12 @@ from pathlib import Path
 from random import Random
 from typing import Any
 
-from nl2sparql.dataset.paraphrase.contracts import STAGE_B_MODEL, STAGE_C_MODEL
+from nl2sparql.dataset.paraphrase.contracts import (
+    GEMINI_MAX_OUTPUT_TOKENS,
+    GEMINI_THINKING_LEVEL,
+    STAGE_B_MODEL,
+    STAGE_C_MODEL,
+)
 from nl2sparql.dataset.paraphrase.quality import normalize_question
 
 
@@ -63,10 +68,12 @@ def build_run_manifest(
     stage_c_sha256: str,
     stage_b_records: Sequence[dict[str, Any]],
     stage_c_records: Sequence[dict[str, Any]],
-    actual_cost_usd: float,
+    recorded_cost_usd: float,
     cost_cap_usd: float,
     generated_at: str,
 ) -> dict[str, Any]:
+    if recorded_cost_usd != 0.0 or cost_cap_usd != 0.0:
+        raise ParaphraseArtifactError("Gemini Free Tier manifest requires zero API cost")
     parents: dict[str, dict[str, Any]] = {}
     for record in stage_c_records:
         parents.setdefault(str(record["parent_id"]), record)
@@ -79,16 +86,32 @@ def build_run_manifest(
         raise ParaphraseArtifactError("Stage C manifest requires distance evidence")
     parent_rows = [{"id": parent_id} for parent_id in parents]
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "completed",
         "generated_at": generated_at,
+        "provider": {
+            "id": "gemini-developer-api",
+            "billing_tier": "free",
+            "fallback_allowed": False,
+            "operator_attestation": "GEMINI_FREE_TIER_CONFIRMED=1",
+        },
         "source": {
             "stage_a_sha256": source_sha256,
             "stage_a_records": 1000,
         },
         "models": {
-            "stage_b": {"id": STAGE_B_MODEL, "temperature": 0.0},
-            "stage_c": {"id": STAGE_C_MODEL, "temperature": 0.7},
+            "stage_b": {
+                "id": STAGE_B_MODEL,
+                "temperature": 0.0,
+                "thinking_level": GEMINI_THINKING_LEVEL,
+                "max_output_tokens": GEMINI_MAX_OUTPUT_TOKENS,
+            },
+            "stage_c": {
+                "id": STAGE_C_MODEL,
+                "temperature": 0.7,
+                "thinking_level": GEMINI_THINKING_LEVEL,
+                "max_output_tokens": GEMINI_MAX_OUTPUT_TOKENS,
+            },
         },
         "outputs": {
             "stage_b_records": len(stage_b_records),
@@ -103,8 +126,10 @@ def build_run_manifest(
             "mean_stage_c_distance": sum(distances) / len(distances),
         },
         "cost": {
-            "actual_usd": actual_cost_usd,
+            "recorded_usd": recorded_cost_usd,
             "cap_usd": cost_cap_usd,
+            "source": "operator_attested_free_tier_contract",
+            "authoritative_billing_evidence": False,
         },
         "audits": {
             "seed": 42,
@@ -121,6 +146,14 @@ def validate_stage_b_records(records: Sequence[dict[str, Any]]) -> None:
         raise ParaphraseArtifactError(f"Stage B requires 1000 records, received {len(records)}")
     if any(not record.get("nl_formal") or not record.get("stage_b") for record in records):
         raise ParaphraseArtifactError("Every Stage B record requires formal text and metadata")
+    if any(record["stage_b"].get("requested_model") != STAGE_B_MODEL for record in records):
+        raise ParaphraseArtifactError("Stage B records must use the pinned Gemini model")
+    try:
+        costs = [float(record["stage_b"]["cost_usd"]) for record in records]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ParaphraseArtifactError("Stage B records require valid cost metadata") from exc
+    if any(cost != 0.0 for cost in costs):
+        raise ParaphraseArtifactError("Stage B records must satisfy the zero-cost contract")
 
 
 def expand_stage_c_records(parents: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -148,6 +181,14 @@ def validate_stage_c_records(records: Sequence[dict[str, Any]]) -> None:
     normalized = [record.get("nl_normalized") for record in records]
     if any(not value for value in normalized) or len(set(normalized)) != len(normalized):
         raise ParaphraseArtifactError("Stage C requires 3000 unique normalized questions")
+    if any(record["stage_c"].get("requested_model") != STAGE_C_MODEL for record in records):
+        raise ParaphraseArtifactError("Stage C records must use the pinned Gemini model")
+    try:
+        costs = [float(record["stage_c"]["cost_usd"]) for record in records]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ParaphraseArtifactError("Stage C records require valid cost metadata") from exc
+    if any(cost != 0.0 for cost in costs):
+        raise ParaphraseArtifactError("Stage C records must satisfy the zero-cost contract")
     parents: dict[str, dict[str, Any]] = {}
     for record in records:
         parents[record["parent_id"]] = record

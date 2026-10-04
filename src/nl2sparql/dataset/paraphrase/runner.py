@@ -1,4 +1,4 @@
-"""Resumable, asynchronous, actual-cost-bounded paraphrase runner."""
+"""Resumable, asynchronous, zero-cost-bounded paraphrase runner."""
 
 from __future__ import annotations
 
@@ -28,8 +28,7 @@ from nl2sparql.dataset.paraphrase.quality import (
     validate_stage_c_questions,
 )
 
-DEFAULT_COST_CAP_USD = 30.0
-RESERVATION_PER_REQUEST_USD = 0.02
+DEFAULT_COST_CAP_USD = 0.0
 
 
 class ParaphraseRunError(ValueError):
@@ -69,8 +68,8 @@ class StageRunReport:
 
 class CostLedger:
     def __init__(self, cap_usd: float, *, initial_spent_usd: float = 0.0) -> None:
-        if cap_usd <= 0:
-            raise ParaphraseRunError("cost cap must be positive")
+        if cap_usd < 0:
+            raise ParaphraseRunError("cost cap must not be negative")
         if initial_spent_usd < 0 or initial_spent_usd > cap_usd:
             raise ParaphraseRunError(f"checkpoint cost exceeds API cost cap ${cap_usd:.2f}")
         self.cap_usd = cap_usd
@@ -80,15 +79,13 @@ class CostLedger:
 
     async def reserve(self) -> None:
         async with self._lock:
-            if self.spent_usd + self.reserved_usd + RESERVATION_PER_REQUEST_USD > self.cap_usd:
+            if self.spent_usd + self.reserved_usd > self.cap_usd:
                 raise ParaphraseRunError(f"API cost cap ${self.cap_usd:.2f} would be exceeded")
-            self.reserved_usd += RESERVATION_PER_REQUEST_USD
 
     async def settle(self, cost_usd: float | None) -> None:
         async with self._lock:
-            self.reserved_usd -= RESERVATION_PER_REQUEST_USD
             if cost_usd is None:
-                raise ParaphraseRunError("OpenRouter response is missing usage.cost")
+                raise ParaphraseRunError("completion response is missing cost metadata")
             if cost_usd < 0 or self.spent_usd + cost_usd > self.cap_usd:
                 raise ParaphraseRunError(f"API cost cap ${self.cap_usd:.2f} exceeded")
             self.spent_usd += cost_usd
@@ -156,6 +153,10 @@ def _completion_metadata(
 ) -> dict[str, Any]:
     return {
         **asdict(result),
+        "requested_model": request.model,
+        "temperature": request.temperature,
+        "thinking_level": request.thinking_level,
+        "max_output_tokens": request.max_output_tokens,
         "prompt_sha256": request.prompt_sha256,
         "preserved_facts": None,
         "attempts": attempts,

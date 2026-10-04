@@ -1,4 +1,4 @@
-"""Tests for OpenRouter adaptation, Stage C expansion, and CLI gates."""
+"""Tests for Gemini adaptation, Stage C expansion, and CLI gates."""
 
 from __future__ import annotations
 
@@ -20,13 +20,17 @@ from nl2sparql.dataset.paraphrase.artifacts import (
     validate_stage_c_records,
     write_json_atomic,
 )
-from nl2sparql.dataset.paraphrase.contracts import build_preserved_facts
-from nl2sparql.dataset.paraphrase.openrouter import (
-    OpenRouterClient,
-    OpenRouterConfigurationError,
+from nl2sparql.dataset.paraphrase.contracts import (
+    STAGE_B_MODEL,
+    STAGE_C_MODEL,
+    build_preserved_facts,
+)
+from nl2sparql.dataset.paraphrase.gemini import (
+    GeminiClient,
+    GeminiConfigurationError,
 )
 from nl2sparql.dataset.paraphrase.prompts import build_stage_b_request
-from nl2sparql.dataset.paraphrase.runner import CompletionResult
+from nl2sparql.dataset.paraphrase.runner import CompletionAPIError, CompletionResult
 
 STAGE_A_PATH = Path("data/dataset/raw/synthetic-stage-a.jsonl")
 
@@ -35,56 +39,122 @@ def one_source() -> dict[str, object]:
     return json.loads(STAGE_A_PATH.read_text().splitlines()[0])
 
 
-class FakeCompletions:
+class FakeHTTP:
     def __init__(self) -> None:
         self.kwargs = None
 
-    async def create(self, **kwargs):
+    async def post(self, url, **kwargs):
+        self.url = url
         self.kwargs = kwargs
         return SimpleNamespace(
-            id="gen-1",
-            model=kwargs["model"],
-            choices=[
-                SimpleNamespace(
-                    message=SimpleNamespace(content='{"question":"Q?","preserved_facts":[]}')
-                )
-            ],
-            usage=SimpleNamespace(
-                prompt_tokens=10,
-                completion_tokens=5,
-                total_tokens=15,
-                model_dump=lambda: {
-                    "prompt_tokens": 10,
-                    "completion_tokens": 5,
-                    "total_tokens": 15,
-                    "cost": 0.0002,
+            status_code=200,
+            json=lambda: {
+                "responseId": "gen-1",
+                "modelVersion": "gemini-3.5-flash",
+                "candidates": [
+                    {
+                        "content": {"parts": [{"text": '{"question":"Q?","preserved_facts":[]}'}]},
+                        "finishReason": "STOP",
+                    }
+                ],
+                "usageMetadata": {
+                    "promptTokenCount": 10,
+                    "candidatesTokenCount": 5,
+                    "totalTokenCount": 15,
                 },
-            ),
+            },
         )
 
 
-def test_openrouter_adapter_sends_strict_schema_and_extracts_actual_cost() -> None:
-    completions = FakeCompletions()
-    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
-    client = OpenRouterClient(sdk=sdk, clock_ns=iter([0, 2_000_000]).__next__)
+def test_gemini_adapter_sends_json_schema_and_records_free_tier_cost() -> None:
+    http = FakeHTTP()
+    client = GeminiClient(
+        api_key="test-key",
+        http=http,
+        clock_ns=iter([0, 2_000_000]).__next__,
+    )
     request = build_stage_b_request(one_source(), {})
 
     result = __import__("asyncio").run(client.complete(request))
 
     assert isinstance(result, CompletionResult)
-    assert result.cost_usd == 0.0002
+    assert result.cost_usd == 0.0
     assert result.latency_ms == 2.0
-    assert completions.kwargs["response_format"]["type"] == "json_schema"
-    assert completions.kwargs["response_format"]["json_schema"]["strict"] is True
-    assert completions.kwargs["extra_body"]["provider"]["require_parameters"] is True
-    assert completions.kwargs["messages"][0]["content"].startswith("You are a precise")
+    assert http.url.endswith("/models/gemini-3.5-flash:generateContent")
+    assert http.kwargs["headers"] == {"x-goog-api-key": "test-key"}
+    payload = http.kwargs["json"]
+    assert payload["contents"][0]["parts"][0]["text"] == request.user_prompt
+    assert payload["systemInstruction"]["parts"][0]["text"].startswith("You are a precise")
+    config = payload["generationConfig"]
+    assert config["responseMimeType"] == "application/json"
+    assert config["responseJsonSchema"] == request.response_schema
+    assert config["thinkingConfig"] == {"thinkingLevel": "minimal"}
+    assert config["maxOutputTokens"] == 1024
 
 
-def test_openrouter_from_env_fails_without_leaking_credentials(monkeypatch) -> None:
-    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    with pytest.raises(OpenRouterConfigurationError, match="OPENROUTER_API_KEY") as error:
-        OpenRouterClient.from_env()
-    assert "sk-" not in str(error.value)
+def test_gemini_from_env_requires_only_gemini_key(monkeypatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "must-not-be-used")
+    with pytest.raises(GeminiConfigurationError, match="GEMINI_API_KEY") as error:
+        GeminiClient.from_env()
+    assert "must-not-be-used" not in str(error.value)
+
+
+def test_gemini_from_env_requires_free_tier_attestation(monkeypatch) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.delenv("GEMINI_FREE_TIER_CONFIRMED", raising=False)
+
+    with pytest.raises(GeminiConfigurationError, match="GEMINI_FREE_TIER_CONFIRMED=1"):
+        GeminiClient.from_env()
+
+
+def test_gemini_adapter_rejects_truncated_response() -> None:
+    class TruncatedHTTP(FakeHTTP):
+        async def post(self, url, **kwargs):
+            response = await super().post(url, **kwargs)
+            payload = response.json()
+            payload["candidates"][0]["finishReason"] = "MAX_TOKENS"
+            return SimpleNamespace(status_code=200, json=lambda: payload)
+
+    client = GeminiClient(api_key="test-key", http=TruncatedHTTP())
+
+    with pytest.raises(CompletionAPIError, match="MAX_TOKENS") as error:
+        __import__("asyncio").run(client.complete(build_stage_b_request(one_source(), {})))
+
+    assert error.value.retryable is False
+
+
+@pytest.mark.parametrize(
+    ("status_code", "retryable"),
+    [(400, False), (429, True), (503, True)],
+)
+def test_gemini_adapter_classifies_http_failures_without_leaking_key(
+    status_code: int, retryable: bool
+) -> None:
+    class FailingHTTP:
+        async def post(self, url, **kwargs):
+            return SimpleNamespace(status_code=status_code)
+
+    client = GeminiClient(api_key="secret-key", http=FailingHTTP())
+
+    with pytest.raises(CompletionAPIError, match=str(status_code)) as error:
+        __import__("asyncio").run(client.complete(build_stage_b_request(one_source(), {})))
+
+    assert error.value.retryable is retryable
+    assert "secret-key" not in str(error.value)
+
+
+def test_gemini_adapter_rejects_malformed_success_response() -> None:
+    class MalformedHTTP:
+        async def post(self, url, **kwargs):
+            return SimpleNamespace(status_code=200, json=lambda: {"candidates": []})
+
+    client = GeminiClient(api_key="test-key", http=MalformedHTTP())
+
+    with pytest.raises(CompletionAPIError, match="invalid response") as error:
+        __import__("asyncio").run(client.complete(build_stage_b_request(one_source(), {})))
+
+    assert error.value.retryable is False
 
 
 def test_stage_c_expands_three_children_and_enforces_quality() -> None:
@@ -142,7 +212,11 @@ def test_manifest_helpers_are_deterministic_and_costs_are_deduplicated(
         {
             "id": f"syn-{index:06d}",
             "nl_formal": f"Formal question {index}?",
-            "stage_b": {"generation_id": f"stage-b-{index}"},
+            "stage_b": {
+                "generation_id": f"stage-b-{index}",
+                "requested_model": STAGE_B_MODEL,
+                "cost_usd": 0.0,
+            },
         }
         for index in range(1000)
     ]
@@ -151,7 +225,11 @@ def test_manifest_helpers_are_deterministic_and_costs_are_deduplicated(
             "id": f"child-{index}",
             "parent_id": f"syn-{index // 3:06d}",
             "nl_normalized": f"question {index}",
-            "stage_c": {"pairwise_distances": [0.4, 0.5, 0.6]},
+            "stage_c": {
+                "pairwise_distances": [0.4, 0.5, 0.6],
+                "requested_model": STAGE_C_MODEL,
+                "cost_usd": 0.0,
+            },
         }
         for index in range(3000)
     ]
@@ -159,6 +237,20 @@ def test_manifest_helpers_are_deterministic_and_costs_are_deduplicated(
     validate_stage_c_records(stage_c_records)
     with pytest.raises(ParaphraseArtifactError, match="1000"):
         validate_stage_b_records(stage_b_records[:-1])
+    stale_stage_b = [*stage_b_records]
+    stale_stage_b[0] = {
+        **stale_stage_b[0],
+        "stage_b": {**stale_stage_b[0]["stage_b"], "requested_model": "old-model"},
+    }
+    with pytest.raises(ParaphraseArtifactError, match="Gemini model"):
+        validate_stage_b_records(stale_stage_b)
+    stale_stage_c = [*stage_c_records]
+    stale_stage_c[0] = {
+        **stale_stage_c[0],
+        "stage_c": {**stale_stage_c[0]["stage_c"], "cost_usd": 0.01},
+    }
+    with pytest.raises(ParaphraseArtifactError, match="zero-cost"):
+        validate_stage_c_records(stale_stage_c)
 
     manifest = build_run_manifest(
         source_sha256="a" * 64,
@@ -166,10 +258,24 @@ def test_manifest_helpers_are_deterministic_and_costs_are_deduplicated(
         stage_c_sha256="c" * 64,
         stage_b_records=stage_b_records,
         stage_c_records=stage_c_records,
-        actual_cost_usd=0.01,
-        cost_cap_usd=30.0,
+        recorded_cost_usd=0.0,
+        cost_cap_usd=0.0,
         generated_at="2026-08-09T00:00:00Z",
     )
+    assert manifest["provider"] == {
+        "id": "gemini-developer-api",
+        "billing_tier": "free",
+        "fallback_allowed": False,
+        "operator_attestation": "GEMINI_FREE_TIER_CONFIRMED=1",
+    }
+    assert manifest["models"]["stage_b"]["thinking_level"] == "minimal"
+    assert manifest["models"]["stage_b"]["max_output_tokens"] == 1024
+    assert manifest["cost"] == {
+        "recorded_usd": 0.0,
+        "cap_usd": 0.0,
+        "source": "operator_attested_free_tier_contract",
+        "authoritative_billing_evidence": False,
+    }
     assert manifest["quality"]["mean_stage_c_distance"] == pytest.approx(0.5)
     assert len(manifest["audits"]["stage_b_record_ids"]) == 50
     assert len(manifest["audits"]["stage_c_parent_ids"]) == 100
@@ -202,7 +308,7 @@ def load_script():
     return module
 
 
-def test_cli_validate_only_never_constructs_openrouter(monkeypatch) -> None:
+def test_cli_validate_only_never_constructs_gemini(monkeypatch) -> None:
     script = load_script()
 
     class ForbiddenClient:
@@ -210,12 +316,63 @@ def test_cli_validate_only_never_constructs_openrouter(monkeypatch) -> None:
         def from_env(cls):
             raise AssertionError("validate-only must not construct a client")
 
-    monkeypatch.setattr(script, "OpenRouterClient", ForbiddenClient)
+    monkeypatch.setattr(script, "GeminiClient", ForbiddenClient)
     result = CliRunner().invoke(script.main, ["--mode", "validate-only"])
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert payload["mode"] == "validate-only"
+    assert payload["provider"] == "gemini-developer-api"
+    assert payload["cost_cap_usd"] == 0.0
     assert payload["stage_a_records"] == 1000
     assert payload["source_sha256"] == (
         "a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709"
     )
+
+
+def test_all_mode_runs_both_stages_and_closes_client_on_one_event_loop(
+    monkeypatch, tmp_path: Path
+) -> None:
+    script = load_script()
+    loop_ids: list[int] = []
+
+    class FakeClient:
+        @classmethod
+        def from_env(cls):
+            return cls()
+
+        async def aclose(self):
+            loop_ids.append(id(__import__("asyncio").get_running_loop()))
+
+    async def fake_stage_b(*args, **kwargs):
+        loop_ids.append(id(__import__("asyncio").get_running_loop()))
+        return SimpleNamespace(records=({"id": "one"},), total_cost_usd=0.0)
+
+    async def fake_stage_c(*args, **kwargs):
+        loop_ids.append(id(__import__("asyncio").get_running_loop()))
+        return SimpleNamespace(records=({"id": "one"},), total_cost_usd=0.0)
+
+    monkeypatch.setattr(script, "GeminiClient", FakeClient)
+    monkeypatch.setattr(script, "load_entity_index", lambda: {})
+    monkeypatch.setattr(script, "run_stage_b", fake_stage_b)
+    monkeypatch.setattr(script, "run_stage_c", fake_stage_c)
+    monkeypatch.setattr(script, "validate_stage_b_records", lambda records: None)
+    monkeypatch.setattr(script, "validate_stage_c_records", lambda records: None)
+    monkeypatch.setattr(script, "expand_stage_c_records", lambda parents: [{"id": "child"}])
+    monkeypatch.setattr(script, "write_cost_log", lambda records, path: None)
+    monkeypatch.setattr(script, "build_run_manifest", lambda **kwargs: {})
+    monkeypatch.setattr(script, "STAGE_B_PATH", tmp_path / "stage-b.jsonl")
+    monkeypatch.setattr(script, "STAGE_C_PATH", tmp_path / "stage-c.jsonl")
+    monkeypatch.setattr(script, "CONFIG_PATH", tmp_path / "manifest.json")
+
+    payload = __import__("asyncio").run(
+        script._run_live(
+            mode="all",
+            stage_a=[{"id": "source"}],
+            source_sha256="a" * 64,
+            concurrency=1,
+        )
+    )
+
+    assert payload["recorded_cost_usd"] == 0.0
+    assert len(set(loop_ids)) == 1
+    assert len(loop_ids) == 3
