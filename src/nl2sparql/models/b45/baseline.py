@@ -9,11 +9,13 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
+from nl2sparql.language import NORMALIZATION_VERSION
 from nl2sparql.models.b12.contracts import (
     CatalogSummary,
     ChatMessage,
     SelectedExample,
     SmallLLMError,
+    question_normalization_sha256,
     validate_question,
 )
 from nl2sparql.models.b12.extraction import extract_google_sql
@@ -91,6 +93,8 @@ def _retrieval_evidence(
             "record_id": example.record_id,
             "question": example.question,
             "score": example.score,
+            "language": example.language,
+            "semantic_family_id": example.semantic_family_id,
             "sql": example.sql,
         }
         for example in selected_examples
@@ -129,6 +133,10 @@ class PromptPreview:
     prompt_sha256: str
     selected_examples: tuple[SelectedExample, ...] = ()
     retrieval_evidence: RetrievalEvidence | None = None
+    normalization_version: str = NORMALIZATION_VERSION
+    input_sha256: str = ""
+    normalized_input_sha256: str = ""
+    bilingual_aliases_sha256: str | None = None
     _retriever_issuer: object | None = field(
         init=False,
         default=None,
@@ -220,10 +228,15 @@ def _build_prompt_preview(
         messages = build_messages(question, summary, examples=examples)
     except SmallLLMError as exc:
         raise LargeLLMError(str(exc)) from exc
+    input_sha256, normalized_input_sha256 = question_normalization_sha256(question)
     return PromptPreview(
         messages=messages,
         prompt_sha256=prompt_sha256(messages),
         selected_examples=examples,
+        normalization_version=summary.normalization_version,
+        input_sha256=input_sha256,
+        normalized_input_sha256=normalized_input_sha256,
+        bilingual_aliases_sha256=summary.bilingual_aliases_sha256,
         retrieval_evidence=_retrieval_evidence(
             training_sha256=training_sha256,
             encoder_id=encoder_id,

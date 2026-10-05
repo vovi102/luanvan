@@ -10,6 +10,8 @@ import unicodedata
 from dataclasses import asdict, dataclass, field
 from typing import Literal
 
+from nl2sparql.language import NORMALIZATION_VERSION, normalize_input
+
 MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 BaselineName = Literal["b1", "b2"]
@@ -48,6 +50,26 @@ def validate_question(value: object) -> str:
             "question must contain text, be control-free, and at most 2000 characters"
         )
     return value
+
+
+def question_normalization_sha256(value: object) -> tuple[str, str]:
+    """Hash exact and non-destructively normalized question representations."""
+    question = validate_question(value)
+    try:
+        normalized = normalize_input(question, language="vi")
+    except ValueError as exc:
+        raise SmallLLMError(str(exc)) from exc
+    body = {
+        "accent_folded": normalized.accent_folded,
+        "match": normalized.match,
+        "nfc": normalized.nfc,
+        "normalization_version": normalized.normalization_version,
+    }
+    payload = json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return (
+        hashlib.sha256(question.encode("utf-8")).hexdigest(),
+        hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+    )
 
 
 @dataclass(frozen=True)
@@ -130,6 +152,8 @@ class CatalogSummary:
     text: str
     catalog_sha256: str
     summary_sha256: str
+    bilingual_aliases_sha256: str | None = None
+    normalization_version: str = NORMALIZATION_VERSION
 
     def __post_init__(self) -> None:
         if not isinstance(self.text, str) or not self.text.strip():
@@ -139,6 +163,10 @@ class CatalogSummary:
         actual = hashlib.sha256(self.text.encode("utf-8")).hexdigest()
         if actual != self.summary_sha256:
             raise SmallLLMError("summary fingerprint does not match summary text")
+        if self.bilingual_aliases_sha256 is not None:
+            _digest(self.bilingual_aliases_sha256, "bilingual alias fingerprint")
+        if self.normalization_version != NORMALIZATION_VERSION:
+            raise SmallLLMError("catalog summary normalization version mismatch")
 
 
 @dataclass(frozen=True)
@@ -149,6 +177,8 @@ class SelectedExample:
     question: str
     sql: str
     score: float
+    language: Literal["en", "vi"] | None = None
+    semantic_family_id: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.record_id, str) or not _RECORD_ID_RE.fullmatch(self.record_id):
@@ -163,6 +193,15 @@ class SelectedExample:
             or not -1.0 <= self.score <= 1.0
         ):
             raise SmallLLMError("selected example score must be a finite float in [-1, 1]")
+        if (self.language is None) != (self.semantic_family_id is None):
+            raise SmallLLMError("selected example bilingual provenance must be complete")
+        if self.language is not None:
+            if self.language not in {"en", "vi"}:
+                raise SmallLLMError("selected example language must be en or vi")
+            if not isinstance(self.semantic_family_id, str) or not _RECORD_ID_RE.fullmatch(
+                self.semantic_family_id
+            ):
+                raise SmallLLMError("selected example semantic family ID is invalid")
 
 
 @dataclass(frozen=True)
@@ -180,17 +219,26 @@ class SmallLLMPrediction:
     prompt_sha256: str
     config_sha256: str
     latency_ms: float
+    bilingual_aliases_sha256: str | None = None
     training_sha256: str | None = None
     encoder_id: str | None = None
     encoder_revision: str | None = None
     training_accepted: bool = False
     selected_examples: tuple[SelectedExample, ...] = ()
     selected_examples_sha256: str = field(init=False)
+    normalization_version: str = field(init=False, default=NORMALIZATION_VERSION)
+    input_sha256: str = field(init=False)
+    normalized_input_sha256: str = field(init=False)
 
     def __post_init__(self) -> None:
         if self.baseline not in {"b1", "b2"}:
             raise SmallLLMError("baseline must be b1 or b2")
         validate_question(self.question)
+        input_sha256, normalized_input_sha256 = question_normalization_sha256(self.question)
+        object.__setattr__(self, "input_sha256", input_sha256)
+        object.__setattr__(self, "normalized_input_sha256", normalized_input_sha256)
+        if self.bilingual_aliases_sha256 is not None:
+            _digest(self.bilingual_aliases_sha256, "bilingual alias fingerprint")
         if not isinstance(self.raw_output, str) or self.raw_output != self.completion.raw_text:
             raise SmallLLMError("raw output must equal the completion text")
         if self.extraction_status not in {

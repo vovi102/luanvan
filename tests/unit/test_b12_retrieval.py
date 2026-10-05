@@ -12,6 +12,7 @@ from nl2sparql.models.b12 import FewShotRetriever, SmallLLMError
 SAFE_SQL = "SELECT address FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`"
 ENCODER_ID = "sentence-transformers/all-MiniLM-L6-v2"
 ENCODER_REVISION = "b" * 40
+HELD_OUT_SHA256 = "5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d"
 
 
 class TableEncoder:
@@ -44,6 +45,23 @@ def _rows(count: int = 7) -> list[dict[str, object]]:
             "synthetic_fixture": False,
         }
         for index in range(1, count + 1)
+    ]
+
+
+def _bilingual_rows(family_count: int = 6) -> list[dict[str, object]]:
+    return [
+        {
+            "id": f"train-{family:03d}-{language}",
+            "question": f"{language} question {family}",
+            "sql": SAFE_SQL,
+            "split": "train",
+            "synthetic_fixture": False,
+            "language": language,
+            "text_variant": "canonical",
+            "semantic_family_id": f"family-{family:03d}",
+        }
+        for family in range(1, family_count + 1)
+        for language in ("en", "vi")
     ]
 
 
@@ -115,6 +133,97 @@ def test_retrieval_excludes_same_id_and_normalized_question(tmp_path: Path) -> N
 
     assert len(selected) == 5
     assert all(item.record_id not in {"train-001", "train-002"} for item in selected)
+
+
+def test_bilingual_retrieval_excludes_target_semantic_family_and_unifies_languages(
+    tmp_path: Path,
+) -> None:
+    rows = _bilingual_rows()
+    snapshot = _write_rows(tmp_path / "bilingual-train.jsonl", rows)
+    digest = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+    vectors = {str(row["question"]): [1.0, 0.0] for row in rows}
+    vectors["target"] = [1.0, 0.0]
+    retriever = FewShotRetriever.from_snapshot(
+        snapshot,
+        encoder=TableEncoder(vectors),
+        encoder_id=ENCODER_ID,
+        encoder_revision=ENCODER_REVISION,
+        accepted_training_sha256=digest,
+    )
+
+    selected = retriever.retrieve("target", target_id="train-001-en")
+
+    assert len(selected) == 5
+    assert all(item.semantic_family_id != "family-001" for item in selected)
+    assert {item.language for item in selected} == {"en", "vi"}
+    assert [item.record_id for item in selected] == [
+        "train-002-en",
+        "train-002-vi",
+        "train-003-en",
+        "train-003-vi",
+        "train-004-en",
+    ]
+
+
+def test_bilingual_snapshot_requires_an_accepted_exact_hash(tmp_path: Path) -> None:
+    rows = _bilingual_rows()
+    snapshot = _write_rows(tmp_path / "bilingual-train.jsonl", rows)
+    vectors = {str(row["question"]): [1.0, 0.0] for row in rows}
+
+    with pytest.raises(SmallLLMError, match="accepted bilingual training"):
+        FewShotRetriever.from_snapshot(
+            snapshot,
+            encoder=TableEncoder(vectors),
+            encoder_id=ENCODER_ID,
+            encoder_revision=ENCODER_REVISION,
+        )
+
+
+def test_bilingual_snapshot_rejects_benchmark_ids_and_hashes(tmp_path: Path) -> None:
+    rows = _bilingual_rows()
+    rows[0]["id"] = "test-001"
+    snapshot = _write_rows(tmp_path / "bilingual-train.jsonl", rows)
+    vectors = {str(row["question"]): [1.0, 0.0] for row in rows}
+
+    with pytest.raises(SmallLLMError, match="benchmark ID"):
+        FewShotRetriever.from_snapshot(
+            snapshot,
+            encoder=TableEncoder(vectors),
+            encoder_id=ENCODER_ID,
+            encoder_revision=ENCODER_REVISION,
+            accepted_training_sha256=hashlib.sha256(snapshot.read_bytes()).hexdigest(),
+        )
+
+    clean_snapshot = _write_rows(tmp_path / "clean.jsonl", _rows())
+    with pytest.raises(SmallLLMError, match="held-out benchmark hash"):
+        FewShotRetriever.from_snapshot(
+            clean_snapshot,
+            encoder=TableEncoder(_vectors()),
+            encoder_id=ENCODER_ID,
+            encoder_revision=ENCODER_REVISION,
+            accepted_training_sha256=HELD_OUT_SHA256,
+        )
+
+
+def test_bilingual_cache_binds_accepted_training_and_family_metadata(tmp_path: Path) -> None:
+    rows = _bilingual_rows()
+    snapshot = _write_rows(tmp_path / "bilingual-train.jsonl", rows)
+    digest = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+    vectors = {str(row["question"]): [1.0, 0.0] for row in rows}
+
+    FewShotRetriever.from_snapshot(
+        snapshot,
+        encoder=TableEncoder(vectors),
+        encoder_id=ENCODER_ID,
+        encoder_revision=ENCODER_REVISION,
+        cache_path=tmp_path / "few-shot.npz",
+        accepted_training_sha256=digest,
+    )
+
+    metadata = json.loads((tmp_path / "few-shot.npz.json").read_text())
+    assert metadata["snapshot_format"] == "bilingual-v1"
+    assert metadata["accepted_training_sha256"] == digest
+    assert metadata["semantic_family_ids"][:2] == ["family-001", "family-001"]
 
 
 def test_training_fingerprint_uses_exact_snapshot_bytes(tmp_path: Path) -> None:

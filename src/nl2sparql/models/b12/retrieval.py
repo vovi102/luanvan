@@ -25,7 +25,9 @@ from nl2sparql.dataset.testset.sql_safety import validate_sql_text
 from nl2sparql.models.b12.contracts import SelectedExample, SmallLLMError, validate_question
 
 _ENCODER_REVISION_RE = re.compile(r"^[0-9a-f]{40}$")
-_CACHE_SCHEMA_VERSION = 1
+_CACHE_SCHEMA_VERSION = 2
+_HELD_OUT_SHA256S = frozenset({"5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d"})
+_BENCHMARK_ID_RE = re.compile(r"(?:^test-|t3[._-]?5)", re.IGNORECASE)
 
 
 class TextEncoder(Protocol):
@@ -46,6 +48,8 @@ class _TrainingRecord:
     question: str
     normalized_question: str
     sql: str
+    language: str | None
+    semantic_family_id: str | None
 
 
 def _canonical_json(value: object) -> bytes:
@@ -80,6 +84,7 @@ def _load_records(snapshot: bytes) -> tuple[_TrainingRecord, ...]:
     records: list[_TrainingRecord] = []
     ids: set[str] = set()
     questions: set[str] = set()
+    snapshot_format: str | None = None
     for line_number, line in enumerate(text.splitlines(), start=1):
         if not line.strip():
             raise SmallLLMError(f"training snapshot line {line_number} must not be blank")
@@ -97,15 +102,29 @@ def _load_records(snapshot: bytes) -> tuple[_TrainingRecord, ...]:
             raise SmallLLMError(
                 f"training snapshot line {line_number} must not be a synthetic fixture"
             )
+        bilingual_fields = {"language", "text_variant", "semantic_family_id", "question"}
+        is_bilingual = bool(bilingual_fields & set(raw))
+        current_format = "bilingual-v1" if is_bilingual else "english-v1"
+        if snapshot_format is not None and current_format != snapshot_format:
+            raise SmallLLMError("training snapshot cannot mix English and bilingual schemas")
+        snapshot_format = current_format
+        if is_bilingual and not bilingual_fields <= set(raw):
+            raise SmallLLMError(
+                f"training snapshot line {line_number} has incomplete bilingual metadata"
+            )
         record_id = raw.get("id")
-        question = raw.get("nl")
+        question = raw.get("question") if is_bilingual else raw.get("nl")
         sql = raw.get("sql")
+        language = raw.get("language") if is_bilingual else None
+        semantic_family_id = raw.get("semantic_family_id") if is_bilingual else None
         try:
             candidate = SelectedExample(
                 record_id=record_id,
                 question=question,
                 sql=sql,
                 score=0.0,
+                language=language,
+                semantic_family_id=semantic_family_id,
             )
         except SmallLLMError as exc:
             raise SmallLLMError(f"training snapshot line {line_number} is invalid: {exc}") from exc
@@ -116,6 +135,8 @@ def _load_records(snapshot: bytes) -> tuple[_TrainingRecord, ...]:
             raise SmallLLMError(
                 f"training snapshot contains duplicate question at line {line_number}"
             )
+        if _BENCHMARK_ID_RE.search(candidate.record_id):
+            raise SmallLLMError(f"training snapshot contains benchmark ID {candidate.record_id!r}")
         try:
             validate_sql_text(candidate.sql)
         except TestSetError as exc:
@@ -130,6 +151,8 @@ def _load_records(snapshot: bytes) -> tuple[_TrainingRecord, ...]:
                 question=candidate.question,
                 normalized_question=normalized,
                 sql=candidate.sql,
+                language=candidate.language,
+                semantic_family_id=candidate.semantic_family_id,
             )
         )
     if len(records) < 5:
@@ -222,13 +245,19 @@ def _cache_body(
     records: tuple[_TrainingRecord, ...],
     matrix: np.ndarray,
     matrix_sha256: str,
+    accepted_training_sha256: str | None,
 ) -> dict[str, object]:
+    snapshot_format = "bilingual-v1" if records[0].language is not None else "english-v1"
     return {
         "schema_version": _CACHE_SCHEMA_VERSION,
         "training_sha256": training_sha256,
         "encoder_id": encoder_id,
         "encoder_revision": encoder_revision,
+        "snapshot_format": snapshot_format,
+        "accepted_training_sha256": accepted_training_sha256,
         "record_ids": [record.record_id for record in records],
+        "languages": [record.language for record in records],
+        "semantic_family_ids": [record.semantic_family_id for record in records],
         "shape": list(matrix.shape),
         "dtype": "float32",
         "matrix_sha256": matrix_sha256,
@@ -243,6 +272,7 @@ def _load_cache(
     encoder_id: str,
     encoder_revision: str,
     records: tuple[_TrainingRecord, ...],
+    accepted_training_sha256: str | None,
 ) -> np.ndarray:
     metadata_bytes = _read_regular_single_link(metadata_path, "few-shot cache metadata")
     matrix_bytes = _read_regular_single_link(cache_path, "few-shot cache matrix")
@@ -263,7 +293,11 @@ def _load_cache(
         "training_sha256": training_sha256,
         "encoder_id": encoder_id,
         "encoder_revision": encoder_revision,
+        "snapshot_format": "bilingual-v1" if records[0].language is not None else "english-v1",
+        "accepted_training_sha256": accepted_training_sha256,
         "record_ids": [record.record_id for record in records],
+        "languages": [record.language for record in records],
+        "semantic_family_ids": [record.semantic_family_id for record in records],
     }
     for key, expected in expected_identity.items():
         if metadata.get(key) != expected:
@@ -310,6 +344,7 @@ def _publish_cache(
     encoder_revision: str,
     records: tuple[_TrainingRecord, ...],
     matrix: np.ndarray,
+    accepted_training_sha256: str | None,
 ) -> None:
     buffer = io.BytesIO()
     np.savez_compressed(buffer, embeddings=matrix)
@@ -321,6 +356,7 @@ def _publish_cache(
         records=records,
         matrix=matrix,
         matrix_sha256=_sha256(matrix_bytes),
+        accepted_training_sha256=accepted_training_sha256,
     )
     metadata = {**body, "metadata_sha256": _sha256(_canonical_json(body))}
     _atomic_write(cache_path, matrix_bytes, prefix=".few-shot-matrix.")
@@ -370,11 +406,17 @@ class FewShotRetriever:
             raise SmallLLMError(f"unable to read training snapshot {path}: {exc}") from exc
         records = _load_records(snapshot)
         training_sha256 = _sha256(snapshot)
+        if training_sha256 in _HELD_OUT_SHA256S:
+            raise SmallLLMError("training snapshot is a held-out benchmark hash")
         if accepted_training_sha256 is not None:
             if not re.fullmatch(r"[0-9a-f]{64}", accepted_training_sha256):
                 raise SmallLLMError("accepted training fingerprint must be lowercase SHA-256")
+            if accepted_training_sha256 in _HELD_OUT_SHA256S:
+                raise SmallLLMError("accepted training fingerprint is a held-out benchmark hash")
             if not hmac.compare_digest(accepted_training_sha256, training_sha256):
                 raise SmallLLMError("accepted training fingerprint does not match snapshot")
+        if records[0].language is not None and accepted_training_sha256 is None:
+            raise SmallLLMError("bilingual retrieval requires an accepted bilingual training hash")
         training_accepted = accepted_training_sha256 is not None
 
         if cache_path is None:
@@ -394,6 +436,7 @@ class FewShotRetriever:
                         encoder_id=encoder_id,
                         encoder_revision=encoder_revision,
                         records=records,
+                        accepted_training_sha256=accepted_training_sha256,
                     )
                 except SmallLLMError as cache_error:
                     if encoder is None:
@@ -409,6 +452,7 @@ class FewShotRetriever:
                         encoder_revision=encoder_revision,
                         records=records,
                         matrix=embeddings,
+                        accepted_training_sha256=accepted_training_sha256,
                     )
 
         return cls(
@@ -464,10 +508,20 @@ class FewShotRetriever:
         if self._encoder is None:
             raise SmallLLMError("query encoder unavailable")
         normalized_target = _normalize_question(question)
+        target_family = next(
+            (
+                record.semantic_family_id
+                for record in self._records
+                if record.record_id == target_id
+            ),
+            None,
+        )
         eligible = [
             index
             for index, record in enumerate(self._records)
-            if record.record_id != target_id and record.normalized_question != normalized_target
+            if record.record_id != target_id
+            and record.normalized_question != normalized_target
+            and (target_family is None or record.semantic_family_id != target_family)
         ]
         if len(eligible) < 5:
             raise SmallLLMError("retrieval requires five eligible training examples")
@@ -489,6 +543,8 @@ class FewShotRetriever:
                 question=self._records[index].question,
                 sql=self._records[index].sql,
                 score=float(np.clip(scores[index], -1.0, 1.0)),
+                language=self._records[index].language,
+                semantic_family_id=self._records[index].semantic_family_id,
             )
             for index in ranked
         )

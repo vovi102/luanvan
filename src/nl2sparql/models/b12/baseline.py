@@ -105,6 +105,7 @@ def _generate(
         prompt_sha256=prompt_sha256(messages),
         config_sha256=config.sha256,
         latency_ms=(end - start) / 1_000_000.0,
+        bilingual_aliases_sha256=summary.bilingual_aliases_sha256,
         training_sha256=training_sha256,
         encoder_id=encoder_id,
         encoder_revision=encoder_revision,

@@ -75,6 +75,7 @@ def summary() -> CatalogSummary:
         text=text,
         catalog_sha256="a" * 64,
         summary_sha256=hashlib.sha256(text.encode()).hexdigest(),
+        bilingual_aliases_sha256="b" * 64,
     )
 
 
@@ -105,6 +106,19 @@ def test_b4_returns_safe_sql_and_keeps_synthetic_marker() -> None:
         assert backend.calls[0][2] == "case-1"
 
     asyncio.run(scenario())
+
+
+def test_b4_preview_preserves_vietnamese_and_binds_prompt_normalization() -> None:
+    question = "Liệt kê giao dịch USDT từ 0xAbC123"
+    baseline = BaselineB4(summary(), LargeLLMConfig(provider=policy()), ScriptedTransport(SAFE_SQL))
+
+    preview = baseline.preview_prompt(question)
+
+    assert question in preview.messages[1].content
+    assert preview.normalization_version == "bilingual-nfc-v1"
+    assert len(preview.input_sha256) == 64
+    assert len(preview.normalized_input_sha256) == 64
+    assert preview.bilingual_aliases_sha256 == "b" * 64
 
 
 def test_b5_is_identical_except_for_exactly_five_examples() -> None:
