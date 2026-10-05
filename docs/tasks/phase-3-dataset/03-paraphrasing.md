@@ -95,10 +95,11 @@ quality summary và audit IDs.
 OpenRouter contract ngày 2026-08-09 đã được thay thế ngày 2026-10-04 bằng hai
 model Gemini Free Tier gọi trực tiếp. Credential và attestation đã qua preflight.
 Live run ngày 2026-10-04 accept 11/1.000 Stage B records rồi dừng an toàn tại
-`GenerateRequestsPerDayPerProjectPerModel-FreeTier` (`quotaValue=20`); provider
-trả `retryDelay=40058s`. Checkpoint có 11 key và 11 generation ID duy nhất,
-recorded cost `$0.00`; Stage C chưa bắt đầu và không có final artifact nào được
-publish. Acceptance và audit vì vậy vẫn mở.
+`GenerateRequestsPerDayPerProjectPerModel-FreeTier` (`quotaValue=20`). Lượt
+resume ngày 2026-10-05 accept thêm 15 records trước khi cùng daily quota dừng
+runner với `retryDelay=41331s`. Checkpoint hiện có 26 key và 26 generation ID
+duy nhất, recorded cost `$0.00`; Stage C chưa bắt đầu và không có final artifact
+nào được publish. Acceptance và audit vì vậy vẫn mở.
 
 Resume sau quota reset, từ repository/worktree đang giữ checkpoint:
 
@@ -115,8 +116,9 @@ Runner pace request starts ở 4 RPM, fail-fast cho daily quota và không gọi
 checkpoint đã accept. Free Tier có thể dùng prompt và response để cải thiện sản
 phẩm Google, nên limitation này phải được công bố.
 
-Evidence tạm thời: `reports/t3-3-live-run-2026-10-04.md`. Checkpoint là local
-resume state, không phải version-controlled artifact.
+Evidence tạm thời: `reports/t3-3-live-run-2026-10-04.md` và
+`reports/t3-3-live-run-2026-10-05.md`. Checkpoint là local resume state, không
+phải version-controlled artifact.
 
 Chi tiết thiết kế và execution plan:
 

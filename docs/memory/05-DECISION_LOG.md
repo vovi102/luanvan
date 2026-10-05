@@ -48,6 +48,10 @@
 - **Linked:** `src/nl2sparql/dataset/paraphrase/runner.py`,
   `src/nl2sparql/dataset/paraphrase/gemini.py`,
   `reports/t3-3-live-run-2026-10-04.md`.
+- **Operational update 2026-10-05:** A quota-reset resume accepted 15 additional
+  Stage B records, bringing the checkpoint to 26 unique keys/generation IDs at
+  recorded cost `$0.00`, then stopped at the same daily quota with
+  `retryDelay=41331s`. See `reports/t3-3-live-run-2026-10-05.md`.
 
 ### 2026-10-04 — T3.3 chuyển từ paid OpenRouter sang Gemini Free Tier trực tiếp
 
