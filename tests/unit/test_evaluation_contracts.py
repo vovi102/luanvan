@@ -1,3 +1,4 @@
+import hashlib
 import math
 from dataclasses import FrozenInstanceError
 from datetime import UTC, datetime
@@ -24,6 +25,7 @@ from nl2sparql.evaluation.contracts import (
     QueryResultEvidence,
     Readiness,
     RunProvenance,
+    TranslationEvidence,
 )
 
 SHA_A = "a" * 64
@@ -233,3 +235,32 @@ def test_hashes_floats_sorted_sets_and_privacy_review_are_strict() -> None:
         PrivacyReview(**(review.__dict__ | {"provider": None}))
     with pytest.raises(EvaluationError, match="UTC"):
         PrivacyReview(**(review.__dict__ | {"reviewed_at": datetime(2026, 9, 26)}))
+
+
+def test_translation_evidence_binds_intermediate_text_and_latency_accounting() -> None:
+    translated = "Count transactions"
+    evidence = TranslationEvidence(
+        request_id="req-001",
+        translator_id="translator-v1",
+        model_id="translation-model",
+        model_revision="a" * 40,
+        config_sha256=SHA_A,
+        original_text_sha256=SHA_B,
+        translated_text=translated,
+        translated_text_sha256=hashlib.sha256(translated.encode()).hexdigest(),
+        translation_latency_ms=2.0,
+        downstream_latency_ms=3.0,
+        total_latency_ms=5.0,
+        status="ok",
+        error_code=None,
+        cost=CostEvidence("unmeasured", None, None, None),
+        privacy=_privacy(),
+    )
+    assert evidence.total_latency_ms == 5.0
+
+    with pytest.raises(EvaluationError, match="translated text hash"):
+        TranslationEvidence(**(evidence.__dict__ | {"translated_text_sha256": SHA_A}))
+    with pytest.raises(EvaluationError, match="total latency"):
+        TranslationEvidence(**(evidence.__dict__ | {"total_latency_ms": 6.0}))
+    with pytest.raises(EvaluationError, match="failed translation"):
+        TranslationEvidence(**(evidence.__dict__ | {"status": "translation_error"}))

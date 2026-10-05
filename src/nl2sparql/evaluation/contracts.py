@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal, TypeAlias, get_args
 
 
 class EvaluationError(ValueError):
@@ -34,6 +35,20 @@ ExecutionStatus: TypeAlias = Literal[
 ]
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_REVISION_RE = re.compile(r"^[0-9a-f]{40}$")
+
+TranslationStatus: TypeAlias = Literal[
+    "ok",
+    "missing_translation",
+    "translation_error",
+    "translation_timeout",
+    "invalid_translation",
+    "downstream_no_output",
+    "downstream_invalid_sql",
+    "downstream_unsafe_sql",
+    "downstream_error",
+    "downstream_timeout",
+]
 
 
 def _require_text(value: str, field: str) -> None:
@@ -154,6 +169,79 @@ class PrivacyEvidence:
             raise EvaluationError("provider must be null when data egress is none")
         _require_sha256(self.policy_sha256, "policy_sha256", optional=True)
         _require_sha256(self.review_sha256, "review_sha256", optional=True)
+
+
+@dataclass(frozen=True)
+class TranslationEvidence:
+    """Hash-bound evidence for one translation-first baseline prediction."""
+
+    request_id: str
+    translator_id: str
+    model_id: str
+    model_revision: str
+    config_sha256: str
+    original_text_sha256: str
+    translated_text: str | None
+    translated_text_sha256: str | None
+    translation_latency_ms: float
+    downstream_latency_ms: float | None
+    total_latency_ms: float
+    status: TranslationStatus
+    error_code: str | None
+    cost: CostEvidence
+    privacy: PrivacyEvidence
+
+    def __post_init__(self) -> None:
+        for field, value in (
+            ("request_id", self.request_id),
+            ("translator_id", self.translator_id),
+            ("model_id", self.model_id),
+        ):
+            _require_text(value, field)
+        if not isinstance(self.model_revision, str) or not _REVISION_RE.fullmatch(
+            self.model_revision
+        ):
+            raise EvaluationError("model_revision must be a pinned lowercase 40-hex revision")
+        _require_sha256(self.config_sha256, "config_sha256")
+        _require_sha256(self.original_text_sha256, "original_text_sha256")
+        _require_finite_non_negative(self.translation_latency_ms, "translation_latency_ms")
+        _require_finite_non_negative(
+            self.downstream_latency_ms, "downstream_latency_ms", optional=True
+        )
+        _require_finite_non_negative(self.total_latency_ms, "total_latency_ms")
+        if self.status not in get_args(TranslationStatus):
+            raise EvaluationError("unknown translation status")
+
+        translation_failed = self.status in {
+            "missing_translation",
+            "translation_error",
+            "translation_timeout",
+            "invalid_translation",
+        }
+        if translation_failed:
+            if self.translated_text is not None or self.translated_text_sha256 is not None:
+                raise EvaluationError("failed translation cannot carry translated text")
+            if self.downstream_latency_ms is not None:
+                raise EvaluationError("failed translation cannot carry downstream latency")
+            expected_total = float(self.translation_latency_ms)
+        else:
+            _require_text(self.translated_text, "translated_text")
+            _require_sha256(self.translated_text_sha256, "translated_text_sha256")
+            assert self.translated_text is not None
+            actual_hash = hashlib.sha256(self.translated_text.encode("utf-8")).hexdigest()
+            if actual_hash != self.translated_text_sha256:
+                raise EvaluationError("translated text hash does not match translated text")
+            if self.downstream_latency_ms is None:
+                raise EvaluationError("downstream outcome requires downstream latency")
+            expected_total = float(self.translation_latency_ms) + float(self.downstream_latency_ms)
+        if not math.isclose(
+            float(self.total_latency_ms), expected_total, rel_tol=0.0, abs_tol=1e-9
+        ):
+            raise EvaluationError("total latency must equal translation plus downstream latency")
+        if self.status == "ok" and self.error_code is not None:
+            raise EvaluationError("successful translation baseline evidence cannot carry an error")
+        if self.status != "ok":
+            _require_text(self.error_code, "error_code")
 
 
 @dataclass(frozen=True)
@@ -907,5 +995,10 @@ class ManualFailureReview:
 
 
 CanonicalArtifact: TypeAlias = (
-    CanonicalPredictionRun | ExecutionEvidence | EvaluationReport | ComparisonReport | PrivacyReview
+    CanonicalPredictionRun
+    | ExecutionEvidence
+    | EvaluationReport
+    | ComparisonReport
+    | PrivacyReview
+    | TranslationEvidence
 )

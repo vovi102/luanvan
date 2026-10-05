@@ -47,6 +47,7 @@ from nl2sparql.evaluation.contracts import (
     Readiness,
     ResultField,
     RunProvenance,
+    TranslationEvidence,
 )
 
 SCHEMA_VERSION = 2
@@ -60,6 +61,7 @@ _ARTIFACT_TYPES: dict[str, type[Any]] = {
     "nl2sql_evaluation_report": EvaluationReport,
     "nl2sql_comparison_report": ComparisonReport,
     "nl2sql_privacy_review": PrivacyReview,
+    "nl2sql_translation_evidence": TranslationEvidence,
 }
 _CLASS_TO_ARTIFACT = {value: key for key, value in _ARTIFACT_TYPES.items()}
 _KNOWN_DATACLASSES = {
@@ -93,6 +95,7 @@ _KNOWN_DATACLASSES = {
         Readiness,
         ResultField,
         RunProvenance,
+        TranslationEvidence,
     )
 }
 
@@ -176,6 +179,10 @@ def serialize_comparison_report(report: ComparisonReport) -> bytes:
 
 def serialize_privacy_review(review: PrivacyReview) -> bytes:
     return _serialize(review)
+
+
+def serialize_translation_evidence(evidence: TranslationEvidence) -> bytes:
+    return _serialize(evidence)
 
 
 def _decode_any(value: object) -> object:
@@ -321,6 +328,12 @@ def load_comparison_report(path: Path) -> ComparisonReport:
 def load_privacy_review(path: Path) -> PrivacyReview:
     artifact = _load(path, "nl2sql_privacy_review")
     assert isinstance(artifact, PrivacyReview)
+    return artifact
+
+
+def load_translation_evidence(path: Path) -> TranslationEvidence:
+    artifact = _load(path, "nl2sql_translation_evidence")
+    assert isinstance(artifact, TranslationEvidence)
     return artifact
 
 

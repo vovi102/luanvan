@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from datetime import UTC, datetime
@@ -12,9 +13,11 @@ from nl2sparql.evaluation.artifacts import (
     load_and_verify_artifact,
     load_prediction_run,
     load_privacy_review,
+    load_translation_evidence,
     publish_immutable,
     serialize_prediction_run,
     serialize_privacy_review,
+    serialize_translation_evidence,
     verify_sealed_journal,
 )
 from nl2sparql.evaluation.contracts import (
@@ -27,6 +30,7 @@ from nl2sparql.evaluation.contracts import (
     PrivacyEvidence,
     PrivacyReview,
     RunProvenance,
+    TranslationEvidence,
 )
 
 SHA_A = "a" * 64
@@ -82,6 +86,27 @@ def _run() -> CanonicalPredictionRun:
     )
 
 
+def _translation_evidence() -> TranslationEvidence:
+    text = "Count transactions"
+    return TranslationEvidence(
+        request_id="req-001",
+        translator_id="translator-v1",
+        model_id="translation-model",
+        model_revision="a" * 40,
+        config_sha256=SHA_A,
+        original_text_sha256=SHA_B,
+        translated_text=text,
+        translated_text_sha256=hashlib.sha256(text.encode()).hexdigest(),
+        translation_latency_ms=2.0,
+        downstream_latency_ms=3.0,
+        total_latency_ms=5.0,
+        status="ok",
+        error_code=None,
+        cost=CostEvidence("observed", Decimal("0.0020"), "USD", "translator-meter"),
+        privacy=PrivacyEvidence("documented", "provider", "translator.example", SHA_A, SHA_B),
+    )
+
+
 def test_canonical_json_orders_keys_uses_decimal_strings_and_newline() -> None:
     payload = canonical_json({"z": Decimal("1.2300"), "a": [2, 1]})
     assert payload == b'{"a":[2,1],"z":"1.2300"}\n'
@@ -104,6 +129,30 @@ def test_prediction_run_round_trip_preserves_order_and_exact_decimal(tmp_path: P
     loaded = load_prediction_run(path)
     assert loaded == _run()
     assert loaded.cases[0].inference.cost.amount == Decimal("0.0100")
+
+
+def test_translation_evidence_round_trip_is_offline_and_tamper_evident(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def forbidden_backend(*args: object, **kwargs: object) -> None:
+        raise AssertionError("artifact loading must not construct external backends")
+
+    monkeypatch.setattr("socket.create_connection", forbidden_backend)
+    monkeypatch.setattr(
+        "nl2sparql.baselines.translation.TranslationFirstBaseline.__init__",
+        forbidden_backend,
+    )
+    path = tmp_path / "translation.json"
+    path.write_bytes(serialize_translation_evidence(_translation_evidence()))
+
+    assert load_translation_evidence(path) == _translation_evidence()
+    assert load_and_verify_artifact(path) == _translation_evidence()
+
+    document = json.loads(path.read_bytes())
+    document["body"]["translated_text"] = "Changed"
+    path.write_bytes(canonical_json(document))
+    with pytest.raises(EvaluationError, match="self-hash"):
+        load_translation_evidence(path)
 
 
 def test_loader_rejects_unknown_fields_version_tampering_and_noncanonical_bytes(
