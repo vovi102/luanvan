@@ -225,6 +225,36 @@ def test_load_rejects_stale_dictionary_hash(
         load_index(paths, changed_corpus, model_id=MODEL_ID)
 
 
+def test_entity_cache_identity_binds_aliases_revision_normalization_and_corpus(
+    tmp_path: Path, corpus: EntityCorpus
+) -> None:
+    paths = EntityCachePaths.from_directory(tmp_path)
+    built = build_index(
+        corpus,
+        FakeEncoder(),
+        paths,
+        model_id=MODEL_ID,
+        encoder_revision="e" * 40,
+        alias_catalog_sha256="a" * 64,
+        normalization_version="bilingual-nfc-v1",
+    )
+
+    assert built.metadata.encoder_revision == "e" * 40
+    assert built.metadata.alias_catalog_sha256 == "a" * 64
+    assert built.metadata.normalization_version == "bilingual-nfc-v1"
+    assert len(built.metadata.corpus_sha256) == 64
+
+    with pytest.raises(EntityIndexError, match="revision|identity"):
+        load_index(
+            paths,
+            corpus,
+            model_id=MODEL_ID,
+            encoder_revision="f" * 40,
+            alias_catalog_sha256="a" * 64,
+            normalization_version="bilingual-nfc-v1",
+        )
+
+
 def test_load_rejects_digest_tamper_and_current_document_tamper(
     tmp_path: Path, corpus: EntityCorpus
 ) -> None:

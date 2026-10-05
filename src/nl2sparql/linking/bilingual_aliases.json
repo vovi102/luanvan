@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "schema": {
+    "block_facts": ["khối Ethereum"],
+    "token_transfer_facts": ["chuyển token"],
+    "transaction_facts": ["giao dịch Ethereum"],
+    "transaction_facts.from_address": ["địa chỉ gửi", "ví gửi"],
+    "transaction_facts.to_address": ["địa chỉ nhận", "ví nhận"]
+  },
+  "entity": {
+    "concept:exchange": ["sàn giao dịch"],
+    "owner:Binance": ["sàn binance"]
+  }
+}

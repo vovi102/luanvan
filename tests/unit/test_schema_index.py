@@ -138,6 +138,39 @@ def test_load_index_rejects_stale_identity(
         )
 
 
+def test_schema_cache_identity_binds_aliases_revision_normalization_and_corpus(
+    tmp_path: Path,
+) -> None:
+    elements, catalog_bytes, paths = _inputs(tmp_path)
+    built = build_index(
+        elements,
+        FakeEncoder(),
+        MODEL_ID,
+        catalog_bytes,
+        paths,
+        encoder_revision="e" * 40,
+        alias_catalog_sha256="a" * 64,
+        normalization_version="bilingual-nfc-v1",
+    )
+
+    assert built.metadata.encoder_revision == "e" * 40
+    assert built.metadata.alias_catalog_sha256 == "a" * 64
+    assert built.metadata.normalization_version == "bilingual-nfc-v1"
+    assert len(built.metadata.corpus_sha256) == 64
+
+    with pytest.raises(SchemaIndexError, match="alias|identity"):
+        load_index(
+            paths,
+            built.metadata.catalog_sha256,
+            MODEL_ID,
+            DOCUMENT_VERSION,
+            elements,
+            encoder_revision="e" * 40,
+            alias_catalog_sha256="b" * 64,
+            normalization_version="bilingual-nfc-v1",
+        )
+
+
 @pytest.mark.parametrize("change", ("document", "element_id"))
 def test_load_index_rejects_current_document_fingerprint_mismatch(
     tmp_path: Path, change: str

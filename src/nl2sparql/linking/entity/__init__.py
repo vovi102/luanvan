@@ -17,7 +17,11 @@ from nl2sparql.linking.entity.contracts import (
     EntityMatch,
     EntityTarget,
 )
-from nl2sparql.linking.entity.documents import build_entity_corpus, normalize_phrase
+from nl2sparql.linking.entity.documents import (
+    augment_entity_corpus,
+    build_entity_corpus,
+    normalize_phrase,
+)
 from nl2sparql.linking.entity.evaluate import (
     EntityEvaluationError,
     EntityEvaluationReport,
@@ -59,6 +63,7 @@ __all__ = [
     "GroundTruthMention",
     "StageCount",
     "build_entity_corpus",
+    "augment_entity_corpus",
     "build_index",
     "evaluate_linker",
     "load_index",

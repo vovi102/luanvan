@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from nl2sparql.linking.bilingual import load_bilingual_aliases
 from nl2sparql.linking.resolver import (
     ClassResolverError,
     FieldCandidate,
@@ -48,6 +49,18 @@ def test_catalog_index_derives_direction_fields_from_the_address_lookup(tmp_path
     assert index.fields_by_direction["token"] == (
         FieldCandidate("token_transfer_facts", "token_address"),
     )
+
+
+def test_catalog_index_binds_bilingual_aliases_without_changing_canonical_ids(
+    tmp_path: Path,
+) -> None:
+    aliases = load_bilingual_aliases()
+    index = load_resolver_catalog(_catalog_path(tmp_path), bilingual_aliases=aliases)
+
+    assert index.bilingual_aliases_sha256 == aliases.sha256
+    assert index.schema_aliases["transaction_facts"] == ("giao dịch ethereum",)
+    assert "transaction_facts" in index.all_relations
+    assert FieldCandidate("transaction_facts", "from_address") in index.all_fields
 
 
 def test_catalog_index_derives_concept_role_and_competency_coverage(tmp_path: Path) -> None:

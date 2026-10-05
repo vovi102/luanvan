@@ -9,6 +9,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from nl2sparql.linking.bilingual import BilingualAliasCatalog
 from nl2sparql.linking.resolver.contracts import ClassResolverError, FieldCandidate
 from nl2sparql.sql.schema import SchemaCatalogError, load_catalog, validate_catalog
 
@@ -43,6 +44,8 @@ class ResolverCatalog:
     """Small immutable subset of catalog semantics needed by the resolver."""
 
     catalog_sha256: str
+    bilingual_aliases_sha256: str
+    schema_aliases: Mapping[str, tuple[str, ...]]
     fields_by_direction: Mapping[str, tuple[FieldCandidate, ...]]
     entity_join: str
     entity_relation: str
@@ -55,7 +58,11 @@ class ResolverCatalog:
     all_fields: frozenset[FieldCandidate]
 
 
-def load_resolver_catalog(path: Path) -> ResolverCatalog:
+def load_resolver_catalog(
+    path: Path,
+    *,
+    bilingual_aliases: BilingualAliasCatalog | None = None,
+) -> ResolverCatalog:
     """Read, validate, fingerprint, and index one exact catalog snapshot."""
     try:
         snapshot = path.read_bytes()
@@ -161,8 +168,25 @@ def load_resolver_catalog(path: Path) -> ResolverCatalog:
             "fields", {}
         )
     )
+    schema_aliases: Mapping[str, tuple[str, ...]] = MappingProxyType({})
+    bilingual_aliases_sha256 = "0" * 64
+    if bilingual_aliases is not None:
+        if not isinstance(bilingual_aliases, BilingualAliasCatalog):
+            raise ClassResolverError("bilingual alias catalog is invalid")
+        canonical_targets = set(map(str, relations)) | {
+            f"{field.relation}.{field.field}" for field in all_fields
+        }
+        unknown = set(bilingual_aliases.schema) - canonical_targets
+        if unknown:
+            raise ClassResolverError(
+                f"bilingual aliases reference unknown schema IDs: {sorted(unknown)}"
+            )
+        schema_aliases = MappingProxyType(dict(bilingual_aliases.schema))
+        bilingual_aliases_sha256 = bilingual_aliases.sha256
     return ResolverCatalog(
         catalog_sha256=hashlib.sha256(snapshot).hexdigest(),
+        bilingual_aliases_sha256=bilingual_aliases_sha256,
+        schema_aliases=schema_aliases,
         fields_by_direction=frozen_candidates,
         entity_join="fact_address_to_entity",
         entity_relation="entity_labels_v1",

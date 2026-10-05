@@ -6,7 +6,9 @@ import hashlib
 import json
 import unicodedata
 from collections import defaultdict
+from dataclasses import replace
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from nl2sparql.linking.dictionary.schema import DictionaryValidationError
@@ -19,6 +21,9 @@ from nl2sparql.linking.entity.contracts import (
     required_text,
     validate_canonical_phrase,
 )
+
+if TYPE_CHECKING:
+    from nl2sparql.linking.bilingual import BilingualAliasCatalog
 
 
 def normalize_phrase(value: str) -> str:
@@ -229,4 +234,61 @@ def build_entity_corpus(
         entities_sha256=_sha256_bytes(entities_raw),
         aliases_sha256=_sha256_bytes(aliases_raw),
         concepts_sha256=_sha256_bytes(concepts_raw),
+    )
+
+
+def augment_entity_corpus(
+    corpus: EntityCorpus,
+    aliases: BilingualAliasCatalog,
+) -> EntityCorpus:
+    """Add Vietnamese exact-match aliases and tagged documents to known targets."""
+    from nl2sparql.linking.bilingual import BilingualAliasCatalog
+
+    if not isinstance(aliases, BilingualAliasCatalog):
+        raise EntityDocumentError("bilingual alias catalog is invalid")
+    unknown = set(aliases.entity) - set(corpus.targets_by_id)
+    if unknown:
+        raise EntityDocumentError(
+            f"bilingual aliases reference unknown entity IDs: {sorted(unknown)}"
+        )
+    phrase_targets = {
+        phrase: set(target_ids) for phrase, target_ids in corpus.phrase_targets.items()
+    }
+    targets: list[EntityTarget] = []
+    for target in corpus.targets:
+        accented = aliases.entity.get(target.target_id, ())
+        unaccented = aliases.entity_unaccented.get(target.target_id, ())
+        if not accented:
+            targets.append(target)
+            continue
+        merged_aliases = tuple(sorted({*target.aliases, *accented, *unaccented}))
+        for phrase in (*accented, *unaccented):
+            phrase_targets.setdefault(phrase, set()).add(target.target_id)
+        document = "\n".join(
+            (
+                target.document,
+                f"Aliases [vi]: {' | '.join(accented)}",
+                f"Aliases [vi-unaccented]: {' | '.join(unaccented)}",
+            )
+        )
+        targets.append(
+            replace(
+                target,
+                aliases=merged_aliases,
+                document=document,
+                document_sha256=_sha256_bytes(document.encode()),
+            )
+        )
+    ordered_targets = tuple(sorted(targets, key=lambda target: target.target_id))
+    return EntityCorpus(
+        targets=ordered_targets,
+        targets_by_id={target.target_id: target for target in ordered_targets},
+        phrase_targets={
+            phrase: tuple(sorted(target_ids))
+            for phrase, target_ids in sorted(phrase_targets.items())
+        },
+        address_targets=corpus.address_targets,
+        entities_sha256=corpus.entities_sha256,
+        aliases_sha256=corpus.aliases_sha256,
+        concepts_sha256=corpus.concepts_sha256,
     )
