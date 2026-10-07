@@ -22,6 +22,7 @@ from nl2sparql.dataset.testset.paired import (
     EnglishPairCase,
     PairedCandidate,
     PairedReviewDecision,
+    author_paired_candidates,
     build_paired_manifest,
     derive_unaccented_cases,
     finalize_paired_cases,
@@ -108,6 +109,70 @@ def test_validate_pairing_requires_exact_100_unique_pairs_and_matching_semantics
         validate_pairing(english[:-1], candidates[:-1])
     with pytest.raises(TestSetError, match="unique pair"):
         validate_pairing(english, candidates[:-1] + (candidates[0],))
+    duplicate_question = replace(candidates[1], question=candidates[0].question)
+    with pytest.raises(TestSetError, match="unique normalized Vietnamese"):
+        validate_pairing(english, (candidates[0], duplicate_question, *candidates[2:]))
+
+
+def test_agent_authorship_uses_sql_semantics_not_english_surface_text() -> None:
+    source = replace(
+        _english(1),
+        sql=(
+            "SELECT COUNT(*) AS transaction_count FROM "
+            "`nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+            "(DATE '2026-06-01', DATE '2026-06-08')"
+        ),
+        expected_columns=("transaction_count",),
+        question="An English phrase that must not be translated",
+    )
+    changed_surface = replace(source, question="Completely different English wording")
+
+    first = author_paired_candidates((source,))[0]
+    second = author_paired_candidates((changed_surface,))[0]
+
+    assert first.question == second.question
+    assert first.question == (
+        "Có bao nhiêu giao dịch trong khoảng từ ngày 01/06/2026 đến hết ngày 07/06/2026?"
+    )
+    assert first.english_case_sha256 != second.english_case_sha256
+
+
+def test_agent_authored_real_draft_is_complete_valid_and_review_empty(tmp_path: Path) -> None:
+    module = _workflow()
+    draft_root = tmp_path / "t3_5_vi_candidate_set"
+
+    authored = CliRunner().invoke(
+        module.main,
+        ["author-draft", "--draft-root", str(draft_root)],
+    )
+
+    assert authored.exit_code == 0, authored.output
+    payload = json.loads(authored.output)
+    assert payload["authorship_profile"] == "agent-authored"
+    assert payload["pair_count"] == 100
+    assert payload["review_profile"] == "single-human-reviewed"
+    assert payload["status"] == "paired_draft_valid"
+    assert len(payload["candidate_sha256"]) == 64
+    assert len(payload["english_sha256"]) == 64
+    candidates = draft_root / "candidates.jsonl"
+    review_events = draft_root / "review_events.jsonl"
+    assert len(candidates.read_text(encoding="utf-8").splitlines()) == 100
+    assert review_events.read_bytes() == b""
+    assert (draft_root / "REVIEW_GUIDE.md").is_file()
+    manifest = json.loads((draft_root / "manifest.json").read_bytes())
+    validation = json.loads((draft_root / "validation-report.json").read_bytes())
+    assert manifest["authorship_profile"] == "agent-authored"
+    assert manifest["review_profile"] == "single-human-reviewed"
+    assert manifest["candidate_count"] == 100
+    assert validation["status"] == "paired_draft_valid"
+    assert validation["candidate_sha256"] == manifest["candidate_sha256"]
+
+    validated = CliRunner().invoke(
+        module.main,
+        ["validate-draft", "--candidates", str(candidates)],
+    )
+    assert validated.exit_code == 0, validated.output
+    assert json.loads(validated.output)["pair_count"] == 100
 
 
 @pytest.mark.parametrize(

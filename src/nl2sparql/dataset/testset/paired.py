@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import unicodedata
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
+from datetime import date, timedelta
 from typing import Literal
 
 from nl2sparql.dataset.testset.contracts import TestSetError, _text
@@ -174,6 +176,145 @@ class PairedCandidate:
         return _sha256(asdict(self))
 
 
+_DATE_RE = re.compile(r"DATE '([0-9]{4}-[0-9]{2}-[0-9]{2})'")
+
+
+def _date_range(sql: str) -> tuple[str, str]:
+    values = _DATE_RE.findall(sql)
+    if "period_totals AS" in sql:
+        values = values[1:]
+    if len(values) < 2:
+        raise TestSetError("agent authorship requires a bounded SQL date range")
+    try:
+        start = date.fromisoformat(values[0])
+        inclusive_end = date.fromisoformat(values[1]) - timedelta(days=1)
+    except ValueError as exc:
+        raise TestSetError("agent authorship found an invalid SQL date") from exc
+    if inclusive_end < start:
+        raise TestSetError("agent authorship requires an increasing SQL date range")
+    return start.strftime("%d/%m/%Y"), inclusive_end.strftime("%d/%m/%Y")
+
+
+def _authored_vietnamese_question(sql: str) -> str:
+    """Author Vietnamese wording from SQL operators and output aliases only."""
+    start, end = _date_range(sql)
+    period = f"trong khoảng từ ngày {start} đến hết ngày {end}"
+    if "observed_transaction_rows" in sql:
+        return (
+            f"Theo từng ngày {period}, hãy so sánh số dòng giao dịch quan sát được với "
+            "tổng số giao dịch ghi nhận trong các khối."
+        )
+    if "recipient_contract_class" in sql:
+        return (
+            f"Hãy thống kê số giao dịch và tổng giá trị wei theo lớp hợp đồng nhận "
+            f"(ERC-20, ERC-721 hoặc loại khác) {period}."
+        )
+    if "native_value_wei" in sql and "transfer_counts AS" in sql:
+        return (
+            f"Liệt kê 10 giao dịch có nhiều sự kiện chuyển token nhất {period}, kèm giá trị "
+            "native theo wei và số lượt chuyển."
+        )
+    if "sender_concept_class" in sql:
+        return (
+            f"Cho biết 10 lớp khái niệm của bên gửi có tổng giá trị giao dịch lớn nhất "
+            f"{period}, kèm số giao dịch và tổng giá trị wei."
+        )
+    if "recipient_owner" in sql:
+        return (
+            f"Liệt kê 20 cặp chủ sở hữu bên nhận và ký hiệu token có tổng lượng chuyển "
+            f"chuẩn hóa lớn nhất {period}."
+        )
+    if "period_totals AS" in sql:
+        cutoff = _DATE_RE.findall(sql)[0]
+        cutoff_text = date.fromisoformat(cutoff).strftime("%d/%m/%Y")
+        return (
+            f"So sánh số giao dịch và tổng giá trị wei giữa giai đoạn trước ngày "
+            f"{cutoff_text} và giai đoạn từ ngày đó trở đi, xét {period}."
+        )
+    if "recipient_concept_class" in sql:
+        return (
+            f"Liệt kê 10 lớp khái niệm của bên nhận có nhiều giao dịch nhất {period}, "
+            "kèm số giao dịch."
+        )
+    if "created_contract_address" in sql:
+        return f"Liệt kê 10 địa chỉ hợp đồng được tạo có giá trị giao dịch wei lớn nhất {period}."
+    if "token_standard" in sql:
+        return (
+            f"Thống kê số lượt chuyển token theo chuẩn ERC-721, ERC-20 và nhóm khác hoặc "
+            f"chưa xác định {period}."
+        )
+    if "total_normalized_amount" in sql and "token_symbol" in sql:
+        return f"Liệt kê 10 ký hiệu token có tổng lượng chuyển chuẩn hóa lớn nhất {period}."
+    if "token_address AS token_address" in sql:
+        return f"Liệt kê 10 địa chỉ token có nhiều lượt chuyển nhất {period}."
+    if "sender_address" in sql and "AS transfer_count" in sql:
+        return f"Liệt kê 10 địa chỉ gửi token có nhiều lượt chuyển nhất {period}."
+    if "recipient_address" in sql and "AS transfer_count" in sql:
+        return f"Liệt kê 10 địa chỉ nhận token có nhiều lượt chuyển nhất {period}."
+    if "sender_address" in sql and "AS transaction_count" in sql:
+        return f"Liệt kê 10 địa chỉ gửi có nhiều giao dịch nhất {period}."
+    if "recipient_address" in sql and "AS transaction_count" in sql:
+        return f"Liệt kê 10 địa chỉ nhận có nhiều giao dịch nhất {period}."
+    if "transaction_type AS transaction_type" in sql:
+        return f"Thống kê số giao dịch theo từng loại giao dịch {period}."
+    if "beneficiary_address AS beneficiary_address" in sql:
+        return f"Liệt kê 10 địa chỉ thụ hưởng đã tạo nhiều khối nhất {period}."
+    if "total_gas_used" in sql:
+        return (
+            f"Theo từng ngày {period}, hãy cho biết số khối, tổng gas đã dùng và tổng số "
+            "giao dịch trong các khối."
+        )
+    if "average_gas_price_wei" in sql:
+        return (
+            f"Theo từng ngày {period}, giá gas trung bình theo wei và lượng gas biên lai "
+            "trung bình là bao nhiêu?"
+        )
+    if "successful_count" in sql and "failed_count" in sql:
+        return f"Theo từng ngày {period}, có bao nhiêu giao dịch thành công và thất bại?"
+    if "DATE(block_timestamp) AS activity_date" in sql and "AS transaction_count" in sql:
+        return f"Theo từng ngày {period}, có bao nhiêu giao dịch?"
+    if "normalized_transfer_count" in sql:
+        return f"Có bao nhiêu lượt chuyển token có lượng chuẩn hóa hợp lệ {period}?"
+    if "token_transfer_count" in sql:
+        return f"Có bao nhiêu sự kiện chuyển token {period}?"
+    if "average_transactions_per_block" in sql:
+        return f"Trung bình mỗi khối có bao nhiêu giao dịch {period}?"
+    if "SELECT COUNT(*) AS block_count" in sql:
+        return f"Có bao nhiêu khối Ethereum {period}?"
+    if "SELECT COALESCE(SUM(value_wei), 0) AS total_value_wei" in sql:
+        return f"Tổng giá trị wei của các giao dịch {period} là bao nhiêu?"
+    if "failed_transaction_count" in sql:
+        return f"Có bao nhiêu giao dịch thất bại {period}?"
+    if "successful_transaction_count" in sql:
+        return f"Có bao nhiêu giao dịch thành công {period}?"
+    if "SELECT COUNT(*) AS transaction_count" in sql:
+        return f"Có bao nhiêu giao dịch {period}?"
+    raise TestSetError("SQL semantic pattern has no approved Vietnamese authorship template")
+
+
+def author_paired_candidates(
+    english: Sequence[EnglishPairCase],
+) -> tuple[PairedCandidate, ...]:
+    """Create agent-authored Vietnamese candidates without reading English wording."""
+    return tuple(
+        PairedCandidate(
+            pair_id=f"pair-{source.id}",
+            english_id=source.id,
+            question=_authored_vietnamese_question(source.sql),
+            sql=source.sql,
+            expected_columns=source.expected_columns,
+            expected_result_size=source.expected_result_size,
+            difficulty=source.difficulty,
+            categories=source.categories,
+            entity_kinds=source.entity_kinds,
+            schema_elements=source.schema_elements,
+            cq_ids=source.cq_ids,
+            english_case_sha256=source.sha256,
+        )
+        for source in english
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class PairedReviewDecision:
     """One append-only decision made by the single real user reviewer."""
@@ -287,6 +428,11 @@ def validate_pairing(
     pair_ids = [case.pair_id for case in vietnamese]
     if len(english_ids) != len(set(english_ids)) or len(pair_ids) != len(set(pair_ids)):
         raise TestSetError("paired benchmark requires unique pair and English IDs")
+    normalized_questions = [
+        normalize_input(case.question, language="vi").match for case in vietnamese
+    ]
+    if len(normalized_questions) != len(set(normalized_questions)):
+        raise TestSetError("paired benchmark requires unique normalized Vietnamese questions")
     english_by_id = {case.id: case for case in english}
     if {case.english_id for case in vietnamese} != set(english_ids):
         raise TestSetError("Vietnamese candidates must cover every English ID exactly once")

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -24,6 +25,7 @@ from nl2sparql.dataset.testset.paired import (
     PairedFinalCase,
     PairedManifest,
     PairedReviewDecision,
+    author_paired_candidates,
     build_paired_manifest,
     derive_unaccented_cases,
     finalize_paired_cases,
@@ -40,6 +42,37 @@ DEFAULT_ENGLISH_SELECTION = Path(
 )
 DEFAULT_DRAFT = Path("data/review_drafts/t3_5_vi_candidate_set_2026-10-04")
 DEFAULT_FINAL = Path("data/dataset/test")
+
+_REVIEW_GUIDE = """# Vietnamese paired benchmark review
+
+This draft is agent-authored from gold SQL, semantic annotations, catalog context,
+and expected outputs. It is not a translation of the English surface questions.
+
+The single human reviewer must review every pair for natural Vietnamese, SQL
+faithfulness, terminology, and ambiguity. Record append-only decisions in
+`review_events.jsonl`; do not auto-fill or fabricate acceptance events.
+
+## Decision format
+
+Add one compact JSON object per line with exactly these fields:
+
+```json
+{"pair_id":"pair-t35-001","review_round":1,"reviewer_role":"user","decision":"ACCEPT","naturalness":5,"sql_faithfulness":5,"terminology":5,"ambiguity":1,"revised_question":"","notes":""}
+```
+
+- `decision` is `ACCEPT`, `REVISE`, or `REJECT`.
+- `naturalness`, `sql_faithfulness`, `terminology`, and `ambiguity` are integers
+  from 1 to 5. Higher is better except for `ambiguity`, where lower is better.
+- `REVISE` requires a non-empty `revised_question`, followed by another event
+  for the same pair with the next consecutive `review_round`.
+- `ACCEPT` requires naturalness, SQL faithfulness, and terminology of at least 4,
+  and ambiguity of at most 2. It must be the final event for that pair.
+- `reviewer_role` must remain `user`. Review all 100 candidates; do not copy an
+  acceptance event across pairs without checking the candidate and its SQL.
+
+Use `validate-draft` after edits to candidates and `finalize` only when the
+append-only event log contains an explicit final `ACCEPT` for every pair.
+"""
 
 
 def create_bigquery_client(project: str):
@@ -184,6 +217,14 @@ def _write_cases(cases: tuple[PairedFinalCase, ...], path: Path) -> None:
     _atomic_write(path, payload)
 
 
+def _write_candidates(cases: tuple[PairedCandidate, ...], path: Path) -> None:
+    payload = b"".join(
+        (json.dumps(asdict(case), ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+        for case in cases
+    )
+    _atomic_write(path, payload)
+
+
 def _write_manifest(manifest: PairedManifest, path: Path) -> None:
     _atomic_write(path, (json.dumps(asdict(manifest), sort_keys=True) + "\n").encode())
 
@@ -210,6 +251,43 @@ def _common_inputs(function: Callable[..., Any]) -> Callable[..., Any]:
 @click.group()
 def main() -> None:
     """Build and validate the paired Vietnamese benchmark without implicit network use."""
+
+
+@main.command("author-draft")
+@click.option("--english", type=click.Path(path_type=Path), default=DEFAULT_ENGLISH)
+@click.option(
+    "--english-live-evidence",
+    type=click.Path(path_type=Path),
+    default=DEFAULT_ENGLISH_EVIDENCE,
+)
+@click.option("--draft-root", type=click.Path(path_type=Path), default=DEFAULT_DRAFT)
+def author_draft(english: Path, english_live_evidence: Path, draft_root: Path) -> None:
+    """Author the 100-case Vietnamese review draft from immutable SQL semantics."""
+    source, _reviewed = _load_english(english, english_live_evidence)
+    candidates = author_paired_candidates(source)
+    report = validate_pairing(source, candidates)
+    candidates_path = draft_root / "candidates.jsonl"
+    _write_candidates(candidates, candidates_path)
+    _atomic_write(draft_root / "review_events.jsonl", b"")
+    _atomic_write(draft_root / "REVIEW_GUIDE.md", _REVIEW_GUIDE.encode("utf-8"))
+    validation = asdict(report)
+    validation_payload = (json.dumps(validation, sort_keys=True) + "\n").encode()
+    _atomic_write(draft_root / "validation-report.json", validation_payload)
+    manifest = {
+        "schema_version": 1,
+        "authorship_profile": report.authorship_profile,
+        "review_profile": report.review_profile,
+        "candidate_count": report.pair_count,
+        "candidate_sha256": report.candidate_sha256,
+        "english_sha256": report.english_sha256,
+        "candidate_file_sha256": hashlib.sha256(candidates_path.read_bytes()).hexdigest(),
+        "status": "awaiting-single-human-review",
+    }
+    _atomic_write(
+        draft_root / "manifest.json",
+        (json.dumps(manifest, sort_keys=True) + "\n").encode(),
+    )
+    click.echo(json.dumps(validation, sort_keys=True))
 
 
 @main.command("draft")
