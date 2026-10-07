@@ -99,7 +99,9 @@ Live run ngày 2026-10-04 accept 11/1.000 Stage B records rồi dừng an toàn 
 resume ngày 2026-10-05 accept thêm 15 records trước khi cùng daily quota dừng
 runner với `retryDelay=41331s`. Checkpoint hiện có 26 key và 26 generation ID
 duy nhất, recorded cost `$0.00`; Stage C chưa bắt đầu và không có final artifact
-nào được publish. Acceptance và audit vì vậy vẫn mở.
+nào được publish. Hai lượt resume thận trọng ngày 2026-10-07 đều nhận HTTP 503
+sau ba attempts và không tạo checkpoint row mới. Acceptance và audit vì vậy vẫn
+mở.
 
 Resume sau quota reset, từ repository/worktree đang giữ checkpoint:
 
@@ -117,7 +119,8 @@ checkpoint đã accept. Free Tier có thể dùng prompt và response để cả
 phẩm Google, nên limitation này phải được công bố.
 
 Evidence tạm thời: `reports/t3-3-live-run-2026-10-04.md` và
-`reports/t3-3-live-run-2026-10-05.md`. Checkpoint là local resume state, không
+`reports/t3-3-live-run-2026-10-05.md`, cùng provider-failure evidence
+`reports/t3-3-live-run-2026-10-07.md`. Checkpoint là local resume state, không
 phải version-controlled artifact.
 
 Chi tiết thiết kế và execution plan:

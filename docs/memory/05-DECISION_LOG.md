@@ -52,6 +52,11 @@
   Stage B records, bringing the checkpoint to 26 unique keys/generation IDs at
   recorded cost `$0.00`, then stopped at the same daily quota with
   `retryDelay=41331s`. See `reports/t3-3-live-run-2026-10-05.md`.
+- **Operational update 2026-10-07:** Two conservative resumes each exhausted the
+  existing three-attempt retry contract on HTTP 503 before any new record passed
+  validation. The checkpoint remains 26 unique keys/generation IDs and no final
+  artifact exists. Further immediate retries were stopped to avoid waste. See
+  `reports/t3-3-live-run-2026-10-07.md`.
 
 ### 2026-10-04 — T3.3 chuyển từ paid OpenRouter sang Gemini Free Tier trực tiếp
 
