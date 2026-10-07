@@ -1,7 +1,6 @@
 # Deterministic Agent-Authored Bilingual Training Design
 
-**Status:** Approved direction on 2026-10-07; written specification awaiting
-user review.
+**Status:** Approved by the user on 2026-10-07.
 
 **Supersedes:** The LLM-based English and Vietnamese training-text generation
 parts of T3.3, the “Vietnamese Stage B and C” section of
