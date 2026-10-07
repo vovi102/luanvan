@@ -13,6 +13,7 @@ from nl2sparql.evaluation.contracts import (
     ConfidenceInterval,
     DistributionMetric,
     EvaluationError,
+    McNemarResult,
     MetricDelta,
     PredictionCase,
     RatioMetric,
@@ -189,3 +190,22 @@ def paired_delta(
         delta=left_value - right_value,
         interval=_confidence_interval(bootstrap, policy),
     )
+
+
+def mcnemar_exact(left: Sequence[bool], right: Sequence[bool]) -> McNemarResult:
+    """Return the deterministic two-sided exact McNemar binomial test."""
+    if not left or len(left) != len(right):
+        raise EvaluationError("McNemar inputs must have equal non-zero lengths")
+    if any(not isinstance(value, bool) for value in (*left, *right)):
+        raise EvaluationError("McNemar inputs must be boolean")
+    left_only = sum(a and not b for a, b in zip(left, right, strict=True))
+    right_only = sum(b and not a for a, b in zip(left, right, strict=True))
+    discordant = left_only + right_only
+    if discordant == 0:
+        exact_p_value = 1.0
+    else:
+        tail = sum(
+            math.comb(discordant, value) for value in range(min(left_only, right_only) + 1)
+        ) / (2**discordant)
+        exact_p_value = min(1.0, 2 * tail)
+    return McNemarResult(left_only, right_only, exact_p_value)

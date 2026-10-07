@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import re
 from dataclasses import dataclass
@@ -952,6 +953,221 @@ class MetricDelta:
 
 
 @dataclass(frozen=True)
+class McNemarResult:
+    """Exact paired-binary discordance evidence."""
+
+    left_only: int
+    right_only: int
+    exact_p_value: float
+
+    def __post_init__(self) -> None:
+        _require_non_negative_int(self.left_only, "left_only")
+        _require_non_negative_int(self.right_only, "right_only")
+        _require_finite(self.exact_p_value, "exact_p_value")
+        if not 0 <= self.exact_p_value <= 1:
+            raise EvaluationError("exact_p_value must be between zero and one")
+
+
+@dataclass(frozen=True)
+class FailureModeSummary:
+    """Complete per-slice failure counts over the represented population."""
+
+    expected_count: int
+    represented_count: int
+    missing_count: int
+    counts: tuple[tuple[str, int], ...]
+
+    def __post_init__(self) -> None:
+        _require_non_negative_int(self.expected_count, "expected_count")
+        _require_non_negative_int(self.represented_count, "represented_count")
+        _require_non_negative_int(self.missing_count, "missing_count")
+        if self.represented_count + self.missing_count != self.expected_count:
+            raise EvaluationError("represented and missing failure counts must equal expected")
+        names = tuple(name for name, _ in self.counts)
+        if names != tuple(sorted(set(names))):
+            raise EvaluationError("failure count names must be sorted unique")
+        for name, count in self.counts:
+            _require_text(name, "failure count name")
+            _require_non_negative_int(count, f"failure count {name}")
+
+
+_BILINGUAL_SLICES = (
+    "english_reference",
+    "english",
+    "vietnamese",
+    "vietnamese_unaccented",
+    "translation",
+)
+
+
+@dataclass(frozen=True)
+class BilingualEvaluationReport:
+    """Paired five-system bilingual comparison over exactly 100 cases."""
+
+    english_reference_report_sha256: str
+    english_report_sha256: str
+    vietnamese_report_sha256: str
+    vietnamese_unaccented_report_sha256: str
+    translation_report_sha256: str
+    frozen_input_sha256: str
+    test_set_sha256: str
+    case_set_sha256: str
+    pair_ids: tuple[str, ...]
+    reviewed_count: int
+    live_verified_count: int
+    accuracies: tuple[tuple[str, RatioMetric], ...]
+    english_regression: MetricDelta
+    language_gap: MetricDelta
+    accent_gap: MetricDelta
+    mcnemar: tuple[tuple[str, McNemarResult], ...]
+    failure_modes: tuple[tuple[str, FailureModeSummary], ...]
+    inference_latency_ms: tuple[tuple[str, DistributionMetric], ...]
+    bootstrap: BootstrapPolicy
+
+    def __post_init__(self) -> None:
+        for field, digest in (
+            ("english_reference_report_sha256", self.english_reference_report_sha256),
+            ("english_report_sha256", self.english_report_sha256),
+            ("vietnamese_report_sha256", self.vietnamese_report_sha256),
+            (
+                "vietnamese_unaccented_report_sha256",
+                self.vietnamese_unaccented_report_sha256,
+            ),
+            ("translation_report_sha256", self.translation_report_sha256),
+            ("frozen_input_sha256", self.frozen_input_sha256),
+            ("test_set_sha256", self.test_set_sha256),
+            ("case_set_sha256", self.case_set_sha256),
+        ):
+            _require_sha256(digest, field)
+        if len(self.pair_ids) != 100:
+            raise EvaluationError("bilingual report requires exactly 100 pair IDs")
+        if len(set(self.pair_ids)) != len(self.pair_ids):
+            raise EvaluationError("bilingual report pair IDs must be unique")
+        if any(not isinstance(pair_id, str) or not pair_id for pair_id in self.pair_ids):
+            raise EvaluationError("bilingual report pair IDs must be non-empty text")
+        _require_non_negative_int(self.reviewed_count, "reviewed_count")
+        _require_non_negative_int(self.live_verified_count, "live_verified_count")
+        for field, values in (
+            ("accuracies", self.accuracies),
+            ("failure_modes", self.failure_modes),
+            ("inference_latency_ms", self.inference_latency_ms),
+        ):
+            names = tuple(name for name, _ in values)
+            if names != _BILINGUAL_SLICES:
+                raise EvaluationError(f"{field} must cover every bilingual slice in order")
+        mcnemar_names = tuple(name for name, _ in self.mcnemar)
+        if mcnemar_names != (
+            "english_vs_vietnamese",
+            "vietnamese_vs_unaccented",
+            "vietnamese_vs_translation",
+        ):
+            raise EvaluationError("mcnemar evidence must cover every registered comparison")
+        if self.english_regression.metric != "english_regression":
+            raise EvaluationError("English regression metric identity mismatch")
+        if self.language_gap.metric != "language_gap":
+            raise EvaluationError("language gap metric identity mismatch")
+        if self.accent_gap.metric != "accent_gap":
+            raise EvaluationError("accent gap metric identity mismatch")
+
+
+@dataclass(frozen=True)
+class GatePolicy:
+    """Pinned pre-registered bilingual acceptance thresholds."""
+
+    english_regression_max: float = 0.02
+    language_gap_max: float = 0.10
+    accent_gap_max: float = 0.10
+    required_pair_count: int = 100
+    tolerance: float = 1e-12
+
+    def __post_init__(self) -> None:
+        if (
+            self.english_regression_max != 0.02
+            or self.language_gap_max != 0.10
+            or self.accent_gap_max != 0.10
+            or self.required_pair_count != 100
+            or self.tolerance != 1e-12
+        ):
+            raise EvaluationError("bilingual gate policy is pre-registered and immutable")
+
+    @property
+    def sha256(self) -> str:
+        body = {
+            "accent_gap_max": self.accent_gap_max,
+            "english_regression_max": self.english_regression_max,
+            "language_gap_max": self.language_gap_max,
+            "required_pair_count": self.required_pair_count,
+            "tolerance": self.tolerance,
+        }
+        payload = json.dumps(body, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class GateObservation:
+    """One observed value evaluated against one frozen threshold."""
+
+    name: str
+    observed: float
+    threshold: float
+    operator: Literal["max", "exact"]
+    passed: bool
+    tolerance: float
+
+    def __post_init__(self) -> None:
+        _require_text(self.name, "gate observation name")
+        _require_finite(self.observed, "gate observed value")
+        _require_finite(self.threshold, "gate threshold")
+        if self.operator not in ("max", "exact"):
+            raise EvaluationError("unknown gate operator")
+        if not isinstance(self.passed, bool):
+            raise EvaluationError("gate pass result must be boolean")
+        _require_finite_non_negative(self.tolerance, "gate tolerance")
+        expected = (
+            self.observed <= self.threshold + self.tolerance
+            if self.operator == "max"
+            else self.observed == self.threshold
+        )
+        if self.passed != expected:
+            raise EvaluationError("gate pass flag must equal its computed result")
+
+
+@dataclass(frozen=True)
+class GateDecision:
+    """Immutable result of applying the pre-registered policy to one report."""
+
+    bilingual_report_sha256: str
+    frozen_input_sha256: str
+    policy_sha256: str
+    observations: tuple[GateObservation, ...]
+    passed: bool
+    failed_gates: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        _require_sha256(self.bilingual_report_sha256, "bilingual_report_sha256")
+        _require_sha256(self.frozen_input_sha256, "frozen_input_sha256")
+        _require_sha256(self.policy_sha256, "policy_sha256")
+        names = tuple(item.name for item in self.observations)
+        if names != (
+            "english_regression",
+            "language_gap",
+            "accent_gap",
+            "reviewed_count",
+            "live_verified_count",
+            "interval_completeness",
+            "failure_count_completeness",
+        ):
+            raise EvaluationError("gate decision must contain every registered observations")
+        expected_failures = tuple(
+            sorted(item.name for item in self.observations if not item.passed)
+        )
+        if self.failed_gates != expected_failures:
+            raise EvaluationError("failed gates must match failed observations")
+        if self.passed != (not self.failed_gates):
+            raise EvaluationError("overall gate result must match failed gates")
+
+
+@dataclass(frozen=True)
 class ComparisonReport:
     """Deterministic paired comparison of two compatible evaluation reports."""
 
@@ -1001,4 +1217,6 @@ CanonicalArtifact: TypeAlias = (
     | ComparisonReport
     | PrivacyReview
     | TranslationEvidence
+    | BilingualEvaluationReport
+    | GateDecision
 )

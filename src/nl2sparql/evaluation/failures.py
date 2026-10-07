@@ -46,6 +46,7 @@ _ROOT_CAUSE_TAGS = {
     "cost_unresolved",
 }
 _MANUAL_TAGS = _ROOT_CAUSE_TAGS | {"answer_mismatch", "semantic_drift", "unclassified"}
+FAILURE_MODE_TAGS = tuple(sorted(_MANUAL_TAGS | {"missing_execution"}))
 _MANUAL_FIELDS = {
     "case_id",
     "reviewer_id",

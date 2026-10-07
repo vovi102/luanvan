@@ -475,6 +475,15 @@ def build_report(
     all_runs = (primary_run, *(run for run, _ in sorted_replicates))
     all_evidence = (primary_evidence, *(evidence for _, evidence in sorted_replicates))
     dimensions = list(_headline_dimensions(cases, bootstrap_policy))
+    dimensions.append(
+        (
+            "gold_sql_sha256s",
+            tuple(
+                (case.case_id, hashlib.sha256(case.gold_sql.encode("utf-8")).hexdigest())
+                for case in primary_run.cases
+            ),
+        )
+    )
     privacy_counts: dict[str, int] = defaultdict(int)
     for case in primary_run.cases:
         privacy_counts[f"{case.privacy.documentation_status}:{case.privacy.data_egress}"] += 1
