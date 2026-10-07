@@ -235,6 +235,11 @@ def compare_language_pairs(
         mcnemar=mcnemar,
         failure_modes=failures,
         inference_latency_ms=latencies,
+        synthetic=any(
+            blocker in {"synthetic_input", "fake_executor"}
+            for report in reports
+            for blocker in report.readiness.scientific_blockers
+        ),
         bootstrap=bootstrap_policy,
     )
 

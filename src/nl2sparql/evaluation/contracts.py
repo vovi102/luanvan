@@ -1022,6 +1022,7 @@ class BilingualEvaluationReport:
     mcnemar: tuple[tuple[str, McNemarResult], ...]
     failure_modes: tuple[tuple[str, FailureModeSummary], ...]
     inference_latency_ms: tuple[tuple[str, DistributionMetric], ...]
+    synthetic: bool
     bootstrap: BootstrapPolicy
 
     def __post_init__(self) -> None:
@@ -1047,6 +1048,8 @@ class BilingualEvaluationReport:
             raise EvaluationError("bilingual report pair IDs must be non-empty text")
         _require_non_negative_int(self.reviewed_count, "reviewed_count")
         _require_non_negative_int(self.live_verified_count, "live_verified_count")
+        if not isinstance(self.synthetic, bool):
+            raise EvaluationError("synthetic marker must be boolean")
         for field, values in (
             ("accuracies", self.accuracies),
             ("failure_modes", self.failure_modes),
