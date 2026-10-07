@@ -2,6 +2,12 @@
 
 **Status:** Approved by the user on 2026-10-04.
 
+> **2026-10-07 amendment:** The LLM-based training-text generation portions of
+> this design are superseded by
+> `2026-10-07-deterministic-bilingual-training-design.md`. The direct bilingual
+> inference, paired benchmark, linking, translation-baseline, and evaluation
+> decisions below remain in force.
+
 **Scope:** Make English and Vietnamese input a required thesis capability while
 keeping GoogleSQL as the single output language and preserving the accepted
 English evidence boundary.

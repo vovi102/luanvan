@@ -1,5 +1,12 @@
 # Bilingual English–Vietnamese NL2SQL Implementation Plan
 
+> **Amended 2026-10-07:** This plan is partially executed. Tasks 2–3 and the
+> generation/assembly portions of Task 9 (CLI 20/21) are superseded by
+> `docs/superpowers/specs/2026-10-07-deterministic-bilingual-training-design.md`
+> and must not be resumed as Gemini generation work. A replacement implementation
+> plan will be written after that specification is reviewed. Completed Tasks 1
+> and 4–8 plus CLI 23/24 remain valid.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Deliver a reproducible direct NL2SQL pipeline that accepts English,
