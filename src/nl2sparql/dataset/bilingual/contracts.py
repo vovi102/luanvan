@@ -291,9 +291,7 @@ def load_catalog(
         )
     entries = tuple(_parse_entry(raw, slots_by_template) for raw in raw_entries)
     ids = [entry.id for entry in entries]
-    combinations = [
-        (entry.template_id, entry.language, entry.style) for entry in entries
-    ]
+    combinations = [(entry.template_id, entry.language, entry.style) for entry in entries]
     if len(ids) != len(set(ids)) or len(combinations) != len(set(combinations)):
         raise CatalogValidationError("catalog contains a duplicate entry")
     expected_combinations = {

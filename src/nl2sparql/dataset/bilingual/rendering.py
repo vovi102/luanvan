@@ -44,8 +44,7 @@ def render_pattern(entry: CatalogEntry, slot_values: Mapping[str, object]) -> st
     if extra:
         raise RenderingValidationError(f"extra slot values: {sorted(extra)}")
     if any(
-        value is None or (isinstance(value, str) and not value)
-        for value in slot_values.values()
+        value is None or (isinstance(value, str) and not value) for value in slot_values.values()
     ):
         raise RenderingValidationError("slot values must be non-empty")
 
@@ -240,8 +239,7 @@ def diversity_report(
             )
         questions = [record.normalized_question for record in variants]
         distances = [
-            normalized_levenshtein(left, right)
-            for left, right in combinations(questions, 2)
+            normalized_levenshtein(left, right) for left, right in combinations(questions, 2)
         ]
         group_means.append((f"{family_id}:{language}", mean(distances)))
     if not group_means:

@@ -137,14 +137,17 @@ def test_catalog_entry_digest_is_canonical_and_detects_tampering() -> None:
     entry = _entry()
     digest = entry["content_sha256"]
     assert digest == catalog_entry_digest(dict(reversed(tuple(entry.items()))))
-    assert digest == hashlib.sha256(
-        json.dumps(
-            {key: value for key, value in entry.items() if key != "content_sha256"},
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode()
-    ).hexdigest()
+    assert (
+        digest
+        == hashlib.sha256(
+            json.dumps(
+                {key: value for key, value in entry.items() if key != "content_sha256"},
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
+    )
     assert digest != catalog_entry_digest(entry | {"pattern": "Changed {start_date} {end_date}"})
 
 
@@ -178,8 +181,7 @@ def test_canonical_catalog_has_exact_coverage_and_provenance() -> None:
     } == expected_combinations
     slots = {template["id"]: frozenset(template["slots"]) for template in templates}
     assert all(
-        frozenset(entry.placeholders) == slots[entry.template_id]
-        for entry in catalog.entries
+        frozenset(entry.placeholders) == slots[entry.template_id] for entry in catalog.entries
     )
     assert all(entry.content_sha256 == catalog_entry_digest(entry) for entry in catalog.entries)
 

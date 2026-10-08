@@ -170,8 +170,7 @@ def load_exclusion_index(payload: bytes) -> ExclusionIndex:
         not isinstance(counts, list)
         or not counts
         or any(
-            not isinstance(count, int) or isinstance(count, bool) or count <= 0
-            for count in counts
+            not isinstance(count, int) or isinstance(count, bool) or count <= 0 for count in counts
         )
     ):
         raise AssemblyValidationError("exclusion index source counts are invalid")
@@ -648,9 +647,7 @@ def validate_artifacts(
     summaries: list[AuditSummary] = []
     for language in ("en", "vi"):
         sample_ids = select_audit_sample(records, language, seed=42)
-        language_events = tuple(
-            event for event in events if event.record_id in set(sample_ids)
-        )
+        language_events = tuple(event for event in events if event.record_id in set(sample_ids))
         summaries.append(
             validate_audit(
                 language_events,
@@ -762,9 +759,7 @@ def _recover(paths: tuple[Path, Path, Path], transaction: _Transaction) -> None:
         or any(not isinstance(value, bool) for value in journal["existed"])
     ):
         raise AssemblyValidationError("publication journal does not match targets")
-    for path, backup, existed in zip(
-        paths, transaction.backups, journal["existed"], strict=True
-    ):
+    for path, backup, existed in zip(paths, transaction.backups, journal["existed"], strict=True):
         _restore(path, backup, existed)
     _fsync_directory(paths[0].parent)
     transaction.journal.unlink()

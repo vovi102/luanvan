@@ -69,18 +69,14 @@ def test_render_pattern_binds_typed_values_and_preserves_utf8_exactly() -> None:
 
     assert render_pattern(entry, values) == (
         "Liệt kê 7 lượt chuyển USDC từ "
-        "0x0d0707963952f2fba59dd06f2b425ace40b492fe vào 2026-06-15; tx 0x"
-        + "f" * 64
-        + "."
+        "0x0d0707963952f2fba59dd06f2b425ace40b492fe vào 2026-06-15; tx 0x" + "f" * 64 + "."
     )
 
 
 def test_render_pattern_treats_braces_inside_slot_values_as_literal_text() -> None:
     entry = _entry("Look up {token_symbol}.", ("token_symbol",))
 
-    assert render_pattern(entry, {"token_symbol": "TOKEN{literal}"}) == (
-        "Look up TOKEN{literal}."
-    )
+    assert render_pattern(entry, {"token_symbol": "TOKEN{literal}"}) == ("Look up TOKEN{literal}.")
 
 
 @pytest.mark.parametrize(

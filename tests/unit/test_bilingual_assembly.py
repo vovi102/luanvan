@@ -99,11 +99,7 @@ def test_exclusion_index_contains_only_irreversible_hashes_and_source_counts() -
     assert len(index.normalized_text_sha256s) == 2
     assert index.index_sha256 == _sha(
         json.dumps(
-            {
-                key: value
-                for key, value in asdict(index).items()
-                if key != "index_sha256"
-            },
+            {key: value for key, value in asdict(index).items() if key != "index_sha256"},
             ensure_ascii=False,
             separators=(",", ":"),
             sort_keys=True,
@@ -164,9 +160,7 @@ def test_leakage_validation_reports_clean_records_without_raw_heldout_text() -> 
     [
         (lambda: build_exclusion_index((), ngram_size=12), "source"),
         (
-            lambda: build_exclusion_index(
-                (HeldOutSource("empty", "a" * 64, ()),), ngram_size=12
-            ),
+            lambda: build_exclusion_index((HeldOutSource("empty", "a" * 64, ()),), ngram_size=12),
             "records",
         ),
         (
@@ -212,9 +206,7 @@ def test_leakage_validator_accepts_only_derived_index_not_raw_paths(tmp_path: Pa
 
 def test_leakage_recomputes_normalization_instead_of_trusting_record_metadata() -> None:
     held_out = "held out normalized sentence"
-    index = build_exclusion_index(
-        (HeldOutSource("english", "a" * 64, (held_out,)),), ngram_size=12
-    )
+    index = build_exclusion_index((HeldOutSource("english", "a" * 64, (held_out,)),), ngram_size=12)
     stale = replace(_record(held_out), normalized_question="not the real normalization")
 
     with pytest.raises(AssemblyValidationError, match="normalized question"):
@@ -326,12 +318,10 @@ def test_audit_samples_cover_each_intent_and_style_once_per_language() -> None:
             "abbreviated": 25,
             "alternative": 25,
         }
-        assert len(
-            {
-                (record.catalog_entry_id.split("__", 1)[0], record.style)
-                for record in selected
-            }
-        ) == 100
+        assert (
+            len({(record.catalog_entry_id.split("__", 1)[0], record.style) for record in selected})
+            == 100
+        )
 
 
 def test_audit_sample_fails_closed_when_an_intent_style_stratum_is_missing() -> None:
@@ -394,9 +384,7 @@ def test_agent_audit_rejects_weak_scores_fabricated_reviewers_and_bad_chains() -
     passing = [_audit_event(record, index) for index, record in enumerate(sample)]
 
     weak = list(passing)
-    weak[:6] = [
-        _audit_event(sample[index], index, faithful=False) for index in range(6)
-    ]
+    weak[:6] = [_audit_event(sample[index], index, faithful=False) for index in range(6)]
     with pytest.raises(AssemblyValidationError, match="95 faithful"):
         validate_audit(weak, sample_ids, records=records, language="vi")
 
@@ -517,16 +505,13 @@ def test_manifest_records_exact_counts_hashes_quality_and_honest_provenance(
         "vi",
     }
     assert manifest["sources"]["audit_sha256"] == _sha(artifact_bundle["audit"])
-    assert manifest["sources"]["exclusion_index_sha256"] == json.loads(
-        artifact_bundle["exclusion"]
-    )["index_sha256"]
+    assert (
+        manifest["sources"]["exclusion_index_sha256"]
+        == json.loads(artifact_bundle["exclusion"])["index_sha256"]
+    )
     assert manifest["manifest_body_sha256"] == _sha(
         json.dumps(
-            {
-                key: value
-                for key, value in manifest.items()
-                if key != "manifest_body_sha256"
-            },
+            {key: value for key, value in manifest.items() if key != "manifest_body_sha256"},
             ensure_ascii=False,
             separators=(",", ":"),
             sort_keys=True,
