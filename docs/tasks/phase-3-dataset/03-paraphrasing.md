@@ -20,6 +20,10 @@ Implementation hiện có:
   25 intent, exact language/style coverage).
 - CLIs: `scripts/20_build_bilingual_training.py` và
   `scripts/21_validate_bilingual_training.py`.
+- Exclusion index: `data/dataset/processed/bilingual-training-exclusion-index.json`,
+  100 English + 100 Vietnamese source records, 12-token n-grams, index SHA-256
+  `ef5bec4c0d949d657ca6c0c321ae5e62e06f77e7bc5bdf2c6d94cc550a6239fa`;
+  artifact chỉ chứa counts và irreversible hashes.
 - Gates: immutable semantic fields; diversity trung bình theo family/language
   phải `>0.30`; exclusion index chỉ chứa hash; split theo semantic family; audit
   deterministic 100 câu/ngôn ngữ phủ 25 intent × 4 styles; ngưỡng ≥95 faithful
