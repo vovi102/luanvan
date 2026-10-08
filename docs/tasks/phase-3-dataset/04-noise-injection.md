@@ -1,5 +1,10 @@
 # T3.4 — Deterministic Noise Injection (Stage D)
 
+> **Superseded (2026-10-07):** Stage D 3.150 rows không còn nằm trên critical
+> path. Corpus mới dùng trực tiếp tám biến thể sạch/song ngữ cho mỗi Stage A
+> family; style `abbreviated` là pattern được soạn và review, không phải noise
+> mutation. Nội dung dưới đây được giữ để tái lập thiết kế lịch sử.
+
 ## Mục tiêu
 
 Tăng độ robust của NL2SQL model bằng cách giữ nguyên 3.000 câu Stage C và thêm
@@ -108,12 +113,13 @@ explicit paths; defaults luôn trỏ tới artifact paths chuẩn của reposito
 - [ ] Final source/output/dictionary hashes và validator evidence được ghi nhận.
 - [ ] Manual review 30 noisy records đạt ít nhất 27/30 decipherable.
 
-## Trạng thái — implementation complete, artifact credential-gated
+## Trạng thái — historical implementation, không tạo final artifact
 
 Implementation hoàn tất ngày 2026-08-09. Default live command hiện exit 1 vì
 `synthetic-stage-c.jsonl` chưa tồn tại; kiểm tra xác nhận không tạo
 `synthetic-stage-d.jsonl` hoặc `noise-config.json` khi fail. Đây là downstream
-gate trực tiếp từ T3.3, không phải lý do hạ acceptance hoặc sinh dữ liệu giả.
+gate của thiết kế cũ. Không chạy tiếp hoặc sinh dữ liệu giả: T3.4 đã bị thay thế
+bởi deterministic bilingual catalog/renderer của T3.3 hiện hành.
 
 ## Evidence
 

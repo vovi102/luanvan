@@ -17,9 +17,9 @@ Plan A; không nằm trên critical path.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3–T3.5 | T3.5 finalized 100 câu, human-reviewed và live-verified; T3.3–T3.4 chưa có genuine artifacts | Chạy T3.3 rồi sinh Stage D ở T3.4 |
+| T3.3–T3.5 | Deterministic bilingual producer/CLIs đã implement; canonical training artifact bị chặn vì Stage A chỉ phủ 16/25 intent. English T3.5 đã finalized; Vietnamese 100-candidate draft vẫn chờ user review | Cung cấp/accept Stage A đủ 25 intent, audit 100/ngôn ngữ, build artifact; không chạy Gemini hay Stage D |
 | T4.1–T4.3 | Hoàn tất reviewed development evaluation ngày 2026-09-26; ba report `ready` | Đóng; giữ snapshot/hash immutable; không claim independent holdout |
-| T5.1–T5.2 | T5.1 genuine B0 đã chạy nhưng không đạt (`0/100`, no output); T5.2 implementation local hoàn tất | Giữ B0 negative result; chờ Stage D rồi chạy T5.2 |
+| T5.1–T5.2 | T5.1 genuine B0 đã chạy nhưng không đạt (`0/100`, no output); T5.2 implementation local hoàn tất | Giữ B0 negative result; chờ accepted deterministic bilingual artifact rồi chạy T5.2 |
 | T5.3 | Gemini primary path và final verification đã hoàn tất | Giữ artifact; không mở lại nếu không có regression |
 | T5.4–T5.5 | T5.4-A complete; đã ingest T5.1 negative result; T5.4-B/T5.5 chờ B1/B2/B4/B5 genuine runs | Hoàn thiện training data rồi chạy các baseline còn lại |
 | Phase 6–7 | Legacy SPARQL, chưa làm | Redesign NL2SQL; chưa implement ticket cũ |
@@ -28,8 +28,9 @@ Plan A; không nằm trên critical path.
 
 ### P0 — Bắt đầu ngay
 
-1. **Mở các external gate có lead time dài.** Chuẩn bị BigQuery credentials,
-   Gemini API key và Kaggle T4. T3.5 do Codex soạn + user human-review; user cũng
+1. **Mở các external gate có lead time dài.** Chuẩn bị BigQuery credentials và
+   Kaggle T4; training-data generation không cần API key. T3.5 Vietnamese do
+   Codex soạn + user human-review; user cũng
    chấm các bộ ground truth T4 theo checklist. Việc này chạy song song với code;
    không chờ T5.3 mới bắt đầu.
 2. **T5.3-G — Migrate B4/B5 sang Gemini free tier.** Implement design đã duyệt
@@ -47,10 +48,12 @@ Plan A; không nằm trên critical path.
 
 ### P1 — Hoàn thiện dữ liệu và evidence đầu vào
 
-5. **T3.3 — Chạy live paraphrasing và audit.** Tạo Stage B 1.000 records, Stage C
-   3.000 records; hoàn tất audit faithfulness/naturalness và cost evidence.
-6. **T3.4 — Sinh Stage D.** Chạy deterministic noise injection từ Stage C đã
-   accept, validate 3.150 records và manual review 30 mẫu.
+5. **T3.3 — Hoàn tất deterministic bilingual artifact.** Trước hết cần accepted
+   Stage A phủ 25 intent (snapshot hiện tại chỉ 16). Sau đó tạo exclusion index,
+   audit 100 English + 100 Vietnamese và build/validate 8.000 clean records hai
+   lần. API calls `0`, provider/model null, recorded cost `$0.00`.
+6. **T3.4 — SUPERSEDED.** Không sinh Stage D 3.150 rows; bốn style sạch trong
+   catalog song ngữ thay thế noise injection trên critical path.
 7. **T3.5 — DONE 2026-10-02.** Benchmark agent-authored, single-human-reviewed
    đã chọn đúng 100 câu (30/50/20), live-verify `100/100` và finalize immutable.
    Đây là gate chung cho mọi claim accuracy; không thay bằng fixture và không
@@ -63,8 +66,9 @@ Plan A; không nằm trên critical path.
    thiện sau khi xem T4, đây là post-tuning development evidence, không phải
    independent holdout. Các tập không được dùng để tune trên T3.5 test set.
 
-T3.3→T3.4 là chuỗi bắt buộc còn mở. T3.5 và T4-EVAL đã khóa immutable; giữ chúng
-ngoài training/tuning và tiếp tục enforce chống test leakage.
+T3.3 deterministic artifact là gate còn mở; T3.4 đã superseded. English T3.5 và
+T4-EVAL đã khóa immutable; Vietnamese paired benchmark chưa finalized và vẫn
+phải nằm ngoài training/tuning. Exclusion index chỉ lưu irreversible hashes.
 
 ### P2 — Chạy baseline và quyết định scope
 
@@ -77,7 +81,8 @@ ngoài training/tuning và tiếp tục enforce chống test leakage.
     100 gold executions `ok`, estimated BigQuery cost `$3.180927`. Không tune B0
     sau khi xem T3.5. Acceptance thresholds không đạt và được giữ làm lower-bound.
 11. **T5.2 — Chạy B1/B2 trên Kaggle T4** với pinned Llama/MiniLM snapshots và
-    accepted Stage D training snapshot; publish prediction/log/report artifacts.
+    accepted deterministic bilingual training snapshot; publish
+    prediction/log/report artifacts.
 12. **T5.3 — Chạy B4/B5 Gemini** ba run genuine cho mỗi baseline trên cùng test
     snapshot. B4L/B5L chỉ chạy sau khi hệ thống chính hoàn tất và GVHD yêu cầu.
 13. **T5.4-B — Tổng hợp so sánh baseline** và failure analysis bằng framework ở
@@ -89,7 +94,8 @@ ngoài training/tuning và tiếp tục enforce chống test leakage.
 ### P3 — Hệ thống đề xuất và bằng chứng RQ
 
 15. **T6.1-SQL — B3 QLoRA** chỉ khi T5.5 chọn continue/scope-down; train target
-    GoogleSQL từ Stage D, giữ T3.5 hoàn toàn ngoài training/tuning.
+    GoogleSQL từ accepted deterministic bilingual artifact, giữ T3.5 hoàn toàn
+    ngoài training/tuning.
 16. **T6.2-SQL — Constrained decoding/structured generation.** Grammar và safety
     target GoogleSQL; đo syntax/safety rate, execution accuracy và latency overhead.
 17. **T6.3-SQL — Ablation.** Ưu tiên `no_schema`, `no_entity`, `no_class` và
@@ -115,8 +121,9 @@ linkers + SQL validator, vẫn giữ ablation component để trả lời RQ2.
 
 ## Luồng song song được phép
 
-- **Lane A — Code:** T5.3 Gemini → T5.4 framework → Phase 6/7 SQL specs.
-- **Lane B — Data/evidence:** T3.3 → T3.4; đồng thời T3.5 và T4 ground truth.
+- **Lane A — Code:** T5.3 Gemini baseline → T5.4 framework → Phase 6/7 SQL specs.
+- **Lane B — Data/evidence:** accepted 25-intent Stage A → T3.3 deterministic
+  artifact; đồng thời user review Vietnamese T3.5 draft và T4 ground truth.
 - **Lane C — Writing:** cập nhật project overview/architecture/RQ theo NL2SQL,
   viết Introduction, Background, Related Work, Plan A negative finding và
   Methodology từ decision log. Chưa điền số liệu kết quả chưa chạy.
@@ -143,7 +150,8 @@ Giới hạn WIP đề xuất: một task implementation lớn và một externa
 
 ## Công việc kế tiếp cụ thể
 
-Việc kế tiếp trên critical path là **T3.3 live paraphrasing và audit**, sau đó
-sinh/accept Stage D ở **T3.4** để mở T5.2 và eventual fine-tuning. T5.3 Gemini
-genuine runs có thể chạy song song nếu quota/credential sẵn sàng. T3.5 đã khóa;
-không dùng câu hỏi, gold SQL hoặc kết quả B0 để tune bất kỳ baseline nào.
+Việc kế tiếp trên critical path là giải quyết mismatch **16/25 intent** của Stage
+A mà không phát minh live evidence, rồi audit/build **T3.3 deterministic** để mở
+T5.2 và eventual fine-tuning. T5.3 Gemini baseline genuine runs có thể chạy song
+song nếu quota/credential sẵn sàng. English T3.5 đã khóa; Vietnamese T3.5 vẫn chờ
+review. Không dùng câu hỏi, gold SQL hoặc kết quả B0 để tune bất kỳ baseline nào.
