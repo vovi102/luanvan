@@ -1,0 +1,53 @@
+{
+  "acceptance_eligible": false,
+  "artifact_sha256": "8ae539c7b508e4d9ed3e9dd69f377be61817b1b6fe8dbf107b4a7243e5694629",
+  "candidate_value_derivation": {
+    "block_number": "deterministic_offset_unverified",
+    "transaction_hash": "sha256_syntax_only_unverified"
+  },
+  "difficulty_allocation": {
+    "easy": 350,
+    "hard": 200,
+    "medium": 450
+  },
+  "generation_seed": 42,
+  "lifecycle_state": "candidate",
+  "record_count": 1000,
+  "represented_intent_count": 25,
+  "supersedes": {
+    "artifact_sha256": "a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709",
+    "path": "data/dataset/raw/synthetic-stage-a.jsonl",
+    "preserved": true
+  },
+  "template_allocation": {
+    "T_ACCOUNTS_BY_CATEGORY": 41,
+    "T_BLOCKS_BY_VALIDATOR": 40,
+    "T_BLOCK_BY_NUMBER": 45,
+    "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE": 33,
+    "T_COUNT_TX_IN_RANGE": 45,
+    "T_CROSS_EXCHANGE_FLOW": 33,
+    "T_EXCHANGE_TO_DEX_FLOW": 34,
+    "T_FAILED_HIGH_GAS_TX": 41,
+    "T_FILTER_TX_BY_VALUE": 45,
+    "T_LARGE_TX_TO_CLASS": 41,
+    "T_LIST_FAILED_TX": 45,
+    "T_LIST_KNOWN_EXCHANGES": 45,
+    "T_LIST_TX_FROM_ACCOUNT": 40,
+    "T_LIST_TX_TO_ACCOUNT": 40,
+    "T_MIXER_TO_DEX_LARGE_FLOW": 34,
+    "T_REPEATED_PAIR_FLOW": 33,
+    "T_TOKEN_AFTER_NATIVE_FUNDING": 33,
+    "T_TOKEN_TRANSFERS_OF_TOKEN": 41,
+    "T_TOKEN_VOLUME_BY_SYMBOL": 41,
+    "T_TOP_RECIPIENTS_BY_COUNT": 41,
+    "T_TOP_SENDERS_BY_VALUE": 42,
+    "T_TX_BETWEEN_ACCOUNTS": 40,
+    "T_TX_BY_HASH": 45,
+    "T_TX_BY_HOUR": 41,
+    "T_TX_GROUPED_BY_OWNER": 41
+  },
+  "template_library_sha256": "2fddc5aaf5c209bde118fbdff27c9e4e35b97a8bd381177817e92d0f69342539",
+  "value_pools_sha256": "9e8238537db330cac375ab11e979e1aece8f671e1f42dd3a65314326f5a97463",
+  "verification_mode": "offline_candidates",
+  "version": 2
+}
