@@ -9,10 +9,13 @@ import unicodedata
 from collections import defaultdict
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from nl2sparql.linking.schema.contracts import SchemaDocumentError, SchemaElement
 from nl2sparql.sql.schema import SchemaCatalogError, validate_catalog
+
+if TYPE_CHECKING:
+    from nl2sparql.linking.bilingual import BilingualAliasCatalog
 
 SYNONYMS_PATH = Path(__file__).with_name("synonyms.json")
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -212,3 +215,43 @@ def build_schema_elements(
     if len({row.element_id for row in rows}) != len(rows):
         raise SchemaDocumentError("catalog generated duplicate schema element IDs")
     return tuple(sorted(rows, key=lambda row: row.element_id))
+
+
+def build_bilingual_schema_elements(
+    elements: tuple[SchemaElement, ...],
+    aliases: BilingualAliasCatalog,
+) -> tuple[SchemaElement, ...]:
+    """Add language-tagged Vietnamese aliases without changing canonical SQL IDs."""
+    from nl2sparql.linking.bilingual import BilingualAliasCatalog
+
+    if not isinstance(aliases, BilingualAliasCatalog):
+        raise SchemaDocumentError("bilingual alias catalog is invalid")
+    known_ids = {element.element_id for element in elements}
+    unknown = set(aliases.schema) - known_ids
+    if unknown:
+        raise SchemaDocumentError(
+            f"bilingual aliases reference unknown schema IDs: {sorted(unknown)}"
+        )
+    rows: list[SchemaElement] = []
+    for element in elements:
+        accented = aliases.schema.get(element.element_id, ())
+        unaccented = aliases.schema_unaccented.get(element.element_id, ())
+        if not accented:
+            rows.append(element)
+            continue
+        document = "\n".join(
+            (
+                element.document,
+                f"Aliases [vi]: {' '.join(accented)}",
+                f"Aliases [vi-unaccented]: {' '.join(unaccented)}",
+            )
+        )
+        rows.append(
+            SchemaElement(
+                element_id=element.element_id,
+                kind=element.kind,
+                document=document,
+                document_sha256=hashlib.sha256(document.encode()).hexdigest(),
+            )
+        )
+    return tuple(rows)

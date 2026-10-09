@@ -8,9 +8,10 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from google.cloud import bigquery
+if TYPE_CHECKING:
+    from google.cloud import bigquery
 
 from nl2sparql.sql.label_layer import DEFAULT_LOCATION
 from nl2sparql.sql.schema import load_catalog, validate_catalog, validate_date_window
@@ -333,6 +334,8 @@ def validate_template_library(
 
 
 def _query_config(*, dry_run: bool, maximum_bytes_billed: int) -> bigquery.QueryJobConfig:
+    from google.cloud import bigquery
+
     return bigquery.QueryJobConfig(
         dry_run=dry_run,
         use_query_cache=False,

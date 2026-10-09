@@ -13,14 +13,20 @@ from nl2sparql.models.b12.contracts import (
     ChatMessage,
     SelectedExample,
     SmallLLMError,
+    question_normalization_sha256,
     validate_question,
 )
 
 _SYSTEM_TEMPLATE = """You write GoogleSQL for Ethereum analytics.
 
-Use only the catalog below. Return exactly one read-only GoogleSQL query with
+The question may be written directly in English or Vietnamese. Use only the
+catalog below. Return exactly one read-only GoogleSQL query with
 explicit projections. Do not output markdown, prose, comments, semicolons,
 mutations, physical source tables, or invented schema/entity values.
+
+<prompt_identity catalog_sha256="{catalog_sha256}" summary_sha256="{summary_sha256}"
+ bilingual_aliases_sha256="{bilingual_aliases_sha256}"
+ normalization_version="{normalization_version}" />
 
 {catalog}"""
 
@@ -68,9 +74,23 @@ def build_messages(
     else:
         examples_text = "<examples>none</examples>"
     escaped_question = html.escape(question, quote=False)
-    user = f"{examples_text}\n<question>{escaped_question}</question>\n<google_sql>"
+    input_sha256, normalized_input_sha256 = question_normalization_sha256(question)
+    user = (
+        f'{examples_text}\n<input_identity input_sha256="{input_sha256}" '
+        f'normalized_input_sha256="{normalized_input_sha256}" />\n'
+        f"<question>{escaped_question}</question>\n<google_sql>"
+    )
     return (
-        ChatMessage(role="system", content=_SYSTEM_TEMPLATE.format(catalog=summary.text.rstrip())),
+        ChatMessage(
+            role="system",
+            content=_SYSTEM_TEMPLATE.format(
+                catalog=summary.text.rstrip(),
+                catalog_sha256=summary.catalog_sha256,
+                summary_sha256=summary.summary_sha256,
+                bilingual_aliases_sha256=summary.bilingual_aliases_sha256 or "none",
+                normalization_version=summary.normalization_version,
+            ),
+        ),
         ChatMessage(role="user", content=user),
     )
 

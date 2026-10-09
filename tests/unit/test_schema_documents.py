@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from nl2sparql.linking.bilingual import load_bilingual_aliases
 from nl2sparql.linking.schema import (
     SchemaCachePaths,
     SchemaDocumentError,
@@ -18,6 +19,7 @@ from nl2sparql.linking.schema import (
     build_schema_elements,
     load_synonyms,
 )
+from nl2sparql.linking.schema.documents import build_bilingual_schema_elements
 from nl2sparql.sql.schema import load_catalog
 
 
@@ -55,6 +57,23 @@ def test_schema_documents_are_deterministic_and_include_catalog_semantics() -> N
     assert "CQ04" in by_id["transaction_facts.from_address"].document
     assert "STRING REQUIRED" in by_id["transaction_facts.from_address"].document
     assert len(by_id["transaction_facts.from_address"].document_sha256) == 64
+
+
+def test_bilingual_schema_aliases_are_language_tagged_hash_bound_and_keep_sql_ids() -> None:
+    english = build_schema_elements(load_catalog(), load_synonyms())
+    aliases = load_bilingual_aliases()
+
+    bilingual = build_bilingual_schema_elements(english, aliases)
+    by_id = {row.element_id: row for row in bilingual}
+
+    assert tuple(row.element_id for row in bilingual) == tuple(row.element_id for row in english)
+    sender = by_id["transaction_facts.from_address"]
+    assert "Aliases [vi]:" in sender.document and "địa chỉ gửi" in sender.document
+    assert "Aliases [vi-unaccented]:" in sender.document and "dia chi gui" in sender.document
+    assert (
+        sender.document_sha256 == __import__("hashlib").sha256(sender.document.encode()).hexdigest()
+    )
+    assert aliases.sha256 == __import__("hashlib").sha256(aliases.source_bytes).hexdigest()
 
 
 @pytest.mark.parametrize(

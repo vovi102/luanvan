@@ -24,7 +24,33 @@
 
 ## Entries
 
+### 2026-10-07 — T3.3 dùng deterministic bilingual catalog, không gọi LLM
+
+- **Context:** Hai phương án OpenRouter/Gemini đều cần external generation và
+  không tạo được accepted Stage B/C trong ngân sách API bằng 0. Training corpus
+  cần provenance kiểm chứng được và phải giữ benchmark wording ngoài producer.
+- **Options considered:** Tiếp tục chờ Gemini Free Tier; dùng model/router khác;
+  hoặc thay bằng catalog hữu hạn do agent soạn và renderer deterministic offline.
+- **Decision:** Dùng đúng 200 patterns (25 intent × English/Vietnamese × bốn
+  styles), render tám record cho mỗi Stage A family, provider/model null, API
+  calls `0`, recorded cost `$0.00`. Enforce hash-only held-out exclusions,
+  family-aware splits, diversity, audit 100/ngôn ngữ và atomic publication.
+- **Rationale:** Luồng này byte-reproducible, không có credential/quota/privacy
+  dependency và cho phép kiểm tra trực tiếp mỗi pattern/provenance claim.
+- **Consequences:** Gemini Stage B/C và Stage D trở thành historical incomplete
+  paths. Catalog và benchmark đều có shared agent authorship nên không claim
+  independent authorship. Pinned Stage A chỉ phủ 16/25 intent; canonical artifact
+  phải fail closed cho đến khi có accepted 25-intent source hoặc gate được duyệt
+  lại. Vietnamese 100-candidate benchmark vẫn chờ user review.
+- **Revisit:** Chỉ khi accepted source/gate thay đổi bằng quyết định governance;
+  không tự tạo chín intent còn thiếu và không thay bằng LLM generation.
+- **Linked:** `docs/superpowers/specs/2026-10-07-deterministic-bilingual-training-design.md`,
+  `src/nl2sparql/dataset/bilingual/`, `scripts/20_build_bilingual_training.py`,
+  `scripts/21_validate_bilingual_training.py`.
+
 ### 2026-10-04 — T3.3 chuyển từ paid OpenRouter sang Gemini Free Tier trực tiếp
+
+> Superseded by the 2026-10-07 deterministic bilingual catalog decision.
 
 - **Context:** T3.3 cũ pin hai model OpenRouter trả phí cho 2.000 requests, trong
   khi dự án có ngân sách API bằng 0 và đã chọn Gemini Free Tier cho critical path.

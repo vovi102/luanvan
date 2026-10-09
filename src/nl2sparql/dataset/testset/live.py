@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import itertools
+import json
 import time
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from typing import Any
 
@@ -104,6 +105,65 @@ def evidence_input_sha256(rows: Iterable[tuple[str, str]]) -> str:
         {"id": question_id, "sql_sha256": sql_sha256} for question_id, sql_sha256 in sorted(rows)
     ]
     return hashlib.sha256(jsonl_bytes(payload)).hexdigest()
+
+
+def _policy_sha256(policy: SqlPolicy) -> str:
+    payload = (json.dumps(asdict(policy), sort_keys=True, separators=(",", ":")) + "\n").encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def reuse_paired_live_evidence(
+    english_cases: Sequence[Any],
+    paired_cases: Sequence[Any],
+    evidence: LiveEvidence,
+    *,
+    policy: SqlPolicy,
+) -> LiveEvidence:
+    """Reuse English live evidence only for byte-identical paired SQL contracts."""
+    if evidence.status != "ready":
+        raise TestSetError("English live evidence must have ready status")
+    if len(english_cases) != 100 or len(paired_cases) != 100:
+        raise TestSetError("paired live-evidence reuse requires exactly 100 cases")
+    english_by_id = {case.id: case for case in english_cases}
+    evidence_by_id = {record.question_id: record for record in evidence.records}
+    if len(english_by_id) != 100 or len(evidence_by_id) != 100:
+        raise TestSetError("English live evidence must cover 100 unique cases")
+    expected_policy_sha256 = _policy_sha256(policy)
+    if any(record.policy_sha256 != expected_policy_sha256 for record in evidence.records):
+        raise TestSetError("English live evidence policy does not match the requested policy")
+
+    reused: list[LiveEvidenceRecord] = []
+    for paired in paired_cases:
+        english = english_by_id.get(paired.english_id)
+        record = evidence_by_id.get(paired.english_id)
+        if english is None or record is None:
+            raise TestSetError(f"missing English live evidence for {paired.english_id}")
+        if paired.sql != english.sql:
+            raise TestSetError(f"{paired.id} SQL bytes differ from its English pair")
+        if paired.expected_columns != english.expected_columns:
+            raise TestSetError(f"{paired.id} expected result columns differ")
+        if record.sql_sha256 != hashlib.sha256(english.sql.encode()).hexdigest():
+            raise TestSetError(f"{paired.id} English SQL evidence hash mismatch")
+        if record.columns != paired.expected_columns:
+            raise TestSetError(f"{paired.id} English result columns mismatch")
+        if (
+            paired.expected_result_size is not None
+            and record.row_count != paired.expected_result_size
+        ):
+            raise TestSetError(f"{paired.id} English expected result contract mismatch")
+        if paired.expected_result_size is None and record.row_count != 0:
+            raise TestSetError(f"{paired.id} English expected-empty contract mismatch")
+        reused.append(replace(record, question_id=paired.id))
+    return LiveEvidence(
+        status="ready",
+        generated_at=evidence.generated_at,
+        records=tuple(reused),
+        total_processed_bytes=evidence.total_processed_bytes,
+        total_billed_bytes=evidence.total_billed_bytes,
+        input_sha256=evidence_input_sha256(
+            (record.question_id, record.sql_sha256) for record in reused
+        ),
+    )
 
 
 def verify_sql(

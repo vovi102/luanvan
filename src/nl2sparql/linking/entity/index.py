@@ -19,6 +19,7 @@ from typing import Any, BinaryIO
 
 import numpy as np
 
+from nl2sparql.language import NORMALIZATION_VERSION
 from nl2sparql.linking.entity.contracts import (
     DEFAULT_LINKER_POLICY,
     DOCUMENT_VERSION,
@@ -32,6 +33,9 @@ from nl2sparql.linking.entity.contracts import (
     EntityLinkerPolicy,
     validate_digest,
 )
+
+_LEGACY_ENCODER_REVISION = "0" * 40
+_NO_ALIAS_CATALOG_SHA256 = "0" * 64
 
 
 @dataclass(frozen=True)
@@ -49,6 +53,10 @@ class EntityIndexMetadata:
     target_ids: tuple[str, ...]
     target_document_sha256: tuple[str, ...]
     manifest_sha256: str
+    encoder_revision: str = _LEGACY_ENCODER_REVISION
+    alias_catalog_sha256: str = _NO_ALIAS_CATALOG_SHA256
+    normalization_version: str = NORMALIZATION_VERSION
+    corpus_sha256: str = ""
     manifest_file_sha256: str = ""
     matrices_file: str = ""
     linker_policy: EntityLinkerPolicy = DEFAULT_LINKER_POLICY
@@ -68,6 +76,32 @@ def _canonical_json(value: object) -> bytes:
 
 def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
+
+
+def _validate_extended_identity(
+    encoder_revision: str,
+    alias_catalog_sha256: str,
+    normalization_version: str,
+) -> None:
+    try:
+        validate_digest(alias_catalog_sha256, "bilingual alias catalog fingerprint")
+    except EntityLinkerError as exc:
+        raise EntityIndexError(str(exc)) from exc
+    if (
+        not isinstance(encoder_revision, str)
+        or re.fullmatch(r"[0-9a-f]{40}", encoder_revision) is None
+    ):
+        raise EntityIndexError("encoder revision must be 40 lower-case hexadecimal characters")
+    if not isinstance(normalization_version, str) or not normalization_version.strip():
+        raise EntityIndexError("normalization version must be non-empty")
+
+
+def _entity_corpus_sha256(corpus: EntityCorpus) -> str:
+    fingerprints = [
+        {"target_id": target.target_id, "document_sha256": target.document_sha256}
+        for target in corpus.targets
+    ]
+    return _sha256(_canonical_json(fingerprints))
 
 
 @contextmanager
@@ -167,7 +201,11 @@ def _manifest_body(
     *,
     corpus: EntityCorpus,
     model_id: str,
+    encoder_revision: str,
     document_version: str,
+    alias_catalog_sha256: str,
+    normalization_version: str,
+    corpus_sha256: str,
     matrices_sha256: str,
     matrices_file: str,
     dimension: int,
@@ -176,7 +214,11 @@ def _manifest_body(
     return {
         "schema_version": INDEX_SCHEMA_VERSION,
         "model_id": model_id,
+        "encoder_revision": encoder_revision,
         "document_version": document_version,
+        "alias_catalog_sha256": alias_catalog_sha256,
+        "normalization_version": normalization_version,
+        "corpus_sha256": corpus_sha256,
         "entities_sha256": corpus.entities_sha256,
         "aliases_sha256": corpus.aliases_sha256,
         "concepts_sha256": corpus.concepts_sha256,
@@ -306,11 +348,16 @@ def build_index(
     *,
     document_version: str = DOCUMENT_VERSION,
     linker_policy: EntityLinkerPolicy = DEFAULT_LINKER_POLICY,
+    encoder_revision: str = _LEGACY_ENCODER_REVISION,
+    alias_catalog_sha256: str = _NO_ALIAS_CATALOG_SHA256,
+    normalization_version: str = NORMALIZATION_VERSION,
 ) -> EntityIndex:
     """Encode ordered corpus documents once, then atomically publish an entity index."""
     model_id, document_version, linker_policy = _validate_build_arguments(
         corpus, model_id, document_version, linker_policy
     )
+    _validate_extended_identity(encoder_revision, alias_catalog_sha256, normalization_version)
+    corpus_sha256 = _entity_corpus_sha256(corpus)
     if paths.manifest.parent != paths.matrices.parent:
         raise EntityIndexError("entity manifest and matrices must share one directory")
     try:
@@ -337,7 +384,11 @@ def build_index(
         body = _manifest_body(
             corpus=corpus,
             model_id=model_id,
+            encoder_revision=encoder_revision,
             document_version=document_version,
+            alias_catalog_sha256=alias_catalog_sha256,
+            normalization_version=normalization_version,
+            corpus_sha256=corpus_sha256,
             matrices_sha256=matrices_sha256,
             matrices_file=generation_path.name,
             dimension=embeddings.shape[1],
@@ -363,6 +414,9 @@ def build_index(
         model_id,
         document_version=document_version,
         linker_policy=linker_policy,
+        encoder_revision=encoder_revision,
+        alias_catalog_sha256=alias_catalog_sha256,
+        normalization_version=normalization_version,
     )
 
 
@@ -370,7 +424,11 @@ _MATRIX_FILENAME_RE = re.compile(r"^entity-index-([0-9a-f]{64})\.npz$")
 _MANIFEST_KEYS = {
     "schema_version",
     "model_id",
+    "encoder_revision",
     "document_version",
+    "alias_catalog_sha256",
+    "normalization_version",
+    "corpus_sha256",
     "entities_sha256",
     "aliases_sha256",
     "concepts_sha256",
@@ -453,6 +511,9 @@ def _validate_manifest_identity(
     model_id: str,
     document_version: str,
     linker_policy: EntityLinkerPolicy,
+    encoder_revision: str,
+    alias_catalog_sha256: str,
+    normalization_version: str,
 ) -> EntityLinkerPolicy:
     schema_version = body.get("schema_version")
     if (
@@ -463,8 +524,16 @@ def _validate_manifest_identity(
         raise EntityIndexError("entity index schema version mismatch")
     if body.get("model_id") != model_id:
         raise EntityIndexError("entity index model identity mismatch")
+    if body.get("encoder_revision") != encoder_revision:
+        raise EntityIndexError("entity index encoder revision identity mismatch")
     if body.get("document_version") != document_version:
         raise EntityIndexError("entity index document version mismatch")
+    if body.get("alias_catalog_sha256") != alias_catalog_sha256:
+        raise EntityIndexError("entity index alias catalog identity mismatch")
+    if body.get("normalization_version") != normalization_version:
+        raise EntityIndexError("entity index normalization identity mismatch")
+    if body.get("corpus_sha256") != _entity_corpus_sha256(corpus):
+        raise EntityIndexError("entity index current document corpus identity mismatch")
     if (
         body.get("entities_sha256") != corpus.entities_sha256
         or body.get("aliases_sha256") != corpus.aliases_sha256
@@ -491,17 +560,28 @@ def load_index(
     *,
     document_version: str = DOCUMENT_VERSION,
     linker_policy: EntityLinkerPolicy = DEFAULT_LINKER_POLICY,
+    encoder_revision: str = _LEGACY_ENCODER_REVISION,
+    alias_catalog_sha256: str = _NO_ALIAS_CATALOG_SHA256,
+    normalization_version: str = NORMALIZATION_VERSION,
 ) -> EntityIndex:
     """Load an entity index only after identity and integrity checks pass."""
     model_id, document_version, linker_policy = _validate_build_arguments(
         corpus, model_id, document_version, linker_policy
     )
+    _validate_extended_identity(encoder_revision, alias_catalog_sha256, normalization_version)
     try:
         with _index_lock(paths.lock, create=False):
             manifest_bytes = _read_manifest(paths.manifest)
             body, manifest_sha256 = _parse_manifest(manifest_bytes)
             persisted_policy = _validate_manifest_identity(
-                body, corpus, model_id, document_version, linker_policy
+                body,
+                corpus,
+                model_id,
+                document_version,
+                linker_policy,
+                encoder_revision,
+                alias_catalog_sha256,
+                normalization_version,
             )
             matrices_file = _matrix_filename(body)
             matrix_bytes = _read_matrix_generation(paths.manifest.parent / matrices_file)
@@ -525,7 +605,11 @@ def load_index(
     metadata = EntityIndexMetadata(
         schema_version=INDEX_SCHEMA_VERSION,
         model_id=model_id,
+        encoder_revision=encoder_revision,
         document_version=document_version,
+        alias_catalog_sha256=alias_catalog_sha256,
+        normalization_version=normalization_version,
+        corpus_sha256=_entity_corpus_sha256(corpus),
         entities_sha256=corpus.entities_sha256,
         aliases_sha256=corpus.aliases_sha256,
         concepts_sha256=corpus.concepts_sha256,

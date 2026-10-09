@@ -19,6 +19,7 @@ from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
 from nl2sparql.evaluation.contracts import (
     AnswerScores,
     ArtifactRef,
+    BilingualEvaluationReport,
     BootstrapPolicy,
     CanonicalArtifact,
     CanonicalPredictionRun,
@@ -34,8 +35,12 @@ from nl2sparql.evaluation.contracts import (
     ExecutionEvidence,
     ExecutionPolicy,
     ExecutorProvenance,
+    FailureModeSummary,
+    GateDecision,
+    GateObservation,
     InferenceEvidence,
     ManualFailureReview,
+    McNemarResult,
     MetricDelta,
     PredictionCase,
     PricingPolicy,
@@ -47,6 +52,7 @@ from nl2sparql.evaluation.contracts import (
     Readiness,
     ResultField,
     RunProvenance,
+    TranslationEvidence,
 )
 
 SCHEMA_VERSION = 2
@@ -60,6 +66,9 @@ _ARTIFACT_TYPES: dict[str, type[Any]] = {
     "nl2sql_evaluation_report": EvaluationReport,
     "nl2sql_comparison_report": ComparisonReport,
     "nl2sql_privacy_review": PrivacyReview,
+    "nl2sql_translation_evidence": TranslationEvidence,
+    "nl2sql_bilingual_evaluation_report": BilingualEvaluationReport,
+    "nl2sql_bilingual_gate_decision": GateDecision,
 }
 _CLASS_TO_ARTIFACT = {value: key for key, value in _ARTIFACT_TYPES.items()}
 _KNOWN_DATACLASSES = {
@@ -68,6 +77,7 @@ _KNOWN_DATACLASSES = {
         AnswerScores,
         ArtifactRef,
         BootstrapPolicy,
+        BilingualEvaluationReport,
         CanonicalPredictionRun,
         CaseEvaluation,
         ComparisonReport,
@@ -76,12 +86,16 @@ _KNOWN_DATACLASSES = {
         DistributionMetric,
         DryRunEvidence,
         EvaluationReport,
+        FailureModeSummary,
+        GateDecision,
+        GateObservation,
         ExecutionCaseEvidence,
         ExecutionEvidence,
         ExecutionPolicy,
         ExecutorProvenance,
         InferenceEvidence,
         ManualFailureReview,
+        McNemarResult,
         MetricDelta,
         PredictionCase,
         PricingPolicy,
@@ -93,6 +107,7 @@ _KNOWN_DATACLASSES = {
         Readiness,
         ResultField,
         RunProvenance,
+        TranslationEvidence,
     )
 }
 
@@ -176,6 +191,18 @@ def serialize_comparison_report(report: ComparisonReport) -> bytes:
 
 def serialize_privacy_review(review: PrivacyReview) -> bytes:
     return _serialize(review)
+
+
+def serialize_translation_evidence(evidence: TranslationEvidence) -> bytes:
+    return _serialize(evidence)
+
+
+def serialize_bilingual_evaluation_report(report: BilingualEvaluationReport) -> bytes:
+    return _serialize(report)
+
+
+def serialize_gate_decision(decision: GateDecision) -> bytes:
+    return _serialize(decision)
 
 
 def _decode_any(value: object) -> object:
@@ -321,6 +348,24 @@ def load_comparison_report(path: Path) -> ComparisonReport:
 def load_privacy_review(path: Path) -> PrivacyReview:
     artifact = _load(path, "nl2sql_privacy_review")
     assert isinstance(artifact, PrivacyReview)
+    return artifact
+
+
+def load_translation_evidence(path: Path) -> TranslationEvidence:
+    artifact = _load(path, "nl2sql_translation_evidence")
+    assert isinstance(artifact, TranslationEvidence)
+    return artifact
+
+
+def load_bilingual_evaluation_report(path: Path) -> BilingualEvaluationReport:
+    artifact = _load(path, "nl2sql_bilingual_evaluation_report")
+    assert isinstance(artifact, BilingualEvaluationReport)
+    return artifact
+
+
+def load_gate_decision(path: Path) -> GateDecision:
+    artifact = _load(path, "nl2sql_bilingual_gate_decision")
+    assert isinstance(artifact, GateDecision)
     return artifact
 
 

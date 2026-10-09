@@ -19,6 +19,7 @@ from typing import Any, BinaryIO
 
 import numpy as np
 
+from nl2sparql.language import NORMALIZATION_VERSION
 from nl2sparql.linking.schema.contracts import (
     DOCUMENT_VERSION,
     INDEX_SCHEMA_VERSION,
@@ -30,6 +31,9 @@ from nl2sparql.linking.schema.contracts import (
     SchemaLinkerError,
     ScoreWeights,
 )
+
+_LEGACY_ENCODER_REVISION = "0" * 40
+_NO_ALIAS_CATALOG_SHA256 = "0" * 64
 
 
 @dataclass(frozen=True)
@@ -46,6 +50,10 @@ class SchemaIndexMetadata:
     relation_elements: tuple[SchemaElement, ...]
     field_elements: tuple[SchemaElement, ...]
     manifest_sha256: str
+    encoder_revision: str = _LEGACY_ENCODER_REVISION
+    alias_catalog_sha256: str = _NO_ALIAS_CATALOG_SHA256
+    normalization_version: str = NORMALIZATION_VERSION
+    corpus_sha256: str = ""
     manifest_file_sha256: str = ""
     matrices_file: str = ""
 
@@ -65,6 +73,35 @@ def _canonical_json(value: object) -> bytes:
 
 def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
+
+
+def _validate_extended_identity(
+    encoder_revision: str,
+    alias_catalog_sha256: str,
+    normalization_version: str,
+) -> None:
+    if (
+        not isinstance(encoder_revision, str)
+        or re.fullmatch(r"[0-9a-f]{40}", encoder_revision) is None
+    ):
+        raise SchemaIndexError("encoder revision must be 40 lower-case hexadecimal characters")
+    if (
+        not isinstance(alias_catalog_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", alias_catalog_sha256) is None
+    ):
+        raise SchemaIndexError("alias catalog digest must be a lower-case SHA-256")
+    if not isinstance(normalization_version, str) or not normalization_version.strip():
+        raise SchemaIndexError("normalization version must be non-empty")
+
+
+def _schema_corpus_sha256(
+    relations: tuple[SchemaElement, ...], fields: tuple[SchemaElement, ...]
+) -> str:
+    fingerprints = [
+        {"element_id": row.element_id, "document_sha256": row.document_sha256}
+        for row in (*relations, *fields)
+    ]
+    return _sha256(_canonical_json(fingerprints))
 
 
 @contextmanager
@@ -146,8 +183,12 @@ def _validate_elements(
 def _manifest_body(
     *,
     model_id: str,
+    encoder_revision: str,
     document_version: str,
     catalog_sha256: str,
+    alias_catalog_sha256: str,
+    normalization_version: str,
+    corpus_sha256: str,
     matrices_sha256: str,
     matrices_file: str,
     dimension: int,
@@ -158,8 +199,12 @@ def _manifest_body(
     return {
         "schema_version": INDEX_SCHEMA_VERSION,
         "model_id": model_id,
+        "encoder_revision": encoder_revision,
         "document_version": document_version,
         "catalog_sha256": catalog_sha256,
+        "alias_catalog_sha256": alias_catalog_sha256,
+        "normalization_version": normalization_version,
+        "corpus_sha256": corpus_sha256,
         "matrices_sha256": matrices_sha256,
         "matrices_file": matrices_file,
         "dimension": dimension,
@@ -268,6 +313,9 @@ def build_index(
     weights: ScoreWeights | None = None,
     *,
     document_version: str = DOCUMENT_VERSION,
+    encoder_revision: str = _LEGACY_ENCODER_REVISION,
+    alias_catalog_sha256: str = _NO_ALIAS_CATALOG_SHA256,
+    normalization_version: str = NORMALIZATION_VERSION,
 ) -> SchemaIndex:
     """Build, validate, and atomically publish a schema embedding index."""
     if not isinstance(model_id, str) or not model_id.strip():
@@ -276,8 +324,10 @@ def build_index(
         raise SchemaIndexError("document version must be non-empty")
     if not isinstance(catalog_bytes, bytes) or not catalog_bytes:
         raise SchemaIndexError("catalog bytes must be non-empty")
+    _validate_extended_identity(encoder_revision, alias_catalog_sha256, normalization_version)
     weights = ScoreWeights() if weights is None else weights
     relations, fields = _validate_elements(elements)
+    corpus_sha256 = _schema_corpus_sha256(relations, fields)
     try:
         raw_relations = encoder.encode(
             [row.document for row in relations], normalize_embeddings=True
@@ -310,8 +360,12 @@ def build_index(
         generation_path = paths.matrix_generation(matrices_sha256)
         body = _manifest_body(
             model_id=model_id.strip(),
+            encoder_revision=encoder_revision,
             document_version=document_version.strip(),
             catalog_sha256=_sha256(catalog_bytes),
+            alias_catalog_sha256=alias_catalog_sha256,
+            normalization_version=normalization_version,
+            corpus_sha256=corpus_sha256,
             matrices_sha256=matrices_sha256,
             matrices_file=generation_path.name,
             dimension=relation_embeddings.shape[1],
@@ -339,6 +393,9 @@ def build_index(
         model_id.strip(),
         document_version.strip(),
         elements,
+        encoder_revision=encoder_revision,
+        alias_catalog_sha256=alias_catalog_sha256,
+        normalization_version=normalization_version,
     )
 
 
@@ -408,8 +465,13 @@ def load_index(
     expected_model_id: str,
     expected_document_version: str,
     expected_elements: Sequence[SchemaElement],
+    *,
+    encoder_revision: str = _LEGACY_ENCODER_REVISION,
+    alias_catalog_sha256: str = _NO_ALIAS_CATALOG_SHA256,
+    normalization_version: str = NORMALIZATION_VERSION,
 ) -> SchemaIndex:
     """Load a schema index only after all identity and integrity checks pass."""
+    _validate_extended_identity(encoder_revision, alias_catalog_sha256, normalization_version)
     try:
         with _index_lock(paths.lock):
             manifest_bytes = paths.manifest.read_bytes()
@@ -425,8 +487,14 @@ def load_index(
                 raise SchemaIndexError("schema index catalog fingerprint mismatch")
             if body.get("model_id") != expected_model_id:
                 raise SchemaIndexError("schema index model identity mismatch")
+            if body.get("encoder_revision") != encoder_revision:
+                raise SchemaIndexError("schema index encoder revision identity mismatch")
             if body.get("document_version") != expected_document_version:
                 raise SchemaIndexError("schema index document version mismatch")
+            if body.get("alias_catalog_sha256") != alias_catalog_sha256:
+                raise SchemaIndexError("schema index alias catalog identity mismatch")
+            if body.get("normalization_version") != normalization_version:
+                raise SchemaIndexError("schema index normalization identity mismatch")
             matrices_file = _matrix_filename(body)
             matrix_bytes = _read_matrix_generation(paths.manifest.parent / matrices_file)
     except OSError as exc:
@@ -447,6 +515,9 @@ def load_index(
     fields = _elements_from_manifest(body.get("field_elements"), "field")
     relations, fields = _validate_elements((*relations, *fields))
     expected_relations, expected_fields = _validate_elements(expected_elements)
+    expected_corpus_sha256 = _schema_corpus_sha256(expected_relations, expected_fields)
+    if body.get("corpus_sha256") != expected_corpus_sha256:
+        raise SchemaIndexError("schema index current document corpus identity mismatch")
     if _element_fingerprints(relations) != _element_fingerprints(
         expected_relations
     ) or _element_fingerprints(fields) != _element_fingerprints(expected_fields):
@@ -469,8 +540,12 @@ def load_index(
     metadata = SchemaIndexMetadata(
         schema_version=INDEX_SCHEMA_VERSION,
         model_id=expected_model_id,
+        encoder_revision=encoder_revision,
         document_version=expected_document_version,
         catalog_sha256=expected_catalog_sha256,
+        alias_catalog_sha256=alias_catalog_sha256,
+        normalization_version=normalization_version,
+        corpus_sha256=expected_corpus_sha256,
         matrices_sha256=str(body["matrices_sha256"]),
         dimension=dimension,
         weights=weights,

@@ -13,7 +13,11 @@ from nl2sparql.linking.schema.contracts import (
     SchemaLinkerError,
     ScoreWeights,
 )
-from nl2sparql.linking.schema.documents import build_schema_elements, load_synonyms
+from nl2sparql.linking.schema.documents import (
+    build_bilingual_schema_elements,
+    build_schema_elements,
+    load_synonyms,
+)
 from nl2sparql.linking.schema.evaluate import (
     CaseEvaluation,
     EvaluationReport,
@@ -50,6 +54,7 @@ __all__ = [
     "SchemaMatch",
     "ScoreWeights",
     "build_schema_elements",
+    "build_bilingual_schema_elements",
     "build_index",
     "evaluate_linker",
     "load_index",

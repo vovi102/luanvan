@@ -1,0 +1,3269 @@
+{
+  "entries": [
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "380e72a9688a979edadf8ac0416412fc29be22de8b244622eb77e88825d7e4bb",
+      "id": "T_COUNT_TX_IN_RANGE__en__formal",
+      "language": "en",
+      "pattern": "How many transactions occurred between {start_date} and {end_date}?",
+      "placeholders": [
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_COUNT_TX_IN_RANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "2468c6295fcd07841d59d2888952ce52e1ccea86ca0c49050a9fc875bc8a5ec5",
+      "id": "T_COUNT_TX_IN_RANGE__en__conversational",
+      "language": "en",
+      "pattern": "Can you tell me the transaction count from {start_date} to {end_date}?",
+      "placeholders": [
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_COUNT_TX_IN_RANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "7abde1b9469a5effd081c4621d53e42a5de90d2fedb75316a5ad3972c139934a",
+      "id": "T_COUNT_TX_IN_RANGE__en__abbreviated",
+      "language": "en",
+      "pattern": "Tx count, {start_date}–{end_date}?",
+      "placeholders": [
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_COUNT_TX_IN_RANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "98875704160ef10c4ae6ad16590df737e922bd94436e203045f667d8a03aea81",
+      "id": "T_COUNT_TX_IN_RANGE__en__alternative",
+      "language": "en",
+      "pattern": "For the period beginning {start_date} and ending {end_date}, what was the total number of transactions?",
+      "placeholders": [
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_COUNT_TX_IN_RANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "43e7ea5c1a6837ec5ce153ce57c67fc30774d09e80913cb2b85dc60d9d6a05de",
+      "id": "T_COUNT_TX_IN_RANGE__vi__formal",
+      "language": "vi",
+      "pattern": "Có bao nhiêu giao dịch được thực hiện trong khoảng từ {start_date} đến {end_date}?",
+      "placeholders": [
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_COUNT_TX_IN_RANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "0725c84b2d6f0a88c2cabcb5a025b44f541faf312a6286121f9e6f6261be114c",
+      "id": "T_COUNT_TX_IN_RANGE__vi__conversational",
+      "language": "vi",
+      "pattern": "Bạn cho mình biết số giao dịch từ {start_date} tới {end_date} nhé?",
+      "placeholders": [
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_COUNT_TX_IN_RANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ce1e3132c451720f21675a3affa44f6e2f12c5cc5d23d6dcf369ca8db11ebae0",
+      "id": "T_COUNT_TX_IN_RANGE__vi__abbreviated",
+      "language": "vi",
+      "pattern": "SL giao dịch {start_date}–{end_date}?",
+      "placeholders": [
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_COUNT_TX_IN_RANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "afd5e480cbe41f17e9959804630b8a39f39ae6e54d38bbdcf13f7b062d6cb6a4",
+      "id": "T_COUNT_TX_IN_RANGE__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn bắt đầu ngày {start_date} và kết thúc ngày {end_date}, tổng số giao dịch là bao nhiêu?",
+      "placeholders": [
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_COUNT_TX_IN_RANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f7ff1489d60329bdb1ad4f62a27300d7f7a1f2d8deba5a542c16626596b8e303",
+      "id": "T_LIST_TX_FROM_ACCOUNT__en__formal",
+      "language": "en",
+      "pattern": "List the latest {n} transactions sent by {account} between {start_date} and {end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LIST_TX_FROM_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "84336fe79f0e029ba58dcd19cbdd6c2edbb0807ec544663346c4222e3c92bbd7",
+      "id": "T_LIST_TX_FROM_ACCOUNT__en__conversational",
+      "language": "en",
+      "pattern": "Could you show me {n} transfers that {account} sent from {start_date} to {end_date}?",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LIST_TX_FROM_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "cfb5fe996cd40e60cc61fa241f2fadfd7b7f4fcdbd6ff451ef5ac93feb11383b",
+      "id": "T_LIST_TX_FROM_ACCOUNT__en__abbreviated",
+      "language": "en",
+      "pattern": "Latest {n} outgoing txs: {account}, {start_date}–{end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LIST_TX_FROM_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f6dbd00498af31235cc340fe48c2a6f4d3a220a8f72b9fa85593cd8e693de466",
+      "id": "T_LIST_TX_FROM_ACCOUNT__en__alternative",
+      "language": "en",
+      "pattern": "From the interval {start_date} through {end_date}, return {n} transactions whose sender is {account}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LIST_TX_FROM_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "518184c7b55ecce4a02d5062bfef650a99eb9715f25cbddc0a34d1d761230c28",
+      "id": "T_LIST_TX_FROM_ACCOUNT__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} giao dịch gần nhất do {account} gửi trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LIST_TX_FROM_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "8dbcef9f16fba5ac2c42ea6a9810d778e08af51080eba59cb1bebe5119506577",
+      "id": "T_LIST_TX_FROM_ACCOUNT__vi__conversational",
+      "language": "vi",
+      "pattern": "Cho mình xem {n} giao dịch mà {account} đã gửi từ {start_date} tới {end_date} được không?",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LIST_TX_FROM_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "cb0bd8386f30b3383c61d5fe26b73adb1b6d5be5c95c3472b54f56f850dcfb4b",
+      "id": "T_LIST_TX_FROM_ACCOUNT__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} tx đi mới nhất: {account}, {start_date}–{end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LIST_TX_FROM_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "98bf787381c05597a15ee0dd4f950370cf9b6a8082856a64f4eef4d8df4db4b6",
+      "id": "T_LIST_TX_FROM_ACCOUNT__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy trả về {n} giao dịch có địa chỉ gửi là {account}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LIST_TX_FROM_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c66fa85448b0e32e0d3882f6259a04cb9a99882872fd297e05c339c213ffbba0",
+      "id": "T_LIST_TX_TO_ACCOUNT__en__formal",
+      "language": "en",
+      "pattern": "List the latest {n} transactions received by {account} between {start_date} and {end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LIST_TX_TO_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1d443130d08427282ecb2be41ed3a4ed10ae5fcaead99b83e878f04901660e83",
+      "id": "T_LIST_TX_TO_ACCOUNT__en__conversational",
+      "language": "en",
+      "pattern": "Can I see {n} transfers sent to {account} from {start_date} to {end_date}?",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LIST_TX_TO_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "0db83be6cedcce4ab8e040f5a331f1bbb7d12cd08d52e778a27f759a9b52516b",
+      "id": "T_LIST_TX_TO_ACCOUNT__en__abbreviated",
+      "language": "en",
+      "pattern": "Latest {n} incoming txs: {account}, {start_date}–{end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LIST_TX_TO_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "9997e83872b5ecb1d62c8a97aab36949a22d3560646982ce75b4f182f7f55b90",
+      "id": "T_LIST_TX_TO_ACCOUNT__en__alternative",
+      "language": "en",
+      "pattern": "For {start_date} through {end_date}, return {n} transactions whose recipient is {account}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LIST_TX_TO_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "dc17f9ebf1db27500995d9a46ba0be4f51bf57927d3b84ca9bade14b9fcc01e6",
+      "id": "T_LIST_TX_TO_ACCOUNT__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} giao dịch gần nhất mà {account} nhận trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LIST_TX_TO_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "753ae4c195535c97f97f04c87b0b52a5b17042bd103b9f7858b081301fa87306",
+      "id": "T_LIST_TX_TO_ACCOUNT__vi__conversational",
+      "language": "vi",
+      "pattern": "Cho mình xem {n} giao dịch gửi đến {account} từ {start_date} tới {end_date} nhé?",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LIST_TX_TO_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f6caa0853ed4489428f82c474d0d93d6b8210d2e1eb782440ceb1dd96e21d855",
+      "id": "T_LIST_TX_TO_ACCOUNT__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} tx vào mới nhất: {account}, {start_date}–{end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LIST_TX_TO_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "3f7d3336a2dbd23939c5c8796baa67d65c8e3120a4a3018373bec51af303bf7e",
+      "id": "T_LIST_TX_TO_ACCOUNT__vi__alternative",
+      "language": "vi",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} giao dịch có địa chỉ nhận là {account}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LIST_TX_TO_ACCOUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "60d5481f2b3e31278fe68ce72938376bee20fa4e703dc3ef887a085fd3ac53de",
+      "id": "T_FILTER_TX_BY_VALUE__en__formal",
+      "language": "en",
+      "pattern": "Return the top {n} transactions worth at least {value_wei} wei between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_FILTER_TX_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "5a0b38b1bfe4b7881fae069758159717357ce105e044a9140f7cbec20966bba6",
+      "id": "T_FILTER_TX_BY_VALUE__en__conversational",
+      "language": "en",
+      "pattern": "Which {n} biggest transfers moved no less than {value_wei} wei from {start_date} to {end_date}?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_FILTER_TX_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "2d5bdaeb72a7bb683a6246edad7fa887e09e492c41929af9eb2c5a05119bfd2e",
+      "id": "T_FILTER_TX_BY_VALUE__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} txs ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_FILTER_TX_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "8fbd78f3749707204fe0f2efd852629bdc285c5ab6d6170914156b01cf5e2075",
+      "id": "T_FILTER_TX_BY_VALUE__en__alternative",
+      "language": "en",
+      "pattern": "During {start_date} through {end_date}, find {n} transactions meeting a minimum value of {value_wei} wei.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_FILTER_TX_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f4a4c323bede60cd9bd11f8d3eba5273c42634562f9fd267c32e207f9eecc7f9",
+      "id": "T_FILTER_TX_BY_VALUE__vi__formal",
+      "language": "vi",
+      "pattern": "Trả về {n} giao dịch lớn nhất có giá trị ít nhất {value_wei} wei trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_FILTER_TX_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "93c001801940aec9b931054b8afcf5b75c8ba6a8a89463de9ce63783c8986945",
+      "id": "T_FILTER_TX_BY_VALUE__vi__conversational",
+      "language": "vi",
+      "pattern": "Từ {start_date} tới {end_date}, {n} giao dịch lớn nhất chuyển không dưới {value_wei} wei là những giao dịch nào?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_FILTER_TX_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "052c0c6fc589ce869c6c66cdb8a8ffa6b25f71b688b1234f8e5d3348f5dd6cb8",
+      "id": "T_FILTER_TX_BY_VALUE__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} tx ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_FILTER_TX_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "61603dc2f321e70c8345e90a70889b798e0a88ba70f3fb87d6e5351fdaec1f0a",
+      "id": "T_FILTER_TX_BY_VALUE__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} giao dịch đạt ngưỡng tối thiểu {value_wei} wei.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_FILTER_TX_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "a7e3df58944bc58d154ed917ae168cb846103b50ff8d6f4151d1f6117451c969",
+      "id": "T_LIST_FAILED_TX__en__formal",
+      "language": "en",
+      "pattern": "List the latest {n} failed transactions between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LIST_FAILED_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e77c0389df6dde9d2b63fcf04d5669b5966a077c17e2fe7952551dc44fd9468e",
+      "id": "T_LIST_FAILED_TX__en__conversational",
+      "language": "en",
+      "pattern": "Can you show me {n} transactions that failed from {start_date} to {end_date}?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LIST_FAILED_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c361eb127e91f342a8953e00b4f4eca0fa21c06e5da9a12b01346628e45724d0",
+      "id": "T_LIST_FAILED_TX__en__abbreviated",
+      "language": "en",
+      "pattern": "Latest {n} failed txs, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LIST_FAILED_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "67c6ae282e358118a3a2667a97e059ef6286f822748d4a1e456701ad11889d0c",
+      "id": "T_LIST_FAILED_TX__en__alternative",
+      "language": "en",
+      "pattern": "For the period {start_date} through {end_date}, return {n} unsuccessful transactions.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LIST_FAILED_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "48c52dd732034d43a85ab040af0c546144d135ef42795e9acceb02f746ae222a",
+      "id": "T_LIST_FAILED_TX__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} giao dịch thất bại gần nhất trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LIST_FAILED_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "52b4d6d11d62998ba6a4cdb6c64f3e0108a5c3ef3a433c5439fbfaa5b0a4c0fa",
+      "id": "T_LIST_FAILED_TX__vi__conversational",
+      "language": "vi",
+      "pattern": "Bạn cho mình xem {n} giao dịch bị lỗi từ {start_date} tới {end_date} nhé?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LIST_FAILED_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "5b97dbcfb0994a837524d152c74a339e5eaa3d4c4b94b6b11fd0310c6b66be72",
+      "id": "T_LIST_FAILED_TX__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} tx lỗi mới nhất, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LIST_FAILED_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "2b6500e268f88136a95176c90d2b99ffc0e0d17997c96f3922daaa489dd6a5e8",
+      "id": "T_LIST_FAILED_TX__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy trả về {n} giao dịch không thành công.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LIST_FAILED_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "6b5b9e52acfdabfd8b03ca57232d2a628021666d35dd3259d9fb417a65c7dd55",
+      "id": "T_BLOCK_BY_NUMBER__en__formal",
+      "language": "en",
+      "pattern": "Show the details of block {block_number} within the date window {start_date} to {end_date}.",
+      "placeholders": [
+        "block_number",
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_BLOCK_BY_NUMBER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "d8001c71d49c87dddeed801d36e43dec2051716470f0afaf07fc5eb9b6407411",
+      "id": "T_BLOCK_BY_NUMBER__en__conversational",
+      "language": "en",
+      "pattern": "What information do we have for block {block_number} between {start_date} and {end_date}?",
+      "placeholders": [
+        "block_number",
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_BLOCK_BY_NUMBER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "cf69302b29b9d287b1accb13c5dc24ac203e2b5b1e64e256f1513a161a7f1688",
+      "id": "T_BLOCK_BY_NUMBER__en__abbreviated",
+      "language": "en",
+      "pattern": "Block {block_number} details, {start_date}–{end_date}.",
+      "placeholders": [
+        "block_number",
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_BLOCK_BY_NUMBER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "442f20d3fb604dd8bc95fd8ebdf5815a1c0537af911f8c0ddc75ffa4949cb6c8",
+      "id": "T_BLOCK_BY_NUMBER__en__alternative",
+      "language": "en",
+      "pattern": "Look up block number {block_number} using the bounded period from {start_date} through {end_date}.",
+      "placeholders": [
+        "block_number",
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_BLOCK_BY_NUMBER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "0e9af35da6c07ea7e60d24229b7392bf30391246d65f4c8bb60510ef8c4cd368",
+      "id": "T_BLOCK_BY_NUMBER__vi__formal",
+      "language": "vi",
+      "pattern": "Hiển thị chi tiết của khối {block_number} trong khoảng ngày từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "block_number",
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_BLOCK_BY_NUMBER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ce56752f649a99131f02d6ead8e1c24e93b2c60846dd6e5bcf9b4b717b440fd4",
+      "id": "T_BLOCK_BY_NUMBER__vi__conversational",
+      "language": "vi",
+      "pattern": "Có thông tin gì về khối {block_number} trong thời gian {start_date} tới {end_date}?",
+      "placeholders": [
+        "block_number",
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_BLOCK_BY_NUMBER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "673285f8a8916d23353946b2a277918487d4af447c257a0ffd6ffe0936394a53",
+      "id": "T_BLOCK_BY_NUMBER__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Chi tiết block {block_number}, {start_date}–{end_date}.",
+      "placeholders": [
+        "block_number",
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_BLOCK_BY_NUMBER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "adec010639401f71bc618be9cfcc39df363404b1e3e760233b65308069e703cb",
+      "id": "T_BLOCK_BY_NUMBER__vi__alternative",
+      "language": "vi",
+      "pattern": "Tra cứu khối số {block_number} với phạm vi thời gian giới hạn từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "block_number",
+        "end_date",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_BLOCK_BY_NUMBER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "a76d825b3a76fa9d1fcfdc0f5cd60fbbc6bfeafdce8cd6db9a0e63ce19b8295f",
+      "id": "T_TX_BY_HASH__en__formal",
+      "language": "en",
+      "pattern": "Show transaction {transaction_hash} within the date window {start_date} to {end_date}.",
+      "placeholders": [
+        "end_date",
+        "start_date",
+        "transaction_hash"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TX_BY_HASH"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "837ddcb1d4e4bc0ac8dd461360e49ba9466cfe30e0e55b257dafd523340ba36b",
+      "id": "T_TX_BY_HASH__en__conversational",
+      "language": "en",
+      "pattern": "Can you look up the transaction {transaction_hash} between {start_date} and {end_date}?",
+      "placeholders": [
+        "end_date",
+        "start_date",
+        "transaction_hash"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TX_BY_HASH"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c1af1f6b76642ae5669974e549cc7547a12bfc8b0fb0641d5aa106bc99970af7",
+      "id": "T_TX_BY_HASH__en__abbreviated",
+      "language": "en",
+      "pattern": "Tx {transaction_hash}, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "start_date",
+        "transaction_hash"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TX_BY_HASH"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "015134ef242a3f76625b5b49fe4f5e60e17e712394d75f85e34ba1b4b0f623a0",
+      "id": "T_TX_BY_HASH__en__alternative",
+      "language": "en",
+      "pattern": "Retrieve the transaction identified by {transaction_hash} using the bounded period {start_date} through {end_date}.",
+      "placeholders": [
+        "end_date",
+        "start_date",
+        "transaction_hash"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TX_BY_HASH"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "a4dd30b0ef4c10b516fee23f9f2d2ef625fc7542fc3beb584506f92e0b093d27",
+      "id": "T_TX_BY_HASH__vi__formal",
+      "language": "vi",
+      "pattern": "Hiển thị giao dịch {transaction_hash} trong khoảng ngày từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "start_date",
+        "transaction_hash"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TX_BY_HASH"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "fb5914f86f2914601ac34740310fa38e1b02cddda3ff70fa4bd5da504f1d9b0d",
+      "id": "T_TX_BY_HASH__vi__conversational",
+      "language": "vi",
+      "pattern": "Bạn tra giúp giao dịch {transaction_hash} từ {start_date} tới {end_date} được không?",
+      "placeholders": [
+        "end_date",
+        "start_date",
+        "transaction_hash"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TX_BY_HASH"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "4e0574213066277e82c8e8265e2b87f4a3f4a309d8a934bb0c9f63ab81064131",
+      "id": "T_TX_BY_HASH__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Tx {transaction_hash}, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "start_date",
+        "transaction_hash"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TX_BY_HASH"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "2367bbd49ea85af8cf2507dadc24f5800bf1ee1d6cb1d28ca36b3eaed0ab99b8",
+      "id": "T_TX_BY_HASH__vi__alternative",
+      "language": "vi",
+      "pattern": "Truy xuất giao dịch có mã {transaction_hash} với phạm vi thời gian giới hạn từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "start_date",
+        "transaction_hash"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TX_BY_HASH"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e3c902c4a83114b4e61850b4a506e465c92b8983ef702b085c2ea3a4582d2acc",
+      "id": "T_LIST_KNOWN_EXCHANGES__en__formal",
+      "language": "en",
+      "pattern": "List {n} known exchange treasury accounts.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LIST_KNOWN_EXCHANGES"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1c1bcbeb82781d0839e91787090280857c52faa7a4ebb82b3fca43eb238b5487",
+      "id": "T_LIST_KNOWN_EXCHANGES__en__conversational",
+      "language": "en",
+      "pattern": "Can you show me {n} treasury addresses belonging to known exchanges?",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LIST_KNOWN_EXCHANGES"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "00784c00c6360b322535bc3270460f7470da542df30a45ff3327d19a9d90940e",
+      "id": "T_LIST_KNOWN_EXCHANGES__en__abbreviated",
+      "language": "en",
+      "pattern": "{n} known exchange treasury accounts.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LIST_KNOWN_EXCHANGES"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "db407b9fdb4757f51f75ae36f73c710a42b985a0ebfb898ddaca50cd4ab4a803",
+      "id": "T_LIST_KNOWN_EXCHANGES__en__alternative",
+      "language": "en",
+      "pattern": "Return {n} labeled accounts whose category is exchange and whose role is treasury.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LIST_KNOWN_EXCHANGES"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "70832de2904023c137c342930b5526948c8cd8840b1b270bc5179947ce73992c",
+      "id": "T_LIST_KNOWN_EXCHANGES__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} tài khoản kho quỹ của các sàn giao dịch đã biết.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LIST_KNOWN_EXCHANGES"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f1352689285865b9ead4b05e5276ebc59a4836baa40c388963563fb09c5d536b",
+      "id": "T_LIST_KNOWN_EXCHANGES__vi__conversational",
+      "language": "vi",
+      "pattern": "Cho mình xem {n} địa chỉ kho quỹ thuộc các sàn đã biết nhé?",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LIST_KNOWN_EXCHANGES"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "012a842c82a5f7bec593b89218ec3529228ea228a092d8c8398ebcab039f2047",
+      "id": "T_LIST_KNOWN_EXCHANGES__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} TK treasury của sàn đã biết.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LIST_KNOWN_EXCHANGES"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "623c41e2a8c4db33e19c82bc157a341a5139a042b2149bef9e8289884368606c",
+      "id": "T_LIST_KNOWN_EXCHANGES__vi__alternative",
+      "language": "vi",
+      "pattern": "Trả về {n} tài khoản được gán nhãn có loại là sàn giao dịch và vai trò là kho quỹ.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LIST_KNOWN_EXCHANGES"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "4a864ac14a752ef74db9e6ce094a8cf449f5c77ecf4bf7e0639985430b9c858c",
+      "id": "T_TOP_SENDERS_BY_VALUE__en__formal",
+      "language": "en",
+      "pattern": "Rank the top {n} sending addresses by total wei sent between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOP_SENDERS_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "6469d5d18a69d2792a11658a874957e3e9eb2720ab47a32b0519ec78e4ff7a32",
+      "id": "T_TOP_SENDERS_BY_VALUE__en__conversational",
+      "language": "en",
+      "pattern": "Who sent the most value from {start_date} to {end_date}? Show the top {n} senders in wei.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOP_SENDERS_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "2f2f9866921e22e5a859ac907c57b04dcd745e78cd8a89c81150f3fce03b97b4",
+      "id": "T_TOP_SENDERS_BY_VALUE__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} senders by wei, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOP_SENDERS_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "9f50ebb39834f7f735c4debe75c5c5dbd5d98a79c4daa9a30985ad0e39127cc5",
+      "id": "T_TOP_SENDERS_BY_VALUE__en__alternative",
+      "language": "en",
+      "pattern": "For {start_date} through {end_date}, aggregate native value by sender and return the leading {n} addresses.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOP_SENDERS_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1df8e3d05a79a520135c863b3e86d88ce9cd45598c3afe8c8ba8caae6a50aff6",
+      "id": "T_TOP_SENDERS_BY_VALUE__vi__formal",
+      "language": "vi",
+      "pattern": "Xếp hạng {n} địa chỉ gửi nhiều wei nhất trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOP_SENDERS_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "9e835e56ef634e2e1a79cc5dea6d3f418a83d0774be784c786ac2f445907368e",
+      "id": "T_TOP_SENDERS_BY_VALUE__vi__conversational",
+      "language": "vi",
+      "pattern": "Từ {start_date} tới {end_date}, ai gửi tổng giá trị lớn nhất? Cho mình top {n} địa chỉ theo wei.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOP_SENDERS_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e49d445b4bb815f3babeacf3922aad72cb34eaa69582532bf021e881b72fb068",
+      "id": "T_TOP_SENDERS_BY_VALUE__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} địa chỉ gửi theo wei, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOP_SENDERS_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "24a4ca0644aa63850c820995c17583af8c185377d8fc72cb5383a5a5f8578eb4",
+      "id": "T_TOP_SENDERS_BY_VALUE__vi__alternative",
+      "language": "vi",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy cộng giá trị native theo bên gửi và trả về {n} địa chỉ dẫn đầu.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOP_SENDERS_BY_VALUE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e5146512b46b32b49497c0360180c687da11b26edccf1c7f976ea55976ef89b1",
+      "id": "T_TOP_RECIPIENTS_BY_COUNT__en__formal",
+      "language": "en",
+      "pattern": "Return the top {n} recipient addresses by transaction count between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOP_RECIPIENTS_BY_COUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "47d99b38210ce6d80ca6bcd798c14fabe1f941eee35e4341d018d05695273e5d",
+      "id": "T_TOP_RECIPIENTS_BY_COUNT__en__conversational",
+      "language": "en",
+      "pattern": "Which addresses received the most transactions from {start_date} to {end_date}? Show {n} of them.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOP_RECIPIENTS_BY_COUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "a04519e4ad2931a35ff20055e46471606a6d6af18169fc1ac0de7b4a1beea189",
+      "id": "T_TOP_RECIPIENTS_BY_COUNT__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} recipients by tx count, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOP_RECIPIENTS_BY_COUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "7955c097d25b70e7fe18fc7f10c8e86853cd8d8e21fd2d3e56370a78238ff4ea",
+      "id": "T_TOP_RECIPIENTS_BY_COUNT__en__alternative",
+      "language": "en",
+      "pattern": "Across {start_date} through {end_date}, count transactions per non-null recipient and list the leading {n} addresses.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOP_RECIPIENTS_BY_COUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "13cdc6ff24ed6a89befd5c82a83c81b5225d0d84e0b3a42c8fd881900d57d347",
+      "id": "T_TOP_RECIPIENTS_BY_COUNT__vi__formal",
+      "language": "vi",
+      "pattern": "Trả về {n} địa chỉ nhận nhiều giao dịch nhất trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOP_RECIPIENTS_BY_COUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "6151bf191fae1d0623d1faea4c8d330e91b52906bf257f241bd369e11840881c",
+      "id": "T_TOP_RECIPIENTS_BY_COUNT__vi__conversational",
+      "language": "vi",
+      "pattern": "Địa chỉ nào nhận nhiều giao dịch nhất từ {start_date} tới {end_date}? Cho mình xem {n} địa chỉ.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOP_RECIPIENTS_BY_COUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "d9d7545e48f3551d716fa8b274a908a861dc13aac0228ce6e1efb7af179c6ec6",
+      "id": "T_TOP_RECIPIENTS_BY_COUNT__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} bên nhận theo SL tx, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOP_RECIPIENTS_BY_COUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "2b2669b4f9191ea959f3514c94f070e6839574586a7347aa5733718868769aa2",
+      "id": "T_TOP_RECIPIENTS_BY_COUNT__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy đếm giao dịch theo từng địa chỉ nhận khác null và liệt kê {n} địa chỉ dẫn đầu.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOP_RECIPIENTS_BY_COUNT"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "d88006b5c7923598fda8c83dbd22e4574d2c6841fb6e742e6d1a4892619ef18d",
+      "id": "T_TX_BETWEEN_ACCOUNTS__en__formal",
+      "language": "en",
+      "pattern": "List the latest {n} transactions in either direction between {account} and {account_b} from {start_date} to {end_date}.",
+      "placeholders": [
+        "account",
+        "account_b",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TX_BETWEEN_ACCOUNTS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "208d81afc786c80d3f904aa7b6ffa320344dbd1dc92c02f57f4751aa9880701f",
+      "id": "T_TX_BETWEEN_ACCOUNTS__en__conversational",
+      "language": "en",
+      "pattern": "Can I see {n} transfers exchanged by {account} and {account_b} between {start_date} and {end_date}?",
+      "placeholders": [
+        "account",
+        "account_b",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TX_BETWEEN_ACCOUNTS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "cf507bceae4db65532f283fff4e2098e79139c9ba99d8136ca14e9077ee42450",
+      "id": "T_TX_BETWEEN_ACCOUNTS__en__abbreviated",
+      "language": "en",
+      "pattern": "{n} latest txs: {account} ↔ {account_b}, {start_date}–{end_date}.",
+      "placeholders": [
+        "account",
+        "account_b",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TX_BETWEEN_ACCOUNTS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "71e5a2f0e4e4e9b62b0ea674f0c39c86df316923b6fb414e0755a2e2c2c18da5",
+      "id": "T_TX_BETWEEN_ACCOUNTS__en__alternative",
+      "language": "en",
+      "pattern": "For {start_date} through {end_date}, return {n} transactions where {account} and {account_b} are the two counterparties.",
+      "placeholders": [
+        "account",
+        "account_b",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TX_BETWEEN_ACCOUNTS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f96bcabbf0e8ea85275b08daf484425bccaff212a62ff684a3418daed0cadf83",
+      "id": "T_TX_BETWEEN_ACCOUNTS__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} giao dịch gần nhất theo cả hai chiều giữa {account} và {account_b} từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "account",
+        "account_b",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TX_BETWEEN_ACCOUNTS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "de953d50c80f4d9cd5dfbd5f075e05767cdbe16a80151fa3548389d72fd6b9a0",
+      "id": "T_TX_BETWEEN_ACCOUNTS__vi__conversational",
+      "language": "vi",
+      "pattern": "Cho mình xem {n} giao dịch qua lại giữa {account} với {account_b} trong khoảng {start_date} tới {end_date} nhé?",
+      "placeholders": [
+        "account",
+        "account_b",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TX_BETWEEN_ACCOUNTS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "6f4ce99c0f1da36a35a46a0f39a8ab6118aef6360f9cc7a9632e320206ccbd1b",
+      "id": "T_TX_BETWEEN_ACCOUNTS__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} tx mới nhất: {account} ↔ {account_b}, {start_date}–{end_date}.",
+      "placeholders": [
+        "account",
+        "account_b",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TX_BETWEEN_ACCOUNTS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "72b29a1f0e7c309a227e8264f184013903425bb07cacd27425554b31c5a2a518",
+      "id": "T_TX_BETWEEN_ACCOUNTS__vi__alternative",
+      "language": "vi",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} giao dịch mà {account} và {account_b} là hai bên đối ứng.",
+      "placeholders": [
+        "account",
+        "account_b",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TX_BETWEEN_ACCOUNTS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "6e9cf91f9d5fa1fbdc25edf5f03a1c0c37a8bc3bf7a82e893e5cc1314107b08b",
+      "id": "T_TX_GROUPED_BY_OWNER__en__formal",
+      "language": "en",
+      "pattern": "Return the top {n} labeled owners by number of transactions sent between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TX_GROUPED_BY_OWNER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f70969fe8f981873522fe61bb35f2310ca2b5ea3a590d4f641318abac0bc7808",
+      "id": "T_TX_GROUPED_BY_OWNER__en__conversational",
+      "language": "en",
+      "pattern": "Which labeled owners sent the most transactions from {start_date} to {end_date}? Show the first {n}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TX_GROUPED_BY_OWNER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "20e3076dd876599b86dc625ed7126449122e874a538f25d254c7e97beb9d4344",
+      "id": "T_TX_GROUPED_BY_OWNER__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} labeled senders by tx count, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TX_GROUPED_BY_OWNER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ec68340fb0bb4282f7a791937269cb4b92b36bac0f792d07378f517194f929b5",
+      "id": "T_TX_GROUPED_BY_OWNER__en__alternative",
+      "language": "en",
+      "pattern": "During {start_date} through {end_date}, group outgoing transactions by known owner and list the leading {n} groups.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TX_GROUPED_BY_OWNER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "68c7d37ca6cafa80fe9a2384e16f7a5fa1f47a76c4774fb10ecbfb78d67d3c4f",
+      "id": "T_TX_GROUPED_BY_OWNER__vi__formal",
+      "language": "vi",
+      "pattern": "Trả về {n} chủ sở hữu đã gán nhãn gửi nhiều giao dịch nhất trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TX_GROUPED_BY_OWNER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1b70da2b67fbe0e3f615cae380a7c7e45de4c9ac7be83e37b73c20c38c15f7b5",
+      "id": "T_TX_GROUPED_BY_OWNER__vi__conversational",
+      "language": "vi",
+      "pattern": "Chủ sở hữu có nhãn nào gửi nhiều giao dịch nhất từ {start_date} tới {end_date}? Cho mình xem {n} bên đầu tiên.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TX_GROUPED_BY_OWNER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "19fb41ed6142ff5c9b0649e754a662f138e3da932b4f7ff349c5a08aabaeafd0",
+      "id": "T_TX_GROUPED_BY_OWNER__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} owner có nhãn theo SL tx gửi, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TX_GROUPED_BY_OWNER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c69d51145f971f585f939531738c9726401e5b9e2d0deb6be8c9ab7648085bf4",
+      "id": "T_TX_GROUPED_BY_OWNER__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy nhóm giao dịch đi theo chủ sở hữu đã biết và liệt kê {n} nhóm dẫn đầu.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TX_GROUPED_BY_OWNER"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "b107927c272fed41179d902550a9df1164645fe0901b7773ddcb875bbcb266db",
+      "id": "T_TOKEN_VOLUME_BY_SYMBOL__en__formal",
+      "language": "en",
+      "pattern": "List the top {n} token symbols by total fungible transfer volume between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOKEN_VOLUME_BY_SYMBOL"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e98002ee6b289e15666acfbf954cb2db5aac0d301c9b49b8cadbe4a10b04cd53",
+      "id": "T_TOKEN_VOLUME_BY_SYMBOL__en__conversational",
+      "language": "en",
+      "pattern": "Which tokens moved the most fungible amount from {start_date} to {end_date}? Show {n} symbols.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOKEN_VOLUME_BY_SYMBOL"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1b32043890d48ca2ceb8d04aeaca13012b110afa079fffdbab15c123e929c31e",
+      "id": "T_TOKEN_VOLUME_BY_SYMBOL__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} tokens by fungible volume, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOKEN_VOLUME_BY_SYMBOL"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "31953fb00c19e39b0f4cab1d0325e1c71f0ea7df3eb70f688ad8fcf3c9547f45",
+      "id": "T_TOKEN_VOLUME_BY_SYMBOL__en__alternative",
+      "language": "en",
+      "pattern": "Across {start_date} through {end_date}, sum normalized fungible amounts per token symbol and return the leading {n}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOKEN_VOLUME_BY_SYMBOL"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c336d32799c7aae9e01987267739013074d3445fbfac43d7eb8403614a853744",
+      "id": "T_TOKEN_VOLUME_BY_SYMBOL__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} ký hiệu token có tổng khối lượng chuyển fungible lớn nhất từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOKEN_VOLUME_BY_SYMBOL"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c2306bc7c93a15c8b6de3e4b390cb041a17de4ba8a16f543d4bc34ff294d65a8",
+      "id": "T_TOKEN_VOLUME_BY_SYMBOL__vi__conversational",
+      "language": "vi",
+      "pattern": "Token nào có lượng fungible được chuyển nhiều nhất từ {start_date} tới {end_date}? Cho mình xem {n} ký hiệu.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOKEN_VOLUME_BY_SYMBOL"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "70b930bd11945c4a66bb14ec55aed29d2d7e95273e99168885ebfcba25d38a8d",
+      "id": "T_TOKEN_VOLUME_BY_SYMBOL__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} token theo volume fungible, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOKEN_VOLUME_BY_SYMBOL"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "0b2066df5aaf397cf743f5fd0a40179db05e4633cc4521b619cf01e932a6e2dd",
+      "id": "T_TOKEN_VOLUME_BY_SYMBOL__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy cộng lượng fungible chuẩn hóa theo ký hiệu token và trả về {n} mục dẫn đầu.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOKEN_VOLUME_BY_SYMBOL"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "78459ea70c4d46b3f0aed4dde3a910d9d4428792f1d65246a9c25c2ea84c6fc4",
+      "id": "T_TOKEN_TRANSFERS_OF_TOKEN__en__formal",
+      "language": "en",
+      "pattern": "List the latest {n} transfers of {token_symbol} between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "token_symbol"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOKEN_TRANSFERS_OF_TOKEN"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "458fd5ad777ac21f12b254d5a44bf42cdb325077d6d875f5f91f4cc1c29e2c23",
+      "id": "T_TOKEN_TRANSFERS_OF_TOKEN__en__conversational",
+      "language": "en",
+      "pattern": "Can you show me {n} recent {token_symbol} token transfers from {start_date} to {end_date}?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "token_symbol"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOKEN_TRANSFERS_OF_TOKEN"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "529a57c400497ccaa960c96fae6fa51ef40cb0840fc09633dea25b6891e98ac9",
+      "id": "T_TOKEN_TRANSFERS_OF_TOKEN__en__abbreviated",
+      "language": "en",
+      "pattern": "Latest {n} {token_symbol} transfers, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "token_symbol"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOKEN_TRANSFERS_OF_TOKEN"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e5d74e73be5f758a03590b0210c093b90dadac5ef5e5c8c45031754019f0a210",
+      "id": "T_TOKEN_TRANSFERS_OF_TOKEN__en__alternative",
+      "language": "en",
+      "pattern": "For {start_date} through {end_date}, return {n} transfer events whose token symbol is {token_symbol}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "token_symbol"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOKEN_TRANSFERS_OF_TOKEN"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "88bf7b9f5a74ac2202ab58cf5dd25b36a23b9553c3c0a074cacf15f0b38a3b56",
+      "id": "T_TOKEN_TRANSFERS_OF_TOKEN__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} lượt chuyển {token_symbol} gần nhất trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "token_symbol"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOKEN_TRANSFERS_OF_TOKEN"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "df71b7fb7cd6d998d866585d29c919a15c9101342a3a782fea6bbee9842d6ab1",
+      "id": "T_TOKEN_TRANSFERS_OF_TOKEN__vi__conversational",
+      "language": "vi",
+      "pattern": "Cho mình xem {n} giao dịch chuyển token {token_symbol} gần đây từ {start_date} tới {end_date} nhé?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "token_symbol"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOKEN_TRANSFERS_OF_TOKEN"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "11260c2d25a0de69237d836248eedfb318dab07c402d3406f48d85330d9e9b16",
+      "id": "T_TOKEN_TRANSFERS_OF_TOKEN__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} transfer {token_symbol} mới nhất, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "token_symbol"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOKEN_TRANSFERS_OF_TOKEN"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f711eb8c30d6c35de5ec7511d53f084335e52aa3eaf0cd4cf1adfe1c28dca43e",
+      "id": "T_TOKEN_TRANSFERS_OF_TOKEN__vi__alternative",
+      "language": "vi",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện chuyển có ký hiệu token là {token_symbol}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "token_symbol"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOKEN_TRANSFERS_OF_TOKEN"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1fbd1eb1af68789cb0505eabf27548f77e287b9124f2ea11ac411da794c556ff",
+      "id": "T_FAILED_HIGH_GAS_TX__en__formal",
+      "language": "en",
+      "pattern": "Return the top {n} failed transactions using at least {gas_used} gas between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "gas_used",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_FAILED_HIGH_GAS_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "3865683c80ccef01a2d5f08fa8e0591b50b55f51d9cf1f708887178ea7874d20",
+      "id": "T_FAILED_HIGH_GAS_TX__en__conversational",
+      "language": "en",
+      "pattern": "Which {n} failed transactions consumed no less than {gas_used} gas from {start_date} to {end_date}?",
+      "placeholders": [
+        "end_date",
+        "gas_used",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_FAILED_HIGH_GAS_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ad68444f7d43854ce7eec04dca339b395eda202b414c126df25cb419e0c05bbd",
+      "id": "T_FAILED_HIGH_GAS_TX__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} failed txs ≥ {gas_used} gas, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "gas_used",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_FAILED_HIGH_GAS_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1cc1ee88678970498617c1385efa054e28c6ae2ba8cf41506384bc1c76345094",
+      "id": "T_FAILED_HIGH_GAS_TX__en__alternative",
+      "language": "en",
+      "pattern": "During {start_date} through {end_date}, find {n} unsuccessful transactions meeting the receipt-gas threshold {gas_used}.",
+      "placeholders": [
+        "end_date",
+        "gas_used",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_FAILED_HIGH_GAS_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "2622fa668d53c42f6f9cea51833b5d5105719f0c7460f8e4605e3461cbc88a38",
+      "id": "T_FAILED_HIGH_GAS_TX__vi__formal",
+      "language": "vi",
+      "pattern": "Trả về {n} giao dịch thất bại dùng ít nhất {gas_used} gas trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "gas_used",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_FAILED_HIGH_GAS_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "453d2cec2be94ec009f3de3334a5aae5e82022d468c8442e06348276b2e54edf",
+      "id": "T_FAILED_HIGH_GAS_TX__vi__conversational",
+      "language": "vi",
+      "pattern": "Từ {start_date} tới {end_date}, {n} giao dịch lỗi nào tiêu thụ không dưới {gas_used} gas?",
+      "placeholders": [
+        "end_date",
+        "gas_used",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_FAILED_HIGH_GAS_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "7b8cd50c6c6c27ba6aa3fe17f0266d4eb1c3fe5eb760e37d23aff84f4c22c12c",
+      "id": "T_FAILED_HIGH_GAS_TX__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} tx lỗi ≥ {gas_used} gas, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "gas_used",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_FAILED_HIGH_GAS_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "3dd9c0d36fd7a7e1ddd799a7ea40ba47a9e135525f19bd2e58d383d6f9966522",
+      "id": "T_FAILED_HIGH_GAS_TX__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} giao dịch không thành công đạt ngưỡng receipt gas {gas_used}.",
+      "placeholders": [
+        "end_date",
+        "gas_used",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_FAILED_HIGH_GAS_TX"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ad0408c5715111ecfe9a1e7c985b3cf7944f65918d944868a18aa6fc6247e6a5",
+      "id": "T_BLOCKS_BY_VALIDATOR__en__formal",
+      "language": "en",
+      "pattern": "List the latest {n} blocks whose beneficiary address is {account} between {start_date} and {end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_BLOCKS_BY_VALIDATOR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "da16f98185a9c568b6141779ff1bb148e6819d8c78a1833d914c4043f79e42f3",
+      "id": "T_BLOCKS_BY_VALIDATOR__en__conversational",
+      "language": "en",
+      "pattern": "Can you show me {n} blocks credited to beneficiary {account} from {start_date} to {end_date}?",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_BLOCKS_BY_VALIDATOR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "79aef846621f5ce92729008ab5bb36929690a1e1119b3215656b79d4b093ad20",
+      "id": "T_BLOCKS_BY_VALIDATOR__en__abbreviated",
+      "language": "en",
+      "pattern": "Latest {n} blocks for beneficiary {account}, {start_date}–{end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_BLOCKS_BY_VALIDATOR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c554e0dff2daf488d862f245a359267dfcc1997b5b27c54a805ba18206f113ae",
+      "id": "T_BLOCKS_BY_VALIDATOR__en__alternative",
+      "language": "en",
+      "pattern": "For {start_date} through {end_date}, return {n} blocks with fee-recipient address {account}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_BLOCKS_BY_VALIDATOR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "fa141a39b2a958290f6d633bff74f9980ae371790463f46a040d2532df5f3613",
+      "id": "T_BLOCKS_BY_VALIDATOR__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} khối gần nhất có địa chỉ beneficiary là {account} trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_BLOCKS_BY_VALIDATOR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "6cf1e6fb663f44b7e25a503d0baddef5fab44a27a279f0833e9ae8a02675407a",
+      "id": "T_BLOCKS_BY_VALIDATOR__vi__conversational",
+      "language": "vi",
+      "pattern": "Cho mình xem {n} khối ghi nhận beneficiary {account} từ {start_date} tới {end_date} nhé?",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_BLOCKS_BY_VALIDATOR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1cf5bb82a5faf83444ab2296e09aa48239a400df39fb259089cc472f245bbd8e",
+      "id": "T_BLOCKS_BY_VALIDATOR__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} block mới nhất của beneficiary {account}, {start_date}–{end_date}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_BLOCKS_BY_VALIDATOR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "5daabda48a5c8b9629eab2d48eddd0b5a2f6c7badfa52c361408eaa302090039",
+      "id": "T_BLOCKS_BY_VALIDATOR__vi__alternative",
+      "language": "vi",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} khối có địa chỉ nhận phí là {account}.",
+      "placeholders": [
+        "account",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_BLOCKS_BY_VALIDATOR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "06cdfd7955ac552963eb0b63fd1b4f62768481670370666c66c4d91d074a229e",
+      "id": "T_ACCOUNTS_BY_CATEGORY__en__formal",
+      "language": "en",
+      "pattern": "List the top {n} label category and address-role groups by account count.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_ACCOUNTS_BY_CATEGORY"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ee647184484b5ff8ea8edb0bb8de928a3ff4bc3ef75a55852101493045e79954",
+      "id": "T_ACCOUNTS_BY_CATEGORY__en__conversational",
+      "language": "en",
+      "pattern": "Which category-and-role combinations contain the most labeled accounts? Show {n} groups.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_ACCOUNTS_BY_CATEGORY"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "9e3a1d05ec86bf2847c0dcfd949df616cb72a7565933bacdda4a6fc1479ab5da",
+      "id": "T_ACCOUNTS_BY_CATEGORY__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} category/role groups by account count.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_ACCOUNTS_BY_CATEGORY"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "7c1f35d94e13c6896a0ebf43748e6fcc3934eb0c91f9aef65815164a982b7f4d",
+      "id": "T_ACCOUNTS_BY_CATEGORY__en__alternative",
+      "language": "en",
+      "pattern": "Group labeled addresses by category and role, then return the {n} groups with the largest membership.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_ACCOUNTS_BY_CATEGORY"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c899205f81f409b9aa31563485dcd6ce3fcba0d9230d6cba6fdc5f97e983ff23",
+      "id": "T_ACCOUNTS_BY_CATEGORY__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} nhóm loại nhãn và vai trò địa chỉ có nhiều tài khoản nhất.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_ACCOUNTS_BY_CATEGORY"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "b3a2d208c794a077a8e164f2705000e480a59a14d1cef9f0419a107fccb70f6d",
+      "id": "T_ACCOUNTS_BY_CATEGORY__vi__conversational",
+      "language": "vi",
+      "pattern": "Tổ hợp loại và vai trò nào chứa nhiều tài khoản có nhãn nhất? Cho mình xem {n} nhóm.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_ACCOUNTS_BY_CATEGORY"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "d4ca79a7aa704870b0855ec261a765da43216f683fdd49f51c1f99a7d9066446",
+      "id": "T_ACCOUNTS_BY_CATEGORY__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} nhóm category/role theo SL tài khoản.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_ACCOUNTS_BY_CATEGORY"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "50f5abfdd4d0cf76e433a06ff76948d9ad507f5fdfbf84ced40089f677259a80",
+      "id": "T_ACCOUNTS_BY_CATEGORY__vi__alternative",
+      "language": "vi",
+      "pattern": "Hãy nhóm các địa chỉ đã gán nhãn theo loại và vai trò, rồi trả về {n} nhóm có số thành viên lớn nhất.",
+      "placeholders": [
+        "n"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_ACCOUNTS_BY_CATEGORY"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "9c605bcfd39d4da019254ca860348cc3c80a552eda4e45f6c25a7995090c3635",
+      "id": "T_TX_BY_HOUR__en__formal",
+      "language": "en",
+      "pattern": "Return the top {n} hourly buckets by transaction count between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TX_BY_HOUR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "edb61fbe5def2672c263bdff0c2a01fa0ba46f91789541fa8c3a3673c416b6d1",
+      "id": "T_TX_BY_HOUR__en__conversational",
+      "language": "en",
+      "pattern": "Which hours were busiest from {start_date} to {end_date}? Show the top {n} by transactions.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TX_BY_HOUR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "3419c2ba81d97cd5863831aacee21d9ef5d47ad93b2843eaf2e0ce861c52a014",
+      "id": "T_TX_BY_HOUR__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} hours by tx count, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TX_BY_HOUR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ea25c48b953488dd5ef4778fd2b929ba6c63c5fd8e4e326fc10e4d583df849b2",
+      "id": "T_TX_BY_HOUR__en__alternative",
+      "language": "en",
+      "pattern": "Across {start_date} through {end_date}, aggregate transactions by hour and list the leading {n} periods.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TX_BY_HOUR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c76c35c9d24e35e047c97681838537f64942e05cb3ec3657cd7b3a41585c8a68",
+      "id": "T_TX_BY_HOUR__vi__formal",
+      "language": "vi",
+      "pattern": "Trả về {n} khung giờ có nhiều giao dịch nhất trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TX_BY_HOUR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "b4e0a25df398e4ca5a26718cfcb4270a889f913e699a95ba6b2cc8ba30a29f75",
+      "id": "T_TX_BY_HOUR__vi__conversational",
+      "language": "vi",
+      "pattern": "Những giờ nào bận nhất từ {start_date} tới {end_date}? Cho mình top {n} theo số giao dịch.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TX_BY_HOUR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f61c31d2e78ea39d2f7333977ace481210827e6be786bcfa214c3701aa5ca859",
+      "id": "T_TX_BY_HOUR__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} giờ theo SL tx, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TX_BY_HOUR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "47581f1aae716dd11e34e6d6cff667dfd2b79a54c4d6723540543bcac996013a",
+      "id": "T_TX_BY_HOUR__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tổng hợp giao dịch theo giờ và liệt kê {n} khoảng dẫn đầu.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TX_BY_HOUR"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "501752c5a1ea0c996e6d478095741e695d4861bbbdab1f4b63096b5166f00c4d",
+      "id": "T_LARGE_TX_TO_CLASS__en__formal",
+      "language": "en",
+      "pattern": "List the top {n} transactions of at least {value_wei} wei sent to the {concept_class} class between {start_date} and {end_date}.",
+      "placeholders": [
+        "concept_class",
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LARGE_TX_TO_CLASS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "602677940bb9a65e50f2919425b5c62f31cbfa69586bfe79d0f93e1d1cffa51c",
+      "id": "T_LARGE_TX_TO_CLASS__en__conversational",
+      "language": "en",
+      "pattern": "Which {n} transfers to {concept_class} moved no less than {value_wei} wei from {start_date} to {end_date}?",
+      "placeholders": [
+        "concept_class",
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LARGE_TX_TO_CLASS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "fca0421001662193a35d31d09e8bae56000575c9dafbe7476f0a5eedf40420f1",
+      "id": "T_LARGE_TX_TO_CLASS__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} txs ≥ {value_wei} wei to {concept_class}, {start_date}–{end_date}.",
+      "placeholders": [
+        "concept_class",
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LARGE_TX_TO_CLASS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "a4a48fce50f6dcf3c5a4721159d639a9ca6c4e50403a613da7d9a8fc6f1977f1",
+      "id": "T_LARGE_TX_TO_CLASS__en__alternative",
+      "language": "en",
+      "pattern": "During {start_date} through {end_date}, find {n} transactions whose recipient class is {concept_class} and value reaches {value_wei} wei.",
+      "placeholders": [
+        "concept_class",
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LARGE_TX_TO_CLASS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "552e49f0672be9123d03a1d22f44a998aef6fa26231d5b07589adea237ddde1d",
+      "id": "T_LARGE_TX_TO_CLASS__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} giao dịch lớn nhất có giá trị ít nhất {value_wei} wei gửi tới lớp {concept_class} từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "concept_class",
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_LARGE_TX_TO_CLASS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c30ecb6d7feb3ddad9ce91af36a6b4b16f85cb4e8faf9b79bfda2f9411001be5",
+      "id": "T_LARGE_TX_TO_CLASS__vi__conversational",
+      "language": "vi",
+      "pattern": "Từ {start_date} tới {end_date}, {n} giao dịch nào đến {concept_class} chuyển không dưới {value_wei} wei?",
+      "placeholders": [
+        "concept_class",
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_LARGE_TX_TO_CLASS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e3b39d6528bdad1ec81a0ab980a9d3decae4cd0befd98b7205a2fbce6a7a9208",
+      "id": "T_LARGE_TX_TO_CLASS__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} tx ≥ {value_wei} wei tới {concept_class}, {start_date}–{end_date}.",
+      "placeholders": [
+        "concept_class",
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_LARGE_TX_TO_CLASS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "443c91fd63aa4dec8d27c985aae0eb55d67fb30cff9da38806a57c65f55d489a",
+      "id": "T_LARGE_TX_TO_CLASS__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} giao dịch có lớp bên nhận là {concept_class} và giá trị đạt {value_wei} wei.",
+      "placeholders": [
+        "concept_class",
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_LARGE_TX_TO_CLASS"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ea7895979d9824e9b97ad85d244041b478aa4ce68377c1e84dcc65a3800ac89e",
+      "id": "T_EXCHANGE_TO_DEX_FLOW__en__formal",
+      "language": "en",
+      "pattern": "List the top {n} transactions from exchange treasury addresses to DEX operational addresses between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "d61b1f50cf9760c66523e9461bb866f250d7be2cfacbe0651dd158550e1f3994",
+      "id": "T_EXCHANGE_TO_DEX_FLOW__en__conversational",
+      "language": "en",
+      "pattern": "Can you show me {n} exchange-treasury transfers going to DEX operations from {start_date} to {end_date}?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e570aab05b3a0b87086818cf32fac773bb2c9822b9dc0ab6abb3c595c2772d09",
+      "id": "T_EXCHANGE_TO_DEX_FLOW__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} exchange treasury → DEX ops txs, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "011df755005a5f1551be0c7d4cd0da75f3c3a6f8f9b59433b7684b3d29cbf1a0",
+      "id": "T_EXCHANGE_TO_DEX_FLOW__en__alternative",
+      "language": "en",
+      "pattern": "For {start_date} through {end_date}, return {n} native flows whose sender role is exchange treasury and recipient role is DEX operational.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "fd66da5deb76dd6116da37bb64963d0c660120f2381341d5dd77e7c7440f2159",
+      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} giao dịch lớn nhất từ địa chỉ kho quỹ sàn tới địa chỉ vận hành DEX trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ea75c75b2c4037959b4fca28cba48df0954e69c6d418c73aba57569dcd8cfb77",
+      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__conversational",
+      "language": "vi",
+      "pattern": "Cho mình xem {n} giao dịch từ treasury của sàn sang bộ phận vận hành DEX từ {start_date} tới {end_date} nhé?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "7569e142391ccf2f38994ca5870589ec191fc657b5b90bb52aadad8b3e67d8c3",
+      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} tx treasury sàn → DEX ops, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "3c9d781d95d6df81f9e793db542b4f9c43cd1cccdf8ac78dced52abc76e425e0",
+      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__alternative",
+      "language": "vi",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} dòng tiền native có bên gửi là kho quỹ sàn và bên nhận là địa chỉ vận hành DEX.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "227f45bdb092e5f892d99ed3a97e2cd7a55c6014b6d3e0bd1ee779bbda66a017",
+      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__formal",
+      "language": "en",
+      "pattern": "List the top {n} mixer-to-DEX transactions worth at least {value_wei} wei from {start_date} to {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ad9807b1c3ed1c7fb41a1bf4ad03dc601c1d918df4eaa7ac51aa6e6f698e02f7",
+      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__conversational",
+      "language": "en",
+      "pattern": "From {start_date} to {end_date}, which {n} mixer-to-DEX flows were worth at least {value_wei} wei?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "3d8135da9d12c06bbd40090bfcf37e6b3f0949c9b5a4c3e6f1161d4259f2b7f7",
+      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} mixer → DEX flows ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "6ad572834e3a6fa8d16fa92548d26af0c6c328dc595a5368d4d1cba76ff5015a",
+      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__alternative",
+      "language": "en",
+      "pattern": "During {start_date} through {end_date}, find {n} native transfers from a mixer class to a DEX class with value at least {value_wei} wei.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "a890cd275dc9a4b5d3d4e626b5b7bbe9b55f905c0407572ced7778be2d0e0fc6",
+      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} giao dịch lớn nhất từ mixer tới DEX có giá trị ít nhất {value_wei} wei trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "7b9a24fe731751cae5b9d1a3b59a05662ba2813566ca5f19b1c89a1c1c000fa2",
+      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__conversational",
+      "language": "vi",
+      "pattern": "Từ {start_date} tới {end_date}, {n} dòng tiền nào từ mixer sang DEX có giá trị từ {value_wei} wei trở lên?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "cc0037eb2c12b43e9d4ef1e7fc6f1f111bf1c2f6c74a7e246e544f88aac7eb83",
+      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} flow mixer → DEX ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "cf6a57c54c833a755e3a339e8d8235e6825326c4863425eed0a45b871e40365e",
+      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} lượt chuyển native từ lớp mixer sang lớp DEX có giá trị không nhỏ hơn {value_wei} wei.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date",
+        "value_wei"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "0e0554c56cef774e3c1256a97f09b601e667ac407171ab26466cee08e1fbc3b8",
+      "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__formal",
+      "language": "en",
+      "pattern": "Find the first {n} token transfers occurring within {duration_minutes} minutes after exchange funding between {start_date} and {end_date}.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "07367f0adea9b6ff737ca2c763c999506a20f0d4c3a7ff3cc61bf728b298e633",
+      "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__conversational",
+      "language": "en",
+      "pattern": "Which {n} token transfers followed an exchange-funded native payment within {duration_minutes} minutes from {start_date} to {end_date}?",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "bc8963c7c7d05030e3d239aeb9239e41704732c3cad287ade3fc1f137ee184c1",
+      "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__abbreviated",
+      "language": "en",
+      "pattern": "First {n} token txs ≤ {duration_minutes} min after exchange funding, {start_date}–{end_date}.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "340350e002e716b284997703e3ffdf137a004299eb81913211d1671564b2ef99",
+      "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__alternative",
+      "language": "en",
+      "pattern": "For {start_date} through {end_date}, return {n} token events sent by an address no later than {duration_minutes} minutes after that address received native funding from an exchange treasury.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "cf39dbac2fc8c6ea1cfd292bc26c1d8cdc45e069f3a5d7dd23442f54fcb793bc",
+      "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__formal",
+      "language": "vi",
+      "pattern": "Tìm {n} lượt chuyển token đầu tiên xảy ra trong vòng {duration_minutes} phút sau khi nhận tài trợ từ sàn, từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "6641733b20838ad2fdcb987667f7dd3cb9ba69a1eb706497d0144e61fd521632",
+      "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__conversational",
+      "language": "vi",
+      "pattern": "Từ {start_date} tới {end_date}, {n} lượt chuyển token nào diễn ra trong {duration_minutes} phút sau khoản native do sàn cấp?",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "486f9bfe09b3c0af3ce5fe5f703d11e1629db8d2bec86d6e9952a514acdce851",
+      "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} tx token đầu tiên ≤ {duration_minutes} phút sau funding sàn, {start_date}–{end_date}.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "021c056611e64c9a8e522b90ce0ccda7d072f2473fcb52cb35f207278398d127",
+      "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__alternative",
+      "language": "vi",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do một địa chỉ gửi không muộn hơn {duration_minutes} phút sau khi địa chỉ đó nhận native funding từ kho quỹ sàn.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "c5e8c02f2401466ad93a28f277c32b304cc81ec1c0a5d92c8af21ec87b88b7e0",
+      "id": "T_CROSS_EXCHANGE_FLOW__en__formal",
+      "language": "en",
+      "pattern": "List the top {n} native transactions between treasury addresses owned by different exchanges from {start_date} to {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_CROSS_EXCHANGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "34ddd1ce5ad073c1b21b3cdd84f420727c63a0c32d7787938227e85643402a1f",
+      "id": "T_CROSS_EXCHANGE_FLOW__en__conversational",
+      "language": "en",
+      "pattern": "Can you show me {n} native transfers connecting two different exchange owners between {start_date} and {end_date}?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_CROSS_EXCHANGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "fca9562e49f6fc7008c81902fd142cac687890be89527c24cba0ebd7bd570d98",
+      "id": "T_CROSS_EXCHANGE_FLOW__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} cross-exchange treasury txs, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_CROSS_EXCHANGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "5f23de46498b57515bf40ec3ba5ce90e022a3cc992d14d52078754488b258cb7",
+      "id": "T_CROSS_EXCHANGE_FLOW__en__alternative",
+      "language": "en",
+      "pattern": "During {start_date} through {end_date}, return {n} native flows whose sender and recipient are exchange treasuries with unequal owners.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_CROSS_EXCHANGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "d869771163a4d00b3985313e9a30ab7e9ca5411d49c35c8a919ee9a02980393b",
+      "id": "T_CROSS_EXCHANGE_FLOW__vi__formal",
+      "language": "vi",
+      "pattern": "Liệt kê {n} giao dịch native lớn nhất giữa các địa chỉ kho quỹ thuộc hai sàn khác nhau từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_CROSS_EXCHANGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "8fa4dfd9c17ca51c683525223e1a8a0b06fdde2a7f9b4c170b7572f5dc5b24c5",
+      "id": "T_CROSS_EXCHANGE_FLOW__vi__conversational",
+      "language": "vi",
+      "pattern": "Cho mình xem {n} lượt chuyển native kết nối hai chủ sở hữu sàn khác nhau trong khoảng {start_date} tới {end_date} nhé?",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_CROSS_EXCHANGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e7e016b26015fc4df983ff5ea5d870c90380df35d6b20bb3393160ab47564c9e",
+      "id": "T_CROSS_EXCHANGE_FLOW__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} tx treasury liên sàn, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_CROSS_EXCHANGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "e0031fccf2e02a77cd0ee1dd35a00fac98b600bea0d853353b86a66912aab99d",
+      "id": "T_CROSS_EXCHANGE_FLOW__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy trả về {n} dòng tiền native có cả bên gửi và bên nhận là kho quỹ sàn nhưng khác chủ sở hữu.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_CROSS_EXCHANGE_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f5fa0eeb5368d3daad48c13397ff4a09f208980fc3a2ab8855a20d5c3452ca57",
+      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__formal",
+      "language": "en",
+      "pattern": "Find the first {n} token transfers sent from bridges within {duration_minutes} minutes after those bridges received exchange deposits between {start_date} and {end_date}.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "7a3df9e18b4f4b1c9c964cb193bec8b5227f830ce22de8169247fd854b62692c",
+      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__conversational",
+      "language": "en",
+      "pattern": "Which {n} token outflows left bridges within {duration_minutes} minutes after an exchange deposit from {start_date} to {end_date}?",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "39a5f7267bfa5b141a854b03a1bf4dd0f4e0c4cba831fc18cb4c70f271532867",
+      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__abbreviated",
+      "language": "en",
+      "pattern": "First {n} token outflows from bridges ≤ {duration_minutes} min after exchange deposit, {start_date}–{end_date}.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "783f5d3141706cdc0cb933a33f6b8b3e6ea032b0b41a95a4f83dc35ab0e0531b",
+      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__alternative",
+      "language": "en",
+      "pattern": "For {start_date} through {end_date}, return {n} token events sent by a bridge no later than {duration_minutes} minutes after that bridge received a deposit from an exchange treasury.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "56e57edcb035b6a35f87633cf602e1f4f70bdb97e7da632abf1a1e1ebf6f91a8",
+      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__formal",
+      "language": "vi",
+      "pattern": "Tìm {n} lượt chuyển token đầu tiên từ bridge đi ra trong vòng {duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn, từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "f18f45e9430a9f5aa8ff1706740fc2bb5e2841893b2d493e0990f3b0fabc6a0c",
+      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__conversational",
+      "language": "vi",
+      "pattern": "Từ {start_date} tới {end_date}, {n} dòng token nào rời bridge trong {duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn?",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "7e1be3c7b604480c01b9ded60289148ec14100206e3c4367b15c4ac578b2f485",
+      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__abbreviated",
+      "language": "vi",
+      "pattern": "{n} token outflow đầu tiên từ bridge ≤ {duration_minutes} phút sau deposit sàn, {start_date}–{end_date}.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ca1329a6aea7e6be0b034f1559950bbbbd371bba08ff8106849ecd364329085b",
+      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__alternative",
+      "language": "vi",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do bridge gửi không muộn hơn {duration_minutes} phút sau khi bridge nhận tiền từ kho quỹ sàn.",
+      "placeholders": [
+        "duration_minutes",
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "d833108b5ccd66949959c26d44652a3ff18c3ca4712754bdbca57dd5da62143a",
+      "id": "T_REPEATED_PAIR_FLOW__en__formal",
+      "language": "en",
+      "pattern": "Return the top {n} sender-recipient pairs by repeated transaction count between {start_date} and {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_REPEATED_PAIR_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "5221dea81ab31439cd851a6a99e1430057405baa487ef599c7e1f47a058396ce",
+      "id": "T_REPEATED_PAIR_FLOW__en__conversational",
+      "language": "en",
+      "pattern": "Which address pairs transacted most often from {start_date} to {end_date}? Show the first {n}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_REPEATED_PAIR_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "1a860d161f674bda66fba8c6afbcedec8b7e53af1f48b255e6701b03e7551215",
+      "id": "T_REPEATED_PAIR_FLOW__en__abbreviated",
+      "language": "en",
+      "pattern": "Top {n} repeated address pairs, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_REPEATED_PAIR_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "ba1d26348d9310beaa98e029d51f1f0d347ffdc3cd291fa3c57dbefbd24516fd",
+      "id": "T_REPEATED_PAIR_FLOW__en__alternative",
+      "language": "en",
+      "pattern": "Across {start_date} through {end_date}, group transactions by directional address pair and list the {n} pairs with the highest frequency.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_REPEATED_PAIR_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "cdad9ddc3526e94b3e740fb0cf7c9397d24cd88d402516f6e410863468fa6fb4",
+      "id": "T_REPEATED_PAIR_FLOW__vi__formal",
+      "language": "vi",
+      "pattern": "Trả về {n} cặp địa chỉ gửi-nhận có số giao dịch lặp lại nhiều nhất trong khoảng từ {start_date} đến {end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "formal",
+      "template_id": "T_REPEATED_PAIR_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "0c06c39c3d1da10aad08263aa117419e3c568ebe9184b1313ab1a43da58ea309",
+      "id": "T_REPEATED_PAIR_FLOW__vi__conversational",
+      "language": "vi",
+      "pattern": "Cặp địa chỉ nào giao dịch thường xuyên nhất từ {start_date} tới {end_date}? Cho mình xem {n} cặp đầu tiên.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "conversational",
+      "template_id": "T_REPEATED_PAIR_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "fa71768b907c1c74dfe1558c16e5dadb20db92b7564983060d1bd1885411ef27",
+      "id": "T_REPEATED_PAIR_FLOW__vi__abbreviated",
+      "language": "vi",
+      "pattern": "Top {n} cặp địa chỉ lặp tx, {start_date}–{end_date}.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "abbreviated",
+      "template_id": "T_REPEATED_PAIR_FLOW"
+    },
+    {
+      "author_type": "agent",
+      "catalog_schema_version": "1.0.0",
+      "content_sha256": "fcb7967997f84f59ca634d8ce7c6e51f2f829f1d4476d75658fd4bf3b6869218",
+      "id": "T_REPEATED_PAIR_FLOW__vi__alternative",
+      "language": "vi",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy nhóm giao dịch theo cặp địa chỉ có hướng và liệt kê {n} cặp có tần suất cao nhất.",
+      "placeholders": [
+        "end_date",
+        "n",
+        "start_date"
+      ],
+      "review_type": "agent-reviewed",
+      "style": "alternative",
+      "template_id": "T_REPEATED_PAIR_FLOW"
+    }
+  ],
+  "schema_version": "1.0.0"
+}

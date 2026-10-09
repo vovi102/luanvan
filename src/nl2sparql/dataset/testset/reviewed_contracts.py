@@ -22,6 +22,8 @@ from nl2sparql.dataset.testset.contracts import (
 )
 
 AGENT_REVIEWED_PROFILE = "agent_authored_human_reviewed_v1"
+BILINGUAL_AUTHORSHIP_PROFILE = "agent-authored"
+BILINGUAL_REVIEW_PROFILE = "single-human-reviewed"
 CANDIDATE_SCHEMA_VERSION = "1.0.0"
 
 _COLUMN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")

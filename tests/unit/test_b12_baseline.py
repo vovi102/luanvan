@@ -23,6 +23,7 @@ def _summary() -> CatalogSummary:
         text=text,
         catalog_sha256="a" * 64,
         summary_sha256=hashlib.sha256(text.encode()).hexdigest(),
+        bilingual_aliases_sha256="b" * 64,
     )
 
 
@@ -38,9 +39,11 @@ class ScriptedBackend:
         self.model_id = model_id
         self.model_revision = model_revision
         self.calls = 0
+        self.messages = None
 
     def generate(self, messages, config):
         self.calls += 1
+        self.messages = messages
         return Completion(
             raw_text=self.raw_text,
             model_id=self.model_id,
@@ -99,6 +102,21 @@ def test_b1_returns_safe_sql_and_full_provenance() -> None:
     assert result.completion.synthetic_backend is True
     assert result.latency_ms == 2.5
     assert result.config_sha256 == config.sha256
+
+
+def test_b1_preserves_vietnamese_input_and_records_normalization_evidence() -> None:
+    question = "Liệt kê giao dịch USDT từ 0xAbC123"
+    backend = ScriptedBackend(SAFE_SQL)
+    result = BaselineB1(
+        _summary(), GenerationConfig("b" * 40), backend, clock_ns=_clock(0, 1)
+    ).predict_detailed(question)
+
+    assert result.question == question
+    assert question in backend.messages[1].content
+    assert result.normalization_version == "bilingual-nfc-v1"
+    assert len(result.input_sha256) == 64
+    assert len(result.normalized_input_sha256) == 64
+    assert result.bilingual_aliases_sha256 == "b" * 64
 
 
 def test_b2_uses_exactly_retrieved_examples() -> None:

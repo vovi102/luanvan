@@ -275,6 +275,15 @@ def _sql_shape(sql: str) -> str:
     return " ".join(normalized.casefold().split())
 
 
+def normalize_google_sql(sql: str) -> str:
+    """Return a stable GoogleSQL representation for semantic pairing checks."""
+    validate_sql_text(sql)
+    try:
+        return parse_one(sql, read="bigquery").sql(dialect="bigquery", pretty=False)
+    except SqlglotError as exc:
+        raise TestSetError(f"invalid GoogleSQL: {exc}") from exc
+
+
 def _validate_candidate_content(
     candidate: CandidateRecord,
     *,

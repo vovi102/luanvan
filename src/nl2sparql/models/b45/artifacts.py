@@ -192,7 +192,8 @@ _COMPLETION_KEYS = {
     "system_fingerprint",
     "synthetic_backend",
 }
-_EXAMPLE_KEYS = {"record_id", "question", "sql", "score"}
+_LEGACY_EXAMPLE_KEYS = {"record_id", "question", "sql", "score"}
+_EXAMPLE_KEYS = _LEGACY_EXAMPLE_KEYS | {"language", "semantic_family_id"}
 _BUDGET_KEYS = {
     "cap_usd",
     "spent_usd",
@@ -1126,7 +1127,12 @@ def _prediction_from_record(value: object) -> LargeLLMPrediction | None:
         raise LargeLLMError("journal selected examples are invalid")
     examples: list[SelectedExample] = []
     for item in examples_raw:
-        accepted = _require_mapping(item, "journal selected example", _EXAMPLE_KEYS)
+        if not isinstance(item, dict) or frozenset(item) not in {
+            frozenset(_LEGACY_EXAMPLE_KEYS),
+            frozenset(_EXAMPLE_KEYS),
+        }:
+            raise LargeLLMError("journal selected example fields are invalid")
+        accepted = dict(item)
         try:
             examples.append(SelectedExample(**accepted))  # type: ignore[arg-type]
         except (SmallLLMError, TypeError) as error:

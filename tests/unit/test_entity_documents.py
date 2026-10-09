@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from nl2sparql.linking.bilingual import load_bilingual_aliases
 from nl2sparql.linking.dictionary.schema import DictionaryValidationError
 from nl2sparql.linking.dictionary.validate import DictionaryArtifacts, validate_artifacts
 from nl2sparql.linking.entity import (
@@ -17,6 +18,7 @@ from nl2sparql.linking.entity import (
     EntityTarget,
     build_entity_corpus,
 )
+from nl2sparql.linking.entity.documents import augment_entity_corpus
 
 
 def _write_artifacts(tmp_path: Path, *, missing_alias_target: bool = False) -> DictionaryArtifacts:
@@ -126,6 +128,22 @@ def test_build_entity_corpus_groups_owner_addresses_and_concepts(tmp_path: Path)
     assert corpus.phrase_targets["binance"] == ("owner:Binance",)
     assert corpus.targets_by_id["concept:exchange"].target_kind == "concept"
     assert corpus.address_targets[owner.addresses[0]] == "owner:Binance"
+
+
+def test_bilingual_entity_aliases_are_retrievable_without_overwriting_originals(
+    tmp_path: Path,
+) -> None:
+    english = build_entity_corpus(_write_artifacts(tmp_path), min_entities=1, min_aliases=1)
+
+    bilingual = augment_entity_corpus(english, load_bilingual_aliases())
+
+    target = bilingual.targets_by_id["owner:Binance"]
+    assert "binance" in target.aliases
+    assert "sàn binance" in target.aliases
+    assert bilingual.phrase_targets["sàn binance"] == ("owner:Binance",)
+    assert bilingual.phrase_targets["san binance"] == ("owner:Binance",)
+    assert "Aliases [vi]: sàn binance" in target.document
+    assert target.target_id == "owner:Binance"
 
 
 def test_phrase_collision_is_preserved_as_ordered_ambiguity(tmp_path: Path) -> None:
