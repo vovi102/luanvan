@@ -24,6 +24,7 @@ from nl2sparql.dataset.bilingual.assembly import (
     serialize_manifest,
     validate_artifacts,
     validate_audit,
+    validate_audit_evidence,
     validate_no_leakage,
 )
 from nl2sparql.dataset.bilingual.contracts import (
@@ -33,7 +34,11 @@ from nl2sparql.dataset.bilingual.contracts import (
     ExpandedTrainingRecord,
     SplitConfig,
 )
-from nl2sparql.dataset.bilingual.rendering import DiversityReport, serialize_records
+from nl2sparql.dataset.bilingual.rendering import (
+    diversity_report,
+    expanded_record_digest,
+    serialize_records,
+)
 from nl2sparql.dataset.paraphrase.quality import normalize_question
 
 
@@ -215,6 +220,12 @@ def test_leakage_recomputes_normalization_instead_of_trusting_record_metadata() 
 
 def _family_records(family_count: int = 100) -> tuple[ExpandedTrainingRecord, ...]:
     result: list[ExpandedTrainingRecord] = []
+    wording = {
+        "formal": "Please enumerate the formally bounded transaction activity for",
+        "conversational": "Could you show me what happened around the wallet owned by",
+        "abbreviated": "tx stats acct",
+        "alternative": "Inspect blockchain flows during the reporting window involving",
+    }
     for family_index in range(family_count):
         family_id = f"family-{family_index:03d}"
         template_id = f"T_FIXTURE_{family_index % 25:02d}"
@@ -223,7 +234,7 @@ def _family_records(family_count: int = 100) -> tuple[ExpandedTrainingRecord, ..
                 record_id = f"{family_id}__{language}__{style}"
                 result.append(
                     _record(
-                        f"Question {family_index} {language} {style}",
+                        f"{wording[style]} family {family_index} in language {language}",
                         record_id=record_id,
                         language=language,
                         style=style,
@@ -403,6 +414,64 @@ def test_agent_audit_rejects_weak_scores_fabricated_reviewers_and_bad_chains() -
         validate_audit(duplicate_initial, sample_ids, records=records, language="vi")
 
 
+def test_agent_audit_rejects_non_boolean_quality_values() -> None:
+    records = _family_records(25)
+    sample_ids = select_audit_sample(records, "en", seed=42)
+    by_id = {record.id: record for record in records}
+    events = [_audit_event(by_id[record_id], index) for index, record_id in enumerate(sample_ids)]
+    events[0] = replace(events[0], faithful=2)  # type: ignore[arg-type]
+
+    with pytest.raises(AssemblyValidationError, match="faithful.*boolean"):
+        validate_audit(events, sample_ids, records=records, language="en")
+
+
+def test_combined_audit_rejects_every_event_outside_both_samples() -> None:
+    records = assign_group_splits(_family_records(26), SplitConfig())
+    by_id = {record.id: record for record in records}
+    events: list[AuditEvent] = []
+    offset = 0
+    sampled: set[str] = set()
+    for language in ("en", "vi"):
+        sample_ids = select_audit_sample(records, language, seed=42)
+        sampled.update(sample_ids)
+        events.extend(
+            _audit_event(by_id[record_id], offset + index)
+            for index, record_id in enumerate(sample_ids)
+        )
+        offset += 100
+    extra = next(record for record in records if record.id not in sampled)
+    events.append(_audit_event(extra, 200))
+
+    with pytest.raises(AssemblyValidationError, match="outside the deterministic samples"):
+        validate_audit_evidence(events, records=records, seed=42)
+
+
+def test_combined_audit_uses_final_post_split_record_digests() -> None:
+    records = assign_group_splits(_family_records(25), SplitConfig())
+    by_id = {record.id: record for record in records}
+    events: list[AuditEvent] = []
+    offset = 0
+    for language in ("en", "vi"):
+        sample_ids = select_audit_sample(records, language, seed=42)
+        events.extend(
+            _audit_event(by_id[record_id], offset + index)
+            for index, record_id in enumerate(sample_ids)
+        )
+        offset += 100
+
+    summaries = validate_audit_evidence(events, records=records, seed=42)
+
+    assert [summary.language for summary in summaries] == ["en", "vi"]
+    assert all(summary.passed for summary in summaries)
+
+    duplicate_across_languages = list(events)
+    duplicate_across_languages[100] = replace(
+        duplicate_across_languages[100], event_id=duplicate_across_languages[0].event_id
+    )
+    with pytest.raises(AssemblyValidationError, match="globally unique"):
+        validate_audit_evidence(duplicate_across_languages, records=records, seed=42)
+
+
 @pytest.fixture(scope="module")
 def artifact_bundle():
     records = assign_group_splits(_family_records(1000), SplitConfig())
@@ -439,7 +508,7 @@ def artifact_bundle():
         ngram_size=12,
     )
     exclusion_bytes = serialize_exclusion_index(exclusion)
-    diversity = DiversityReport(2000, 0.4, 0.5, 0.7, 0.45, 0.5, 0.55, ())
+    diversity = diversity_report(records)
     leakage = validate_no_leakage(records, exclusion)
     stage_a_bytes = b"accepted-stage-a-fixture\n"
     catalog_bytes = b'{"catalog":"fixture"}\n'
@@ -498,7 +567,7 @@ def test_manifest_records_exact_counts_hashes_quality_and_honest_provenance(
     }
     assert manifest["counts"]["semantic_families"] == 1000
     assert len(manifest["counts"]["intent"]) == 25
-    assert manifest["quality"]["diversity"]["minimum"] == 0.4
+    assert manifest["quality"]["diversity"]["minimum"] > 0.30
     assert manifest["quality"]["leakage"]["passed"] is True
     assert {summary["language"] for summary in manifest["quality"]["audits"]} == {
         "en",
@@ -531,6 +600,7 @@ def test_artifact_validation_recomputes_hashes_counts_leakage_and_audits(
         stage_a_bytes=artifact_bundle["stage_a"],
         catalog_bytes=artifact_bundle["catalog"],
         split_config=artifact_bundle["config"],
+        expected_records=artifact_bundle["records"],
     )
 
     assert report.passed is True
@@ -550,6 +620,7 @@ def test_artifact_validation_rejects_tampered_bytes(artifact_bundle, field: str)
         "stage_a_bytes": artifact_bundle["stage_a"],
         "catalog_bytes": artifact_bundle["catalog"],
         "split_config": artifact_bundle["config"],
+        "expected_records": artifact_bundle["records"],
     }
     argument = {
         "output": "output_bytes",
@@ -561,6 +632,26 @@ def test_artifact_validation_rejects_tampered_bytes(artifact_bundle, field: str)
 
     with pytest.raises(AssemblyValidationError):
         validate_artifacts(**values)
+
+
+def test_artifact_validation_rejects_self_consistent_semantic_row_tampering(
+    artifact_bundle,
+) -> None:
+    records = list(artifact_bundle["records"])
+    changed = replace(records[0], sql="SELECT 2 AS forged_value", record_sha256="")
+    records[0] = replace(changed, record_sha256=expanded_record_digest(changed))
+
+    with pytest.raises(AssemblyValidationError, match="reconstructed source records"):
+        validate_artifacts(
+            output_bytes=serialize_records(tuple(records)),
+            manifest_bytes=artifact_bundle["manifest_bytes"],
+            audit_bytes=artifact_bundle["audit"],
+            exclusion_index_bytes=artifact_bundle["exclusion"],
+            stage_a_bytes=artifact_bundle["stage_a"],
+            catalog_bytes=artifact_bundle["catalog"],
+            split_config=artifact_bundle["config"],
+            expected_records=artifact_bundle["records"],
+        )
 
 
 def test_three_file_publication_rejects_aliases_and_rolls_back_second_replace(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections import Counter
 from dataclasses import replace
@@ -16,9 +17,10 @@ from nl2sparql.dataset.bilingual.rendering import (
     expanded_record_digest,
     render_pattern,
     serialize_records,
+    validate_bilingual_stage_a_records,
     validate_expansion,
 )
-from nl2sparql.dataset.templates.validate import load_templates
+from nl2sparql.dataset.templates.validate import load_templates, render_template
 
 STAGE_A_PATH = Path("data/dataset/raw/synthetic-stage-a.jsonl")
 
@@ -133,6 +135,65 @@ def test_full_expansion_has_exact_balanced_counts_and_unique_identity(
     assert expanded_counts == {
         template_id: count * 8 for template_id, count in source_counts.items()
     }
+
+
+def test_bilingual_stage_a_validation_accepts_newly_accepted_intent_coverage(
+    stage_a: list[dict[str, object]],
+    templates: list[dict[str, object]],
+) -> None:
+    records = [dict(record) for record in stage_a]
+    template = next(
+        value for value in templates if value["id"] == "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+    )
+    slots = dict(template["example_fill"])
+    entity_types = {
+        "ethereum_address",
+        "transaction_hash",
+        "token_symbol",
+        "entity_owner",
+        "entity_category",
+        "concept_class",
+    }
+    replacement = dict(records[0])
+    replacement.update(
+        {
+            "template_id": template["id"],
+            "category": template["category"],
+            "difficulty": template["difficulty"],
+            "slot_values": slots,
+            "entities_used": [
+                {"slot": name, "type": definition["type"], "value": slots[name]}
+                for name, definition in template["slots"].items()
+                if definition["type"] in entity_types
+            ],
+            "sql": render_template(template, slots),
+            "nl_seed": template["nl_seed"].format(**slots),
+            "schema_elements": list(template["schema_elements"]),
+            "cq_ids": list(template["cq_ids"]),
+            "template_sha256": _canonical_digest(template),
+            "witness_group_id": _canonical_digest(
+                {
+                    "template_id": template["id"],
+                    "slot_values": {key: value for key, value in slots.items() if key != "n"},
+                }
+            ),
+        }
+    )
+    replacement["record_sha256"] = _canonical_digest(
+        {
+            key: value
+            for key, value in replacement.items()
+            if key not in {"record_sha256", "verification"}
+        }
+    )
+    records[0] = replacement
+
+    validate_bilingual_stage_a_records(records, templates)
+
+
+def _canonical_digest(value: object) -> str:
+    payload = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def test_expansion_preserves_semantics_and_uses_honest_zero_cost_provenance(

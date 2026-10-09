@@ -2603,10 +2603,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "53d872c6b77b04dc733cfd447b7de07681ee1d969717fa2f3487ac8bf07d4b20",
+      "content_sha256": "227f45bdb092e5f892d99ed3a97e2cd7a55c6014b6d3e0bd1ee779bbda66a017",
       "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__formal",
       "language": "en",
-      "pattern": "List the top {n} mixer-to-DEX transactions above {value_wei} wei between {start_date} and {end_date}.",
+      "pattern": "List the top {n} mixer-to-DEX transactions worth at least {value_wei} wei from {start_date} to {end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2620,10 +2620,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f4e9880a6371290922e20a11aba8b0f59182024bd52615f9f84b5389a007672d",
+      "content_sha256": "ad9807b1c3ed1c7fb41a1bf4ad03dc601c1d918df4eaa7ac51aa6e6f698e02f7",
       "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__conversational",
       "language": "en",
-      "pattern": "Which {n} flows from mixers to DEX addresses exceeded {value_wei} wei from {start_date} to {end_date}?",
+      "pattern": "From {start_date} to {end_date}, which {n} mixer-to-DEX flows were worth at least {value_wei} wei?",
       "placeholders": [
         "end_date",
         "n",
@@ -2637,10 +2637,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c2725581e46827104edba0892b29f66bd23cb27c4f2871b222263ec4185cd5a1",
+      "content_sha256": "3d8135da9d12c06bbd40090bfcf37e6b3f0949c9b5a4c3e6f1161d4259f2b7f7",
       "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} mixer → DEX flows > {value_wei} wei, {start_date}–{end_date}.",
+      "pattern": "Top {n} mixer → DEX flows ≥ {value_wei} wei, {start_date}–{end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2654,10 +2654,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "63a98e5150ebd96e3b98978e83a8d56ac643c35ac4a6ac4a9df633a7740536b6",
+      "content_sha256": "6ad572834e3a6fa8d16fa92548d26af0c6c328dc595a5368d4d1cba76ff5015a",
       "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, find {n} native transfers from a mixer class to a DEX class with value greater than {value_wei} wei.",
+      "pattern": "During {start_date} through {end_date}, find {n} native transfers from a mixer class to a DEX class with value at least {value_wei} wei.",
       "placeholders": [
         "end_date",
         "n",
@@ -2671,10 +2671,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0e16b4bfc153f5ccc85249558fe9772cba7ccf09e7eb5d035104dcfa4a3fafa1",
+      "content_sha256": "a890cd275dc9a4b5d3d4e626b5b7bbe9b55f905c0407572ced7778be2d0e0fc6",
       "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch lớn nhất từ mixer tới DEX vượt {value_wei} wei trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê {n} giao dịch lớn nhất từ mixer tới DEX có giá trị ít nhất {value_wei} wei trong khoảng từ {start_date} đến {end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2688,10 +2688,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6e163f8c34bf7c45524727ddf7bbcc60bd957240e712b4c19f397f386d01e940",
+      "content_sha256": "7b9a24fe731751cae5b9d1a3b59a05662ba2813566ca5f19b1c89a1c1c000fa2",
       "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} dòng tiền nào từ mixer sang DEX lớn hơn {value_wei} wei?",
+      "pattern": "Từ {start_date} tới {end_date}, {n} dòng tiền nào từ mixer sang DEX có giá trị từ {value_wei} wei trở lên?",
       "placeholders": [
         "end_date",
         "n",
@@ -2705,10 +2705,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e80408aabfc65ebee4454f0af67c45067f5ed515789be298b7635c2586482503",
+      "content_sha256": "cc0037eb2c12b43e9d4ef1e7fc6f1f111bf1c2f6c74a7e246e544f88aac7eb83",
       "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} flow mixer → DEX > {value_wei} wei, {start_date}–{end_date}.",
+      "pattern": "Top {n} flow mixer → DEX ≥ {value_wei} wei, {start_date}–{end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2722,10 +2722,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "145e78c76cd18848ba446d5a305bc24cd950b66dcc6ff770b8d4a3de897acd61",
+      "content_sha256": "cf6a57c54c833a755e3a339e8d8235e6825326c4863425eed0a45b871e40365e",
       "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} lượt chuyển native từ lớp mixer sang lớp DEX có giá trị lớn hơn {value_wei} wei.",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} lượt chuyển native từ lớp mixer sang lớp DEX có giá trị không nhỏ hơn {value_wei} wei.",
       "placeholders": [
         "end_date",
         "n",
@@ -3003,10 +3003,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "23e2927e4de3159a14af6699890109a026f53e5f078d9e761fcba6bf73859563",
+      "content_sha256": "f5fa0eeb5368d3daad48c13397ff4a09f208980fc3a2ab8855a20d5c3452ca57",
       "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__formal",
       "language": "en",
-      "pattern": "Find the first {n} bridge-bound token transfers within {duration_minutes} minutes after exchange deposits between {start_date} and {end_date}.",
+      "pattern": "Find the first {n} token transfers sent from bridges within {duration_minutes} minutes after those bridges received exchange deposits between {start_date} and {end_date}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -3020,10 +3020,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c8f55a8ff60c85d053f5679928e9c994e3f2c498067b2abb53f0a90fd61672cc",
+      "content_sha256": "7a3df9e18b4f4b1c9c964cb193bec8b5227f830ce22de8169247fd854b62692c",
       "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__conversational",
       "language": "en",
-      "pattern": "Which {n} token outflows reached bridges within {duration_minutes} minutes after an exchange deposit from {start_date} to {end_date}?",
+      "pattern": "Which {n} token outflows left bridges within {duration_minutes} minutes after an exchange deposit from {start_date} to {end_date}?",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -3037,10 +3037,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "024fa62c8e4e75e67b12a0da59d576da883adde95c5e4b361919a05a8917aeb9",
+      "content_sha256": "39a5f7267bfa5b141a854b03a1bf4dd0f4e0c4cba831fc18cb4c70f271532867",
       "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__abbreviated",
       "language": "en",
-      "pattern": "First {n} bridge outflows ≤ {duration_minutes} min after exchange deposit, {start_date}–{end_date}.",
+      "pattern": "First {n} token outflows from bridges ≤ {duration_minutes} min after exchange deposit, {start_date}–{end_date}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -3054,10 +3054,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "60b0de67db0c41ba04d4c21d3a83ce26c5ff3aaaa15f32f3d73e13c06e8db2e8",
+      "content_sha256": "783f5d3141706cdc0cb933a33f6b8b3e6ea032b0b41a95a4f83dc35ab0e0531b",
       "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} token events sent to a bridge no later than {duration_minutes} minutes after the sender received a deposit from an exchange treasury.",
+      "pattern": "For {start_date} through {end_date}, return {n} token events sent by a bridge no later than {duration_minutes} minutes after that bridge received a deposit from an exchange treasury.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -3071,10 +3071,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1d4392f52bcbc41d4b6304a267753e449a547251e11adbd364ed10b5ace16547",
+      "content_sha256": "56e57edcb035b6a35f87633cf602e1f4f70bdb97e7da632abf1a1e1ebf6f91a8",
       "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__formal",
       "language": "vi",
-      "pattern": "Tìm {n} lượt chuyển token tới bridge đầu tiên trong vòng {duration_minutes} phút sau khoản nạp từ sàn, từ {start_date} đến {end_date}.",
+      "pattern": "Tìm {n} lượt chuyển token đầu tiên từ bridge đi ra trong vòng {duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn, từ {start_date} đến {end_date}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -3088,10 +3088,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a64f841bc93cd2fc87929fcb6db48b9fec50432fc6a21929841cbbc52598c7a9",
+      "content_sha256": "f18f45e9430a9f5aa8ff1706740fc2bb5e2841893b2d493e0990f3b0fabc6a0c",
       "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} dòng token nào đi tới bridge trong {duration_minutes} phút sau khi nhận khoản nạp từ sàn?",
+      "pattern": "Từ {start_date} tới {end_date}, {n} dòng token nào rời bridge trong {duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn?",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -3105,10 +3105,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0b96caceaa68795f4b3397e0cc635d6aa7150eec1656cfaf8fd01c1681dd38b4",
+      "content_sha256": "7e1be3c7b604480c01b9ded60289148ec14100206e3c4367b15c4ac578b2f485",
       "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} bridge outflow đầu tiên ≤ {duration_minutes} phút sau deposit sàn, {start_date}–{end_date}.",
+      "pattern": "{n} token outflow đầu tiên từ bridge ≤ {duration_minutes} phút sau deposit sàn, {start_date}–{end_date}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -3122,10 +3122,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "80ddfbf338fd3c3b93f0f6a3ffed8729b9d3af9efd4e17f4c687d0aa49afc06b",
+      "content_sha256": "ca1329a6aea7e6be0b034f1559950bbbbd371bba08ff8106849ecd364329085b",
       "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token gửi tới bridge không muộn hơn {duration_minutes} phút sau khi bên gửi nhận tiền từ kho quỹ sàn.",
+      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do bridge gửi không muộn hơn {duration_minutes} phút sau khi bridge nhận tiền từ kho quỹ sàn.",
       "placeholders": [
         "duration_minutes",
         "end_date",

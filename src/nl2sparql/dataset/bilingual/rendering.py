@@ -22,8 +22,16 @@ from nl2sparql.dataset.bilingual.contracts import (
     ExpandedTrainingRecord,
     JsonScalar,
 )
-from nl2sparql.dataset.generate import validate_stage_a_records
+from nl2sparql.dataset.generate import (
+    ENTITY_SLOT_TYPES,
+    GENERATION_SEED,
+    MAX_ENTITY_COUNT,
+    MAX_TEMPLATE_COUNT,
+    RECORD_FIELDS,
+    TARGET_COUNT,
+)
 from nl2sparql.dataset.paraphrase.quality import normalize_question, normalized_levenshtein
+from nl2sparql.dataset.templates.validate import render_template
 
 RENDERER_VERSION = "deterministic-bilingual-renderer-v1"
 DIVERSITY_THRESHOLD = 0.30
@@ -95,6 +103,95 @@ def _canonical_json(value: object) -> bytes:
     ).encode("utf-8")
 
 
+def _canonical_digest(value: object) -> str:
+    return hashlib.sha256(_canonical_json(value)).hexdigest()
+
+
+def validate_bilingual_stage_a_records(
+    records: list[dict[str, Any]],
+    templates: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+) -> None:
+    """Validate accepted Stage A semantics without pinning a legacy allocation."""
+    if len(records) != TARGET_COUNT:
+        raise RenderingValidationError(
+            f"Stage A requires exactly {TARGET_COUNT} records, received {len(records)}"
+        )
+    if any(not isinstance(record, dict) or set(record) != RECORD_FIELDS for record in records):
+        raise RenderingValidationError("Stage A record fields do not match the SQL contract")
+    template_index = {str(template.get("id")): template for template in templates}
+    ids = [record.get("id") for record in records]
+    sql_values = [record.get("sql") for record in records]
+    record_hashes = [record.get("record_sha256") for record in records]
+    if any(not isinstance(value, str) or not value for value in ids):
+        raise RenderingValidationError("Stage A record IDs must be non-empty strings")
+    if len(set(ids)) != len(ids):
+        raise RenderingValidationError("Stage A records require unique IDs")
+    if any(not isinstance(value, str) or not value for value in sql_values):
+        raise RenderingValidationError("Stage A SQL must be non-empty strings")
+    if len(set(sql_values)) != len(sql_values):
+        raise RenderingValidationError("Stage A records require unique SQL")
+    if len(set(record_hashes)) != len(record_hashes):
+        raise RenderingValidationError("Stage A records require unique record hashes")
+    template_counts = Counter(str(record["template_id"]) for record in records)
+    if max(template_counts.values()) > MAX_TEMPLATE_COUNT:
+        raise RenderingValidationError("a Stage A template exceeds the 10% cap")
+
+    entity_counts: Counter[object] = Counter()
+    for record in records:
+        record_id = str(record["id"])
+        template_id = str(record["template_id"])
+        template = template_index.get(template_id)
+        if template is None:
+            raise RenderingValidationError(f"unknown Stage A template: {template_id}")
+        slots = record["slot_values"]
+        if not isinstance(slots, Mapping) or set(slots) != set(template["slots"]):
+            raise RenderingValidationError(f"Stage A slot schema drift for {record_id}")
+        try:
+            rendered_sql = render_template(template, slots)
+            rendered_seed = str(template["nl_seed"]).format(**slots)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RenderingValidationError(f"Stage A rendering failed for {record_id}") from exc
+        expected_entities = [
+            {"slot": name, "type": definition["type"], "value": slots[name]}
+            for name, definition in template["slots"].items()
+            if definition["type"] in ENTITY_SLOT_TYPES
+        ]
+        expected_witness = _canonical_digest(
+            {
+                "template_id": template_id,
+                "slot_values": {key: value for key, value in slots.items() if key != "n"},
+            }
+        )
+        checks = (
+            (record["category"] == template["category"], "category"),
+            (record["difficulty"] == template["difficulty"], "difficulty"),
+            (record["sql"] == rendered_sql, "SQL"),
+            (record["nl_seed"] == rendered_seed, "NL seed"),
+            (record["schema_elements"] == template["schema_elements"], "schema elements"),
+            (record["cq_ids"] == template["cq_ids"], "CQ IDs"),
+            (record["entities_used"] == expected_entities, "entities"),
+            (record["template_sha256"] == _canonical_digest(template), "template hash"),
+            (record["generation_seed"] == GENERATION_SEED, "generation seed"),
+            (record["witness_group_id"] == expected_witness, "witness group"),
+        )
+        for passed, label in checks:
+            if not passed:
+                raise RenderingValidationError(f"Stage A {label} drift for {record_id}")
+        expected_record_hash = _canonical_digest(
+            {
+                key: value
+                for key, value in record.items()
+                if key not in {"record_sha256", "verification"}
+            }
+        )
+        if record["record_sha256"] != expected_record_hash:
+            raise RenderingValidationError(f"Stage A record hash drift for {record_id}")
+        for entity in expected_entities:
+            entity_counts[entity["value"]] += 1
+    if entity_counts and max(entity_counts.values()) > MAX_ENTITY_COUNT:
+        raise RenderingValidationError("a Stage A entity exceeds the 5% cap")
+
+
 def _record_dict(record: ExpandedTrainingRecord) -> dict[str, Any]:
     return cast(dict[str, Any], asdict(record))
 
@@ -162,10 +259,7 @@ def expand_stage_a(
     templates: list[dict[str, Any]],
 ) -> tuple[ExpandedTrainingRecord, ...]:
     """Expand accepted Stage A rows into eight stable clean variants each."""
-    try:
-        validate_stage_a_records(records, templates)
-    except ValueError as exc:
-        raise RenderingValidationError(f"Stage A validation failed: {exc}") from exc
+    validate_bilingual_stage_a_records(records, templates)
     template_index = _template_index(templates)
     catalog_index = _catalog_index(catalog)
     expanded: list[ExpandedTrainingRecord] = []
@@ -292,10 +386,7 @@ def validate_expansion(
     templates: list[dict[str, Any]],
 ) -> DiversityReport:
     """Recompute all clean-expansion gates from source evidence."""
-    try:
-        validate_stage_a_records(stage_a, templates)
-    except ValueError as exc:
-        raise RenderingValidationError(f"Stage A validation failed: {exc}") from exc
+    validate_bilingual_stage_a_records(stage_a, templates)
     if len(records) != 8000:
         raise RenderingValidationError(
             f"clean expansion requires 8000 records, received {len(records)}"

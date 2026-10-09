@@ -47,6 +47,17 @@ def _jsonl(path: Path, field: str) -> tuple[bytes, tuple[str, ...]]:
     return payload, tuple(questions)
 
 
+def _object_jsonl(path: Path, owner: str) -> tuple[bytes, list[dict[str, Any]]]:
+    try:
+        payload = path.read_bytes()
+        rows = [json.loads(line) for line in payload.decode("utf-8").splitlines()]
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise click.ClickException(f"{owner} is not valid JSONL") from exc
+    if not rows or any(not isinstance(row, dict) for row in rows):
+        raise click.ClickException(f"{owner} requires JSON object rows")
+    return payload, rows
+
+
 def _write_derived(path: Path, payload: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -155,17 +166,30 @@ def main(
             raise click.ClickException(
                 "validate-artifact requires output, manifest, audit, and exclusion index"
             )
-        from nl2sparql.dataset.bilingual.assembly import validate_artifacts
-        from nl2sparql.dataset.bilingual.contracts import SplitConfig
+        from nl2sparql.dataset.bilingual.assembly import (
+            assign_group_splits,
+            validate_artifacts,
+        )
+        from nl2sparql.dataset.bilingual.contracts import SplitConfig, load_catalog
+        from nl2sparql.dataset.bilingual.rendering import expand_stage_a
+
+        templates = _load_production_templates()
+        loaded_catalog = load_catalog(catalog, templates)
+        stage_a_bytes, stage_a_rows = _object_jsonl(stage_a, "Stage A")
+        split_config = SplitConfig(seed=42, development_percent=10)
+        expected_records = assign_group_splits(
+            expand_stage_a(stage_a_rows, loaded_catalog, templates), split_config
+        )
 
         report = validate_artifacts(
             output_bytes=output.read_bytes(),
             manifest_bytes=manifest.read_bytes(),
             audit_bytes=audit.read_bytes(),
             exclusion_index_bytes=exclusion_index.read_bytes(),
-            stage_a_bytes=stage_a.read_bytes(),
+            stage_a_bytes=stage_a_bytes,
             catalog_bytes=catalog.read_bytes(),
-            split_config=SplitConfig(seed=42, development_percent=10),
+            split_config=split_config,
+            expected_records=expected_records,
         )
         _emit(
             {

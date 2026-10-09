@@ -249,3 +249,78 @@ def test_replacing_catalog_entry_preserves_frozen_value_semantics() -> None:
 
     assert entry.pattern != changed.pattern
     assert entry.style == changed.style
+
+
+def test_high_risk_threshold_and_bridge_direction_patterns_match_sql_semantics() -> None:
+    catalog = load_catalog(TEMPLATES_PATH, load_templates())
+    patterns = {entry.id: entry.pattern for entry in catalog.entries}
+    expected = {
+        "T_MIXER_TO_DEX_LARGE_FLOW__en__formal": (
+            "List the top {n} mixer-to-DEX transactions worth at least {value_wei} wei "
+            "from {start_date} to {end_date}."
+        ),
+        "T_MIXER_TO_DEX_LARGE_FLOW__en__conversational": (
+            "From {start_date} to {end_date}, which {n} mixer-to-DEX flows were worth "
+            "at least {value_wei} wei?"
+        ),
+        "T_MIXER_TO_DEX_LARGE_FLOW__en__abbreviated": (
+            "Top {n} mixer → DEX flows ≥ {value_wei} wei, {start_date}–{end_date}."
+        ),
+        "T_MIXER_TO_DEX_LARGE_FLOW__en__alternative": (
+            "During {start_date} through {end_date}, find {n} native transfers from a "
+            "mixer class to a DEX class with value at least {value_wei} wei."
+        ),
+        "T_MIXER_TO_DEX_LARGE_FLOW__vi__formal": (
+            "Liệt kê {n} giao dịch lớn nhất từ mixer tới DEX có giá trị ít nhất "
+            "{value_wei} wei trong khoảng từ {start_date} đến {end_date}."
+        ),
+        "T_MIXER_TO_DEX_LARGE_FLOW__vi__conversational": (
+            "Từ {start_date} tới {end_date}, {n} dòng tiền nào từ mixer sang DEX có giá "
+            "trị từ {value_wei} wei trở lên?"
+        ),
+        "T_MIXER_TO_DEX_LARGE_FLOW__vi__abbreviated": (
+            "Top {n} flow mixer → DEX ≥ {value_wei} wei, {start_date}–{end_date}."
+        ),
+        "T_MIXER_TO_DEX_LARGE_FLOW__vi__alternative": (
+            "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} lượt chuyển native "
+            "từ lớp mixer sang lớp DEX có giá trị không nhỏ hơn {value_wei} wei."
+        ),
+        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__formal": (
+            "Find the first {n} token transfers sent from bridges within "
+            "{duration_minutes} minutes after those bridges received exchange deposits "
+            "between {start_date} and {end_date}."
+        ),
+        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__conversational": (
+            "Which {n} token outflows left bridges within {duration_minutes} minutes "
+            "after an exchange deposit from {start_date} to {end_date}?"
+        ),
+        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__abbreviated": (
+            "First {n} token outflows from bridges ≤ {duration_minutes} min after exchange "
+            "deposit, {start_date}–{end_date}."
+        ),
+        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__alternative": (
+            "For {start_date} through {end_date}, return {n} token events sent by a bridge "
+            "no later than {duration_minutes} minutes after that bridge received a deposit "
+            "from an exchange treasury."
+        ),
+        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__formal": (
+            "Tìm {n} lượt chuyển token đầu tiên từ bridge đi ra trong vòng "
+            "{duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn, từ "
+            "{start_date} đến {end_date}."
+        ),
+        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__conversational": (
+            "Từ {start_date} tới {end_date}, {n} dòng token nào rời bridge trong "
+            "{duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn?"
+        ),
+        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__abbreviated": (
+            "{n} token outflow đầu tiên từ bridge ≤ {duration_minutes} phút sau deposit "
+            "sàn, {start_date}–{end_date}."
+        ),
+        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__alternative": (
+            "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do "
+            "bridge gửi không muộn hơn {duration_minutes} phút sau khi bridge nhận tiền "
+            "từ kho quỹ sàn."
+        ),
+    }
+
+    assert {entry_id: patterns[entry_id] for entry_id in expected} == expected

@@ -330,6 +330,34 @@ def _event_timestamp(event: AuditEvent) -> datetime:
     return parsed
 
 
+def _validate_audit_event_contract(event: AuditEvent) -> None:
+    string_fields = {
+        "schema_version": event.schema_version,
+        "event_id": event.event_id,
+        "record_id": event.record_id,
+        "record_sha256": event.record_sha256,
+        "decision": event.decision,
+        "notes": event.notes,
+        "reviewer_type": event.reviewer_type,
+        "reviewed_at": event.reviewed_at,
+    }
+    if any(not isinstance(value, str) for value in string_fields.values()):
+        raise AssemblyValidationError("audit string fields must be strings")
+    for name in ("event_id", "record_id", "notes", "reviewed_at"):
+        if not string_fields[name]:
+            raise AssemblyValidationError(f"audit {name} must be non-empty")
+    if not _SHA256_RE.fullmatch(event.record_sha256):
+        raise AssemblyValidationError("audit record_sha256 must be a valid SHA-256")
+    if type(event.faithful) is not bool:  # noqa: E721 - integers are invalid evidence
+        raise AssemblyValidationError("audit faithful must be a boolean")
+    if type(event.natural) is not bool:  # noqa: E721 - integers are invalid evidence
+        raise AssemblyValidationError("audit natural must be a boolean")
+    if event.supersedes_event_id is not None and (
+        not isinstance(event.supersedes_event_id, str) or not event.supersedes_event_id
+    ):
+        raise AssemblyValidationError("audit supersedes_event_id must be null or non-empty")
+
+
 def validate_audit(
     events: list[AuditEvent] | tuple[AuditEvent, ...],
     sample_ids: tuple[str, ...] | list[str],
@@ -349,6 +377,7 @@ def validate_audit(
     latest: dict[str, AuditEvent] = {}
     previous_timestamp: datetime | None = None
     for event in events:
+        _validate_audit_event_contract(event)
         if event.schema_version != AUDIT_SCHEMA_VERSION:
             raise AssemblyValidationError("audit schema version is unsupported")
         if event.event_id in event_ids:
@@ -399,6 +428,47 @@ def validate_audit(
         accepted_count=accepted_count,
         passed=True,
     )
+
+
+def validate_audit_evidence(
+    events: list[AuditEvent] | tuple[AuditEvent, ...],
+    *,
+    records: tuple[ExpandedTrainingRecord, ...] | list[ExpandedTrainingRecord],
+    seed: int = 42,
+) -> tuple[AuditSummary, ...]:
+    """Validate the complete two-language event log without ignoring extra rows."""
+    event_ids: set[str] = set()
+    previous_timestamp: datetime | None = None
+    for event in events:
+        _validate_audit_event_contract(event)
+        if event.event_id in event_ids:
+            raise AssemblyValidationError("audit event IDs must be globally unique")
+        event_ids.add(event.event_id)
+        timestamp = _event_timestamp(event)
+        if previous_timestamp is not None and timestamp < previous_timestamp:
+            raise AssemblyValidationError("audit events must be globally chronological")
+        previous_timestamp = timestamp
+    samples = {
+        language: select_audit_sample(records, cast(Language, language), seed=seed)
+        for language in ("en", "vi")
+    }
+    allowed_ids = set(samples["en"]) | set(samples["vi"])
+    if any(event.record_id not in allowed_ids for event in events):
+        raise AssemblyValidationError("audit event is outside the deterministic samples")
+    summaries: list[AuditSummary] = []
+    for language in ("en", "vi"):
+        sample_ids = samples[language]
+        sample_set = set(sample_ids)
+        language_events = tuple(event for event in events if event.record_id in sample_set)
+        summaries.append(
+            validate_audit(
+                language_events,
+                sample_ids,
+                records=records,
+                language=cast(Language, language),
+            )
+        )
+    return tuple(summaries)
 
 
 def serialize_audit_events(events: list[AuditEvent] | tuple[AuditEvent, ...]) -> bytes:
@@ -586,17 +656,34 @@ def validate_artifacts(
     stage_a_bytes: bytes,
     catalog_bytes: bytes,
     split_config: SplitConfig,
+    expected_records: tuple[ExpandedTrainingRecord, ...],
 ) -> ValidationReport:
-    """Recompute hashes, counts, leakage, split isolation, and audit gates."""
+    """Recompute source equality, hashes, quality, split, leakage, and audit gates."""
     manifest = _load_manifest(manifest_bytes)
     exclusion = load_exclusion_index(exclusion_index_bytes)
     rows = _load_json_lines(output_bytes, "training artifact")
     records = tuple(_expanded_record(row) for row in rows)
     if len(records) != 8000:
         raise AssemblyValidationError("training artifact requires 8000 records")
+    if records != expected_records:
+        raise AssemblyValidationError(
+            "training artifact does not match reconstructed source records"
+        )
     from nl2sparql.dataset.bilingual.rendering import expanded_record_digest
 
     for record in records:
+        if (
+            record.producer_type != "deterministic_template_renderer"
+            or record.author_type != "agent"
+            or record.review_type != "agent-reviewed"
+            or record.generation_model is not None
+            or record.provider is not None
+            or type(record.api_request_count) is not int
+            or record.api_request_count != 0
+            or type(record.recorded_cost_usd) is not float
+            or record.recorded_cost_usd != 0.0
+        ):
+            raise AssemblyValidationError(f"record provenance is invalid: {record.id}")
         if record.record_sha256 != expanded_record_digest(record):
             raise AssemblyValidationError(f"record digest mismatch: {record.id}")
         if record.split != _family_split(record.semantic_family_id, split_config):
@@ -633,29 +720,14 @@ def validate_artifacts(
     quality = cast(dict[str, object], manifest["quality"])
     if _canonical_json(quality.get("leakage")) != _canonical_json(asdict(leakage)):
         raise AssemblyValidationError("manifest leakage evidence does not match")
-    diversity = quality.get("diversity")
-    if (
-        not isinstance(diversity, dict)
-        or diversity.get("family_language_count") != 2000
-        or not isinstance(diversity.get("minimum"), (int, float))
-        or diversity["minimum"] <= 0.30
-        or diversity.get("failing_family_ids") != []
-    ):
-        raise AssemblyValidationError("manifest diversity evidence does not pass")
+    from nl2sparql.dataset.bilingual.rendering import diversity_report
+
+    diversity = diversity_report(records)
+    if _canonical_json(quality.get("diversity")) != _canonical_json(asdict(diversity)):
+        raise AssemblyValidationError("manifest diversity evidence does not match")
     audit_documents = _load_json_lines(audit_bytes, "audit evidence")
     events = tuple(_audit_event(document) for document in audit_documents)
-    summaries: list[AuditSummary] = []
-    for language in ("en", "vi"):
-        sample_ids = select_audit_sample(records, language, seed=42)
-        language_events = tuple(event for event in events if event.record_id in set(sample_ids))
-        summaries.append(
-            validate_audit(
-                language_events,
-                sample_ids,
-                records=records,
-                language=language,
-            )
-        )
+    summaries = validate_audit_evidence(events, records=records, seed=42)
     expected_audits = [asdict(summary) for summary in summaries]
     if quality.get("audits") != expected_audits:
         raise AssemblyValidationError("manifest audit summaries do not match")

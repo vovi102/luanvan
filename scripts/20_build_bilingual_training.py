@@ -107,7 +107,7 @@ def main(
             serialize_audit_events,
             serialize_manifest,
             validate_artifacts,
-            validate_audit,
+            validate_audit_evidence,
             validate_no_leakage,
         )
         from nl2sparql.dataset.bilingual.contracts import SplitConfig, load_catalog
@@ -135,6 +135,8 @@ def main(
         records = expand_stage_a(source_rows, loaded_catalog, templates)
         leakage = validate_no_leakage(records, exclusion)
         diversity = diversity_report(records)
+        split_config = SplitConfig(seed=42, development_percent=10)
+        assigned = assign_group_splits(records, split_config)
 
         if mode == "validate-only":
             _emit(
@@ -154,13 +156,15 @@ def main(
             return
 
         samples = {
-            language: select_audit_sample(records, language, seed=42) for language in ("en", "vi")
+            language: select_audit_sample(assigned, language, seed=42) for language in ("en", "vi")
         }
         if mode == "audit-sample":
             if audit_sample_output is None:
                 raise click.ClickException("audit-sample requires --audit-sample-output")
             sample_rows = [
-                row for language in ("en", "vi") for row in _sample_rows(records, samples[language])
+                row
+                for language in ("en", "vi")
+                for row in _sample_rows(assigned, samples[language])
             ]
             payload = b"".join(
                 json.dumps(row, ensure_ascii=False, sort_keys=True).encode("utf-8") + b"\n"
@@ -174,17 +178,7 @@ def main(
         assert output is not None and manifest is not None and audit is not None
         audit_bytes, audit_rows = _load_jsonl(audit, "audit evidence")
         events = _audit_events(audit_rows)
-        summaries = tuple(
-            validate_audit(
-                tuple(event for event in events if event.record_id in set(samples[language])),
-                samples[language],
-                records=records,
-                language=language,
-            )
-            for language in ("en", "vi")
-        )
-        split_config = SplitConfig(seed=42, development_percent=10)
-        assigned = assign_group_splits(records, split_config)
+        summaries = validate_audit_evidence(events, records=assigned, seed=42)
         output_bytes = serialize_records(assigned)
         canonical_audit = serialize_audit_events(events)
         manifest_document = build_manifest(
@@ -208,6 +202,7 @@ def main(
             stage_a_bytes=stage_a_bytes,
             catalog_bytes=catalog.read_bytes(),
             split_config=split_config,
+            expected_records=assigned,
         )
         publish_artifacts(
             output_bytes,
