@@ -304,10 +304,13 @@ def verify_stage_a(
     per_witness_bytes_cap: int = PER_TEMPLATE_BYTES_CAP,
     total_bytes_cap: int = TOTAL_WITNESS_BYTES_CAP,
     clock_ns: Callable[[], int] = time.perf_counter_ns,
+    record_validator: Callable[
+        [Sequence[dict[str, Any]], Sequence[dict[str, Any]]], None
+    ] = validate_stage_a_records,
 ) -> StageAVerificationReport:
     """Preflight, execute, and propagate non-empty witness proofs."""
     _validate_verified_at(verified_at)
-    validate_stage_a_records(records, templates)
+    record_validator(records, templates)
     groups = build_witness_groups(records)
     preflight = dry_run_witnesses(
         client,

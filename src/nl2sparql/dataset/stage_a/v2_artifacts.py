@@ -22,6 +22,9 @@ RAW_DATA_DIR = PROJECT_ROOT / "data/dataset/raw"
 DEFAULT_V2_CANDIDATE_OUTPUT_PATH = RAW_DATA_DIR / "synthetic-stage-a-v2-candidate.jsonl"
 DEFAULT_V2_CANDIDATE_CONFIG_PATH = RAW_DATA_DIR / "generation-config-v2-candidate.json"
 DEFAULT_V2_CANDIDATE_STATS_PATH = RAW_DATA_DIR / "stats-v2-candidate.md"
+DEFAULT_V2_ACCEPTED_OUTPUT_PATH = RAW_DATA_DIR / "synthetic-stage-a-v2.jsonl"
+DEFAULT_V2_ACCEPTED_CONFIG_PATH = RAW_DATA_DIR / "generation-config-v2.json"
+DEFAULT_V2_ACCEPTED_STATS_PATH = RAW_DATA_DIR / "stats-v2.md"
 V1_OUTPUT_PATH = RAW_DATA_DIR / "synthetic-stage-a.jsonl"
 
 
@@ -81,6 +84,90 @@ def build_stage_a_v2_candidate_manifest(
     }
 
 
+def has_evidence_backed_live_values(pools: Mapping[str, Any]) -> bool:
+    """Return whether data-bound v2 slots have enough unique sourced values."""
+    for slot_type in ("block_number", "transaction_hash"):
+        entries = pools.get(slot_type)
+        if not isinstance(entries, list) or len(entries) < 45:
+            return False
+        values: list[object] = []
+        for entry in entries:
+            if (
+                not isinstance(entry, Mapping)
+                or set(entry) != {"value", "source", "evidence"}
+                or not entry["source"]
+                or not entry["evidence"]
+            ):
+                return False
+            values.append(entry["value"])
+        if len({_canonical_json(value) for value in values}) != len(values):
+            return False
+    return True
+
+
+def _v1_supersession() -> dict[str, object]:
+    return {
+        "path": str(V1_OUTPUT_PATH.relative_to(PROJECT_ROOT)),
+        "artifact_sha256": _sha256(V1_OUTPUT_PATH.read_bytes()),
+        "preserved": True,
+    }
+
+
+def build_stage_a_v2_accepted_manifest(
+    report: Any,
+    templates: Sequence[dict[str, Any]],
+    pools: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build an accepted manifest only from complete live witness evidence."""
+    if not has_evidence_backed_live_values(pools):
+        raise StageAV2ArtifactError(
+            "Accepted Stage A v2 requires evidence-backed block and transaction values"
+        )
+    if getattr(report, "all_passed", False) is not True:
+        raise StageAV2ArtifactError("Accepted Stage A v2 requires a passing live report")
+    records = list(getattr(report, "records", ()))
+    validate_stage_a_v2_records(records, templates)
+    verifications = [record.get("verification") for record in records]
+    if any(
+        not isinstance(value, Mapping)
+        or value.get("non_empty") is not True
+        or value.get("cache_hit") is not False
+        for value in verifications
+    ):
+        raise StageAV2ArtifactError(
+            "Accepted Stage A v2 requires non-empty, cache-free live evidence"
+        )
+    verified_at = {value["verified_at"] for value in verifications if value is not None}
+    if len(verified_at) != 1:
+        raise StageAV2ArtifactError("Accepted Stage A v2 requires one live verification timestamp")
+    payload = serialize_stage_a_v2_records(records)
+    witnesses = tuple(getattr(report, "witnesses", ()))
+    preflight = getattr(report, "preflight", None)
+    return {
+        "version": 2,
+        "lifecycle_state": "accepted",
+        "acceptance_eligible": True,
+        "verification_mode": "live_witness",
+        "verified_at": next(iter(verified_at)),
+        "record_count": len(records),
+        "verified_record_count": len(records),
+        "represented_intent_count": len({record["template_id"] for record in records}),
+        "generation_seed": GENERATION_SEED,
+        "difficulty_allocation": V2_DIFFICULTY_ALLOCATION,
+        "template_allocation": V2_TEMPLATE_ALLOCATION,
+        "artifact_sha256": _sha256(payload),
+        "template_library_sha256": _sha256(_canonical_json(list(templates))),
+        "value_pools_sha256": _sha256(_canonical_json(pools)),
+        "witness_count": len(witnesses),
+        "total_estimated_bytes": int(getattr(preflight, "total_estimated_bytes", 0)),
+        "total_processed_bytes": sum(int(witness.processed_bytes) for witness in witnesses),
+        "total_billed_bytes": sum(int(witness.billed_bytes) for witness in witnesses),
+        "total_wall_latency_ms": sum(float(witness.wall_latency_ms) for witness in witnesses),
+        "cache_hit_count": sum(bool(witness.cache_hit) for witness in witnesses),
+        "supersedes": _v1_supersession(),
+    }
+
+
 def render_stage_a_v2_candidate_stats(records: Sequence[Mapping[str, Any]]) -> str:
     """Render deterministic human-readable candidate statistics."""
     difficulties = Counter(str(record["difficulty"]) for record in records)
@@ -131,6 +218,66 @@ def write_stage_a_v2_candidate_artifacts(
         serialize_stage_a_v2_records(records),
         (json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(),
         render_stage_a_v2_candidate_stats(records).encode(),
+    )
+    temporary_paths: list[Path] = []
+    try:
+        for path, content in zip((output_path, config_path, stats_path), contents, strict=True):
+            temporary_paths.append(_write_temp(path, content))
+        for temporary, path in zip(
+            temporary_paths, (output_path, config_path, stats_path), strict=True
+        ):
+            temporary.replace(path)
+    finally:
+        for temporary in temporary_paths:
+            temporary.unlink(missing_ok=True)
+    return StageAV2CandidateArtifacts(
+        output_path=output_path,
+        config_path=config_path,
+        stats_path=stats_path,
+        artifact_sha256=str(manifest["artifact_sha256"]),
+        manifest=manifest,
+    )
+
+
+def write_stage_a_v2_accepted_artifacts(
+    report: Any,
+    templates: Sequence[dict[str, Any]],
+    pools: Mapping[str, Any],
+    *,
+    output_path: Path = DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
+    config_path: Path = DEFAULT_V2_ACCEPTED_CONFIG_PATH,
+    stats_path: Path = DEFAULT_V2_ACCEPTED_STATS_PATH,
+) -> StageAV2CandidateArtifacts:
+    """Atomically publish accepted outputs after all live gates pass."""
+    forbidden = {
+        V1_OUTPUT_PATH.resolve(),
+        DEFAULT_V2_CANDIDATE_OUTPUT_PATH.resolve(),
+        DEFAULT_V2_CANDIDATE_CONFIG_PATH.resolve(),
+        DEFAULT_V2_CANDIDATE_STATS_PATH.resolve(),
+    }
+    paths = tuple(path.resolve() for path in (output_path, config_path, stats_path))
+    if len(set(paths)) != 3 or set(paths) & forbidden:
+        raise StageAV2ArtifactError(
+            "Accepted Stage A v2 paths must be separate from prior artifacts"
+        )
+    manifest = build_stage_a_v2_accepted_manifest(report, templates, pools)
+    records = list(report.records)
+    accepted_stats = (
+        render_stage_a_v2_candidate_stats(records)
+        .replace(
+            "# GoogleSQL Stage A v2 Candidate Stats\n",
+            "# GoogleSQL Stage A v2 Accepted Stats\n",
+            1,
+        )
+        .replace(
+            "Lifecycle state: candidate\nAcceptance eligible: false",
+            "Lifecycle state: accepted\nAcceptance eligible: true",
+        )
+    )
+    contents = (
+        serialize_stage_a_v2_records(records),
+        (json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(),
+        accepted_stats.encode(),
     )
     temporary_paths: list[Path] = []
     try:

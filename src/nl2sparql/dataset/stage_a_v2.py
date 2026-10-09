@@ -93,10 +93,18 @@ def _variant_fill(
         fill["start_date"], fill["end_date"] = _count_windows(count)[index]
         return fill
     if template_id == "T_BLOCK_BY_NUMBER":
-        fill["block_number"] = int(fill["block_number"]) + index
+        entries = pools.get("block_number")
+        if entries is None:
+            fill["block_number"] = int(fill["block_number"]) + index
+        else:
+            fill["block_number"] = _provenance_pool_value(entries, "block_number", index)
     if template_id == "T_TX_BY_HASH":
-        digest = hashlib.sha256(f"stage-a-v2:{GENERATION_SEED}:{index}".encode()).hexdigest()
-        fill["transaction_hash"] = f"0x{digest}"
+        entries = pools.get("transaction_hash")
+        if entries is None:
+            digest = hashlib.sha256(f"stage-a-v2:{GENERATION_SEED}:{index}".encode()).hexdigest()
+            fill["transaction_hash"] = f"0x{digest}"
+        else:
+            fill["transaction_hash"] = _provenance_pool_value(entries, "transaction_hash", index)
 
     pool_period = 1
     for offset, name in enumerate(_pool_slot_names(template)):
@@ -112,6 +120,19 @@ def _variant_fill(
     if "n" in template["slots"]:
         fill["n"] = index // pool_period + 1
     return fill
+
+
+def _provenance_pool_value(entries: object, slot_type: str, index: int) -> object:
+    if not isinstance(entries, list) or index >= len(entries):
+        raise StageAV2GenerationError(
+            f"Stage A v2 {slot_type} pool requires one entry per allocated record"
+        )
+    entry = entries[index]
+    if not isinstance(entry, Mapping) or set(entry) != {"value", "source", "evidence"}:
+        raise StageAV2GenerationError(f"Invalid provenance entry in {slot_type} pool")
+    if not all(entry[field] for field in ("source", "evidence")):
+        raise StageAV2GenerationError(f"Empty provenance entry in {slot_type} pool")
+    return entry["value"]
 
 
 def _entities_used(
