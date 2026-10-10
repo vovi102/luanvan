@@ -102,15 +102,14 @@ candidate riêng đã được tạo để giải quyết coverage 16/25 intent:
 - `stats-v2-candidate.md`: SHA-256
   `3b0f445fd12da9712f71e05a9075fd165ed32fd4cd658e1953abaa3c95e23a55`.
 
-Các giá trị `block_number` và `transaction_hash` mới trong candidate chỉ là giá
-trị deterministic/syntax-only chưa được chứng minh bởi BigQuery. Vì vậy candidate
-không supersede acceptance của v1 và không được dùng để publish/audit corpus
-canonical. Live promotion phải nhận pool có provenance với ít nhất 45 block
-numbers và 45 transaction hashes unique, chạy toàn bộ BigQuery witness gate, rồi
-ghi ba artifact accepted riêng (`synthetic-stage-a-v2.jsonl`,
-`generation-config-v2.json`, `stats-v2.md`). Lần làm việc này không có pool,
-credential/quota hay quyền duyệt chi phí đó; không có BigQuery/provider call và
-không có accepted v2 artifact được tạo.
+Các giá trị `block_number` và `transaction_hash` trong candidate vẫn chỉ là giá
+trị deterministic/syntax-only; candidate không supersede acceptance của v1 và
+không được dùng để publish/audit corpus canonical. Pool promotion riêng hiện có
+45 block numbers và 45 transaction hashes unique với BigQuery provenance,
+SHA-256 `1bdbd40f5e5a31616ee537fe01a101642609c7afb07d52cd36e19af170334fc8`.
+Live promotion vẫn phải chạy toàn bộ witness gate rồi mới được ghi ba artifact
+accepted riêng (`synthetic-stage-a-v2.jsonl`, `generation-config-v2.json`,
+`stats-v2.md`).
 
 Candidate identity canonicalize thứ tự template, slot và value-pool entry. Vì
 vậy đảo thứ tự input không đổi bytes; hash ở trên thay thế hash candidate ban đầu
@@ -136,8 +135,34 @@ Stage A v2 live promotion (chỉ sau khi các evidence pool và quyền chạy �
 sàng):
 
 ```bash
-uv run python scripts/09_generate_stage_a_v2.py --live
+uv run python scripts/09_generate_stage_a_v2.py \
+  --live \
+  --value-pools data/dataset/raw/stage-a-v2-evidence-pools.json
 ```
+
+Stage A v2 dry-run-only approval boundary:
+
+```bash
+uv run python scripts/09_generate_stage_a_v2.py \
+  --preflight \
+  --value-pools data/dataset/raw/stage-a-v2-evidence-pools.json
+```
+
+## Stage A v2 batched preflight — 2026-10-10
+
+- Giữ nguyên 170 logical witnesses nhưng gom 45 `T_TX_BY_HASH` lookups vào một
+  physical query; measured plan có 126 physical queries.
+- Exact BigQuery dry-run estimate: `101.534.116.450` bytes (`94,561015 GiB`),
+  thấp hơn aggregate cap 96 GiB `1.545.098.654` bytes (`1,438985 GiB`).
+- Query lớn nhất là `T_BRIDGE_OUTFLOW_AFTER_EXCHANGE`, `15.851.661.328` bytes
+  (`14,763010 GiB`), thấp hơn per-query cap 20 GiB.
+- Gross on-demand estimate là khoảng `$0.577155` theo mức `$6.25/TiB`; chi phí
+  thực tế còn phụ thuộc monthly free tier và billed bytes. Dry-run không execute
+  query và không tạo accepted output.
+- Local verification: `1.639 passed`, Ruff format/check và `git diff --check`
+  pass; v1 và v2 candidate hashes giữ nguyên; cả ba accepted v2 output vẫn absent.
+- Live execution và accepted artifacts vẫn pending explicit approval. Không bắt
+  đầu bilingual audit, canonical build hoặc B1/B2 training ở trạng thái này.
 
 Live witness verification:
 

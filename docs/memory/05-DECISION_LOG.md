@@ -24,6 +24,30 @@
 
 ## Entries
 
+### 2026-10-10 — Batch physical queries nhưng giữ đủ logical witness của Stage A v2
+
+- **Context:** Exact preflight 170 query độc lập ước tính `119.135.658.992`
+  bytes, vượt cap 96 GiB; riêng 45 `T_TX_BY_HASH` scans lặp cùng daily partition.
+- **Options considered:** Tăng cap; hạ validation; materialize thêm table; hoặc
+  giữ 170 logical obligations nhưng gom exact hash lookups vào một bounded query.
+- **Decision:** Thêm deterministic logical-to-physical planner. V2 dùng 126
+  physical queries với một hash batch; v1 giữ default one-query-per-group. Mọi
+  physical query vẫn chịu cap 20 GiB, tổng vẫn chịu cap 96 GiB, cache bị cấm và
+  mỗi execution phải có immediate re-dry-run cùng SQL digest/membership.
+- **Rationale:** Loại scan trùng mà không giảm số proof, đổi acceptance threshold
+  hay sửa metadata bằng tay. Evidence graph nối đủ initial preflight → immediate
+  preflight → execution → 170 logical results → 1.000 records.
+- **Consequences:** Exact dry-run ngày 2026-10-10 đo `101.534.116.450` bytes
+  (`94,561015 GiB`), max query `15.851.661.328` bytes (`14,763010 GiB`), đều qua
+  cap. Gross on-demand estimate khoảng `$0.577155` ở `$6.25/TiB`; actual charge
+  phụ thuộc free tier/billed bytes. Đây chỉ là preflight: không execution, không
+  accepted artifact. Live vẫn chờ explicit approval; audit/build/training vẫn khóa.
+- **Revisit:** Sau khi user duyệt measured live run; nếu repeated preflight vượt
+  cap hoặc evidence graph fail thì dừng mà không publish.
+- **Linked:** `docs/superpowers/specs/2026-10-10-stage-a-v2-batch-verification-design.md`,
+  `scripts/09_generate_stage_a_v2.py`, `src/nl2sparql/dataset/stage_a/planning.py`,
+  `src/nl2sparql/dataset/stage_a/verify.py`.
+
 ### 2026-10-10 — Stage A v2 tách candidate 25 intent khỏi live acceptance
 
 - **Context:** Stage A v1 có genuine live evidence nhưng chỉ phủ 16/25 intent;
