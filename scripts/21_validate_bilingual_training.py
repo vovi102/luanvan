@@ -14,7 +14,8 @@ import click
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CATALOG = ROOT / "src/nl2sparql/dataset/bilingual/templates.json"
-DEFAULT_STAGE_A = ROOT / "data/dataset/raw/synthetic-stage-a.jsonl"
+DEFAULT_STAGE_A = ROOT / "data/dataset/raw/synthetic-stage-a-v2.jsonl"
+DEFAULT_STAGE_A_MANIFEST = ROOT / "data/dataset/raw/generation-config-v2.json"
 PRODUCTION_TEMPLATES = ROOT / "src/nl2sparql/dataset/templates/templates.json"
 
 
@@ -93,6 +94,11 @@ def _emit(value: dict[str, Any]) -> None:
 @click.option("--vietnamese-draft", type=click.Path(path_type=Path))
 @click.option("--exclusion-index", type=click.Path(path_type=Path))
 @click.option("--stage-a", type=click.Path(path_type=Path), default=DEFAULT_STAGE_A)
+@click.option(
+    "--stage-a-manifest",
+    type=click.Path(path_type=Path),
+    default=DEFAULT_STAGE_A_MANIFEST,
+)
 @click.option("--output", type=click.Path(path_type=Path))
 @click.option("--manifest", type=click.Path(path_type=Path))
 @click.option("--audit", type=click.Path(path_type=Path))
@@ -103,6 +109,7 @@ def main(
     vietnamese_draft: Path | None,
     exclusion_index: Path | None,
     stage_a: Path,
+    stage_a_manifest: Path,
     output: Path | None,
     manifest: Path | None,
     audit: Path | None,
@@ -169,6 +176,7 @@ def main(
         from nl2sparql.dataset.bilingual.assembly import (
             assign_group_splits,
             validate_artifacts,
+            validate_stage_a_source,
         )
         from nl2sparql.dataset.bilingual.contracts import SplitConfig, load_catalog
         from nl2sparql.dataset.bilingual.rendering import expand_stage_a
@@ -176,6 +184,12 @@ def main(
         templates = _load_production_templates()
         loaded_catalog = load_catalog(catalog, templates)
         stage_a_bytes, stage_a_rows = _object_jsonl(stage_a, "Stage A")
+        stage_a_manifest_bytes = stage_a_manifest.read_bytes()
+        validate_stage_a_source(
+            stage_a_bytes,
+            stage_a_manifest_bytes,
+            require_accepted=True,
+        )
         split_config = SplitConfig(seed=42, development_percent=10)
         expected_records = assign_group_splits(
             expand_stage_a(stage_a_rows, loaded_catalog, templates), split_config
@@ -187,6 +201,7 @@ def main(
             audit_bytes=audit.read_bytes(),
             exclusion_index_bytes=exclusion_index.read_bytes(),
             stage_a_bytes=stage_a_bytes,
+            stage_a_manifest_bytes=stage_a_manifest_bytes,
             catalog_bytes=catalog.read_bytes(),
             split_config=split_config,
             expected_records=expected_records,

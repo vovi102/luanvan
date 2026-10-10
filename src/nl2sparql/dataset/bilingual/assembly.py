@@ -73,6 +73,60 @@ class ValidationReport:
     passed: bool
 
 
+@dataclass(frozen=True, slots=True)
+class StageASourceEvidence:
+    lifecycle_state: str
+    acceptance_eligible: bool
+    artifact_sha256: str
+
+
+def validate_stage_a_source(
+    stage_a_bytes: bytes,
+    manifest_bytes: bytes,
+    *,
+    require_accepted: bool,
+) -> StageASourceEvidence:
+    """Bind Stage A bytes to their v2 lifecycle evidence."""
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise AssemblyValidationError("Stage A source manifest is not valid JSON") from exc
+    if not isinstance(manifest, dict) or manifest.get("version") != 2:
+        raise AssemblyValidationError("Stage A source manifest must use version 2")
+    lifecycle_state = manifest.get("lifecycle_state")
+    acceptance_eligible = manifest.get("acceptance_eligible")
+    verification_mode = manifest.get("verification_mode")
+    artifact_sha256 = manifest.get("artifact_sha256")
+    if lifecycle_state not in {"candidate", "accepted"}:
+        raise AssemblyValidationError("Stage A source lifecycle state is invalid")
+    if type(acceptance_eligible) is not bool:  # noqa: E721 - integer is invalid evidence
+        raise AssemblyValidationError("Stage A acceptance_eligible must be a boolean")
+    if not isinstance(artifact_sha256, str) or not _SHA256_RE.fullmatch(artifact_sha256):
+        raise AssemblyValidationError("Stage A source artifact digest is invalid")
+    if artifact_sha256 != _sha256(stage_a_bytes):
+        raise AssemblyValidationError("Stage A source artifact digest does not match")
+    if manifest.get("record_count") != 1000 or manifest.get("represented_intent_count") != 25:
+        raise AssemblyValidationError("Stage A v2 source must contain 1000 records and 25 intents")
+    if lifecycle_state == "candidate" and (
+        acceptance_eligible is not False or verification_mode != "offline_candidates"
+    ):
+        raise AssemblyValidationError("Stage A candidate lifecycle evidence is inconsistent")
+    if lifecycle_state == "accepted" and (
+        acceptance_eligible is not True
+        or verification_mode != "live_witness"
+        or manifest.get("verified_record_count") != 1000
+        or manifest.get("cache_hit_count") != 0
+    ):
+        raise AssemblyValidationError("Accepted Stage A v2 live evidence is incomplete")
+    if require_accepted and lifecycle_state != "accepted":
+        raise AssemblyValidationError("operation requires accepted Stage A v2 evidence")
+    return StageASourceEvidence(
+        lifecycle_state=lifecycle_state,
+        acceptance_eligible=acceptance_eligible,
+        artifact_sha256=artifact_sha256,
+    )
+
+
 def _canonical_json(value: object) -> bytes:
     return json.dumps(
         value,
@@ -495,6 +549,7 @@ def build_manifest(
     *,
     output_bytes: bytes,
     stage_a_bytes: bytes,
+    stage_a_manifest_bytes: bytes,
     catalog_bytes: bytes,
     split_config: SplitConfig,
     diversity: object,
@@ -504,6 +559,7 @@ def build_manifest(
     exclusion_index: ExclusionIndex,
 ) -> dict[str, object]:
     """Build a deterministic manifest with honest zero-call provenance."""
+    validate_stage_a_source(stage_a_bytes, stage_a_manifest_bytes, require_accepted=True)
     if len(records) != 8000:
         raise AssemblyValidationError("manifest requires exactly 8000 clean records")
     if {summary.language for summary in audit_summaries} != {"en", "vi"}:
@@ -533,6 +589,7 @@ def build_manifest(
         },
         "sources": {
             "stage_a_sha256": _sha256(stage_a_bytes),
+            "stage_a_manifest_sha256": _sha256(stage_a_manifest_bytes),
             "catalog_sha256": _sha256(catalog_bytes),
             "split_config_sha256": _sha256(_canonical_json(asdict(split_config))),
             "exclusion_index_sha256": exclusion_index.index_sha256,
@@ -654,11 +711,13 @@ def validate_artifacts(
     audit_bytes: bytes,
     exclusion_index_bytes: bytes,
     stage_a_bytes: bytes,
+    stage_a_manifest_bytes: bytes,
     catalog_bytes: bytes,
     split_config: SplitConfig,
     expected_records: tuple[ExpandedTrainingRecord, ...],
 ) -> ValidationReport:
     """Recompute source equality, hashes, quality, split, leakage, and audit gates."""
+    validate_stage_a_source(stage_a_bytes, stage_a_manifest_bytes, require_accepted=True)
     manifest = _load_manifest(manifest_bytes)
     exclusion = load_exclusion_index(exclusion_index_bytes)
     rows = _load_json_lines(output_bytes, "training artifact")
@@ -691,6 +750,7 @@ def validate_artifacts(
     sources = cast(dict[str, object], manifest["sources"])
     expected_sources = {
         "stage_a_sha256": _sha256(stage_a_bytes),
+        "stage_a_manifest_sha256": _sha256(stage_a_manifest_bytes),
         "catalog_sha256": _sha256(catalog_bytes),
         "split_config_sha256": _sha256(_canonical_json(asdict(split_config))),
         "exclusion_index_sha256": exclusion.index_sha256,

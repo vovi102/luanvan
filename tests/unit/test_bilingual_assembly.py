@@ -26,6 +26,7 @@ from nl2sparql.dataset.bilingual.assembly import (
     validate_audit,
     validate_audit_evidence,
     validate_no_leakage,
+    validate_stage_a_source,
 )
 from nl2sparql.dataset.bilingual.contracts import (
     AUDIT_SCHEMA_VERSION,
@@ -472,6 +473,67 @@ def test_combined_audit_uses_final_post_split_record_digests() -> None:
         validate_audit_evidence(duplicate_across_languages, records=records, seed=42)
 
 
+def test_stage_a_source_gate_distinguishes_candidate_and_accepted_bytes() -> None:
+    stage_a_bytes = b'{"id":"candidate"}\n'
+    digest = hashlib.sha256(stage_a_bytes).hexdigest()
+    candidate = {
+        "version": 2,
+        "lifecycle_state": "candidate",
+        "acceptance_eligible": False,
+        "verification_mode": "offline_candidates",
+        "record_count": 1000,
+        "represented_intent_count": 25,
+        "artifact_sha256": digest,
+    }
+
+    evidence = validate_stage_a_source(
+        stage_a_bytes, json.dumps(candidate).encode(), require_accepted=False
+    )
+    assert evidence.lifecycle_state == "candidate"
+    assert evidence.acceptance_eligible is False
+
+    with pytest.raises(AssemblyValidationError, match="accepted Stage A v2"):
+        validate_stage_a_source(
+            stage_a_bytes, json.dumps(candidate).encode(), require_accepted=True
+        )
+
+    accepted = {
+        **candidate,
+        "lifecycle_state": "accepted",
+        "acceptance_eligible": True,
+        "verification_mode": "live_witness",
+        "verified_record_count": 1000,
+        "cache_hit_count": 0,
+    }
+    evidence = validate_stage_a_source(
+        stage_a_bytes, json.dumps(accepted).encode(), require_accepted=True
+    )
+    assert evidence.lifecycle_state == "accepted"
+    assert evidence.artifact_sha256 == digest
+
+    accepted["artifact_sha256"] = "0" * 64
+    with pytest.raises(AssemblyValidationError, match="digest"):
+        validate_stage_a_source(stage_a_bytes, json.dumps(accepted).encode(), require_accepted=True)
+
+
+def test_combined_audit_rejects_pre_split_record_digests() -> None:
+    unsplit = _family_records(25)
+    assigned = assign_group_splits(unsplit, SplitConfig())
+    unsplit_by_id = {record.id: record for record in unsplit}
+    events: list[AuditEvent] = []
+    offset = 0
+    for language in ("en", "vi"):
+        sample_ids = select_audit_sample(assigned, language, seed=42)
+        events.extend(
+            _audit_event(unsplit_by_id[record_id], offset + index)
+            for index, record_id in enumerate(sample_ids)
+        )
+        offset += 100
+
+    with pytest.raises(AssemblyValidationError, match="record digest"):
+        validate_audit_evidence(events, records=assigned, seed=42)
+
+
 @pytest.fixture(scope="module")
 def artifact_bundle():
     records = assign_group_splits(_family_records(1000), SplitConfig())
@@ -511,12 +573,27 @@ def artifact_bundle():
     diversity = diversity_report(records)
     leakage = validate_no_leakage(records, exclusion)
     stage_a_bytes = b"accepted-stage-a-fixture\n"
+    stage_a_manifest_bytes = json.dumps(
+        {
+            "version": 2,
+            "lifecycle_state": "accepted",
+            "acceptance_eligible": True,
+            "verification_mode": "live_witness",
+            "record_count": 1000,
+            "represented_intent_count": 25,
+            "verified_record_count": 1000,
+            "cache_hit_count": 0,
+            "artifact_sha256": _sha(stage_a_bytes),
+        },
+        sort_keys=True,
+    ).encode()
     catalog_bytes = b'{"catalog":"fixture"}\n'
     config = SplitConfig()
     manifest = build_manifest(
         records,
         output_bytes=output_bytes,
         stage_a_bytes=stage_a_bytes,
+        stage_a_manifest_bytes=stage_a_manifest_bytes,
         catalog_bytes=catalog_bytes,
         split_config=config,
         diversity=diversity,
@@ -533,6 +610,7 @@ def artifact_bundle():
         "audit": audit_bytes,
         "exclusion": exclusion_bytes,
         "stage_a": stage_a_bytes,
+        "stage_a_manifest": stage_a_manifest_bytes,
         "catalog": catalog_bytes,
         "config": config,
         "manifest": manifest,
@@ -574,6 +652,9 @@ def test_manifest_records_exact_counts_hashes_quality_and_honest_provenance(
         "vi",
     }
     assert manifest["sources"]["audit_sha256"] == _sha(artifact_bundle["audit"])
+    assert manifest["sources"]["stage_a_manifest_sha256"] == _sha(
+        artifact_bundle["stage_a_manifest"]
+    )
     assert (
         manifest["sources"]["exclusion_index_sha256"]
         == json.loads(artifact_bundle["exclusion"])["index_sha256"]
@@ -598,6 +679,7 @@ def test_artifact_validation_recomputes_hashes_counts_leakage_and_audits(
         audit_bytes=artifact_bundle["audit"],
         exclusion_index_bytes=artifact_bundle["exclusion"],
         stage_a_bytes=artifact_bundle["stage_a"],
+        stage_a_manifest_bytes=artifact_bundle["stage_a_manifest"],
         catalog_bytes=artifact_bundle["catalog"],
         split_config=artifact_bundle["config"],
         expected_records=artifact_bundle["records"],
@@ -618,6 +700,7 @@ def test_artifact_validation_rejects_tampered_bytes(artifact_bundle, field: str)
         "audit_bytes": artifact_bundle["audit"],
         "exclusion_index_bytes": artifact_bundle["exclusion"],
         "stage_a_bytes": artifact_bundle["stage_a"],
+        "stage_a_manifest_bytes": artifact_bundle["stage_a_manifest"],
         "catalog_bytes": artifact_bundle["catalog"],
         "split_config": artifact_bundle["config"],
         "expected_records": artifact_bundle["records"],
@@ -648,6 +731,7 @@ def test_artifact_validation_rejects_self_consistent_semantic_row_tampering(
             audit_bytes=artifact_bundle["audit"],
             exclusion_index_bytes=artifact_bundle["exclusion"],
             stage_a_bytes=artifact_bundle["stage_a"],
+            stage_a_manifest_bytes=artifact_bundle["stage_a_manifest"],
             catalog_bytes=artifact_bundle["catalog"],
             split_config=artifact_bundle["config"],
             expected_records=artifact_bundle["records"],
