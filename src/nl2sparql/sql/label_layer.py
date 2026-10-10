@@ -24,11 +24,11 @@ from nl2sparql.linking.dictionary.schema import (
     validate_source_revision,
 )
 from nl2sparql.linking.dictionary.validate import validate_artifacts
+from nl2sparql.sql.constants import DEFAULT_LOCATION
 
 LABEL_SNAPSHOT_PREFIX = "entity_labels_snapshot_"
 LABEL_ROLES = ("operational", "token", "treasury")
 DEFAULT_DATASET = "nl2sparql_analytics"
-DEFAULT_LOCATION = "US"
 DEFAULT_MAXIMUM_BYTES_BILLED = 53_687_091_200
 SANDBOX_DEFAULT_EXPIRATION_MS = 5_184_000_000
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 import builtins
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -67,3 +69,38 @@ def test_live_cli_rejects_default_candidate_values_before_provider_import(monkey
 
     assert result.exit_code != 0
     assert "evidence-backed" in result.output
+
+
+def test_offline_cli_blocks_google_imports_in_a_fresh_process(tmp_path: Path) -> None:
+    targets = tuple(tmp_path / name for name in ("candidate.jsonl", "manifest.json", "stats.md"))
+    guard = """
+import importlib.abc
+import runpy
+import sys
+
+class BlockGoogle(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'google' or fullname.startswith('google.'):
+            raise AssertionError(f'offline import: {fullname}')
+        return None
+
+sys.meta_path.insert(0, BlockGoogle())
+sys.argv = [
+    'scripts/09_generate_stage_a_v2.py',
+    '--output', sys.argv[1],
+    '--config', sys.argv[2],
+    '--stats', sys.argv[3],
+]
+runpy.run_path('scripts/09_generate_stage_a_v2.py', run_name='__main__')
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", guard, *(str(path) for path in targets)],
+        cwd=Path(__file__).parents[2],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert all(path.exists() for path in targets)

@@ -29,6 +29,11 @@ from nl2sparql.dataset.bilingual.contracts import (
     SplitConfig,
 )
 from nl2sparql.dataset.paraphrase.quality import normalize_question
+from nl2sparql.dataset.stage_a.v2_artifacts import (
+    StageAV2ArtifactError,
+    validate_stage_a_v2_source_evidence,
+)
+from nl2sparql.dataset.templates import load_templates
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _EXCLUSION_FIELDS = frozenset(
@@ -93,37 +98,19 @@ def validate_stage_a_source(
         raise AssemblyValidationError("Stage A source manifest is not valid JSON") from exc
     if not isinstance(manifest, dict) or manifest.get("version") != 2:
         raise AssemblyValidationError("Stage A source manifest must use version 2")
+    try:
+        validate_stage_a_v2_source_evidence(stage_a_bytes, manifest, load_templates())
+    except StageAV2ArtifactError as exc:
+        raise AssemblyValidationError(str(exc)) from exc
     lifecycle_state = manifest.get("lifecycle_state")
     acceptance_eligible = manifest.get("acceptance_eligible")
-    verification_mode = manifest.get("verification_mode")
     artifact_sha256 = manifest.get("artifact_sha256")
-    if lifecycle_state not in {"candidate", "accepted"}:
-        raise AssemblyValidationError("Stage A source lifecycle state is invalid")
-    if type(acceptance_eligible) is not bool:  # noqa: E721 - integer is invalid evidence
-        raise AssemblyValidationError("Stage A acceptance_eligible must be a boolean")
-    if not isinstance(artifact_sha256, str) or not _SHA256_RE.fullmatch(artifact_sha256):
-        raise AssemblyValidationError("Stage A source artifact digest is invalid")
-    if artifact_sha256 != _sha256(stage_a_bytes):
-        raise AssemblyValidationError("Stage A source artifact digest does not match")
-    if manifest.get("record_count") != 1000 or manifest.get("represented_intent_count") != 25:
-        raise AssemblyValidationError("Stage A v2 source must contain 1000 records and 25 intents")
-    if lifecycle_state == "candidate" and (
-        acceptance_eligible is not False or verification_mode != "offline_candidates"
-    ):
-        raise AssemblyValidationError("Stage A candidate lifecycle evidence is inconsistent")
-    if lifecycle_state == "accepted" and (
-        acceptance_eligible is not True
-        or verification_mode != "live_witness"
-        or manifest.get("verified_record_count") != 1000
-        or manifest.get("cache_hit_count") != 0
-    ):
-        raise AssemblyValidationError("Accepted Stage A v2 live evidence is incomplete")
     if require_accepted and lifecycle_state != "accepted":
         raise AssemblyValidationError("operation requires accepted Stage A v2 evidence")
     return StageASourceEvidence(
-        lifecycle_state=lifecycle_state,
-        acceptance_eligible=acceptance_eligible,
-        artifact_sha256=artifact_sha256,
+        lifecycle_state=cast(str, lifecycle_state),
+        acceptance_eligible=cast(bool, acceptance_eligible),
+        artifact_sha256=cast(str, artifact_sha256),
     )
 
 

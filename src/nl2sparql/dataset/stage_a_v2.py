@@ -77,11 +77,19 @@ def _count_windows(count: int) -> list[tuple[str, str]]:
 
 
 def _pool_slot_names(template: Mapping[str, Any]) -> list[str]:
-    return [
+    return sorted(
         name
         for name, definition in template["slots"].items()
         if definition["type"] in {"ethereum_address", "token_symbol"}
-    ]
+    )
+
+
+def canonicalize_stage_a_v2_pools(pools: Mapping[str, Any]) -> dict[str, Any]:
+    """Return pool data whose list order cannot affect v2 identity."""
+    canonical: dict[str, Any] = {}
+    for key, value in pools.items():
+        canonical[key] = sorted(value, key=_canonical_json) if isinstance(value, list) else value
+    return canonical
 
 
 def _variant_fill(
@@ -140,7 +148,7 @@ def _entities_used(
 ) -> list[dict[str, Any]]:
     return [
         {"slot": name, "type": definition["type"], "value": slot_values[name]}
-        for name, definition in template["slots"].items()
+        for name, definition in sorted(template["slots"].items())
         if definition["type"] in ENTITY_SLOT_TYPES
     ]
 
@@ -177,12 +185,13 @@ def generate_stage_a_v2_records(
     if set(templates_by_id) != set(V2_TEMPLATE_ALLOCATION):
         raise StageAV2GenerationError("Stage A v2 allocation must cover all production templates")
 
+    canonical_pools = canonicalize_stage_a_v2_pools(pools)
     records: list[dict[str, Any]] = []
     for template_id, count in V2_TEMPLATE_ALLOCATION.items():
         template = templates_by_id[template_id]
         template_sha256 = _sha256(template)
         for index in range(count):
-            slot_values = _variant_fill(template, index, count, pools)
+            slot_values = _variant_fill(template, index, count, canonical_pools)
             record: dict[str, Any] = {
                 "id": f"syn-v2-{len(records):06d}",
                 "template_id": template_id,

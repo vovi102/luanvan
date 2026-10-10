@@ -42,7 +42,7 @@
   kiểm thử coverage/reproducibility offline mà không biến dữ liệu cú pháp thành
   bằng chứng thực nghiệm.
 - **Consequences:** Candidate data SHA-256 là
-  `8ae539c7b508e4d9ed3e9dd69f377be61817b1b6fe8dbf107b4a7243e5694629`;
+  `4746f68642913e0c40a0d19817cf0e4bf556f46d3ba1777a611f903e062e6561`;
   offline expansion đạt 8.000 rows. Không có credential/provider call, chi phí,
   accepted v2, audit decisions hay canonical bilingual artifact trong lần này.
   Catalog sửa một VI abbreviated pattern của `T_TX_BY_HASH` để loại collision

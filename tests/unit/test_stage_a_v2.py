@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from collections import Counter
@@ -99,6 +100,25 @@ def test_v2_generation_is_stable_under_template_input_order(
     assert reordered == records
     assert serialize_stage_a_v2_records(reordered) == serialize_stage_a_v2_records(records)
     assert serialize_stage_a_v2_records(records).endswith(b"\n")
+
+
+def test_v2_generation_is_stable_under_pool_and_slot_input_order(
+    records: list[dict[str, object]],
+    templates: list[dict[str, object]],
+    pools: dict[str, object],
+) -> None:
+    reordered_pools = copy.deepcopy(pools)
+    for key, entries in reordered_pools.items():
+        if isinstance(entries, list):
+            reordered_pools[key] = list(reversed(entries))
+    reordered_templates = copy.deepcopy(templates)
+    for template in reordered_templates:
+        template["slots"] = dict(reversed(list(template["slots"].items())))
+
+    reordered = generate_stage_a_v2_records(reordered_templates, reordered_pools)
+
+    assert reordered == records
+    assert serialize_stage_a_v2_records(reordered) == serialize_stage_a_v2_records(records)
 
 
 def test_v2_candidate_varies_data_bound_hash_and_block_slots(

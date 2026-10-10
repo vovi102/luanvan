@@ -28,7 +28,7 @@ from nl2sparql.dataset.stage_a_v2 import (
     generate_stage_a_v2_records,
 )
 from nl2sparql.dataset.templates import load_templates
-from nl2sparql.sql.label_layer import DEFAULT_LOCATION
+from nl2sparql.sql.constants import DEFAULT_LOCATION
 
 DEFAULT_PROJECT = "nl2sparql-thesis"
 

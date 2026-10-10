@@ -5,6 +5,7 @@ import json
 from collections import Counter, defaultdict
 from dataclasses import asdict, replace
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 import pytest
@@ -40,11 +41,108 @@ from nl2sparql.dataset.bilingual.rendering import (
     expanded_record_digest,
     serialize_records,
 )
+from nl2sparql.dataset.generate import load_value_pools
 from nl2sparql.dataset.paraphrase.quality import normalize_question
+from nl2sparql.dataset.stage_a.evidence import (
+    StageAVerificationReport,
+    WitnessDryRun,
+    WitnessExecution,
+    WitnessPreflight,
+    build_witness_groups,
+)
+from nl2sparql.dataset.stage_a.v2_artifacts import build_stage_a_v2_accepted_manifest
+from nl2sparql.dataset.stage_a_v2 import (
+    generate_stage_a_v2_records,
+    serialize_stage_a_v2_records,
+)
+from nl2sparql.dataset.templates import load_templates
 
 
 def _sha(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+@lru_cache(maxsize=1)
+def _accepted_stage_a_fixture() -> tuple[bytes, bytes]:
+    templates = load_templates()
+    pools = load_value_pools()
+    pools["block_number"] = [
+        {"value": 10_000_000 + index, "source": "BigQuery", "evidence": f"block-{index}"}
+        for index in range(45)
+    ]
+    pools["transaction_hash"] = [
+        {
+            "value": "0x" + f"{index:064x}",
+            "source": "BigQuery",
+            "evidence": f"transaction-{index}",
+        }
+        for index in range(45)
+    ]
+    records = generate_stage_a_v2_records(templates, pools)
+    groups = build_witness_groups(records)
+    templates_by_id = {template["id"]: template for template in templates}
+    executions = tuple(
+        WitnessExecution(
+            group_id=group.group_id,
+            template_id=group.template_id,
+            witness_record_id=group.witness_record_id,
+            row_count=1,
+            columns=tuple(templates_by_id[group.template_id]["expected_columns"]),
+            estimated_bytes=10,
+            processed_bytes=10,
+            billed_bytes=10,
+            wall_latency_ms=1.0,
+            server_latency_ms=0.5,
+            slot_millis=1,
+            cache_hit=False,
+        )
+        for group in groups
+    )
+    groups_by_id = {group.group_id: group for group in groups}
+    verified_records = []
+    for candidate in records:
+        record = dict(candidate)
+        group = groups_by_id[record["witness_group_id"]]
+        record["verification"] = {
+            "mode": (
+                "live_exact" if record["id"] == group.witness_record_id else "live_limit_monotonic"
+            ),
+            "non_empty": True,
+            "witness_group_id": group.group_id,
+            "witness_record_id": group.witness_record_id,
+            "witness_row_count": 1,
+            "estimated_bytes": 10,
+            "processed_bytes": 10,
+            "billed_bytes": 10,
+            "wall_latency_ms": 1.0,
+            "server_latency_ms": 0.5,
+            "slot_millis": 1,
+            "cache_hit": False,
+            "verified_at": "2026-10-09T12:00:00+00:00",
+        }
+        verified_records.append(record)
+    dry_runs = tuple(
+        WitnessDryRun(
+            group_id=group.group_id,
+            template_id=group.template_id,
+            witness_record_id=group.witness_record_id,
+            estimated_bytes=10,
+        )
+        for group in groups
+    )
+    report = StageAVerificationReport(
+        preflight=WitnessPreflight(
+            witnesses=dry_runs,
+            total_estimated_bytes=10 * len(dry_runs),
+        ),
+        witnesses=executions,
+        records=tuple(verified_records),
+    )
+    manifest = build_stage_a_v2_accepted_manifest(report, templates, pools)
+    return (
+        serialize_stage_a_v2_records(verified_records),
+        (json.dumps(manifest, sort_keys=True) + "\n").encode(),
+    )
 
 
 def _record(
@@ -474,46 +572,28 @@ def test_combined_audit_uses_final_post_split_record_digests() -> None:
 
 
 def test_stage_a_source_gate_distinguishes_candidate_and_accepted_bytes() -> None:
-    stage_a_bytes = b'{"id":"candidate"}\n'
-    digest = hashlib.sha256(stage_a_bytes).hexdigest()
-    candidate = {
-        "version": 2,
-        "lifecycle_state": "candidate",
-        "acceptance_eligible": False,
-        "verification_mode": "offline_candidates",
-        "record_count": 1000,
-        "represented_intent_count": 25,
-        "artifact_sha256": digest,
-    }
+    root = Path(__file__).parents[2]
+    stage_a_bytes = (root / "data/dataset/raw/synthetic-stage-a-v2-candidate.jsonl").read_bytes()
+    candidate_bytes = (root / "data/dataset/raw/generation-config-v2-candidate.json").read_bytes()
 
-    evidence = validate_stage_a_source(
-        stage_a_bytes, json.dumps(candidate).encode(), require_accepted=False
-    )
+    evidence = validate_stage_a_source(stage_a_bytes, candidate_bytes, require_accepted=False)
     assert evidence.lifecycle_state == "candidate"
     assert evidence.acceptance_eligible is False
 
     with pytest.raises(AssemblyValidationError, match="accepted Stage A v2"):
-        validate_stage_a_source(
-            stage_a_bytes, json.dumps(candidate).encode(), require_accepted=True
-        )
+        validate_stage_a_source(stage_a_bytes, candidate_bytes, require_accepted=True)
 
-    accepted = {
-        **candidate,
-        "lifecycle_state": "accepted",
-        "acceptance_eligible": True,
-        "verification_mode": "live_witness",
-        "verified_record_count": 1000,
-        "cache_hit_count": 0,
-    }
-    evidence = validate_stage_a_source(
-        stage_a_bytes, json.dumps(accepted).encode(), require_accepted=True
-    )
+    accepted_stage_a, accepted_manifest = _accepted_stage_a_fixture()
+    evidence = validate_stage_a_source(accepted_stage_a, accepted_manifest, require_accepted=True)
     assert evidence.lifecycle_state == "accepted"
-    assert evidence.artifact_sha256 == digest
+    assert evidence.artifact_sha256 == _sha(accepted_stage_a)
 
+    accepted = json.loads(accepted_manifest)
     accepted["artifact_sha256"] = "0" * 64
     with pytest.raises(AssemblyValidationError, match="digest"):
-        validate_stage_a_source(stage_a_bytes, json.dumps(accepted).encode(), require_accepted=True)
+        validate_stage_a_source(
+            accepted_stage_a, json.dumps(accepted).encode(), require_accepted=True
+        )
 
 
 def test_combined_audit_rejects_pre_split_record_digests() -> None:
@@ -572,21 +652,7 @@ def artifact_bundle():
     exclusion_bytes = serialize_exclusion_index(exclusion)
     diversity = diversity_report(records)
     leakage = validate_no_leakage(records, exclusion)
-    stage_a_bytes = b"accepted-stage-a-fixture\n"
-    stage_a_manifest_bytes = json.dumps(
-        {
-            "version": 2,
-            "lifecycle_state": "accepted",
-            "acceptance_eligible": True,
-            "verification_mode": "live_witness",
-            "record_count": 1000,
-            "represented_intent_count": 25,
-            "verified_record_count": 1000,
-            "cache_hit_count": 0,
-            "artifact_sha256": _sha(stage_a_bytes),
-        },
-        sort_keys=True,
-    ).encode()
+    stage_a_bytes, stage_a_manifest_bytes = _accepted_stage_a_fixture()
     catalog_bytes = b'{"catalog":"fixture"}\n'
     config = SplitConfig()
     manifest = build_manifest(

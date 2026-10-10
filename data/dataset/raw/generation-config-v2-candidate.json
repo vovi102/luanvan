@@ -1,6 +1,6 @@
 {
   "acceptance_eligible": false,
-  "artifact_sha256": "8ae539c7b508e4d9ed3e9dd69f377be61817b1b6fe8dbf107b4a7243e5694629",
+  "artifact_sha256": "4746f68642913e0c40a0d19817cf0e4bf556f46d3ba1777a611f903e062e6561",
   "candidate_value_derivation": {
     "block_number": "deterministic_offset_unverified",
     "transaction_hash": "sha256_syntax_only_unverified"
@@ -46,8 +46,8 @@
     "T_TX_BY_HOUR": 41,
     "T_TX_GROUPED_BY_OWNER": 41
   },
-  "template_library_sha256": "2fddc5aaf5c209bde118fbdff27c9e4e35b97a8bd381177817e92d0f69342539",
-  "value_pools_sha256": "9e8238537db330cac375ab11e979e1aece8f671e1f42dd3a65314326f5a97463",
+  "template_library_sha256": "016cffcb5470635320ba7bbf5ec4068ee9503422d74368a1799a9ef8aab1c4d6",
+  "value_pools_sha256": "ed2ea6987eb7e20fed5f97ed85b13ae176e913ea05c76c1cc8ca79bbcd3c01b1",
   "verification_mode": "offline_candidates",
   "version": 2
 }

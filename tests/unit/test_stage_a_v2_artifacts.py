@@ -5,12 +5,20 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from nl2sparql.dataset.generate import load_value_pools
+from nl2sparql.dataset.stage_a.evidence import (
+    StageAVerificationReport,
+    WitnessDryRun,
+    WitnessExecution,
+    WitnessPreflight,
+    build_witness_groups,
+)
 from nl2sparql.dataset.stage_a.v2_artifacts import (
     DEFAULT_V2_ACCEPTED_CONFIG_PATH,
     DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
@@ -39,12 +47,35 @@ def _sha256(path: Path) -> str:
 
 def _fake_live_report(candidates: list[dict[str, object]]):
     records = copy.deepcopy(candidates)
+    groups = build_witness_groups(records)
+    templates_by_id = {template["id"]: template for template in load_templates()}
+    executions = tuple(
+        WitnessExecution(
+            group_id=group.group_id,
+            template_id=group.template_id,
+            witness_record_id=group.witness_record_id,
+            row_count=1,
+            columns=tuple(templates_by_id[group.template_id]["expected_columns"]),
+            estimated_bytes=10,
+            processed_bytes=10,
+            billed_bytes=10,
+            wall_latency_ms=1.0,
+            server_latency_ms=0.5,
+            slot_millis=1,
+            cache_hit=False,
+        )
+        for group in groups
+    )
+    groups_by_id = {group.group_id: group for group in groups}
     for record in records:
+        group = groups_by_id[record["witness_group_id"]]
         record["verification"] = {
-            "mode": "live_exact",
+            "mode": (
+                "live_exact" if record["id"] == group.witness_record_id else "live_limit_monotonic"
+            ),
             "non_empty": True,
             "witness_group_id": record["witness_group_id"],
-            "witness_record_id": record["id"],
+            "witness_record_id": group.witness_record_id,
             "witness_row_count": 1,
             "estimated_bytes": 10,
             "processed_bytes": 10,
@@ -55,17 +86,22 @@ def _fake_live_report(candidates: list[dict[str, object]]):
             "cache_hit": False,
             "verified_at": "2026-10-09T12:00:00+00:00",
         }
-    witness = SimpleNamespace(
-        processed_bytes=10,
-        billed_bytes=10,
-        wall_latency_ms=1.0,
-        cache_hit=False,
+    preflight_witnesses = tuple(
+        WitnessDryRun(
+            group_id=group.group_id,
+            template_id=group.template_id,
+            witness_record_id=group.witness_record_id,
+            estimated_bytes=10,
+        )
+        for group in groups
     )
-    return SimpleNamespace(
-        all_passed=True,
+    return StageAVerificationReport(
+        preflight=WitnessPreflight(
+            witnesses=preflight_witnesses,
+            total_estimated_bytes=10 * len(preflight_witnesses),
+        ),
+        witnesses=executions,
         records=tuple(records),
-        witnesses=(witness,),
-        preflight=SimpleNamespace(total_estimated_bytes=10),
     )
 
 
@@ -205,6 +241,72 @@ def test_accepted_artifacts_require_live_report_and_evidence_backed_values(
 
     with pytest.raises(StageAV2ArtifactError, match="evidence-backed"):
         build_stage_a_v2_accepted_manifest(report, templates, pools)
+
+
+def test_accepted_manifest_rejects_fabricated_or_incomplete_reports(inputs) -> None:
+    templates, pools, _ = inputs
+    live_pools = _live_pools(pools)
+    records = generate_stage_a_v2_records(templates, live_pools)
+    complete = _fake_live_report(records)
+
+    forged = SimpleNamespace(
+        all_passed=True,
+        records=complete.records,
+        witnesses=complete.witnesses,
+        preflight=complete.preflight,
+    )
+    with pytest.raises(StageAV2ArtifactError, match="StageAVerificationReport"):
+        build_stage_a_v2_accepted_manifest(forged, templates, live_pools)
+
+    incomplete = replace(complete, witnesses=complete.witnesses[:-1])
+    with pytest.raises(StageAV2ArtifactError, match="complete witness evidence"):
+        build_stage_a_v2_accepted_manifest(incomplete, templates, live_pools)
+
+
+@pytest.mark.parametrize(
+    "protected_path",
+    [
+        V1_ARTIFACT,
+        V1_CONFIG,
+        V1_STATS,
+        DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
+        DEFAULT_V2_ACCEPTED_CONFIG_PATH,
+        DEFAULT_V2_ACCEPTED_STATS_PATH,
+    ],
+)
+def test_candidate_writer_rejects_every_cross_lifecycle_path(
+    protected_path: Path, tmp_path: Path, inputs
+) -> None:
+    templates, pools, records = inputs
+    alias = tmp_path / "protected-alias"
+    alias.symlink_to(protected_path.resolve())
+    with pytest.raises(StageAV2ArtifactError, match="lifecycle"):
+        write_stage_a_v2_candidate_artifacts(
+            records,
+            templates,
+            pools,
+            output_path=alias,
+            config_path=tmp_path / "config.json",
+            stats_path=tmp_path / "stats.md",
+        )
+
+
+@pytest.mark.parametrize("protected_path", [V1_ARTIFACT, V1_CONFIG, V1_STATS])
+def test_accepted_writer_rejects_every_v1_path(
+    protected_path: Path, tmp_path: Path, inputs
+) -> None:
+    templates, pools, records = inputs
+    alias = tmp_path / "protected-alias"
+    alias.symlink_to(protected_path.resolve())
+    with pytest.raises(StageAV2ArtifactError, match="lifecycle"):
+        write_stage_a_v2_accepted_artifacts(
+            _fake_live_report(records),
+            templates,
+            _live_pools(pools),
+            output_path=alias,
+            config_path=tmp_path / "config.json",
+            stats_path=tmp_path / "stats.md",
+        )
 
 
 def test_accepted_defaults_are_separate_from_candidate_and_v1() -> None:

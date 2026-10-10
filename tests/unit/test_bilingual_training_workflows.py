@@ -142,7 +142,7 @@ def test_candidate_validate_only_reports_lifecycle_but_cannot_create_audit_sampl
     assert not sample_path.exists()
 
 
-def test_accepted_source_can_create_200_post_split_audit_rows(tmp_path: Path) -> None:
+def test_hand_edited_candidate_manifest_cannot_open_audit_gate(tmp_path: Path) -> None:
     builder = _load_script("20_build_bilingual_training.py", "bilingual_training_20_accepted")
     exclusion = _exclusion_index(tmp_path)
     accepted = _accepted_manifest(tmp_path, STAGE_A_V2_CANDIDATE)
@@ -166,12 +166,9 @@ def test_accepted_source_can_create_200_post_split_audit_rows(tmp_path: Path) ->
         ],
     )
 
-    assert result.exit_code == 0, result.output
-    rows = [json.loads(line) for line in sample_path.read_text().splitlines()]
-    assert len(rows) == 200
-    assert {row["language"] for row in rows} == {"en", "vi"}
-    assert {row["split"] for row in rows} <= {"train", "development"}
-    assert all(row["record_sha256"] for row in rows)
+    assert result.exit_code != 0
+    assert "manifest schema" in result.output
+    assert not sample_path.exists()
 
 
 def test_source_manifest_is_required_and_digest_bound_for_publication_modes(
