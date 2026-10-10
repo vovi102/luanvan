@@ -56,6 +56,7 @@ def _run_live(
     from google.auth.exceptions import DefaultCredentialsError
     from google.cloud import bigquery
 
+    from nl2sparql.dataset.stage_a.planning import build_stage_a_v2_witness_queries
     from nl2sparql.dataset.stage_a.verify import StageAVerificationError, verify_stage_a
     from nl2sparql.dataset.stage_a_v2 import validate_stage_a_v2_records
 
@@ -68,6 +69,7 @@ def _run_live(
             verified_at=_timestamp(),
             location=location,
             record_validator=validate_stage_a_v2_records,
+            query_planner=build_stage_a_v2_witness_queries,
         )
         return write_stage_a_v2_accepted_artifacts(
             report,
@@ -81,10 +83,69 @@ def _run_live(
         raise StageAV2WorkflowError(str(exc)) from exc
 
 
+def _run_preflight(
+    records: list[dict[str, Any]],
+    *,
+    project: str,
+    location: str,
+    client: Any | None = None,
+) -> dict[str, Any]:
+    from google.api_core.exceptions import GoogleAPICallError
+    from google.auth.exceptions import DefaultCredentialsError
+    from google.cloud import bigquery
+
+    from nl2sparql.dataset.stage_a.evidence import build_witness_groups
+    from nl2sparql.dataset.stage_a.planning import build_stage_a_v2_witness_queries
+    from nl2sparql.dataset.stage_a.verify import (
+        TOTAL_WITNESS_BYTES_CAP,
+        StageAVerificationError,
+        dry_run_witnesses,
+    )
+    from nl2sparql.dataset.templates import PER_TEMPLATE_BYTES_CAP
+
+    try:
+        active_client = client or bigquery.Client(project=project, location=location)
+        preflight = dry_run_witnesses(
+            active_client,
+            records,
+            location=location,
+            query_planner=build_stage_a_v2_witness_queries,
+        )
+    except (DefaultCredentialsError, GoogleAPICallError, StageAVerificationError) as exc:
+        raise StageAV2WorkflowError(str(exc)) from exc
+    per_template: dict[str, dict[str, int]] = {}
+    for item in preflight.witnesses:
+        totals = per_template.setdefault(
+            item.template_id,
+            {"physical_query_count": 0, "estimated_bytes": 0},
+        )
+        totals["physical_query_count"] += 1
+        totals["estimated_bytes"] += item.estimated_bytes
+    maximum = max(
+        preflight.witnesses,
+        key=lambda item: (item.estimated_bytes, item.query_id),
+    )
+    return {
+        "mode": "preflight",
+        "logical_witness_count": len(build_witness_groups(records)),
+        "physical_query_count": len(preflight.witnesses),
+        "total_estimated_bytes": preflight.total_estimated_bytes,
+        "per_query_bytes_cap": PER_TEMPLATE_BYTES_CAP,
+        "total_bytes_cap": TOTAL_WITNESS_BYTES_CAP,
+        "maximum_query": {
+            "query_id": maximum.query_id,
+            "template_id": maximum.template_id,
+            "estimated_bytes": maximum.estimated_bytes,
+        },
+        "per_template_totals": dict(sorted(per_template.items())),
+    }
+
+
 @click.command()
 @click.option("--project", default=DEFAULT_PROJECT, show_default=True)
 @click.option("--location", default=DEFAULT_LOCATION, show_default=True)
 @click.option("--live", is_flag=True, help="Execute bounded BigQuery witnesses.")
+@click.option("--preflight", is_flag=True, help="Dry-run bounded witnesses without writing.")
 @click.option("--value-pools", type=click.Path(path_type=Path), default=DEFAULT_VALUE_POOLS_PATH)
 @click.option("--output", "output_path", type=click.Path(path_type=Path), default=None)
 @click.option("--config", "config_path", type=click.Path(path_type=Path), default=None)
@@ -93,6 +154,7 @@ def main(
     project: str,
     location: str,
     live: bool,
+    preflight: bool,
     value_pools: Path,
     output_path: Path | None,
     config_path: Path | None,
@@ -100,13 +162,29 @@ def main(
 ) -> None:
     """Write v2 outputs only after their candidate or live gates pass."""
     try:
+        if preflight and live:
+            raise StageAV2WorkflowError("--preflight and --live are mutually exclusive")
         templates = load_templates()
         pools = load_value_pools(value_pools)
-        if live and not has_evidence_backed_live_values(pools):
+        if (preflight or live) and not has_evidence_backed_live_values(pools):
             raise StageAV2WorkflowError(
-                "Live Stage A v2 requires evidence-backed block_number and transaction_hash pools"
+                "Stage A v2 preflight/live requires evidence-backed block_number and "
+                "transaction_hash pools"
             )
         records = generate_stage_a_v2_records(templates, pools)
+        if preflight:
+            click.echo(
+                json.dumps(
+                    _run_preflight(
+                        records,
+                        project=project,
+                        location=location,
+                    ),
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+            return
         if live:
             artifacts = _run_live(
                 records,
