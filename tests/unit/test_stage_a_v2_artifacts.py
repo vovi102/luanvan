@@ -13,12 +13,14 @@ import pytest
 
 from nl2sparql.dataset.generate import load_value_pools
 from nl2sparql.dataset.stage_a.evidence import (
+    LogicalWitnessResult,
     StageAVerificationReport,
     WitnessDryRun,
     WitnessExecution,
     WitnessPreflight,
     build_witness_groups,
 )
+from nl2sparql.dataset.stage_a.planning import build_stage_a_v2_witness_queries
 from nl2sparql.dataset.stage_a.v2_artifacts import (
     DEFAULT_V2_ACCEPTED_CONFIG_PATH,
     DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
@@ -49,26 +51,68 @@ def _fake_live_report(candidates: list[dict[str, object]]):
     records = copy.deepcopy(candidates)
     groups = build_witness_groups(records)
     templates_by_id = {template["id"]: template for template in load_templates()}
+    groups_by_id = {group.group_id: group for group in groups}
+    queries = build_stage_a_v2_witness_queries(records)
+    preflight_witnesses = tuple(
+        WitnessDryRun(
+            group_id=query.group_ids[0],
+            template_id=query.template_id,
+            witness_record_id=groups_by_id[query.group_ids[0]].witness_record_id,
+            estimated_bytes=10,
+            query_id=query.query_id,
+            query_sha256=query.query_sha256,
+            proof_kind=query.proof_kind,
+            group_ids=query.group_ids,
+            job_id=f"dry-{index}",
+            location="US",
+        )
+        for index, query in enumerate(queries)
+    )
     executions = tuple(
         WitnessExecution(
-            group_id=group.group_id,
-            template_id=group.template_id,
-            witness_record_id=group.witness_record_id,
-            row_count=1,
-            columns=tuple(templates_by_id[group.template_id]["expected_columns"]),
-            estimated_bytes=10,
-            processed_bytes=10,
-            billed_bytes=10,
+            group_id=query.group_ids[0],
+            template_id=query.template_id,
+            witness_record_id=groups_by_id[query.group_ids[0]].witness_record_id,
+            row_count=len(query.group_ids),
+            columns=(
+                ("witness_group_id", *templates_by_id[query.template_id]["expected_columns"])
+                if query.proof_kind == "tx_hash_batch"
+                else tuple(templates_by_id[query.template_id]["expected_columns"])
+            ),
+            estimated_bytes=11,
+            processed_bytes=12,
+            billed_bytes=13,
             wall_latency_ms=1.0,
             server_latency_ms=0.5,
             slot_millis=1,
             cache_hit=False,
+            query_id=query.query_id,
+            query_sha256=query.query_sha256,
+            proof_kind=query.proof_kind,
+            group_ids=query.group_ids,
+            job_id=f"exec-{index}",
+            location="US",
+            immediate_dry_run=replace(
+                preflight_witnesses[index], estimated_bytes=11, job_id=f"redry-{index}"
+            ),
+            logical_results=tuple(
+                LogicalWitnessResult(
+                    group_id=group_id,
+                    witness_record_id=groups_by_id[group_id].witness_record_id,
+                    row_count=1,
+                    columns=tuple(templates_by_id[query.template_id]["expected_columns"]),
+                )
+                for group_id in query.group_ids
+            ),
         )
-        for group in groups
+        for index, query in enumerate(queries)
     )
-    groups_by_id = {group.group_id: group for group in groups}
+    executions_by_group = {
+        group_id: execution for execution in executions for group_id in execution.group_ids
+    }
     for record in records:
         group = groups_by_id[record["witness_group_id"]]
+        execution = executions_by_group[group.group_id]
         record["verification"] = {
             "mode": (
                 "live_exact" if record["id"] == group.witness_record_id else "live_limit_monotonic"
@@ -77,24 +121,19 @@ def _fake_live_report(candidates: list[dict[str, object]]):
             "witness_group_id": record["witness_group_id"],
             "witness_record_id": group.witness_record_id,
             "witness_row_count": 1,
-            "estimated_bytes": 10,
-            "processed_bytes": 10,
-            "billed_bytes": 10,
+            "estimated_bytes": 11,
+            "processed_bytes": 12,
+            "billed_bytes": 13,
             "wall_latency_ms": 1.0,
             "server_latency_ms": 0.5,
             "slot_millis": 1,
             "cache_hit": False,
+            "physical_query_id": execution.query_id,
+            "query_sha256": execution.query_sha256,
+            "job_id": execution.job_id,
+            "location": execution.location,
             "verified_at": "2026-10-09T12:00:00+00:00",
         }
-    preflight_witnesses = tuple(
-        WitnessDryRun(
-            group_id=group.group_id,
-            template_id=group.template_id,
-            witness_record_id=group.witness_record_id,
-            estimated_bytes=10,
-        )
-        for group in groups
-    )
     return StageAVerificationReport(
         preflight=WitnessPreflight(
             witnesses=preflight_witnesses,
@@ -210,6 +249,16 @@ def test_live_values_require_45_unique_provenance_bearing_entries(inputs) -> Non
     assert has_evidence_backed_live_values(incomplete) is False
 
 
+def test_genuine_evidence_pool_is_hash_bound_and_well_formed() -> None:
+    path = Path("data/dataset/raw/stage-a-v2-evidence-pools.json")
+    pools = load_value_pools(path)
+
+    assert _sha256(path) == "1bdbd40f5e5a31616ee537fe01a101642609c7afb07d52cd36e19af170334fc8"
+    assert has_evidence_backed_live_values(pools) is True
+    entries = [*pools["block_number"], *pools["transaction_hash"]]
+    assert all(set(entry) == {"value", "source", "evidence"} for entry in entries)
+
+
 def test_accepted_artifacts_require_live_report_and_evidence_backed_values(
     tmp_path: Path, inputs
 ) -> None:
@@ -225,6 +274,15 @@ def test_accepted_artifacts_require_live_report_and_evidence_backed_values(
     assert manifest["verification_mode"] == "live_witness"
     assert manifest["represented_intent_count"] == 25
     assert manifest["verified_record_count"] == 1000
+    assert manifest["witness_count"] == 170
+    assert manifest["physical_query_count"] == 126
+    assert len(manifest["preflight_evidence"]) == 126
+    assert len(manifest["execution_evidence"]) == 126
+    batch = next(
+        item for item in manifest["execution_evidence"] if item["proof_kind"] == "tx_hash_batch"
+    )
+    assert len(batch["group_ids"]) == 45
+    assert manifest["total_processed_bytes"] == 12 * 126
     assert manifest["cache_hit_count"] == 0
 
     targets = tuple(tmp_path / name for name in ("accepted.jsonl", "accepted.json", "stats.md"))
@@ -261,6 +319,35 @@ def test_accepted_manifest_rejects_fabricated_or_incomplete_reports(inputs) -> N
     incomplete = replace(complete, witnesses=complete.witnesses[:-1])
     with pytest.raises(StageAV2ArtifactError, match="complete witness evidence"):
         build_stage_a_v2_accepted_manifest(incomplete, templates, live_pools)
+
+
+@pytest.mark.parametrize(
+    "tampering",
+    ["duplicate_query", "missing_edge", "digest", "job", "cache", "immediate"],
+)
+def test_accepted_manifest_rejects_tampered_physical_evidence(inputs, tampering: str) -> None:
+    templates, pools, _ = inputs
+    live_pools = _live_pools(pools)
+    records = generate_stage_a_v2_records(templates, live_pools)
+    complete = _fake_live_report(records)
+    executions = list(complete.witnesses)
+    if tampering == "duplicate_query":
+        executions[1] = replace(executions[1], query_id=executions[0].query_id)
+    elif tampering == "missing_edge":
+        executions[0] = replace(executions[0], logical_results=executions[0].logical_results[:-1])
+    elif tampering == "digest":
+        executions[0] = replace(executions[0], query_sha256="0" * 64)
+    elif tampering == "job":
+        executions[0] = replace(executions[0], job_id="different-job")
+    elif tampering == "cache":
+        executions[0] = replace(executions[0], cache_hit=True)
+    else:
+        executions[0] = replace(executions[0], immediate_dry_run=None)
+
+    with pytest.raises(StageAV2ArtifactError):
+        build_stage_a_v2_accepted_manifest(
+            replace(complete, witnesses=tuple(executions)), templates, live_pools
+        )
 
 
 @pytest.mark.parametrize(
