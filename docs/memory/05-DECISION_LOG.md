@@ -24,6 +24,37 @@
 
 ## Entries
 
+### 2026-10-10 — Stage A v2 tách candidate 25 intent khỏi live acceptance
+
+- **Context:** Stage A v1 có genuine live evidence nhưng chỉ phủ 16/25 intent;
+  T3.3 cần đủ 25 intent, trong khi chín intent mới chưa có evidence-backed block
+  numbers/transaction hashes hoặc BigQuery run được cấp quyền.
+- **Options considered:** Sửa/ghi đè v1; coi syntax-only values là live evidence;
+  hạ gate của corpus song ngữ; hoặc tạo v2 candidate riêng và buộc promotion qua
+  manifest/evidence gate.
+- **Decision:** Giữ v1 immutable. V2 offline tạo deterministic 1.000 records trên
+  25 intent với lifecycle `candidate`, không acceptance-eligible. Live promotion
+  yêu cầu ít nhất 45 unique provenance-bearing block numbers và transaction
+  hashes, genuine verifier results cho 1.000/1.000 records và zero cache hits.
+  Audit/build/validation của corpus song ngữ hash-bind cả source lẫn accepted
+  manifest; validate-only vẫn được phép kiểm tra candidate.
+- **Rationale:** Tách ba trạng thái candidate → accepted → canonical cho phép
+  kiểm thử coverage/reproducibility offline mà không biến dữ liệu cú pháp thành
+  bằng chứng thực nghiệm.
+- **Consequences:** Candidate data SHA-256 là
+  `4746f68642913e0c40a0d19817cf0e4bf556f46d3ba1777a611f903e062e6561`;
+  offline expansion đạt 8.000 rows. Không có credential/provider call, chi phí,
+  accepted v2, audit decisions hay canonical bilingual artifact trong lần này.
+  Catalog sửa một VI abbreviated pattern của `T_TX_BY_HASH` để loại collision
+  normalized EN/VI thay vì hạ uniqueness gate. Vietnamese benchmark review vẫn
+  pending và wording/review decisions không bị sửa.
+- **Revisit:** Khi có evidence pools, BigQuery credential/quota và explicit cost
+  authority; chạy `scripts/09_generate_stage_a_v2.py --live`, rồi mới audit và
+  build canonical corpus.
+- **Linked:** `docs/superpowers/specs/2026-10-09-stage-a-v2-25-intents-design.md`,
+  `scripts/09_generate_stage_a_v2.py`, `src/nl2sparql/dataset/stage_a_v2.py`,
+  `src/nl2sparql/dataset/bilingual/assembly.py`.
+
 ### 2026-10-07 — T3.3 dùng deterministic bilingual catalog, không gọi LLM
 
 - **Context:** Hai phương án OpenRouter/Gemini đều cần external generation và

@@ -69,7 +69,7 @@ BigQuery Ethereum public dataset
    SPARQL endpoint sẵn sàng
 ```
 
-## Pipeline training data song ngữ hiện hành (2026-10-07)
+## Pipeline training data song ngữ hiện hành (2026-10-10)
 
 ```text
 Accepted Stage A (immutable SQL/slots/provenance)
@@ -90,10 +90,14 @@ Recoverable atomic output + manifest + append-only audit
 ```
 
 Catalog provenance là agent-authored/agent-reviewed; không claim independent
-human authorship. Provider/model luôn null, calls/cost bằng 0. Snapshot Stage A
-hiện tại chỉ phủ 16/25 intent nên pipeline dừng ở audit gate và chưa publish
-canonical artifact. English benchmark và Vietnamese review draft chỉ được đọc ở
-CLI tạo exclusion index; training modules chỉ nhận hash, không nhận raw wording.
+human authorship. Provider/model luôn null, calls/cost bằng 0. Stage A v2
+candidate hiện phủ 25/25 intent và expand offline thành 8.000 rows, nhưng không
+có genuine BigQuery evidence nên không phải accepted source. Publication modes
+hash-bind source data với manifest v2 và chỉ nhận lifecycle `accepted`, 1.000
+live-verified records, zero cache hits; vì vậy audit/canonical artifact vẫn chưa
+được tạo. Stage A v1 accepted 16-intent được giữ immutable làm lịch sử. English
+benchmark và Vietnamese review draft chỉ được đọc ở CLI tạo exclusion index;
+training modules chỉ nhận hash, không nhận raw wording.
 
 ## Tách module — repo structure
 

@@ -21,6 +21,10 @@ from nl2sparql.dataset.stage_a.verify import (
     dry_run_witnesses,
     verify_stage_a,
 )
+from nl2sparql.dataset.stage_a_v2 import (
+    generate_stage_a_v2_records,
+    validate_stage_a_v2_records,
+)
 from nl2sparql.dataset.templates import PER_TEMPLATE_BYTES_CAP, load_templates
 
 
@@ -252,3 +256,24 @@ def test_verification_fails_closed_for_invalid_live_evidence(
 
 def test_witness_budget_constant_is_exactly_96_gib() -> None:
     assert TOTAL_WITNESS_BYTES_CAP == 96 * 2**30
+
+
+def test_verifier_accepts_an_explicit_v2_validator_and_all_25_intents(
+    templates: list[dict[str, object]],
+) -> None:
+    records = generate_stage_a_v2_records(templates, load_value_pools())
+    client = FakeWitnessClient(records, templates)
+    ticks = iter(index * 1_000_000 for index in range(len(client.groups) * 2))
+
+    report = verify_stage_a(
+        client,
+        records,
+        templates,
+        verified_at="2026-10-09T12:00:00+00:00",
+        record_validator=validate_stage_a_v2_records,
+        clock_ns=lambda: next(ticks),
+    )
+
+    assert report.all_passed is True
+    assert len({record["template_id"] for record in report.records}) == 25
+    validate_stage_a_v2_records(report.records, templates)

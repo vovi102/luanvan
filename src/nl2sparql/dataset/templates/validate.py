@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from google.cloud import bigquery
 
-from nl2sparql.sql.label_layer import DEFAULT_LOCATION
+from nl2sparql.sql.constants import DEFAULT_LOCATION
 from nl2sparql.sql.schema import load_catalog, validate_catalog, validate_date_window
 
 TEMPLATES_PATH = Path(__file__).with_name("templates.json")

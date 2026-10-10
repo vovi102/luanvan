@@ -883,10 +883,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "4e0574213066277e82c8e8265e2b87f4a3f4a309d8a934bb0c9f63ab81064131",
+      "content_sha256": "05a1465e88059cbae0a29245d06ab846d12751b3307755fea31a60eb62e85c18",
       "id": "T_TX_BY_HASH__vi__abbreviated",
       "language": "vi",
-      "pattern": "Tx {transaction_hash}, {start_date}–{end_date}.",
+      "pattern": "GD {transaction_hash}, {start_date}–{end_date}.",
       "placeholders": [
         "end_date",
         "start_date",

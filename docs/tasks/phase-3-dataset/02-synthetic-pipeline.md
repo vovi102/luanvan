@@ -88,12 +88,55 @@ record nào claim exact result count từ propagated proof.
 
 `done — 2026-08-09; 1.000 GoogleSQL records live-witness verified`
 
+### Stage A v2 — candidate 25 intent (2026-10-10)
+
+Stage A v1 ở trên vẫn là historical accepted artifact và không bị sửa. Một v2
+candidate riêng đã được tạo để giải quyết coverage 16/25 intent:
+
+- `synthetic-stage-a-v2-candidate.jsonl`: 1.000 records, đủ 25 intent,
+  difficulty 350/450/200, seed 42; SHA-256
+  `4746f68642913e0c40a0d19817cf0e4bf556f46d3ba1777a611f903e062e6561`.
+- `generation-config-v2-candidate.json`: lifecycle `candidate`,
+  `acceptance_eligible=false`, verification `offline_candidates`; SHA-256
+  `fd5bdd9797e0e6af0ee184e9dcc4cc787a7526e3f3d05d0bdf73f8955c814a4d`.
+- `stats-v2-candidate.md`: SHA-256
+  `3b0f445fd12da9712f71e05a9075fd165ed32fd4cd658e1953abaa3c95e23a55`.
+
+Các giá trị `block_number` và `transaction_hash` mới trong candidate chỉ là giá
+trị deterministic/syntax-only chưa được chứng minh bởi BigQuery. Vì vậy candidate
+không supersede acceptance của v1 và không được dùng để publish/audit corpus
+canonical. Live promotion phải nhận pool có provenance với ít nhất 45 block
+numbers và 45 transaction hashes unique, chạy toàn bộ BigQuery witness gate, rồi
+ghi ba artifact accepted riêng (`synthetic-stage-a-v2.jsonl`,
+`generation-config-v2.json`, `stats-v2.md`). Lần làm việc này không có pool,
+credential/quota hay quyền duyệt chi phí đó; không có BigQuery/provider call và
+không có accepted v2 artifact được tạo.
+
+Candidate identity canonicalize thứ tự template, slot và value-pool entry. Vì
+vậy đảo thứ tự input không đổi bytes; hash ở trên thay thế hash candidate ban đầu
+sau whole-branch review. Acceptance gate còn kiểm tra evidence trên từng record
+và quan hệ đầy đủ giữa record, witness group, preflight và execution; chỉ sửa
+metadata manifest không thể mở audit/build gate.
+
 ## Chạy lại
 
 Offline deterministic candidates:
 
 ```bash
 uv run python scripts/09_generate_stage_a.py
+```
+
+Stage A v2 offline candidate:
+
+```bash
+uv run python scripts/09_generate_stage_a_v2.py
+```
+
+Stage A v2 live promotion (chỉ sau khi các evidence pool và quyền chạy đã sẵn
+sàng):
+
+```bash
+uv run python scripts/09_generate_stage_a_v2.py --live
 ```
 
 Live witness verification:

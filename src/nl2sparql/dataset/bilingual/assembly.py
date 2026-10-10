@@ -29,6 +29,11 @@ from nl2sparql.dataset.bilingual.contracts import (
     SplitConfig,
 )
 from nl2sparql.dataset.paraphrase.quality import normalize_question
+from nl2sparql.dataset.stage_a.v2_artifacts import (
+    StageAV2ArtifactError,
+    validate_stage_a_v2_source_evidence,
+)
+from nl2sparql.dataset.templates import load_templates
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _EXCLUSION_FIELDS = frozenset(
@@ -71,6 +76,42 @@ class ValidationReport:
     output_sha256: str
     manifest_sha256: str
     passed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class StageASourceEvidence:
+    lifecycle_state: str
+    acceptance_eligible: bool
+    artifact_sha256: str
+
+
+def validate_stage_a_source(
+    stage_a_bytes: bytes,
+    manifest_bytes: bytes,
+    *,
+    require_accepted: bool,
+) -> StageASourceEvidence:
+    """Bind Stage A bytes to their v2 lifecycle evidence."""
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise AssemblyValidationError("Stage A source manifest is not valid JSON") from exc
+    if not isinstance(manifest, dict) or manifest.get("version") != 2:
+        raise AssemblyValidationError("Stage A source manifest must use version 2")
+    try:
+        validate_stage_a_v2_source_evidence(stage_a_bytes, manifest, load_templates())
+    except StageAV2ArtifactError as exc:
+        raise AssemblyValidationError(str(exc)) from exc
+    lifecycle_state = manifest.get("lifecycle_state")
+    acceptance_eligible = manifest.get("acceptance_eligible")
+    artifact_sha256 = manifest.get("artifact_sha256")
+    if require_accepted and lifecycle_state != "accepted":
+        raise AssemblyValidationError("operation requires accepted Stage A v2 evidence")
+    return StageASourceEvidence(
+        lifecycle_state=cast(str, lifecycle_state),
+        acceptance_eligible=cast(bool, acceptance_eligible),
+        artifact_sha256=cast(str, artifact_sha256),
+    )
 
 
 def _canonical_json(value: object) -> bytes:
@@ -495,6 +536,7 @@ def build_manifest(
     *,
     output_bytes: bytes,
     stage_a_bytes: bytes,
+    stage_a_manifest_bytes: bytes,
     catalog_bytes: bytes,
     split_config: SplitConfig,
     diversity: object,
@@ -504,6 +546,7 @@ def build_manifest(
     exclusion_index: ExclusionIndex,
 ) -> dict[str, object]:
     """Build a deterministic manifest with honest zero-call provenance."""
+    validate_stage_a_source(stage_a_bytes, stage_a_manifest_bytes, require_accepted=True)
     if len(records) != 8000:
         raise AssemblyValidationError("manifest requires exactly 8000 clean records")
     if {summary.language for summary in audit_summaries} != {"en", "vi"}:
@@ -533,6 +576,7 @@ def build_manifest(
         },
         "sources": {
             "stage_a_sha256": _sha256(stage_a_bytes),
+            "stage_a_manifest_sha256": _sha256(stage_a_manifest_bytes),
             "catalog_sha256": _sha256(catalog_bytes),
             "split_config_sha256": _sha256(_canonical_json(asdict(split_config))),
             "exclusion_index_sha256": exclusion_index.index_sha256,
@@ -654,11 +698,13 @@ def validate_artifacts(
     audit_bytes: bytes,
     exclusion_index_bytes: bytes,
     stage_a_bytes: bytes,
+    stage_a_manifest_bytes: bytes,
     catalog_bytes: bytes,
     split_config: SplitConfig,
     expected_records: tuple[ExpandedTrainingRecord, ...],
 ) -> ValidationReport:
     """Recompute source equality, hashes, quality, split, leakage, and audit gates."""
+    validate_stage_a_source(stage_a_bytes, stage_a_manifest_bytes, require_accepted=True)
     manifest = _load_manifest(manifest_bytes)
     exclusion = load_exclusion_index(exclusion_index_bytes)
     rows = _load_json_lines(output_bytes, "training artifact")
@@ -691,6 +737,7 @@ def validate_artifacts(
     sources = cast(dict[str, object], manifest["sources"])
     expected_sources = {
         "stage_a_sha256": _sha256(stage_a_bytes),
+        "stage_a_manifest_sha256": _sha256(stage_a_manifest_bytes),
         "catalog_sha256": _sha256(catalog_bytes),
         "split_config_sha256": _sha256(_canonical_json(asdict(split_config))),
         "exclusion_index_sha256": exclusion.index_sha256,

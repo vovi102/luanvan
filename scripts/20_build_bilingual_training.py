@@ -11,7 +11,7 @@ from typing import Any
 import click
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_STAGE_A = ROOT / "data/dataset/raw/synthetic-stage-a.jsonl"
+DEFAULT_STAGE_A = ROOT / "data/dataset/raw/synthetic-stage-a-v2.jsonl"
 DEFAULT_CATALOG = ROOT / "src/nl2sparql/dataset/bilingual/templates.json"
 PRODUCTION_TEMPLATES = ROOT / "src/nl2sparql/dataset/templates/templates.json"
 
@@ -80,6 +80,11 @@ def _sample_rows(records: tuple[Any, ...], sample_ids: tuple[str, ...]) -> list[
     required=True,
 )
 @click.option("--stage-a", type=click.Path(path_type=Path), default=DEFAULT_STAGE_A)
+@click.option(
+    "--stage-a-manifest",
+    type=click.Path(path_type=Path),
+    default=None,
+)
 @click.option("--catalog", type=click.Path(path_type=Path), default=DEFAULT_CATALOG)
 @click.option("--exclusion-index", type=click.Path(path_type=Path), required=True)
 @click.option("--audit", type=click.Path(path_type=Path))
@@ -89,6 +94,7 @@ def _sample_rows(records: tuple[Any, ...], sample_ids: tuple[str, ...]) -> list[
 def main(
     mode: str,
     stage_a: Path,
+    stage_a_manifest: Path | None,
     catalog: Path,
     exclusion_index: Path,
     audit: Path | None,
@@ -109,6 +115,7 @@ def main(
             validate_artifacts,
             validate_audit_evidence,
             validate_no_leakage,
+            validate_stage_a_source,
         )
         from nl2sparql.dataset.bilingual.contracts import SplitConfig, load_catalog
         from nl2sparql.dataset.bilingual.rendering import (
@@ -121,13 +128,30 @@ def main(
             if output is None or manifest is None or audit is None:
                 raise click.ClickException("build requires output, manifest, and audit")
             _assert_safe_targets(
-                inputs=(stage_a, catalog, exclusion_index),
+                inputs=tuple(
+                    path
+                    for path in (stage_a, stage_a_manifest, catalog, exclusion_index)
+                    if path is not None
+                ),
                 output=output,
                 manifest=manifest,
                 audit=audit,
             )
 
         stage_a_bytes, source_rows = _load_jsonl(stage_a, "Stage A")
+        source_evidence = None
+        stage_a_manifest_bytes = None
+        if stage_a_manifest is not None:
+            stage_a_manifest_bytes = stage_a_manifest.read_bytes()
+            source_evidence = validate_stage_a_source(
+                stage_a_bytes,
+                stage_a_manifest_bytes,
+                require_accepted=mode != "validate-only",
+            )
+        elif mode != "validate-only":
+            raise click.ClickException(
+                "audit-sample and build require --stage-a-manifest with accepted Stage A v2"
+            )
         templates = _load_production_templates()
         loaded_catalog = load_catalog(catalog, templates)
         exclusion_bytes = exclusion_index.read_bytes()
@@ -149,6 +173,12 @@ def main(
                     "provider": None,
                     "recorded_cost_usd": 0.0,
                     "represented_intents": len({str(row["template_id"]) for row in source_rows}),
+                    "source_acceptance_eligible": (
+                        source_evidence.acceptance_eligible if source_evidence else None
+                    ),
+                    "source_lifecycle_state": (
+                        source_evidence.lifecycle_state if source_evidence else "unverified"
+                    ),
                     "stage_a_records": len(source_rows),
                     "status": "valid",
                 }
@@ -176,6 +206,7 @@ def main(
             return
 
         assert output is not None and manifest is not None and audit is not None
+        assert stage_a_manifest_bytes is not None
         audit_bytes, audit_rows = _load_jsonl(audit, "audit evidence")
         events = _audit_events(audit_rows)
         summaries = validate_audit_evidence(events, records=assigned, seed=42)
@@ -185,6 +216,7 @@ def main(
             assigned,
             output_bytes=output_bytes,
             stage_a_bytes=stage_a_bytes,
+            stage_a_manifest_bytes=stage_a_manifest_bytes,
             catalog_bytes=catalog.read_bytes(),
             split_config=split_config,
             diversity=diversity,
@@ -200,6 +232,7 @@ def main(
             audit_bytes=canonical_audit,
             exclusion_index_bytes=exclusion_bytes,
             stage_a_bytes=stage_a_bytes,
+            stage_a_manifest_bytes=stage_a_manifest_bytes,
             catalog_bytes=catalog.read_bytes(),
             split_config=split_config,
             expected_records=assigned,

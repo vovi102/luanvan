@@ -29,11 +29,13 @@ Implementation hiện có:
   deterministic 100 câu/ngôn ngữ phủ 25 intent × 4 styles; ngưỡng ≥95 faithful
   và ≥90 natural; publication ba file có lock/journal/recovery.
 
-Stage A đã ghim có 1.000 rows nhưng chỉ đại diện 16/25 intent. Vì vậy validation
-và expansion 8.000 rows chạy được, còn audit/canonical publication cố ý fail
-closed. Không được tái sinh chín intent còn thiếu hoặc gọi LLM để lấp chỗ trống;
-task chỉ tiếp tục khi có một Stage A 25-intent đã được accept hoặc quyết định
-governance mới thay đổi gate. Bộ 100 Vietnamese benchmark candidates riêng vẫn
+Stage A v2 candidate hiện có 1.000 rows và đủ 25/25 intent, nên offline
+validation/expansion tạo đúng 8.000 rows. Tuy nhiên manifest của nó cố ý ghi
+`candidate`, `acceptance_eligible=false`; audit sampling, canonical build và
+artifact validation đều yêu cầu một manifest v2 `accepted` hash-bind đúng source,
+1.000/1.000 live-verified và zero cache hits. Vì chưa có evidence-backed live
+pool/BigQuery run, ba bước đó vẫn fail closed. Không được đổi nhãn candidate hoặc
+giả live evidence để mở gate. Bộ 100 Vietnamese benchmark candidates riêng vẫn
 chờ user review; chưa có final Vietnamese benchmark.
 
 ## Acceptance criteria hiện hành
@@ -42,7 +44,8 @@ chờ user review; chưa có final Vietnamese benchmark.
 - [x] Renderer tạo đúng 8.000 records, 4.000 mỗi ngôn ngữ, tám mỗi family.
 - [x] Exclusion, leakage, split, audit, manifest và atomic publication gates.
 - [x] CLI offline, secret-safe, zero request/cost, fail-closed.
-- [ ] Accepted Stage A phủ đủ 25 intent.
+- [x] Offline Stage A v2 candidate phủ đủ 25 intent và expand đúng 8.000 rows.
+- [ ] Stage A v2 accepted có genuine BigQuery evidence và manifest hash-bound.
 - [ ] Agent audit 100 English + 100 Vietnamese đạt ngưỡng.
 - [ ] Canonical artifact/manifest/audit được build hai lần byte-identical và
   validate độc lập.
