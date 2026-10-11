@@ -1,6 +1,6 @@
 # Stage A v2 Supported-Intent Revision Design
 
-**Status:** Approved in chat on 2026-10-11; written specification pending user review.
+**Status:** Approved by the user on 2026-10-11.
 
 **Extends:**
 
