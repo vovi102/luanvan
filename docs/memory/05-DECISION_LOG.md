@@ -24,6 +24,29 @@
 
 ## Entries
 
+### 2026-10-11 — Revised Stage A v2 vẫn fail-closed trên empty account-pair witness
+
+- **Context:** Sau free-only approval và xác minh project không liên kết billing
+  account, revised live run dừng tại `syn-v2-000436` /
+  `T_TX_BETWEEN_ACCOUNTS` vì query trả rỗng.
+- **Options considered:** Retry cùng SQL; bỏ record/đổi metadata; hạ non-empty
+  gate; hoặc giữ failure và chẩn đoán contract/value-pool trước attempt mới.
+- **Decision:** Dừng sau một run, không publish và không retry. Giữ nguyên
+  candidate, evidence pool và acceptance gates.
+- **Rationale:** Cặp `0x8fca4ade3a517133ff23ca55cdaea29c78c990b8` /
+  `0x77021d475e36b3ab1921a0e3a8380f069d3263de` không có row trong bounded
+  window; retry không thay đổi evidence. Atomic publication phải yêu cầu mọi
+  logical witness non-empty.
+- **Consequences:** 13 executions processed `1.708.003.160` bytes, billed
+  `1.749.024.768` bytes, cache hits `0`; gross equivalent `$0.009942`, actual
+  charge `$0` do `billing_enabled=false` và không có billing account. Accepted
+  outputs vẫn absent; audit/build/training tiếp tục bị khóa.
+- **Revisit:** Sau một diagnosis/design riêng chứng minh mọi account-pair slot
+  có genuine bounded evidence; attempt mới cần fresh preflight và approval mới.
+- **Linked:** `scripts/09_generate_stage_a_v2.py`,
+  `data/dataset/raw/stage-a-v2-evidence-pools.json`,
+  `src/nl2sparql/dataset/stage_a_v2.py`.
+
 ### 2026-10-11 — Thay coverage-gap intent và khóa revised live bằng preflight mới
 
 - **Context:** Live attempt cũ fail-closed vì mixer endpoint không tồn tại trong

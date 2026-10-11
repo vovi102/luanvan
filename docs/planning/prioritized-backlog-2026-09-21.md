@@ -17,7 +17,7 @@ Plan A; không nằm trên critical path.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3–T3.5 | Revised Stage A v2 candidate 1.000 rows/25 intent đã thay mixer coverage gap bằng `T_CATEGORY_OWNER_DISTRIBUTION`/`CQ20`. Genuine preflight mới pass: 170 logical, 126 physical, `96.112.944.434` bytes; không execute và chưa có accepted artifacts. English T3.5 đã finalized; Vietnamese 100-candidate draft vẫn chờ user review | Chờ explicit approval đúng estimate mới; không live, audit hay build trước approval/accepted source; không chạy Gemini hay Stage D |
+| T3.3–T3.5 | Revised Stage A v2 candidate 1.000 rows/25 intent và preflight 170/126 pass, nhưng free sandbox live run fail-closed tại `syn-v2-000436` / `T_TX_BETWEEN_ACCOUNTS` vì account-pair query rỗng. 13 executions, charge `$0`, không có accepted artifacts. English T3.5 đã finalized; Vietnamese 100-candidate draft vẫn chờ user review | Chẩn đoán account-pair/value-pool contract; không retry, audit hay build trước redesign + fresh preflight/approval; không chạy Gemini hay Stage D |
 | T4.1–T4.3 | Hoàn tất reviewed development evaluation ngày 2026-09-26; ba report `ready` | Đóng; giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1–T5.2 | T5.1 genuine B0 đã chạy nhưng không đạt (`0/100`, no output); T5.2 implementation local hoàn tất | Giữ B0 negative result; chờ accepted deterministic bilingual artifact rồi chạy T5.2 |
 | T5.3 | Gemini primary path và final verification đã hoàn tất | Giữ artifact; không mở lại nếu không có regression |
@@ -56,10 +56,14 @@ Plan A; không nằm trên critical path.
    là `b3c1052f...`, `8162368c...`, `5f94062d...`. Fresh preflight 126 queries
    đo `96.112.944.434` bytes (`89,512154864 GiB`), max
    `14.829.419.966` bytes, gross `$0.546339` ở `$6.25/TiB`; không query nào
-   execute và accepted outputs vẫn absent. Chờ explicit approval đúng estimate
-   này. Chỉ sau live acceptance mới audit 100 English + 100 Vietnamese và
-   build/validate 8.000 clean records hai lần. Bilingual generation giữ API
-   calls `0`, provider/model null, recorded cost `$0.00`.
+   execute ở preflight. Free sandbox live attempt sau đó fail-closed tại
+   `syn-v2-000436` / `T_TX_BETWEEN_ACCOUNTS` do query rỗng; 13 executions
+   processed `1.708.003.160` bytes, billed `1.749.024.768` bytes, cache hits
+   `0`, actual charge `$0`, accepted outputs vẫn absent. Cần diagnosis/design
+   riêng và fresh preflight/approval; không retry cùng SQL. Chỉ sau live
+   acceptance mới audit 100 English + 100 Vietnamese và build/validate 8.000
+   clean records hai lần. Bilingual generation giữ API calls `0`,
+   provider/model null, recorded cost `$0.00`.
 6. **T3.4 — SUPERSEDED.** Không sinh Stage D 3.150 rows; bốn style sạch trong
    catalog song ngữ thay thế noise injection trên critical path.
 7. **T3.5 — DONE 2026-10-02.** Benchmark agent-authored, single-human-reviewed
@@ -158,11 +162,12 @@ Giới hạn WIP đề xuất: một task implementation lớn và một externa
 
 ## Công việc kế tiếp cụ thể
 
-Việc kế tiếp trên critical path là user duyệt hoặc từ chối exact revised live
-estimate `96.112.944.434` bytes (gross `$0.546339` ở `$6.25/TiB`). Redesign,
-candidate regeneration và fresh preflight đã hoàn tất nhưng chưa cấp authority
-cho `--live`; failed run cũ không được tái sử dụng làm approval/evidence. Chỉ khi
-accepted artifact pass đầy đủ mới audit/build **T3.3 deterministic** để mở T5.2
-và eventual fine-tuning. T5.3 Gemini baseline genuine runs có thể chạy song song
-nếu quota/credential sẵn sàng. English T3.5 đã khóa; Vietnamese T3.5 vẫn chờ
-review. Không dùng câu hỏi, gold SQL hoặc kết quả B0 để tune bất kỳ baseline nào.
+Việc kế tiếp trên critical path là chẩn đoán vì sao deterministic account pool
+tạo cặp không có bounded transaction evidence cho `T_TX_BETWEEN_ACCOUNTS`, rồi
+viết design riêng. Free sandbox live attempt đã fail-closed tại
+`syn-v2-000436`; không retry, sửa metadata/pool bằng tay hoặc tái sử dụng approval
+cũ. Bất kỳ SQL/input plan mới nào cũng cần regeneration, fresh preflight và
+approval mới. Chỉ khi accepted artifact pass đầy đủ mới audit/build **T3.3
+deterministic** để mở T5.2 và eventual fine-tuning. English T3.5 đã khóa;
+Vietnamese T3.5 vẫn chờ review. Không dùng câu hỏi, gold SQL hoặc kết quả B0 để
+tune bất kỳ baseline nào.

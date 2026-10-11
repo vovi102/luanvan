@@ -239,6 +239,26 @@ uv run python scripts/09_generate_stage_a_v2.py \
 | `T_TX_BY_HOUR` | 1 | 15.899.192 |
 | `T_TX_GROUPED_BY_OWNER` | 1 | 190.988.720 |
 
+## Stage A v2 revised live attempt — 2026-10-11
+
+- User duyệt chạy trong free quota. Trước run đã xác minh project
+  `nl2sparql-thesis` có `billing_enabled=false` và không liên kết billing
+  account; BigQuery Sandbox sẽ fail quota thay vì phát sinh paid usage.
+- Live verifier lặp full preflight rồi dừng fail-closed tại
+  `syn-v2-000436` / `T_TX_BETWEEN_ACCOUNTS`: query cho cặp
+  `0x8fca4ade3a517133ff23ca55cdaea29c78c990b8` và
+  `0x77021d475e36b3ab1921a0e3a8380f069d3263de` trong window
+  `2026-06-15`–`2026-06-16` trả rỗng.
+- 13 physical execution jobs đã hoàn tất trước khi dừng: processed
+  `1.708.003.160` bytes (`1,590701900 GiB`), billed `1.749.024.768` bytes
+  (`1,628906250 GiB`), cache hits `0`. Gross on-demand equivalent là
+  `$0.009942` ở `$6.25/TiB`, nhưng actual charge là `$0` vì project không có
+  billing account và run dùng sandbox free quota.
+- Publication boundary hoạt động đúng: cả ba accepted-v2 outputs vẫn absent;
+  candidate, Stage A v1 và evidence-pool hashes không đổi. Đây là failed
+  operational evidence, không phải acceptance evidence. Không retry, không đổi
+  pool/metadata và không hạ non-empty gate trong attempt này.
+
 Live witness verification:
 
 ```bash
