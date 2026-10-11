@@ -17,7 +17,7 @@ Plan A; không nằm trên critical path.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3–T3.5 | Stage A v2 candidate 1.000 rows/25 intent, genuine 45+45 evidence pool và 126-query batched verifier đã implement. Exact preflight `101.534.116.450` bytes qua 20/96 GiB caps; live acceptance chưa chạy. English T3.5 đã finalized; Vietnamese 100-candidate draft vẫn chờ user review | Xin duyệt measured live run; chỉ khi accepted mới audit 100/ngôn ngữ và build artifact; không chạy Gemini hay Stage D |
+| T3.3–T3.5 | Stage A v2 candidate 1.000 rows/25 intent, genuine 45+45 evidence pool và 126-query batched verifier đã implement. Preflight pass, nhưng approved live run fail-closed ở `T_MIXER_TO_DEX_LARGE_FLOW`: known `CQ21` coverage gap, không có verified operational mixer endpoint. Không có accepted artifacts. English T3.5 đã finalized; Vietnamese 100-candidate draft vẫn chờ user review | Redesign coverage-gap intent/data; không retry, audit hay build trước accepted source; không chạy Gemini hay Stage D |
 | T4.1–T4.3 | Hoàn tất reviewed development evaluation ngày 2026-09-26; ba report `ready` | Đóng; giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1–T5.2 | T5.1 genuine B0 đã chạy nhưng không đạt (`0/100`, no output); T5.2 implementation local hoàn tất | Giữ B0 negative result; chờ accepted deterministic bilingual artifact rồi chạy T5.2 |
 | T5.3 | Gemini primary path và final verification đã hoàn tất | Giữ artifact; không mở lại nếu không có regression |
@@ -52,8 +52,10 @@ Plan A; không nằm trên critical path.
    candidate đã phủ 25 intent và expand đúng 8.000 rows; candidate không phải live
    evidence. Pool 45 provenance-bearing block numbers + 45 transaction hashes đã
    có; batched preflight 126 queries đo `101.534.116.450` bytes và qua cap. Còn
-   cần explicit authority cho live run để promote v2 thành accepted. Sau đó audit
-   100 English + 100 Vietnamese và build/validate 8.000
+   approved live run đã dừng đúng gate vì mixer→DEX witness rỗng và catalog vốn
+   đánh dấu `CQ21` coverage gap. Cần bổ sung genuine verified mixer coverage với
+   bounded flow thật, hoặc thay intent này và tái tạo candidate/hash. Chỉ sau live
+   acceptance mới audit 100 English + 100 Vietnamese và build/validate 8.000
    clean records hai lần. Bilingual generation giữ API calls `0`, provider/model
    null, recorded cost `$0.00`.
 6. **T3.4 — SUPERSEDED.** Không sinh Stage D 3.150 rows; bốn style sạch trong
@@ -154,10 +156,11 @@ Giới hạn WIP đề xuất: một task implementation lớn và một externa
 
 ## Công việc kế tiếp cụ thể
 
-Việc kế tiếp trên critical path là duyệt và chạy genuine BigQuery live verification
-cho Stage A v2 candidate **25/25 intent** theo measured preflight 126 queries,
-`101.534.116.450` bytes. Chỉ khi accepted artifact pass đầy đủ mới audit/build
-**T3.3 deterministic** để mở T5.2 và eventual
+Việc kế tiếp trên critical path là redesign `T_MIXER_TO_DEX_LARGE_FLOW`/`CQ21`:
+hoặc thêm genuine verified operational mixer coverage và chứng minh bounded flow,
+hoặc thay coverage-gap intent rồi tái tạo Stage A v2 candidate/evidence hashes.
+Live attempt 2026-10-11 đã fail-closed và không tạo accepted artifact. Chỉ khi
+accepted artifact pass đầy đủ mới audit/build **T3.3 deterministic** để mở T5.2 và eventual
 fine-tuning. T5.3 Gemini baseline genuine runs có thể chạy song song nếu
 quota/credential sẵn sàng. English T3.5 đã khóa; Vietnamese T3.5 vẫn chờ review.
 Không dùng câu hỏi, gold SQL hoặc kết quả B0 để tune bất kỳ baseline nào.

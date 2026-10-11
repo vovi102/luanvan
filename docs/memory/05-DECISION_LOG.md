@@ -24,6 +24,28 @@
 
 ## Entries
 
+### 2026-10-11 — Stage A v2 live gate fail-closed trên known mixer coverage gap
+
+- **Context:** Sau measured preflight pass và explicit approval, live run dừng ở
+  `syn-v2-000834` / `T_MIXER_TO_DEX_LARGE_FLOW` vì query trả rỗng.
+- **Options considered:** Retry; hạ non-empty gate; sửa metadata; hoặc giữ failure
+  và sửa coverage contract/data ở nguồn.
+- **Decision:** Không retry và không publish. Giữ nguyên yêu cầu 100% non-empty,
+  candidate hashes và v1. Cần redesign trước live attempt tiếp theo.
+- **Rationale:** Template tự ghi `expect_non_empty=false` do không có accepted
+  operational mixer endpoint; SQL catalog cũng đánh dấu `CQ21` là `coverage_gap`.
+  Retry cùng input không thể tạo genuine evidence, còn cho phép empty sẽ hạ gate.
+- **Consequences:** Chỉ 2 physical query đã execute: processed `779.483.182`
+  bytes, billed `780.140.544` bytes, cache hits `0`, gross equivalent khoảng
+  `$0.004435` trước free tier. Ba accepted outputs vẫn absent; bilingual audit,
+  canonical build và B1/B2 tiếp tục bị khóa.
+- **Revisit:** Khi chọn một trong hai hướng: thêm verified mixer endpoint và
+  chứng minh bounded mixer→DEX flow thật, hoặc thay coverage-gap intent rồi tạo
+  lại toàn bộ deterministic candidate/evidence hashes.
+- **Linked:** `src/nl2sparql/dataset/templates/templates.json`,
+  `src/nl2sparql/sql/catalog/ethereum_analytics.json`,
+  `scripts/09_generate_stage_a_v2.py`.
+
 ### 2026-10-10 — Batch physical queries nhưng giữ đủ logical witness của Stage A v2
 
 - **Context:** Exact preflight 170 query độc lập ước tính `119.135.658.992`

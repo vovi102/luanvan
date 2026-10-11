@@ -164,6 +164,27 @@ uv run python scripts/09_generate_stage_a_v2.py \
 - Live execution và accepted artifacts vẫn pending explicit approval. Không bắt
   đầu bilingual audit, canonical build hoặc B1/B2 training ở trạng thái này.
 
+## Stage A v2 live attempt — 2026-10-11
+
+- User đã duyệt measured live run. Repeated preflight pass, nhưng execution dừng
+  fail-closed tại witness `syn-v2-000834` của
+  `T_MIXER_TO_DEX_LARGE_FLOW`: kết quả rỗng.
+- Root cause là coverage contract đã biết, không phải transient provider error:
+  template ghi `expect_non_empty=false` với scope note “no accepted operational
+  mixer endpoint”, và analytical catalog đánh dấu `CQ21` là `coverage_gap` vì
+  dictionary chưa có verified operational mixer endpoint. Điều này mâu thuẫn với
+  Stage A v2 acceptance gate yêu cầu 100% records `non_empty=true`.
+- Hai physical executions đã hoàn tất trước khi dừng: processed `779.483.182`
+  bytes, billed `780.140.544` bytes, cache hits `0`; gross on-demand equivalent
+  khoảng `$0.004435` ở `$6.25/TiB`, trước monthly free tier.
+- Publication boundary hoạt động đúng: `synthetic-stage-a-v2.jsonl`,
+  `generation-config-v2.json` và `stats-v2.md` đều không được tạo. Không retry,
+  không sửa metadata, không hạ threshold và không bắt đầu audit/build/training.
+- Promotion hiện cần một quyết định redesign: bổ sung genuine verified mixer
+  coverage và chứng minh bounded flow thật, hoặc thay intent coverage-gap bằng
+  một intent được support rồi tạo/hash/audit lại candidate. Cho phép empty proof
+  không đáp ứng acceptance contract hiện hành.
+
 Live witness verification:
 
 ```bash
