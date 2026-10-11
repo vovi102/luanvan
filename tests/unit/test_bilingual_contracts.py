@@ -251,39 +251,39 @@ def test_replacing_catalog_entry_preserves_frozen_value_semantics() -> None:
     assert entry.style == changed.style
 
 
-def test_high_risk_threshold_and_bridge_direction_patterns_match_sql_semantics() -> None:
+def test_supported_category_distribution_and_bridge_patterns_match_sql_semantics() -> None:
     catalog = load_catalog(TEMPLATES_PATH, load_templates())
     patterns = {entry.id: entry.pattern for entry in catalog.entries}
     expected = {
-        "T_MIXER_TO_DEX_LARGE_FLOW__en__formal": (
-            "List the top {n} mixer-to-DEX transactions worth at least {value_wei} wei "
-            "from {start_date} to {end_date}."
+        "T_CATEGORY_OWNER_DISTRIBUTION__en__formal": (
+            "List the top {n} label categories ranked by distinct owner count, including "
+            "account count and accounts per owner."
         ),
-        "T_MIXER_TO_DEX_LARGE_FLOW__en__conversational": (
-            "From {start_date} to {end_date}, which {n} mixer-to-DEX flows were worth "
-            "at least {value_wei} wei?"
+        "T_CATEGORY_OWNER_DISTRIBUTION__en__conversational": (
+            "Which {n} label categories have the most distinct owners, and how many "
+            "accounts and accounts per owner does each have?"
         ),
-        "T_MIXER_TO_DEX_LARGE_FLOW__en__abbreviated": (
-            "Top {n} mixer → DEX flows ≥ {value_wei} wei, {start_date}–{end_date}."
+        "T_CATEGORY_OWNER_DISTRIBUTION__en__abbreviated": (
+            "Top {n} label categories by owners, with accounts and accounts/owner."
         ),
-        "T_MIXER_TO_DEX_LARGE_FLOW__en__alternative": (
-            "During {start_date} through {end_date}, find {n} native transfers from a "
-            "mixer class to a DEX class with value at least {value_wei} wei."
+        "T_CATEGORY_OWNER_DISTRIBUTION__en__alternative": (
+            "Rank {n} categories in the accepted label dictionary by unique owners and "
+            "return each category's account total and accounts-per-owner ratio."
         ),
-        "T_MIXER_TO_DEX_LARGE_FLOW__vi__formal": (
-            "Liệt kê {n} giao dịch lớn nhất từ mixer tới DEX có giá trị ít nhất "
-            "{value_wei} wei trong khoảng từ {start_date} đến {end_date}."
+        "T_CATEGORY_OWNER_DISTRIBUTION__vi__formal": (
+            "Liệt kê {n} danh mục nhãn đứng đầu theo số chủ sở hữu riêng biệt, kèm số "
+            "tài khoản và số tài khoản trên mỗi chủ sở hữu."
         ),
-        "T_MIXER_TO_DEX_LARGE_FLOW__vi__conversational": (
-            "Từ {start_date} tới {end_date}, {n} dòng tiền nào từ mixer sang DEX có giá "
-            "trị từ {value_wei} wei trở lên?"
+        "T_CATEGORY_OWNER_DISTRIBUTION__vi__conversational": (
+            "{n} danh mục nhãn nào có nhiều chủ sở hữu riêng biệt nhất, và mỗi danh mục "
+            "có bao nhiêu tài khoản cùng tỷ lệ tài khoản trên chủ sở hữu?"
         ),
-        "T_MIXER_TO_DEX_LARGE_FLOW__vi__abbreviated": (
-            "Top {n} flow mixer → DEX ≥ {value_wei} wei, {start_date}–{end_date}."
+        "T_CATEGORY_OWNER_DISTRIBUTION__vi__abbreviated": (
+            "Top {n} danh mục nhãn theo số chủ sở hữu, kèm số tài khoản và tài khoản/chủ sở hữu."
         ),
-        "T_MIXER_TO_DEX_LARGE_FLOW__vi__alternative": (
-            "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} lượt chuyển native "
-            "từ lớp mixer sang lớp DEX có giá trị không nhỏ hơn {value_wei} wei."
+        "T_CATEGORY_OWNER_DISTRIBUTION__vi__alternative": (
+            "Xếp hạng {n} danh mục trong từ điển nhãn đã chấp nhận theo số chủ sở hữu "
+            "duy nhất, đồng thời trả về tổng tài khoản và tỷ lệ tài khoản trên mỗi chủ sở hữu."
         ),
         "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__formal": (
             "Find the first {n} token transfers sent from bridges within "
@@ -324,3 +324,14 @@ def test_high_risk_threshold_and_bridge_direction_patterns_match_sql_semantics()
     }
 
     assert {entry_id: patterns[entry_id] for entry_id in expected} == expected
+    replacements = [
+        entry for entry in catalog.entries if entry.template_id == "T_CATEGORY_OWNER_DISTRIBUTION"
+    ]
+    assert len(replacements) == 8
+    assert all(entry.placeholders == ("n",) for entry in replacements)
+    assert len({" ".join(entry.pattern.casefold().split()) for entry in replacements}) == 8
+    assert all(entry.template_id != "T_MIXER_TO_DEX_LARGE_FLOW" for entry in catalog.entries)
+    normalized_replacement_copy = " ".join(entry.pattern.casefold() for entry in replacements)
+    assert "one owner spans multiple categories" not in normalized_replacement_copy
+    assert "owner belongs to multiple categories" not in normalized_replacement_copy
+    assert "một chủ sở hữu thuộc nhiều danh mục" not in normalized_replacement_copy

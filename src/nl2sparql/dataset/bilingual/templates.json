@@ -2603,138 +2603,114 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "227f45bdb092e5f892d99ed3a97e2cd7a55c6014b6d3e0bd1ee779bbda66a017",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__formal",
+      "content_sha256": "3be933359010a9b94a9d3108525808887a40f77dd76aa692decae951fcb93398",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__en__formal",
       "language": "en",
-      "pattern": "List the top {n} mixer-to-DEX transactions worth at least {value_wei} wei from {start_date} to {end_date}.",
+      "pattern": "List the top {n} label categories ranked by distinct owner count, including account count and accounts per owner.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ad9807b1c3ed1c7fb41a1bf4ad03dc601c1d918df4eaa7ac51aa6e6f698e02f7",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__conversational",
+      "content_sha256": "c3252766a554168e98c4e6a3eb783fe4fe474f866af24e6e9e2b36e3dda207b9",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__en__conversational",
       "language": "en",
-      "pattern": "From {start_date} to {end_date}, which {n} mixer-to-DEX flows were worth at least {value_wei} wei?",
+      "pattern": "Which {n} label categories have the most distinct owners, and how many accounts and accounts per owner does each have?",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "3d8135da9d12c06bbd40090bfcf37e6b3f0949c9b5a4c3e6f1161d4259f2b7f7",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__abbreviated",
+      "content_sha256": "942a29ab3d4e0c9e073b798ae0ed9445692143471ac6d2b09bc36f6c80db13f7",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} mixer → DEX flows ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "pattern": "Top {n} label categories by owners, with accounts and accounts/owner.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6ad572834e3a6fa8d16fa92548d26af0c6c328dc595a5368d4d1cba76ff5015a",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__alternative",
+      "content_sha256": "bc13d7891e305831d9f6fbfd18ce0a113b461c38630d342af02d476545cedefb",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, find {n} native transfers from a mixer class to a DEX class with value at least {value_wei} wei.",
+      "pattern": "Rank {n} categories in the accepted label dictionary by unique owners and return each category's account total and accounts-per-owner ratio.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a890cd275dc9a4b5d3d4e626b5b7bbe9b55f905c0407572ced7778be2d0e0fc6",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__formal",
+      "content_sha256": "33afbfbcd8558db90142164907816a4f27f8da06c949b59c6b8b5d8d9e18cb4f",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch lớn nhất từ mixer tới DEX có giá trị ít nhất {value_wei} wei trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê {n} danh mục nhãn đứng đầu theo số chủ sở hữu riêng biệt, kèm số tài khoản và số tài khoản trên mỗi chủ sở hữu.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7b9a24fe731751cae5b9d1a3b59a05662ba2813566ca5f19b1c89a1c1c000fa2",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__conversational",
+      "content_sha256": "40c134a76af895707f17a81fd686f4f02461b1feb10fb7911de4c604d89811ae",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} dòng tiền nào từ mixer sang DEX có giá trị từ {value_wei} wei trở lên?",
+      "pattern": "{n} danh mục nhãn nào có nhiều chủ sở hữu riêng biệt nhất, và mỗi danh mục có bao nhiêu tài khoản cùng tỷ lệ tài khoản trên chủ sở hữu?",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cc0037eb2c12b43e9d4ef1e7fc6f1f111bf1c2f6c74a7e246e544f88aac7eb83",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__abbreviated",
+      "content_sha256": "6a8152efeeea495e1230ca9528006c9ef75ec649e53236f83a6e7fe10ae812f3",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} flow mixer → DEX ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "pattern": "Top {n} danh mục nhãn theo số chủ sở hữu, kèm số tài khoản và tài khoản/chủ sở hữu.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cf6a57c54c833a755e3a339e8d8235e6825326c4863425eed0a45b871e40365e",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__alternative",
+      "content_sha256": "904a8a36de58dd981cdd4715ac82e0a201d2b041fa8115fe8adfa2bcdf4e0c50",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} lượt chuyển native từ lớp mixer sang lớp DEX có giá trị không nhỏ hơn {value_wei} wei.",
+      "pattern": "Xếp hạng {n} danh mục trong từ điển nhãn đã chấp nhận theo số chủ sở hữu duy nhất, đồng thời trả về tổng tài khoản và tỷ lệ tài khoản trên mỗi chủ sở hữu.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
