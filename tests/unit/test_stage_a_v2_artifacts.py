@@ -389,6 +389,56 @@ def test_accepted_manifest_rejects_tampered_physical_evidence(inputs, tampering:
         )
 
 
+@pytest.mark.parametrize("failure", ["empty", "missing", "reordered", "unexpected"])
+def test_replacement_live_gate_rejects_invalid_results_without_writing_accepted_artifacts(
+    tmp_path: Path, inputs, failure: str
+) -> None:
+    templates, pools, _ = inputs
+    live_pools = _live_pools(pools)
+    records = generate_stage_a_v2_records(templates, live_pools)
+    complete = _fake_live_report(records)
+    executions = list(complete.witnesses)
+    index = next(
+        index
+        for index, execution in enumerate(executions)
+        if execution.template_id == "T_CATEGORY_OWNER_DISTRIBUTION"
+    )
+    execution = executions[index]
+    expected_columns = (
+        "category",
+        "owner_count",
+        "account_count",
+        "accounts_per_owner",
+        "owner_rank",
+    )
+    assert execution.columns == expected_columns
+
+    if failure == "empty":
+        executions[index] = replace(execution, row_count=0)
+    elif failure == "missing":
+        executions[index] = replace(execution, columns=expected_columns[:-1])
+    elif failure == "reordered":
+        executions[index] = replace(
+            execution,
+            columns=(expected_columns[1], expected_columns[0], *expected_columns[2:]),
+        )
+    else:
+        executions[index] = replace(execution, columns=(*expected_columns, "unexpected"))
+
+    report = replace(complete, witnesses=tuple(executions))
+    targets = tuple(tmp_path / name for name in ("accepted.jsonl", "manifest.json", "stats.md"))
+    with pytest.raises(StageAV2ArtifactError, match="witness execution"):
+        write_stage_a_v2_accepted_artifacts(
+            report,
+            templates,
+            live_pools,
+            output_path=targets[0],
+            config_path=targets[1],
+            stats_path=targets[2],
+        )
+    assert not any(path.exists() for path in targets)
+
+
 @pytest.mark.parametrize(
     "protected_path",
     [
