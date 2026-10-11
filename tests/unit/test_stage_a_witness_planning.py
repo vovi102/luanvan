@@ -55,6 +55,29 @@ def test_v2_planner_batches_exact_transaction_hash_witnesses(
     assert all(batch.sql.count(f"'{transaction_hash}'") == 1 for transaction_hash in hashes)
 
 
+def test_replacement_uses_one_limit_monotonic_witness_without_changing_plan(
+    records: list[dict[str, object]],
+) -> None:
+    replacement = [
+        record for record in records if record["template_id"] == "T_CATEGORY_OWNER_DISTRIBUTION"
+    ]
+    replacement_group_id = replacement[0]["witness_group_id"]
+    group = next(
+        group for group in build_witness_groups(records) if group.group_id == replacement_group_id
+    )
+
+    assert group.witness_record_id == replacement[0]["id"]
+    assert replacement[0]["slot_values"] == {"n": 1}
+    assert group.member_record_ids == tuple(record["id"] for record in replacement)
+    assert len(group.member_record_ids) == 34
+    assert group.proof_mode == "live_limit_monotonic"
+    assert len(build_witness_groups(records)) == 170
+    assert len(build_stage_a_v2_witness_queries(records)) == 126
+    assert build_stage_a_v2_witness_queries(list(reversed(records))) == (
+        build_stage_a_v2_witness_queries(records)
+    )
+
+
 def test_v2_plan_is_deterministic_under_record_reordering(
     records: list[dict[str, object]],
 ) -> None:

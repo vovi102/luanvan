@@ -280,18 +280,18 @@
     "validation": {"expect_non_empty": false, "scope_note": "Distinct treasury and operational roles are mandatory."}
   },
   {
-    "id": "T_MIXER_TO_DEX_LARGE_FLOW",
-    "name": "Large mixer to DEX flow",
-    "category": "multi_hop",
+    "id": "T_CATEGORY_OWNER_DISTRIBUTION",
+    "name": "Category owner distribution",
+    "category": "transaction_aggregation",
     "difficulty": "hard",
-    "slots": {"value_wei": {"type": "decimal_wei"}, "start_date": {"type": "date"}, "end_date": {"type": "date"}, "n": {"type": "integer", "min": 1, "max": 100}},
-    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, from_owner, to_address, to_owner, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE from_address_role = 'operational'\n  AND from_concept_class = 'MixerAccount'\n  AND to_address_role = 'operational'\n  AND to_concept_class = 'DEXProtocol'\n  AND value_wei >= NUMERIC '{value_wei}'\nORDER BY value_wei DESC\nLIMIT {n}",
-    "nl_seed": "Show {n} mixer-to-DEX flows above {value_wei} wei between {start_date} and {end_date}.",
-    "expected_columns": ["transaction_hash", "block_timestamp", "from_address", "from_owner", "to_address", "to_owner", "value_wei"],
-    "schema_elements": ["transaction_facts.transaction_hash", "transaction_facts.block_timestamp", "transaction_facts.from_address", "transaction_facts.to_address", "transaction_facts.value_wei", "entity_labels_v1.owner", "entity_labels_v1.concept_class", "entity_labels_v1.address_role"],
-    "cq_ids": ["CQ21"],
-    "example_fill": {"value_wei": "1000000000000000000", "start_date": "2026-06-15", "end_date": "2026-06-16", "n": 10},
-    "validation": {"expect_non_empty": false, "scope_note": "Known coverage gap: no accepted operational mixer endpoint."}
+    "slots": {"n": {"type": "integer", "min": 1, "max": 100}},
+    "sql_template": "WITH category_stats AS (\n  SELECT\n    category,\n    COUNT(DISTINCT owner) AS owner_count,\n    COUNT(DISTINCT address) AS account_count\n  FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`\n  GROUP BY category\n)\nSELECT\n  category,\n  owner_count,\n  account_count,\n  SAFE_DIVIDE(account_count, owner_count) AS accounts_per_owner,\n  DENSE_RANK() OVER (\n    ORDER BY owner_count DESC, account_count DESC\n  ) AS owner_rank\nFROM category_stats\nORDER BY owner_rank, category\nLIMIT {n}",
+    "nl_seed": "List the top {n} accepted label categories ranked by distinct owners, including account count and accounts per owner.",
+    "expected_columns": ["category", "owner_count", "account_count", "accounts_per_owner", "owner_rank"],
+    "schema_elements": ["entity_labels_v1.category", "entity_labels_v1.owner", "entity_labels_v1.address"],
+    "cq_ids": ["CQ20"],
+    "example_fill": {"n": 10},
+    "validation": {"expect_non_empty": true, "scope_note": "Summarizes the accepted label dictionary without claiming that one owner spans multiple categories."}
   },
   {
     "id": "T_TOKEN_AFTER_NATIVE_FUNDING",

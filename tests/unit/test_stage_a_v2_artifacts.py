@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -180,6 +181,24 @@ def test_candidate_manifest_is_hash_bound_and_ineligible_for_acceptance(inputs) 
         "transaction_hash": "sha256_syntax_only_unverified",
     }
     assert len(manifest["artifact_sha256"]) == 64
+
+
+def test_replacement_uses_34_monotonic_limits_without_changing_population(inputs) -> None:
+    _, _, records = inputs
+    replacement = [
+        record for record in records if record["template_id"] == "T_CATEGORY_OWNER_DISTRIBUTION"
+    ]
+
+    assert len(replacement) == 34
+    assert [record["slot_values"] for record in replacement] == [{"n": n} for n in range(1, 35)]
+    assert len({record["witness_group_id"] for record in replacement}) == 1
+    assert Counter(record["difficulty"] for record in records) == {
+        "easy": 350,
+        "medium": 450,
+        "hard": 200,
+    }
+    assert len(records) == 1000
+    assert len({record["template_id"] for record in records}) == 25
 
 
 def test_candidate_writer_is_deterministic_and_preserves_v1_bytes(tmp_path: Path, inputs) -> None:

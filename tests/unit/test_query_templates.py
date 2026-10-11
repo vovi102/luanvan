@@ -51,7 +51,7 @@ EXPECTED_IDS = (
     "T_TX_BY_HOUR",
     "T_LARGE_TX_TO_CLASS",
     "T_EXCHANGE_TO_DEX_FLOW",
-    "T_MIXER_TO_DEX_LARGE_FLOW",
+    "T_CATEGORY_OWNER_DISTRIBUTION",
     "T_TOKEN_AFTER_NATIVE_FUNDING",
     "T_CROSS_EXCHANGE_FLOW",
     "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE",
@@ -96,6 +96,62 @@ def test_template_library_preserves_approved_distribution(
 
     assert difficulties == {"medium": 11, "easy": 8, "hard": 6}
     assert set(categories) == SUPPORTED_CATEGORIES
+
+
+def test_category_owner_distribution_has_exact_supported_contract(
+    templates: list[dict[str, object]],
+) -> None:
+    assert "T_MIXER_TO_DEX_LARGE_FLOW" not in {template["id"] for template in templates}
+    replacement = next(
+        template for template in templates if template["id"] == "T_CATEGORY_OWNER_DISTRIBUTION"
+    )
+
+    assert replacement["name"] == "Category owner distribution"
+    assert replacement["category"] == "transaction_aggregation"
+    assert replacement["difficulty"] == "hard"
+    assert replacement["slots"] == {"n": {"type": "integer", "min": 1, "max": 100}}
+    assert replacement["cq_ids"] == ["CQ20"]
+    assert replacement["expected_columns"] == [
+        "category",
+        "owner_count",
+        "account_count",
+        "accounts_per_owner",
+        "owner_rank",
+    ]
+    assert replacement["schema_elements"] == [
+        "entity_labels_v1.category",
+        "entity_labels_v1.owner",
+        "entity_labels_v1.address",
+    ]
+    assert replacement["validation"]["expect_non_empty"] is True
+    assert "CQ21" not in replacement["cq_ids"]
+    assert "CQ30" not in replacement["cq_ids"]
+    assert (
+        render_template(replacement)
+        == """WITH category_stats AS (
+  SELECT
+    category,
+    COUNT(DISTINCT owner) AS owner_count,
+    COUNT(DISTINCT address) AS account_count
+  FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`
+  GROUP BY category
+)
+SELECT
+  category,
+  owner_count,
+  account_count,
+  SAFE_DIVIDE(account_count, owner_count) AS accounts_per_owner,
+  DENSE_RANK() OVER (
+    ORDER BY owner_count DESC, account_count DESC
+  ) AS owner_rank
+FROM category_stats
+ORDER BY owner_rank, category
+LIMIT 10"""
+    )
+    assert replacement["validation"]["scope_note"] == (
+        "Summarizes the accepted label dictionary without claiming that one owner spans "
+        "multiple categories."
+    )
 
 
 def test_every_template_uses_contract_v2_without_legacy_sparql_fields(
