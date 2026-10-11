@@ -203,6 +203,15 @@ def test_replacement_uses_34_monotonic_limits_without_changing_population(inputs
 
 def test_candidate_writer_is_deterministic_and_preserves_v1_bytes(tmp_path: Path, inputs) -> None:
     templates, pools, records = inputs
+    assert (
+        _sha256(V1_ARTIFACT) == "a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709"
+    )
+    assert _sha256(V1_CONFIG) == "781495b7a70614bd6b87861781a816946f2443ac1c66cab2bba16df58afbe713"
+    assert _sha256(V1_STATS) == "bc93c7a9355a34e531b275181646db269968040d2484e8a2876a8329db8579db"
+    assert (
+        _sha256(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
+        == "1bdbd40f5e5a31616ee537fe01a101642609c7afb07d52cd36e19af170334fc8"
+    )
     v1_before = {path: path.read_bytes() for path in (V1_ARTIFACT, V1_CONFIG, V1_STATS)}
     first = tuple(tmp_path / "first" / name for name in ("data.jsonl", "config.json", "stats.md"))
     second = tuple(tmp_path / "second" / name for name in ("data.jsonl", "config.json", "stats.md"))
@@ -226,9 +235,20 @@ def test_candidate_writer_is_deterministic_and_preserves_v1_bytes(tmp_path: Path
 
     assert [path.read_bytes() for path in first] == [path.read_bytes() for path in second]
     assert first_result.artifact_sha256 == second_result.artifact_sha256
-    assert json.loads(first[1].read_text())["lifecycle_state"] == "candidate"
+    manifest = json.loads(first[1].read_text())
+    assert manifest["lifecycle_state"] == "candidate"
+    assert manifest["acceptance_eligible"] is False
+    assert manifest["verification_mode"] == "offline_candidates"
     assert first[2].read_text().startswith("# GoogleSQL Stage A v2 Candidate Stats\n")
     assert {path: path.read_bytes() for path in v1_before} == v1_before
+    assert not any(
+        path.exists()
+        for path in (
+            DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
+            DEFAULT_V2_ACCEPTED_CONFIG_PATH,
+            DEFAULT_V2_ACCEPTED_STATS_PATH,
+        )
+    )
 
 
 def test_candidate_manifest_rejects_any_live_verification_claim(inputs) -> None:
