@@ -95,12 +95,12 @@ candidate riêng đã được tạo để giải quyết coverage 16/25 intent:
 
 - `synthetic-stage-a-v2-candidate.jsonl`: 1.000 records, đủ 25 intent,
   difficulty 350/450/200, seed 42; SHA-256
-  `4746f68642913e0c40a0d19817cf0e4bf556f46d3ba1777a611f903e062e6561`.
+  `b3c1052f9d19cc47be1d39c91c7898618af8990fbfc77943c1b5751aa26f2d94`.
 - `generation-config-v2-candidate.json`: lifecycle `candidate`,
   `acceptance_eligible=false`, verification `offline_candidates`; SHA-256
-  `fd5bdd9797e0e6af0ee184e9dcc4cc787a7526e3f3d05d0bdf73f8955c814a4d`.
+  `8162368ccf3255699b285e87c850f00cb9be67aeeb10afa3de9fab85a1011d5b`.
 - `stats-v2-candidate.md`: SHA-256
-  `3b0f445fd12da9712f71e05a9075fd165ed32fd4cd658e1953abaa3c95e23a55`.
+  `5f94062d64d09bc6ee39d3c9e54e2f6c3285aec22ca3cf67d261a23e8e3172e7`.
 
 Các giá trị `block_number` và `transaction_hash` trong candidate vẫn chỉ là giá
 trị deterministic/syntax-only; candidate không supersede acceptance của v1 và
@@ -184,6 +184,60 @@ uv run python scripts/09_generate_stage_a_v2.py \
   coverage và chứng minh bounded flow thật, hoặc thay intent coverage-gap bằng
   một intent được support rồi tạo/hash/audit lại candidate. Cho phép empty proof
   không đáp ứng acceptance contract hiện hành.
+
+## Stage A v2 supported-intent revision preflight — 2026-10-11
+
+- `T_MIXER_TO_DEX_LARGE_FLOW` đã được loại và thay bằng
+  `T_CATEGORY_OWNER_DISTRIBUTION`, chỉ liên kết `CQ20`, có đúng 34 records với
+  `n=1..34`. Candidate mới vẫn có 1.000 records, 25 intents, difficulty
+  350/450/200, 170 logical witness groups và lifecycle `candidate`.
+- Hai offline builds độc lập giống byte ở cả data/config/stats. Local gate pass
+  `1.646` tests; Ruff format/check và `git diff --check` pass. Stage A v1 và
+  evidence pool giữ nguyên hashes; ba accepted-v2 paths vẫn absent.
+- Genuine BigQuery dry-run-only preflight đo `96.112.944.434` bytes
+  (`89,512154864 GiB`) trên 126 physical queries cho 170 logical witnesses,
+  thấp hơn aggregate cap 96 GiB (`103.079.215.104` bytes) đúng
+  `6.966.270.670` bytes (`6,487845136 GiB`).
+- Query lớn nhất là
+  `3a4fe25837612c22c8c3d750331fe6f77f8eacf06f08493e6b15706590d833ce`
+  của `T_BRIDGE_OUTFLOW_AFTER_EXCHANGE`, `14.829.419.966` bytes
+  (`13,810973583 GiB`), dưới cap 20 GiB (`21.474.836.480` bytes).
+- Gross on-demand equivalent là `$0.546339` theo mức tham chiếu
+  [`$6.25/TiB`](https://cloud.google.com/bigquery/pricing). Đây không phải charge
+  dự báo cuối: first 1 TiB/month free, rounding và billed bytes có thể thay đổi
+  actual charge.
+- Preflight không execute query và không ghi artifact. Snapshot hash/existence
+  trước/sau giống hệt nhau; failed live run cũ chỉ là operational evidence,
+  không phải acceptance evidence. Revised live execution chờ user duyệt riêng
+  exact measured estimate này.
+
+| Template | Physical queries | Estimated bytes |
+|---|---:|---:|
+| `T_ACCOUNTS_BY_CATEGORY` | 1 | 117.879 |
+| `T_BLOCKS_BY_VALIDATOR` | 4 | 14.234.859.968 |
+| `T_BLOCK_BY_NUMBER` | 45 | 66.731.040 |
+| `T_BRIDGE_OUTFLOW_AFTER_EXCHANGE` | 1 | 14.829.419.966 |
+| `T_CATEGORY_OWNER_DISTRIBUTION` | 1 | 394.972 |
+| `T_COUNT_TX_IN_RANGE` | 45 | 1.097.467.136 |
+| `T_CROSS_EXCHANGE_FLOW` | 1 | 389.764.739 |
+| `T_EXCHANGE_TO_DEX_FLOW` | 1 | 389.923.594 |
+| `T_FAILED_HIGH_GAS_TX` | 1 | 198.739.900 |
+| `T_FILTER_TX_BY_VALUE` | 1 | 389.415.408 |
+| `T_LARGE_TX_TO_CLASS` | 1 | 389.805.715 |
+| `T_LIST_FAILED_TX` | 1 | 357.617.024 |
+| `T_LIST_KNOWN_EXCHANGES` | 1 | 674.882 |
+| `T_LIST_TX_FROM_ACCOUNT` | 4 | 1.558.565.392 |
+| `T_LIST_TX_TO_ACCOUNT` | 4 | 1.558.565.392 |
+| `T_REPEATED_PAIR_FLOW` | 1 | 254.272.276 |
+| `T_TOKEN_AFTER_NATIVE_FUNDING` | 1 | 14.829.255.599 |
+| `T_TOKEN_TRANSFERS_OF_TOKEN` | 2 | 29.006.801.680 |
+| `T_TOKEN_VOLUME_BY_SYMBOL` | 1 | 14.120.516.260 |
+| `T_TOP_RECIPIENTS_BY_COUNT` | 1 | 103.229.952 |
+| `T_TOP_SENDERS_BY_VALUE` | 1 | 166.941.516 |
+| `T_TX_BETWEEN_ACCOUNTS` | 4 | 1.557.661.632 |
+| `T_TX_BY_HASH` | 1 | 405.314.600 |
+| `T_TX_BY_HOUR` | 1 | 15.899.192 |
+| `T_TX_GROUPED_BY_OWNER` | 1 | 190.988.720 |
 
 Live witness verification:
 

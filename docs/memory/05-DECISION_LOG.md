@@ -24,6 +24,33 @@
 
 ## Entries
 
+### 2026-10-11 — Thay coverage-gap intent và khóa revised live bằng preflight mới
+
+- **Context:** Live attempt cũ fail-closed vì mixer endpoint không tồn tại trong
+  accepted dictionary; approval cũ không áp dụng cho SQL plan đã thay đổi.
+- **Options considered:** Retry/hạ gate; thêm mixer không được verify; hoặc thay
+  intent bằng analytical intent có dữ liệu thật rồi tái sinh candidate.
+- **Decision:** Thay `T_MIXER_TO_DEX_LARGE_FLOW` bằng
+  `T_CATEGORY_OWNER_DISTRIBUTION`, chỉ link `CQ20`; giữ 34 records, 1.000/25,
+  350/450/200, 170 logical witnesses và 126 physical queries. Dừng sau exact
+  preflight để xin approval mới.
+- **Rationale:** Accepted `entity_labels_v1` support grouped distinct owners,
+  accounts, ratio và ranking theo category mà không claim owner xuyên category.
+  Genuine preflight đo `96.112.944.434` bytes (`89,512154864 GiB`), max
+  `14.829.419.966` bytes (`13,810973583 GiB`), qua caps 96/20 GiB.
+- **Consequences:** Candidate data/config/stats hashes lần lượt là
+  `b3c1052f9d19cc47be1d39c91c7898618af8990fbfc77943c1b5751aa26f2d94`,
+  `8162368ccf3255699b285e87c850f00cb9be67aeeb10afa3de9fab85a1011d5b`,
+  `5f94062d64d09bc6ee39d3c9e54e2f6c3285aec22ca3cf67d261a23e8e3172e7`.
+  Gross equivalent `$0.546339` ở `$6.25/TiB`, trước free tier/billed-byte
+  effects. Dry-run không execute và không tạo accepted artifact; run cũ không
+  phải acceptance evidence.
+- **Revisit:** Chỉ sau khi user duyệt đúng estimate này; input/hash hoặc repeated
+  preflight thay đổi thì phải xin approval mới.
+- **Linked:** `docs/superpowers/specs/2026-10-11-stage-a-v2-supported-intent-revision-design.md`,
+  `scripts/09_generate_stage_a_v2.py`,
+  `data/dataset/raw/generation-config-v2-candidate.json`.
+
 ### 2026-10-11 — Stage A v2 live gate fail-closed trên known mixer coverage gap
 
 - **Context:** Sau measured preflight pass và explicit approval, live run dừng ở
