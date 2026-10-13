@@ -259,6 +259,52 @@ uv run python scripts/09_generate_stage_a_v2.py \
   operational evidence, không phải acceptance evidence. Không retry, không đổi
   pool/metadata và không hạ non-empty gate trong attempt này.
 
+## Stage A v2 pair-backed diagnostic attempt — 2026-10-14
+
+- Candidate được regenerate từ pool có 40 quan hệ account-pair đã chứng minh,
+  giữ 1.000 records, 25 intents, difficulty 350/450/200 và seed 42. SHA-256
+  hiện hành: data
+  `bc82ef19884081f7017f138e6bfb6cf88851dcc4b209c990694828526edb5b7f`,
+  config `ae5e0951641dd364c3c812aab5bbf17a5147af189aeff7cea0540c77483a4a88`,
+  stats `c5fd8e35dca3ecff90e4cf032da19dc6016b28208f4527928ed5d95919beb13c`.
+  Plan có 206 logical witnesses và 126 physical queries; 40 pair witnesses được
+  gom thành bốn batch 10-pair.
+- Pre-provider gate pass `1.424` tests, Ruff format/check và
+  `git diff --check`. Stage A v1 hashes vẫn là
+  `a42e76e363e48a495d46432cb3fad649206934a39e0b3e0110617fc5564b6709`,
+  `781495b7a70614bd6b87861781a816946f2443ac1c66cab2bba16df58afbe713`,
+  `bc93c7a9355a34e531b275181646db269968040d2484e8a2876a8329db8579db`;
+  evidence-pool hash vẫn là
+  `cc596000e1c09f6ebcb46eb6ef3d48dbdd4953f66bb238ffb24901be4b7705e6`.
+- Diagnostic CLI xác nhận project `nl2sparql-thesis` có
+  `billing_enabled=false` và billing account rỗng trước khi tạo BigQuery
+  client. Initial dry-run phủ đủ 126 physical queries / 206 logical witnesses,
+  tổng estimate `99.050.610.963` bytes (`92,248070019 GiB`), thấp hơn cap 96
+  GiB `4.028.604.141` bytes. Query lớn nhất là
+  `3a4fe25837612c22c8c3d750331fe6f77f8eacf06f08493e6b15706590d833ce`
+  / `T_BRIDGE_OUTFLOW_AFTER_EXCHANGE`, `15.250.087.887` bytes, dưới cap 20
+  GiB.
+- Lượt diagnostic duy nhất dừng fail-closed ở physical execution thứ 14:
+  witness `syn-v2-000637` / `T_BLOCKS_BY_VALIDATOR` cho beneficiary
+  `0x77021d475e36b3ab1921a0e3a8380f069d3263de` trong window
+  `2026-06-15`–`2026-06-16` trả rỗng, dù immediate dry-run estimate
+  `3.561.169.792` bytes. Trước điểm dừng có 13 execution jobs và 66 logical
+  outcomes thành công; processed `1.708.003.160` bytes (`1,590701900 GiB`),
+  billed `1.749.024.768` bytes (`1,628906250 GiB`), cache hits `0`. Report lưu
+  từng query digest, membership, execution job ID và logical outcome đã quan
+  sát.
+- Diagnostic report
+  `docs/evidence/stage-a-v2-account-pair-diagnostic.json` có SHA-256
+  `04c09aff49422274b1ad1b3a577f98a0c20e250d439a4675e8b684c57e30fb87`,
+  status `failed`, mode `diagnostic` và `acceptance_authorized=false`. Đây là
+  operational evidence, không phải acceptance evidence. Không retry; cả ba
+  accepted-v2 outputs vẫn absent và mọi candidate/v1/evidence hash không đổi.
+- Pair-level provenance đã sửa lỗi ghép hai endpoint độc lập, nhưng không chứng
+  minh cùng address có vai trò block beneficiary. Bước kế tiếp là bổ sung
+  relationship-specific evidence cho `T_BLOCKS_BY_VALIDATOR` (và audit các
+  intent account-bound còn lại), regenerate candidate, rồi chạy fresh preflight;
+  không chạy `--live` hoặc publish acceptance nếu chưa có user approval mới.
+
 Live witness verification:
 
 ```bash

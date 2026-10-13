@@ -25,7 +25,7 @@ schema/entity/class linking.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3 | Deterministic bilingual producer hoàn tất offline; canonical artifact bị chặn vì Stage A v2 chưa có genuine BigQuery acceptance | Cung cấp evidence pools/quyền BigQuery, accept v2, audit và build 8.000 records |
+| T3.3 | Deterministic bilingual producer hoàn tất offline; pair-backed diagnostic fail-closed tại `T_BLOCKS_BY_VALIDATOR`, chưa có Stage A v2 acceptance | Bổ sung beneficiary/role-specific evidence, audit các intent account-bound, regenerate và fresh preflight trước approval mới |
 | T3.4 | Superseded | Không sinh noise dataset riêng |
 | T3.5 | English finalized; Vietnamese draft chờ user review | Finalize paired benchmark, giữ ngoài training/tuning |
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
@@ -39,9 +39,11 @@ schema/entity/class linking.
 
 ### P0 — Mở gate dữ liệu
 
-1. **Accept Stage A v2.** Cung cấp tối thiểu 45 block numbers và 45 transaction
-   hashes có provenance, BigQuery credential/quota và quyền chi phí; chạy live
-   verifier cho đủ 1.000/1.000 records với zero cache hits.
+1. **Accept Stage A v2.** Bổ sung relationship-specific evidence cho
+   `T_BLOCKS_BY_VALIDATOR` và audit các intent account-bound còn lại; regenerate
+   pair-backed candidate, chạy fresh preflight rồi xin approval mới. Chỉ chạy
+   live verifier khi đủ 1.000/1.000 records với zero cache hits; diagnostic
+   failure hiện tại không authorize acceptance.
 2. **Build T3.3 canonical.** Audit 100 English + 100 Vietnamese, build/validate
    artifact 8.000 records hai lần và xác nhận byte reproducibility.
 3. **Finalize Vietnamese T3.5.** User review 100 candidates; live verify và khóa
@@ -109,6 +111,7 @@ WIP limit: một task implementation lớn và một external-evidence task đan
 
 ## Công việc kế tiếp
 
-Cung cấp genuine BigQuery evidence để promote Stage A v2 25/25 intent thành
-accepted, rồi audit/build T3.3 deterministic. Sau đó chạy B1/B2 trên Kaggle và
-dùng kết quả để quyết định có thực hiện B3 hay không.
+Bổ sung beneficiary/role-specific BigQuery evidence, audit các intent
+account-bound, regenerate Stage A v2 pair-backed và chạy fresh preflight trước
+approval mới. Chỉ sau acceptance mới audit/build T3.3 deterministic; tiếp đó
+chạy B1/B2 trên Kaggle và dùng kết quả để quyết định có thực hiện B3 hay không.
