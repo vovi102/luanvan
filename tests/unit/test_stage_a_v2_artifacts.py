@@ -13,7 +13,10 @@ from types import SimpleNamespace
 import pytest
 
 from nl2sparql.dataset.generate import load_value_pools
-from nl2sparql.dataset.stage_a.account_pairs import load_account_pairs
+from nl2sparql.dataset.stage_a.account_pairs import (
+    canonical_account_pair_mappings,
+    load_account_pairs,
+)
 from nl2sparql.dataset.stage_a.evidence import (
     LogicalWitnessResult,
     StageAVerificationReport,
@@ -252,6 +255,76 @@ def test_candidate_writer_is_deterministic_and_preserves_v1_bytes(tmp_path: Path
     assert manifest["verification_mode"] == "offline_candidates"
     assert first[2].read_text().startswith("# GoogleSQL Stage A v2 Candidate Stats\n")
     assert {path: path.read_bytes() for path in v1_before} == v1_before
+    assert not any(
+        path.exists()
+        for path in (
+            DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
+            DEFAULT_V2_ACCEPTED_CONFIG_PATH,
+            DEFAULT_V2_ACCEPTED_STATS_PATH,
+        )
+    )
+
+
+def test_committed_candidate_matches_pair_backed_generation_contract(inputs) -> None:
+    _, pools, generated = inputs
+    committed = [
+        json.loads(line)
+        for line in DEFAULT_V2_CANDIDATE_OUTPUT_PATH.read_text().splitlines()
+        if line
+    ]
+    manifest = json.loads(DEFAULT_V2_CANDIDATE_CONFIG_PATH.read_text())
+
+    assert (
+        _sha256(DEFAULT_V2_CANDIDATE_OUTPUT_PATH)
+        == "bc82ef19884081f7017f138e6bfb6cf88851dcc4b209c990694828526edb5b7f"
+    )
+    assert (
+        _sha256(DEFAULT_V2_CANDIDATE_CONFIG_PATH)
+        == "ae5e0951641dd364c3c812aab5bbf17a5147af189aeff7cea0540c77483a4a88"
+    )
+    assert (
+        _sha256(DEFAULT_V2_CANDIDATE_STATS_PATH)
+        == "c5fd8e35dca3ecff90e4cf032da19dc6016b28208f4527928ed5d95919beb13c"
+    )
+    assert committed == generated
+    assert len(committed) == manifest["record_count"] == 1000
+    assert len({record["template_id"] for record in committed}) == 25
+    assert Counter(record["difficulty"] for record in committed) == {
+        "easy": 350,
+        "medium": 450,
+        "hard": 200,
+    }
+    assert manifest["lifecycle_state"] == "candidate"
+    assert manifest["acceptance_eligible"] is False
+    assert manifest["verification_mode"] == "offline_candidates"
+    assert manifest["artifact_sha256"] == _sha256(DEFAULT_V2_CANDIDATE_OUTPUT_PATH)
+
+    pairs = [
+        (pair["account"], pair["account_b"], pair["start_date"], pair["end_date"])
+        for pair in canonical_account_pair_mappings(pools)
+    ]
+    pair_records = [
+        record for record in committed if record["template_id"] == "T_TX_BETWEEN_ACCOUNTS"
+    ]
+    assert [
+        (
+            record["slot_values"]["account"],
+            record["slot_values"]["account_b"],
+            record["slot_values"]["start_date"],
+            record["slot_values"]["end_date"],
+        )
+        for record in pair_records
+    ] == pairs
+    failed_pair = {
+        "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8",
+        "0x77021d475e36b3ab1921a0e3a8380f069d3263de",
+    }
+    assert all(
+        {record["slot_values"]["account"], record["slot_values"]["account_b"]} != failed_pair
+        for record in pair_records
+    )
+    assert len(build_witness_groups(committed)) == 206
+    assert len(build_stage_a_v2_witness_queries(committed)) == 126
     assert not any(
         path.exists()
         for path in (

@@ -6,7 +6,7 @@ Acceptance eligible: false
 Represented intents: 25
 Unique SQL: 1000
 Maximum template frequency: 45
-Maximum entity frequency: 50
+Maximum entity frequency: 41
 
 ## Difficulty
 
