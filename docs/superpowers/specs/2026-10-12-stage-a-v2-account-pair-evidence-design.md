@@ -57,7 +57,7 @@ address.
 The candidate is regenerated under the existing v2 candidate lifecycle and
 paths. No v3 lifecycle is introduced. The failed live attempt is not retried.
 A new live acceptance remains forbidden until the regenerated candidate has
-passed local verification, a diagnostic-only check of all 170 logical
+passed local verification, a diagnostic-only check of all 206 logical
 witnesses, and a fresh preflight that the user approves.
 
 ## Account-Pair Schema
@@ -126,6 +126,13 @@ sort endpoint arrays separately or reconstruct pairs after sorting. Record
 manifest must all derive from the same atomic slot assignment. The candidate
 manifest binds the new complete value-pool digest.
 
+Each distinct relationship remains its own logical witness. The 40 pair
+witnesses are rendered as four deterministic physical batch queries of 10
+pairs each. Every batch returns a synthetic `witness_group_id` column so the
+verifier can attribute non-empty results and exact columns to each logical
+relationship independently. This raises the truthful logical-witness count
+from 170 to 206 while retaining the existing total of 126 physical queries.
+
 Candidate generation for this revision requires the evidence-backed v2 pool.
 A pool without `account_pair`, with fewer or more than 40 entries, or with an
 invalid entry cannot generate or validate the revised Stage A v2 candidate.
@@ -133,9 +140,10 @@ This stricter rule applies to Stage A v2 only and does not change Stage A v1.
 
 ## Diagnostic-Only Witness Verification
 
-Before the new acceptance preflight, the workflow must execute all 170 logical
+Before the new acceptance preflight, the workflow must execute all 206 logical
 witness obligations in a diagnostic-only mode. This mode uses the same
-126-physical-query plan, exact-column validation, non-empty checks, cache
+126-physical-query plan, including four account-pair batch queries, exact-column
+validation, non-empty checks, cache
 prohibition, initial complete preflight, immediate re-dry-runs, and 20 GiB per
 query and 96 GiB aggregate caps as acceptance.
 
@@ -158,7 +166,7 @@ accepted artifact and does not authorize acceptance.
 
 The diagnostic report must distinguish dry-run estimates from actual processed
 and billed bytes. It records physical jobs once even when one job proves
-multiple logical witnesses. Success requires all 170 logical witnesses to have
+multiple logical witnesses. Success requires all 206 logical witnesses to have
 valid, non-empty evidence. Any other empty template is reported by record,
 template, slots, query ID, and job metadata, then the workflow stops without
 lowering a gate.
@@ -172,7 +180,7 @@ After the pair schema and generator pass their RED-to-GREEN tests:
 2. build twice into separate temporary directories and require byte-identical
    data, config, and stats;
 3. validate exactly 1,000 records, 25 intents, difficulty totals `350/450/200`,
-   170 logical witnesses, and 126 physical queries;
+   206 logical witnesses, and 126 physical queries;
 4. run the complete diagnostic-only witness verification;
 5. run the full repository test, lint, format, JSON, immutable-artifact, and
    whitespace checks; and
@@ -221,7 +229,7 @@ Implementation follows RED, GREEN, REFACTOR. Tests must prove:
 - diagnostic failure cannot write any accepted artifact, including partial
   output from an earlier physical job;
 - the 40 generated records bind the 40 verified entries and remain unique;
-- all 170 logical witnesses and 126 physical queries are derived from the
+- all 206 logical witnesses and 126 physical queries are derived from the
   regenerated candidate;
 - candidate double-builds are byte-identical;
 - Stage A v1 and non-pair evidence remain unchanged; and

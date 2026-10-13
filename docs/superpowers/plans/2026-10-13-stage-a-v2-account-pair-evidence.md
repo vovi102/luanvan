@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace independent address pairing with 40 relationship-proven account pairs, verify all 170 logical witnesses diagnostically without publishing acceptance, regenerate the candidate, and stop after a fresh preflight for user approval.
+**Goal:** Replace independent address pairing with 40 relationship-proven account pairs, verify all 206 logical witnesses diagnostically without publishing acceptance, regenerate the candidate, and stop after a fresh preflight for user approval.
 
-**Architecture:** A focused account-pair module validates and canonicalizes the relationship-level pool before Stage A v2 generation. The generator consumes each pair and its date window atomically, while the provider workflow adds a billing-disabled guard and diagnostic-only report path around the existing 126-query verifier. Diagnostic evidence and acceptance evidence remain separate lifecycles; only the existing live command may publish accepted artifacts after a later approval.
+**Architecture:** A focused account-pair module validates and canonicalizes the relationship-level pool before Stage A v2 generation. The generator consumes each pair and its date window atomically, and the planner batches the 40 logical pair witnesses into four physical queries so the full 206-witness plan remains 126 queries. The provider workflow adds a billing-disabled guard and diagnostic-only report path around that verifier. Diagnostic evidence and acceptance evidence remain separate lifecycles; only the existing live command may publish accepted artifacts after a later approval.
 
 **Tech Stack:** Python 3.11, frozen dataclasses, JSON/JSONL, Click, Google Cloud BigQuery, pytest, Ruff, Git.
 
@@ -15,7 +15,7 @@
 - Preserve all Stage A v1 files and historical evidence byte-for-byte.
 - Preserve existing non-pair entries in `stage-a-v2-evidence-pools.json`.
 - Require exactly 40 account-pair entries with 80 globally distinct endpoints, the half-open window `[2026-06-15, 2026-06-16)`, and complete relationship provenance.
-- Keep exactly 1,000 records, 25 intents, seed 42, difficulty totals `350/450/200`, 170 logical witnesses, and 126 physical queries.
+- Keep exactly 1,000 records, 25 intents, seed 42, difficulty totals `350/450/200`, 206 logical witnesses, and 126 physical queries.
 - Keep the per-query cap at 20 GiB and complete initial-preflight cap at 96 GiB.
 - Before every query that executes rather than dry-runs, require `billingEnabled=false` and an empty billing account; never link or enable billing.
 - Disable BigQuery cache, require Standard SQL, use `maximum_bytes_billed`, and never retry a quota or provider failure automatically.
@@ -166,9 +166,12 @@ git commit -m "feat(dataset): add verified Stage A account pairs"
 
 - Modify: `src/nl2sparql/dataset/stage_a_v2.py`
 - Modify: `src/nl2sparql/dataset/stage_a/v2_artifacts.py`
+- Modify: `src/nl2sparql/dataset/stage_a/planning.py`
 - Modify: `tests/unit/test_stage_a_v2.py`
 - Modify: `tests/unit/test_stage_a_v2_artifacts.py`
 - Modify: `tests/unit/test_stage_a_witness_planning.py`
+- Modify: `tests/unit/test_stage_a_verify.py`
+- Modify: `tests/unit/test_stage_a_v2_workflow.py`
 
 **Interfaces:**
 
@@ -176,6 +179,7 @@ git commit -m "feat(dataset): add verified Stage A account pairs"
 - Changes `_variant_fill(...)` so `T_TX_BETWEEN_ACCOUNTS` copies `account`, `account_b`, `start_date`, and `end_date` from one `AccountPair` at `index`.
 - Changes `canonicalize_stage_a_v2_pools(...)` to canonicalize whole relationship entries atomically.
 - Extends `has_evidence_backed_live_values(...)` to require the complete account-pair contract in addition to block/hash evidence.
+- Extends the v2 planner with four deterministic `account_pair_batch` queries of 10 logical pair witnesses each, preserving 126 physical queries while raising truthful logical coverage to 206.
 - Preserves record schema, witness planner signatures, and Stage A v1 behavior.
 
 - [ ] **Step 1: Write failing atomicity and provenance tests**
@@ -197,13 +201,13 @@ Expected: FAIL because the generator still combines independent `ethereum_addres
 
 - [ ] **Step 3: Implement atomic generation and binding**
 
-Use the Task 1 parser before generation. For `T_TX_BETWEEN_ACCOUNTS`, select one canonical pair by record index, copy its four slot fields together, and set `n` deterministically within the template range. Leave the generic pool loop unchanged for every other template. Ensure `entities_used`, witness IDs, rendered SQL, record hashes, and manifest pool hashes all derive from the atomic slots.
+Use the Task 1 parser before generation. For `T_TX_BETWEEN_ACCOUNTS`, select one canonical pair by record index, copy its four slot fields together, and set `n` deterministically within the template range. Leave the generic pool loop unchanged for every other template. Ensure `entities_used`, witness IDs, rendered SQL, record hashes, and manifest pool hashes all derive from the atomic slots. Render the 40 resulting witness groups as four stable 10-pair batch queries whose result rows include `witness_group_id`; reject missing, duplicate, unexpected, or column-drifted logical results.
 
 - [ ] **Step 4: Verify GREEN and unchanged plan shape**
 
 Run: `uv run pytest tests/unit/test_stage_a_v2.py tests/unit/test_stage_a_v2_artifacts.py tests/unit/test_stage_a_witness_planning.py tests/unit/test_stage_a_verify.py -q`
 
-Expected: PASS with 40 relationship-backed records, 170 logical witnesses, and 126 physical queries.
+Expected: PASS with 40 relationship-backed records, 206 logical witnesses, and 126 physical queries.
 
 Run: `uv run ruff format --check src/nl2sparql/dataset/stage_a_v2.py src/nl2sparql/dataset/stage_a/v2_artifacts.py tests/unit/test_stage_a_v2.py tests/unit/test_stage_a_v2_artifacts.py tests/unit/test_stage_a_witness_planning.py && uv run ruff check src/nl2sparql/dataset/stage_a_v2.py src/nl2sparql/dataset/stage_a/v2_artifacts.py tests/unit/test_stage_a_v2.py tests/unit/test_stage_a_v2_artifacts.py tests/unit/test_stage_a_witness_planning.py`
 
@@ -245,7 +249,7 @@ Test exact `gcloud billing projects describe PROJECT --format=json(...)` invocat
 
 - [ ] **Step 2: Write failing diagnostic lifecycle tests**
 
-Using fake BigQuery jobs, assert diagnostic success records 170 logical witnesses over 126 physical jobs, exact dry-run/execution metrics, zero cache hits, and mode `diagnostic`. Assert empty, malformed, unexpected, duplicate, schema-drift, cache-hit, quota, and provider failures produce a canonical failure report naming the first failed gate.
+Using fake BigQuery jobs, assert diagnostic success records 206 logical witnesses over 126 physical jobs, exact dry-run/execution metrics, zero cache hits, and mode `diagnostic`. Assert empty, malformed, unexpected, duplicate, schema-drift, cache-hit, quota, and provider failures produce a canonical failure report naming the first failed gate.
 
 For every outcome, monkeypatch accepted and candidate writers to raise if called and assert the three accepted targets remain absent. Assert `--diagnostic`, `--preflight`, and `--live` are mutually exclusive before billing/provider use.
 Assert `--validate-diagnostic-report` rejects missing/tampered physical edges,
@@ -300,7 +304,7 @@ git commit -m "feat(dataset): add unbilled Stage A diagnostics"
 
 - [ ] **Step 1: Update deterministic artifact expectations only after code is GREEN**
 
-Add assertions for candidate lifecycle, exact pair binding, old failing pair absence unless evidenced, 1,000 records, 25 intents, `350/450/200`, 170/126 plan shape, and accepted-path absence. Do not hard-code new hashes until produced from actual serialized bytes.
+Add assertions for candidate lifecycle, exact pair binding, old failing pair absence unless evidenced, 1,000 records, 25 intents, `350/450/200`, 206/126 plan shape, and accepted-path absence. Do not hard-code new hashes until produced from actual serialized bytes.
 
 - [ ] **Step 2: Build twice in isolated temporary directories**
 
@@ -327,7 +331,7 @@ git add tests/unit/test_stage_a_v2_artifacts.py data/dataset/raw/synthetic-stage
 git commit -m "data(dataset): regenerate pair-backed Stage A v2 candidate"
 ```
 
-### Task 5: Full Local Verification and 170-Witness Diagnostic
+### Task 5: Full Local Verification and 206-Witness Diagnostic
 
 **Files:**
 
@@ -339,7 +343,7 @@ git commit -m "data(dataset): regenerate pair-backed Stage A v2 candidate"
 **Interfaces:**
 
 - Consumes Tasks 1-4 plus the current billing-disabled project and free quota.
-- Produces a diagnostic-only report for all 170 logical witnesses, or truthful failure evidence.
+- Produces a diagnostic-only report for all 206 logical witnesses, or truthful failure evidence.
 - Does not produce or authorize accepted artifacts.
 
 - [ ] **Step 1: Run complete local verification before provider use**
@@ -359,7 +363,7 @@ Expected: full suite and checks pass. Recheck immutable v1 hashes, candidate has
 
 Run the CLI with `--diagnostic`, the genuine evidence pool, and the default diagnostic report path. The command must internally confirm unlinked billing before client creation, complete the initial 126-query preflight below 96 GiB, use immediate dry-runs and cache-disabled executions capped at 20 GiB each, and never retry.
 
-Expected success: 170/170 non-empty logical witnesses, 126 physical executions, zero cache hits, and exact processed/billed metadata. On quota, provider, empty, malformed, or cap failure: stop this plan's provider work, verify accepted paths remain absent, record the failure truthfully, and do not weaken validation.
+Expected success: 206/206 non-empty logical witnesses, 126 physical executions, zero cache hits, and exact processed/billed metadata. On quota, provider, empty, malformed, or cap failure: stop this plan's provider work, verify accepted paths remain absent, record the failure truthfully, and do not weaken validation.
 
 - [ ] **Step 3: Validate diagnostic evidence and artifact isolation**
 
@@ -406,7 +410,7 @@ git commit -m "docs(evidence): record pair-backed Stage A diagnostics"
 **Interfaces:**
 
 - Consumes the green local suite, regenerated candidate, and successful Task 5 diagnostic.
-- Produces a fresh dry-run-only 170/126 acceptance estimate and final handoff.
+- Produces a fresh dry-run-only 206/126 acceptance estimate and final handoff.
 - Does not run final live acceptance.
 
 - [ ] **Step 1: Run final repository verification**
@@ -423,7 +427,7 @@ uv run python scripts/09_generate_stage_a_v2.py \
   --value-pools data/dataset/raw/stage-a-v2-evidence-pools.json
 ```
 
-Expected: 170 logical witnesses, 126 physical queries, total estimate no more than `103,079,215,104` bytes, and maximum query no more than `21,474,836,480` bytes. Preflight performs no execution and writes no artifact.
+Expected: 206 logical witnesses, 126 physical queries, total estimate no more than `103,079,215,104` bytes, and maximum query no more than `21,474,836,480` bytes. Preflight performs no execution and writes no artifact.
 
 - [ ] **Step 3: Compute and document the cost boundary**
 
