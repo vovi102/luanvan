@@ -187,7 +187,7 @@ def _logical_results(
                 columns=columns,
             ),
         )
-    if query.proof_kind != "tx_hash_batch":
+    if query.proof_kind not in {"tx_hash_batch", "account_pair_batch"}:
         raise StageAVerificationError(f"Unsupported witness proof kind: {query.proof_kind}")
     batch_columns = ("witness_group_id", *expected_columns)
     if columns != batch_columns:
@@ -216,11 +216,25 @@ def _logical_results(
     for group_id in query.group_ids:
         group = groups_by_id[group_id]
         record = records_by_id[group.witness_record_id]
-        expected_hash = record["slot_values"]["transaction_hash"]
-        if rows_by_group[group_id].get("transaction_hash") != expected_hash:
-            raise StageAVerificationError(
-                f"Witness batch {query.query_id} returned the wrong transaction hash"
-            )
+        if query.proof_kind == "tx_hash_batch":
+            expected_hash = record["slot_values"]["transaction_hash"]
+            if rows_by_group[group_id].get("transaction_hash") != expected_hash:
+                raise StageAVerificationError(
+                    f"Witness batch {query.query_id} returned the wrong transaction hash"
+                )
+        else:
+            expected_pair = {
+                record["slot_values"]["account"],
+                record["slot_values"]["account_b"],
+            }
+            observed_pair = {
+                rows_by_group[group_id].get("from_address"),
+                rows_by_group[group_id].get("to_address"),
+            }
+            if observed_pair != expected_pair:
+                raise StageAVerificationError(
+                    f"Witness batch {query.query_id} returned the wrong account pair"
+                )
         logical_results.append(
             LogicalWitnessResult(
                 group_id=group_id,

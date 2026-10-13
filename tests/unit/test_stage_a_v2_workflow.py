@@ -43,6 +43,8 @@ def test_offline_cli_never_imports_google_or_constructs_a_provider(
     result = CliRunner().invoke(
         script.main,
         [
+            "--value-pools",
+            "data/dataset/raw/stage-a-v2-evidence-pools.json",
             "--output",
             str(targets[0]),
             "--config",
@@ -59,6 +61,29 @@ def test_offline_cli_never_imports_google_or_constructs_a_provider(
     assert summary["record_count"] == 1000
     assert summary["represented_intent_count"] == 25
     assert all(path.exists() for path in targets)
+
+
+def test_offline_cli_requires_explicit_relationship_evidence_before_writing(
+    tmp_path: Path,
+) -> None:
+    script = _load_script()
+    targets = tuple(tmp_path / name for name in ("candidate.jsonl", "manifest.json", "stats.md"))
+
+    result = CliRunner().invoke(
+        script.main,
+        [
+            "--output",
+            str(targets[0]),
+            "--config",
+            str(targets[1]),
+            "--stats",
+            str(targets[2]),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "account_pair" in result.output
+    assert not any(path.exists() for path in targets)
 
 
 def test_live_cli_rejects_default_candidate_values_before_provider_import(monkeypatch) -> None:
@@ -93,6 +118,7 @@ class BlockGoogle(importlib.abc.MetaPathFinder):
 sys.meta_path.insert(0, BlockGoogle())
 sys.argv = [
     'scripts/09_generate_stage_a_v2.py',
+    '--value-pools', 'data/dataset/raw/stage-a-v2-evidence-pools.json',
     '--output', sys.argv[1],
     '--config', sys.argv[2],
     '--stats', sys.argv[3],
@@ -149,7 +175,7 @@ def test_preflight_uses_126_dry_runs_and_writes_nothing(tmp_path: Path) -> None:
 
     assert first == second
     assert first["mode"] == "preflight"
-    assert first["logical_witness_count"] == 170
+    assert first["logical_witness_count"] == 206
     assert first["physical_query_count"] == len(client.calls) == 126
     assert first["total_estimated_bytes"] == 126
     assert first["per_query_bytes_cap"] == 20 * 2**30

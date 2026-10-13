@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 
 import pytest
 
@@ -18,7 +19,8 @@ from nl2sparql.dataset.templates import load_templates
 
 @pytest.fixture(scope="module")
 def records() -> list[dict[str, object]]:
-    return generate_stage_a_v2_records(load_templates(), load_value_pools())
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
+    return generate_stage_a_v2_records(load_templates(), pools)
 
 
 def test_default_planner_preserves_one_query_per_group_and_order(
@@ -27,7 +29,7 @@ def test_default_planner_preserves_one_query_per_group_and_order(
     groups = build_witness_groups(records)
     queries = build_single_witness_queries(records)
 
-    assert len(queries) == len(groups) == 170
+    assert len(queries) == len(groups) == 206
     assert [query.group_ids for query in queries] == [(group.group_id,) for group in groups]
     assert all(query.proof_kind == "single" for query in queries)
     assert all(
@@ -40,7 +42,7 @@ def test_v2_planner_batches_exact_transaction_hash_witnesses(
 ) -> None:
     queries = build_stage_a_v2_witness_queries(records)
 
-    assert len(build_witness_groups(records)) == 170
+    assert len(build_witness_groups(records)) == 206
     assert len(queries) == 126
     batch = next(query for query in queries if query.proof_kind == "tx_hash_batch")
     assert batch.template_id == "T_TX_BY_HASH"
@@ -53,6 +55,33 @@ def test_v2_planner_batches_exact_transaction_hash_witnesses(
         if record["template_id"] == "T_TX_BY_HASH"
     ]
     assert all(batch.sql.count(f"'{transaction_hash}'") == 1 for transaction_hash in hashes)
+
+
+def test_v2_planner_batches_account_pairs_into_four_queries(
+    records: list[dict[str, object]],
+) -> None:
+    groups = build_witness_groups(records)
+    pair_group_ids = {
+        group.group_id for group in groups if group.template_id == "T_TX_BETWEEN_ACCOUNTS"
+    }
+
+    batches = [
+        query
+        for query in build_stage_a_v2_witness_queries(records)
+        if query.proof_kind == "account_pair_batch"
+    ]
+
+    assert len(pair_group_ids) == 40
+    assert len(batches) == 4
+    assert all(batch.template_id == "T_TX_BETWEEN_ACCOUNTS" for batch in batches)
+    assert all(len(batch.group_ids) == 10 for batch in batches)
+    assert {group_id for batch in batches for group_id in batch.group_ids} == pair_group_ids
+    assert all(batch.sql.count("AS witness_group_id") == 10 for batch in batches)
+    assert all(batch.sql.count("transaction_facts") == 1 for batch in batches)
+    assert all(batch.sql.count("ROW_NUMBER() OVER") == 1 for batch in batches)
+    assert all(
+        batch.query_sha256 == hashlib.sha256(batch.sql.encode()).hexdigest() for batch in batches
+    )
 
 
 def test_replacement_uses_one_limit_monotonic_witness_without_changing_plan(
@@ -71,7 +100,7 @@ def test_replacement_uses_one_limit_monotonic_witness_without_changing_plan(
     assert group.member_record_ids == tuple(record["id"] for record in replacement)
     assert len(group.member_record_ids) == 34
     assert group.proof_mode == "live_limit_monotonic"
-    assert len(build_witness_groups(records)) == 170
+    assert len(build_witness_groups(records)) == 206
     assert len(build_stage_a_v2_witness_queries(records)) == 126
     assert build_stage_a_v2_witness_queries(list(reversed(records))) == (
         build_stage_a_v2_witness_queries(records)

@@ -67,7 +67,7 @@ def _sha(value: bytes) -> str:
 @lru_cache(maxsize=1)
 def _accepted_stage_a_fixture() -> tuple[bytes, bytes]:
     templates = load_templates()
-    pools = load_value_pools()
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
     pools["block_number"] = [
         {"value": 10_000_000 + index, "source": "BigQuery", "evidence": f"block-{index}"}
         for index in range(45)
@@ -108,7 +108,7 @@ def _accepted_stage_a_fixture() -> tuple[bytes, bytes]:
             row_count=len(query.group_ids),
             columns=(
                 ("witness_group_id", *templates_by_id[query.template_id]["expected_columns"])
-                if query.proof_kind == "tx_hash_batch"
+                if query.proof_kind in {"tx_hash_batch", "account_pair_batch"}
                 else tuple(templates_by_id[query.template_id]["expected_columns"])
             ),
             estimated_bytes=11,

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from nl2sparql.dataset.generate import GENERATION_SEED, PROJECT_ROOT
+from nl2sparql.dataset.stage_a.account_pairs import AccountPairError, load_account_pairs
 from nl2sparql.dataset.stage_a.evidence import (
     StageAVerificationReport,
     WitnessDryRun,
@@ -312,7 +313,7 @@ def _validate_report(
     if any(
         not item.query_id
         or len(item.query_sha256) != _SHA256_LENGTH
-        or item.proof_kind not in {"single", "tx_hash_batch"}
+        or item.proof_kind not in {"single", "tx_hash_batch", "account_pair_batch"}
         or not item.group_ids
         or len(set(item.group_ids)) != len(item.group_ids)
         or not set(item.group_ids) <= expected_group_ids
@@ -342,7 +343,7 @@ def _validate_report(
         expected_columns = tuple(templates_by_id[execution.template_id]["expected_columns"])
         physical_columns = (
             ("witness_group_id", *expected_columns)
-            if execution.proof_kind == "tx_hash_batch"
+            if execution.proof_kind in {"tx_hash_batch", "account_pair_batch"}
             else expected_columns
         )
         if (
@@ -478,6 +479,10 @@ def has_evidence_backed_live_values(pools: Mapping[str, Any]) -> bool:
             values.append(entry["value"])
         if len({_canonical_json(value) for value in values}) != len(values):
             return False
+    try:
+        load_account_pairs(pools)
+    except AccountPairError:
+        return False
     return True
 
 
@@ -641,7 +646,8 @@ def build_stage_a_v2_accepted_manifest(
     """Build an accepted manifest only from complete live witness evidence."""
     if not has_evidence_backed_live_values(pools):
         raise StageAV2ArtifactError(
-            "Accepted Stage A v2 requires evidence-backed block and transaction values"
+            "Accepted Stage A v2 requires evidence-backed block, transaction, "
+            "and account-pair values"
         )
     records, summary = _validate_report(report, templates, pools)
     payload = serialize_stage_a_v2_records(records)

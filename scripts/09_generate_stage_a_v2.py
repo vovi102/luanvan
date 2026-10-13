@@ -169,7 +169,7 @@ def main(
         if (preflight or live) and not has_evidence_backed_live_values(pools):
             raise StageAV2WorkflowError(
                 "Stage A v2 preflight/live requires evidence-backed block_number and "
-                "transaction_hash pools"
+                "transaction_hash pools plus account_pair relationships"
             )
         records = generate_stage_a_v2_records(templates, pools)
         if preflight:

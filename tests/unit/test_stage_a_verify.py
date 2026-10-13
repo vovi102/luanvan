@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -30,6 +31,12 @@ from nl2sparql.dataset.stage_a_v2 import (
     validate_stage_a_v2_records,
 )
 from nl2sparql.dataset.templates import PER_TEMPLATE_BYTES_CAP, load_templates
+
+V2_POOLS_PATH = Path("data/dataset/raw/stage-a-v2-evidence-pools.json")
+
+
+def _v2_pools() -> dict[str, object]:
+    return load_value_pools(V2_POOLS_PATH)
 
 
 @pytest.fixture(scope="module")
@@ -82,6 +89,8 @@ class FakeWitnessClient:
         cache_hit_group: str | None = None,
         batch_rows: FakeRows | None = None,
         batch_cache_hit: bool = False,
+        pair_batch_rows: FakeRows | None = None,
+        pair_batch_cache_hit: bool = False,
     ) -> None:
         self.groups = build_witness_groups(records)
         self.groups_by_sql = {group.sql: group for group in self.groups}
@@ -97,6 +106,8 @@ class FakeWitnessClient:
         self.cache_hit_group = cache_hit_group
         self.batch_rows = batch_rows
         self.batch_cache_hit = batch_cache_hit
+        self.pair_batch_rows = pair_batch_rows
+        self.pair_batch_cache_hit = pair_batch_cache_hit
         self.records_by_id = {record["id"]: record for record in records}
         self.calls: list[tuple[str, str, object, str]] = []
 
@@ -109,13 +120,13 @@ class FakeWitnessClient:
         estimate = self.estimates[group_id]
         if job_config.dry_run:
             return FakeJob(estimated_bytes=estimate)
-        if query.proof_kind == "tx_hash_batch":
+        if query.proof_kind in {"tx_hash_batch", "account_pair_batch"}:
             columns = [
                 "witness_group_id",
                 *self.templates[query.template_id]["expected_columns"],
             ]
-            rows = self.batch_rows
-            if rows is None:
+            rows = self.batch_rows if query.proof_kind == "tx_hash_batch" else self.pair_batch_rows
+            if rows is None and query.proof_kind == "tx_hash_batch":
                 groups_by_id = {item.group_id: item for item in self.groups}
                 rows = FakeRows(
                     [
@@ -134,10 +145,34 @@ class FakeWitnessClient:
                     ],
                     columns,
                 )
+            if rows is None:
+                groups_by_id = {item.group_id: item for item in self.groups}
+                rows = FakeRows(
+                    [
+                        SimpleNamespace(
+                            witness_group_id=group_id,
+                            transaction_hash="0x" + "1" * 64,
+                            block_timestamp=1,
+                            from_address=self.records_by_id[
+                                groups_by_id[group_id].witness_record_id
+                            ]["slot_values"]["account"],
+                            to_address=self.records_by_id[groups_by_id[group_id].witness_record_id][
+                                "slot_values"
+                            ]["account_b"],
+                            value_wei=1,
+                        )
+                        for group_id in reversed(query.group_ids)
+                    ],
+                    columns,
+                )
             return FakeJob(
                 estimated_bytes=estimate,
                 rows=rows,
-                cache_hit=self.batch_cache_hit,
+                cache_hit=(
+                    self.batch_cache_hit
+                    if query.proof_kind == "tx_hash_batch"
+                    else self.pair_batch_cache_hit
+                ),
             )
         assert group is not None
         template = self.templates[group.template_id]
@@ -210,12 +245,12 @@ def test_preflight_covers_every_group_with_strict_query_configs(
 def test_batched_preflight_accounts_for_unique_physical_queries(
     templates: list[dict[str, object]],
 ) -> None:
-    records = generate_stage_a_v2_records(templates, load_value_pools())
+    records = generate_stage_a_v2_records(templates, _v2_pools())
     estimates = {group.group_id: 800_000_000 for group in build_witness_groups(records)}
     default_client = FakeWitnessClient(records, templates, estimates=estimates)
     with pytest.raises(StageAVerificationError, match="aggregate.*96 GiB"):
         dry_run_witnesses(default_client, records)
-    assert len(default_client.calls) == 170
+    assert len(default_client.calls) == 206
 
     batched_client = FakeWitnessClient(records, templates, estimates=estimates)
     preflight = dry_run_witnesses(
@@ -334,7 +369,7 @@ def test_witness_budget_constant_is_exactly_96_gib() -> None:
 def test_verifier_accepts_an_explicit_v2_validator_and_all_25_intents(
     templates: list[dict[str, object]],
 ) -> None:
-    records = generate_stage_a_v2_records(templates, load_value_pools())
+    records = generate_stage_a_v2_records(templates, _v2_pools())
     client = FakeWitnessClient(records, templates)
     ticks = iter(index * 1_000_000 for index in range(len(client.groups) * 2))
 
@@ -355,7 +390,7 @@ def test_verifier_accepts_an_explicit_v2_validator_and_all_25_intents(
 def test_batched_verification_maps_shuffled_rows_to_all_logical_witnesses(
     templates: list[dict[str, object]],
 ) -> None:
-    records = generate_stage_a_v2_records(templates, load_value_pools())
+    records = generate_stage_a_v2_records(templates, _v2_pools())
     client = FakeWitnessClient(records, templates)
     ticks = iter(index * 1_000_000 for index in range(126 * 2))
 
@@ -380,6 +415,13 @@ def test_batched_verification_maps_shuffled_rows_to_all_logical_witnesses(
     assert all(
         record["verification"]["physical_query_id"] == batch.query_id for record in hash_records
     )
+    pair_batches = [item for item in report.witnesses if item.proof_kind == "account_pair_batch"]
+    assert len(pair_batches) == 4
+    assert all(len(item.group_ids) == len(item.logical_results) == 10 for item in pair_batches)
+    pair_records = [
+        record for record in report.records if record["template_id"] == "T_TX_BETWEEN_ACCOUNTS"
+    ]
+    assert len({record["verification"]["physical_query_id"] for record in pair_records}) == 4
 
 
 @pytest.mark.parametrize(
@@ -396,7 +438,7 @@ def test_batched_verification_maps_shuffled_rows_to_all_logical_witnesses(
 def test_tx_hash_batch_fails_closed(
     templates: list[dict[str, object]], failure: str, message: str
 ) -> None:
-    records = generate_stage_a_v2_records(templates, load_value_pools())
+    records = generate_stage_a_v2_records(templates, _v2_pools())
     groups = [
         group for group in build_witness_groups(records) if group.template_id == "T_TX_BY_HASH"
     ]
@@ -441,6 +483,82 @@ def test_tx_hash_batch_fails_closed(
         templates,
         batch_rows=FakeRows(rows, schema),
         batch_cache_hit=failure == "cache",
+    )
+
+    with pytest.raises(StageAVerificationError, match=message):
+        verify_stage_a(
+            client,
+            records,
+            templates,
+            verified_at="2026-10-10T12:00:00+00:00",
+            record_validator=validate_stage_a_v2_records,
+            query_planner=build_stage_a_v2_witness_queries,
+        )
+
+
+@pytest.mark.parametrize(
+    ("failure", "message"),
+    [
+        ("missing", "membership"),
+        ("duplicate", "duplicate"),
+        ("unexpected", "unexpected"),
+        ("wrong_pair", "account pair"),
+        ("schema", "columns"),
+        ("cache", "cache hit"),
+    ],
+)
+def test_account_pair_batch_fails_closed(
+    templates: list[dict[str, object]], failure: str, message: str
+) -> None:
+    records = generate_stage_a_v2_records(templates, _v2_pools())
+    queries = build_stage_a_v2_witness_queries(records)
+    batch = next(query for query in queries if query.proof_kind == "account_pair_batch")
+    groups_by_id = {group.group_id: group for group in build_witness_groups(records)}
+    records_by_id = {record["id"]: record for record in records}
+    columns = [
+        "witness_group_id",
+        "transaction_hash",
+        "block_timestamp",
+        "from_address",
+        "to_address",
+        "value_wei",
+    ]
+    rows = []
+    for group_id in batch.group_ids:
+        record = records_by_id[groups_by_id[group_id].witness_record_id]
+        slots = record["slot_values"]
+        rows.append(
+            SimpleNamespace(
+                witness_group_id=group_id,
+                transaction_hash="0x" + "1" * 64,
+                block_timestamp=1,
+                from_address=slots["account"],
+                to_address=slots["account_b"],
+                value_wei=1,
+            )
+        )
+    schema = columns
+    if failure == "missing":
+        rows.pop()
+    elif failure == "duplicate":
+        rows.append(rows[0])
+    elif failure == "unexpected":
+        rows[0] = SimpleNamespace(**{**vars(rows[0]), "witness_group_id": "f" * 64})
+    elif failure == "wrong_pair":
+        rows[0] = SimpleNamespace(
+            **{
+                **vars(rows[0]),
+                "from_address": "0x" + "a" * 40,
+                "to_address": "0x" + "b" * 40,
+            }
+        )
+    elif failure == "schema":
+        schema = ["wrong"]
+    client = FakeWitnessClient(
+        records,
+        templates,
+        pair_batch_rows=FakeRows(rows, schema),
+        pair_batch_cache_hit=failure == "cache",
     )
 
     with pytest.raises(StageAVerificationError, match=message):

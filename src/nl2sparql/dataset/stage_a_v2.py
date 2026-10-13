@@ -18,6 +18,12 @@ from nl2sparql.dataset.generate import (
     RECORD_FIELDS,
     TARGET_COUNT,
 )
+from nl2sparql.dataset.stage_a.account_pairs import (
+    AccountPair,
+    AccountPairError,
+    canonical_account_pair_mappings,
+    load_account_pairs,
+)
 from nl2sparql.dataset.templates import render_template, validate_template_library
 
 V2_DIFFICULTY_ALLOCATION = {"easy": 350, "medium": 450, "hard": 200}
@@ -88,17 +94,46 @@ def canonicalize_stage_a_v2_pools(pools: Mapping[str, Any]) -> dict[str, Any]:
     """Return pool data whose list order cannot affect v2 identity."""
     canonical: dict[str, Any] = {}
     for key, value in pools.items():
-        canonical[key] = sorted(value, key=_canonical_json) if isinstance(value, list) else value
+        if key == "account_pair":
+            try:
+                canonical[key] = canonical_account_pair_mappings(pools)
+            except AccountPairError as exc:
+                raise StageAV2GenerationError(str(exc)) from exc
+        else:
+            canonical[key] = (
+                sorted(value, key=_canonical_json) if isinstance(value, list) else value
+            )
+    if "account_pair" not in canonical:
+        raise StageAV2GenerationError("account_pair must be an array")
     return canonical
 
 
 def _variant_fill(
-    template: Mapping[str, Any], index: int, count: int, pools: Mapping[str, Any]
+    template: Mapping[str, Any],
+    index: int,
+    count: int,
+    pools: Mapping[str, Any],
+    account_pairs: Sequence[AccountPair],
 ) -> dict[str, Any]:
     fill = dict(template["example_fill"])
     template_id = str(template["id"])
     if template_id == "T_COUNT_TX_IN_RANGE":
         fill["start_date"], fill["end_date"] = _count_windows(count)[index]
+        return fill
+    if template_id == "T_TX_BETWEEN_ACCOUNTS":
+        pair = account_pairs[index]
+        fill.update(
+            {
+                "account": pair.account,
+                "account_b": pair.account_b,
+                "start_date": pair.start_date,
+                "end_date": pair.end_date,
+            }
+        )
+        limit = template["slots"]["n"]
+        minimum = int(limit["min"])
+        maximum = int(limit["max"])
+        fill["n"] = minimum + index % (maximum - minimum + 1)
         return fill
     if template_id == "T_BLOCK_BY_NUMBER":
         entries = pools.get("block_number")
@@ -186,12 +221,22 @@ def generate_stage_a_v2_records(
         raise StageAV2GenerationError("Stage A v2 allocation must cover all production templates")
 
     canonical_pools = canonicalize_stage_a_v2_pools(pools)
+    try:
+        account_pairs = load_account_pairs(canonical_pools)
+    except AccountPairError as exc:
+        raise StageAV2GenerationError(str(exc)) from exc
     records: list[dict[str, Any]] = []
     for template_id, count in V2_TEMPLATE_ALLOCATION.items():
         template = templates_by_id[template_id]
         template_sha256 = _sha256(template)
         for index in range(count):
-            slot_values = _variant_fill(template, index, count, canonical_pools)
+            slot_values = _variant_fill(
+                template,
+                index,
+                count,
+                canonical_pools,
+                account_pairs,
+            )
             record: dict[str, Any] = {
                 "id": f"syn-v2-{len(records):06d}",
                 "template_id": template_id,

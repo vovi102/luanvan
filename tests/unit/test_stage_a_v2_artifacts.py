@@ -37,7 +37,10 @@ from nl2sparql.dataset.stage_a.v2_artifacts import (
     write_stage_a_v2_accepted_artifacts,
     write_stage_a_v2_candidate_artifacts,
 )
-from nl2sparql.dataset.stage_a_v2 import generate_stage_a_v2_records
+from nl2sparql.dataset.stage_a_v2 import (
+    canonicalize_stage_a_v2_pools,
+    generate_stage_a_v2_records,
+)
 from nl2sparql.dataset.templates import load_templates
 
 V1_ARTIFACT = Path("data/dataset/raw/synthetic-stage-a.jsonl")
@@ -78,7 +81,7 @@ def _fake_live_report(candidates: list[dict[str, object]]):
             row_count=len(query.group_ids),
             columns=(
                 ("witness_group_id", *templates_by_id[query.template_id]["expected_columns"])
-                if query.proof_kind == "tx_hash_batch"
+                if query.proof_kind in {"tx_hash_batch", "account_pair_batch"}
                 else tuple(templates_by_id[query.template_id]["expected_columns"])
             ),
             estimated_bytes=11,
@@ -149,7 +152,7 @@ def _fake_live_report(candidates: list[dict[str, object]]):
 @pytest.fixture(scope="module")
 def inputs():
     templates = load_templates()
-    pools = load_value_pools()
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
     return templates, pools, generate_stage_a_v2_records(templates, pools)
 
 
@@ -181,6 +184,13 @@ def test_candidate_manifest_is_hash_bound_and_ineligible_for_acceptance(inputs) 
         "block_number": "deterministic_offset_unverified",
         "transaction_hash": "sha256_syntax_only_unverified",
     }
+    canonical_pools = json.dumps(
+        canonicalize_stage_a_v2_pools(pools),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    assert manifest["value_pools_sha256"] == hashlib.sha256(canonical_pools).hexdigest()
     assert len(manifest["artifact_sha256"]) == 64
 
 
@@ -281,12 +291,18 @@ def _live_pools(pools: dict[str, object]) -> dict[str, object]:
 def test_live_values_require_45_unique_provenance_bearing_entries(inputs) -> None:
     _, pools, _ = inputs
 
-    assert has_evidence_backed_live_values(pools) is False
+    assert has_evidence_backed_live_values(pools) is True
     assert has_evidence_backed_live_values(_live_pools(pools)) is True
 
     incomplete = _live_pools(pools)
     incomplete["transaction_hash"] = incomplete["transaction_hash"][:-1]
     assert has_evidence_backed_live_values(incomplete) is False
+    missing_pairs = _live_pools(pools)
+    missing_pairs.pop("account_pair")
+    assert has_evidence_backed_live_values(missing_pairs) is False
+    short_pairs = _live_pools(pools)
+    short_pairs["account_pair"] = short_pairs["account_pair"][:-1]
+    assert has_evidence_backed_live_values(short_pairs) is False
 
 
 def test_genuine_evidence_pool_is_hash_bound_and_well_formed() -> None:
@@ -315,7 +331,7 @@ def test_accepted_artifacts_require_live_report_and_evidence_backed_values(
     assert manifest["verification_mode"] == "live_witness"
     assert manifest["represented_intent_count"] == 25
     assert manifest["verified_record_count"] == 1000
-    assert manifest["witness_count"] == 170
+    assert manifest["witness_count"] == 206
     assert manifest["physical_query_count"] == 126
     assert len(manifest["preflight_evidence"]) == 126
     assert len(manifest["execution_evidence"]) == 126
@@ -323,6 +339,13 @@ def test_accepted_artifacts_require_live_report_and_evidence_backed_values(
         item for item in manifest["execution_evidence"] if item["proof_kind"] == "tx_hash_batch"
     )
     assert len(batch["group_ids"]) == 45
+    pair_batches = [
+        item
+        for item in manifest["execution_evidence"]
+        if item["proof_kind"] == "account_pair_batch"
+    ]
+    assert len(pair_batches) == 4
+    assert all(len(item["group_ids"]) == 10 for item in pair_batches)
     assert manifest["total_processed_bytes"] == 12 * 126
     assert manifest["cache_hit_count"] == 0
 

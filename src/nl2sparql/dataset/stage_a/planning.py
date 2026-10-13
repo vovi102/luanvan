@@ -18,7 +18,10 @@ from nl2sparql.dataset.stage_a.evidence import (
 
 _HEX_64_RE = re.compile(r"[0-9a-f]{64}")
 _TRANSACTION_HASH_RE = re.compile(r"0x[0-9a-f]{64}")
+_ETHEREUM_ADDRESS_RE = re.compile(r"0x[0-9a-f]{40}")
 _TX_TEMPLATE_ID = "T_TX_BY_HASH"
+_ACCOUNT_PAIR_TEMPLATE_ID = "T_TX_BETWEEN_ACCOUNTS"
+_ACCOUNT_PAIR_BATCH_SIZE = 10
 _TX_COLUMNS = (
     "transaction_hash",
     "block_timestamp",
@@ -163,13 +166,102 @@ def _render_tx_hash_batch(
     )
 
 
+def _render_account_pair_batch(
+    groups: Sequence[WitnessGroup], records_by_id: Mapping[str, Mapping[str, Any]]
+) -> WitnessQuery:
+    if len(groups) != _ACCOUNT_PAIR_BATCH_SIZE:
+        raise WitnessEvidenceError("Account-pair batch requires exactly 10 witnesses")
+    requested: list[tuple[str, str, str]] = []
+    windows: set[tuple[str, str]] = set()
+    for group in groups:
+        if group.template_id != _ACCOUNT_PAIR_TEMPLATE_ID or len(group.member_record_ids) != 1:
+            raise WitnessEvidenceError(
+                "Account-pair batch requires singleton T_TX_BETWEEN_ACCOUNTS groups"
+            )
+        _validate_group_id(group.group_id)
+        record = records_by_id.get(group.witness_record_id)
+        if record is None:
+            raise WitnessEvidenceError("Account-pair witness record is missing")
+        slots = record.get("slot_values")
+        if not isinstance(slots, Mapping):
+            raise WitnessEvidenceError("Account-pair witness slots are missing")
+        account = slots.get("account")
+        account_b = slots.get("account_b")
+        if (
+            not isinstance(account, str)
+            or not isinstance(account_b, str)
+            or _ETHEREUM_ADDRESS_RE.fullmatch(account) is None
+            or _ETHEREUM_ADDRESS_RE.fullmatch(account_b) is None
+            or account >= account_b
+        ):
+            raise WitnessEvidenceError("Account-pair witnesses require canonical endpoints")
+        windows.add(
+            (
+                _strict_date(slots.get("start_date"), "start_date"),
+                _strict_date(slots.get("end_date"), "end_date"),
+            )
+        )
+        requested.append((group.group_id, account, account_b))
+    if len(windows) != 1:
+        raise WitnessEvidenceError("Account-pair batch requires one shared date window")
+    if len({group_id for group_id, _, _ in requested}) != len(requested):
+        raise WitnessEvidenceError("Account-pair batch contains repeated group IDs")
+    if len({(account, account_b) for _, account, account_b in requested}) != len(requested):
+        raise WitnessEvidenceError("Account-pair batch contains repeated endpoint pairs")
+
+    requested.sort()
+    start_date, end_date = next(iter(windows))
+    structs = ",\n    ".join(
+        "STRUCT("
+        f"'{group_id}' AS witness_group_id, "
+        f"'{account}' AS account, "
+        f"'{account_b}' AS account_b)"
+        for group_id, account, account_b in requested
+    )
+    selected_columns = ",\n  ".join(f"facts.{column}" for column in _TX_COLUMNS[:-1])
+    sql = (
+        "WITH requested AS (\n"
+        "  SELECT *\n"
+        "  FROM UNNEST([\n"
+        f"    {structs}\n"
+        "  ])\n"
+        ")\n"
+        "SELECT\n"
+        "  requested.witness_group_id,\n"
+        f"  {selected_columns}\n"
+        "FROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`"
+        f"(DATE '{start_date}', DATE '{end_date}') AS facts\n"
+        "JOIN requested\n"
+        "  ON (facts.from_address = requested.account "
+        "AND facts.to_address = requested.account_b)\n"
+        "  OR (facts.from_address = requested.account_b "
+        "AND facts.to_address = requested.account)\n"
+        "QUALIFY ROW_NUMBER() OVER (\n"
+        "  PARTITION BY requested.witness_group_id\n"
+        "  ORDER BY facts.block_timestamp DESC, facts.transaction_hash\n"
+        ") = 1"
+    )
+    return _witness_query(
+        proof_kind="account_pair_batch",
+        template_id=_ACCOUNT_PAIR_TEMPLATE_ID,
+        group_ids=tuple(group_id for group_id, _, _ in requested),
+        sql=sql,
+    )
+
+
 def build_stage_a_v2_witness_queries(
     records: Sequence[Mapping[str, Any]],
 ) -> tuple[WitnessQuery, ...]:
-    """Build the canonical v2 plan with one transaction-hash batch scan."""
+    """Build the canonical v2 plan with hash and account-pair batch scans."""
     groups = build_witness_groups(records)
     records_by_id = {str(record.get("id")): record for record in records}
     hash_groups = [group for group in groups if group.template_id == _TX_TEMPLATE_ID]
+    pair_groups = sorted(
+        (group for group in groups if group.template_id == _ACCOUNT_PAIR_TEMPLATE_ID),
+        key=lambda group: group.group_id,
+    )
+    if len(pair_groups) != 40:
+        raise WitnessEvidenceError("Stage A v2 requires exactly 40 account-pair witnesses")
     queries = [
         _witness_query(
             proof_kind="single",
@@ -178,7 +270,14 @@ def build_stage_a_v2_witness_queries(
             sql=group.sql,
         )
         for group in groups
-        if group.template_id != _TX_TEMPLATE_ID
+        if group.template_id not in {_TX_TEMPLATE_ID, _ACCOUNT_PAIR_TEMPLATE_ID}
     ]
     queries.append(_render_tx_hash_batch(hash_groups, records_by_id))
+    queries.extend(
+        _render_account_pair_batch(
+            pair_groups[index : index + _ACCOUNT_PAIR_BATCH_SIZE],
+            records_by_id,
+        )
+        for index in range(0, len(pair_groups), _ACCOUNT_PAIR_BATCH_SIZE)
+    )
     return tuple(sorted(queries, key=lambda query: query.group_ids))
