@@ -284,7 +284,7 @@ command publishes a plausible partial final artifact.
 - `finalized`: immutable `test-100.jsonl` and manifest are published and their
   hashes verify.
 
-Only `finalized` unlocks genuine B0–B5 accuracy evaluation. None of these states
+Only `finalized` unlocks genuine B0–B3 accuracy evaluation. None of these states
 upgrades the provenance to independently authored or independently reviewed.
 
 ## Compatibility and migration

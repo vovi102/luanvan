@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the blocked Gemini training-data path with an offline,
+**Goal:** Replace the blocked external training-data path with an offline,
 agent-authored, deterministic 200-pattern catalog that expands the accepted
 1,000-record Stage A snapshot into a validated 8,000-record English–Vietnamese
 training artifact.
@@ -32,10 +32,10 @@ recoverable-publication utilities.
   Stage A source hashes are immutable.
 - `generation_model` and `provider` are null; `api_request_count` is `0`; and
   `recorded_cost_usd` is `0.00`.
-- The producer must not import or initialize Gemini, OpenRouter, Qwen, a
-  translator, sentence-transformers, or any other model/network client, and must
+- The producer must not import or initialize a translator,
+  sentence-transformers, or any other model/network client, and must
   not read provider-related environment variables or secrets.
-- The 26-record Gemini pilot is historical evidence only and is never an input.
+- Outputs from earlier external-generation attempts are never inputs.
 - Catalog authoring uses only Stage A intents, slot schemas, SQL semantics, and
   the production template catalog; held-out benchmark wording, review notes,
   predictions, and evaluation outputs are prohibited authoring inputs.
@@ -373,7 +373,6 @@ recoverable-publication utilities.
 ### Task 5: Evidence, Governance, and Final Verification
 
 **Files:**
-- Modify: `.superpowers/sdd/2026-10-04-bilingual-nl2sql/progress.md`
 - Create: `.superpowers/sdd/2026-10-07-deterministic-bilingual-training/progress.md`
 - Modify: `docs/tasks/phase-3-dataset/03-paraphrasing.md`
 - Modify: `docs/tasks/phase-3-dataset/04-noise-injection.md`
@@ -388,8 +387,8 @@ recoverable-publication utilities.
 
 - [ ] **Step 1: Update task/backlog/decision/architecture evidence**
 
-  Mark the Gemini producer as an incomplete historical pilot superseded by the
-  deterministic path. Record exact artifact paths/counts/hashes/audit results,
+  Mark the external producer as removed and superseded by the deterministic
+  path. Record exact artifact paths/counts/hashes/audit results,
   shared-agent-authorship limitation, and the still-pending human review of the
   100 Vietnamese benchmark candidates. Do not mark benchmark finalization done.
 
@@ -416,7 +415,7 @@ recoverable-publication utilities.
 - [ ] **Step 5: Commit evidence and final verified adjustments**
 
   ```bash
-  git add docs .superpowers/sdd/2026-10-04-bilingual-nl2sql/progress.md
+  git add docs
   git commit -m "docs(evidence): record deterministic bilingual training"
   ```
 

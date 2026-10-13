@@ -24,6 +24,25 @@
 
 ## Entries
 
+### 2026-10-13 — Thu gọn phạm vi mô hình còn B0–B3 small-LLM-only
+
+- **Context:** Baseline mô hình bên ngoài làm tăng dependency, chi phí, privacy
+  risk và khối lượng đánh giá nhưng không còn phục vụ hướng nghiên cứu đã chọn.
+- **Options considered:** Giữ như optional/historical surface; chỉ bỏ khỏi
+  critical path; hoặc xóa khỏi cây hiện tại và chốt ma trận B0–B3.
+- **Decision:** Chỉ giữ B0 rule-based, B1 small LLM zero-shot, B2 small LLM
+  five-shot và B3 small LLM fine-tuned. Xóa implementation, dependency, task,
+  evaluator adapter và demo path dùng model bên ngoài.
+- **Rationale:** Ma trận này tập trung trực tiếp vào tác động của prompting,
+  retrieval, fine-tuning và linking trong cùng resource class, đồng thời giữ
+  pipeline local/Kaggle tái lập được.
+- **Consequences:** RQ/contribution đổi sang zero-shot vs five-shot vs fine-tuned;
+  T5.5 quyết định phạm vi B3 từ genuine B1/B2 evidence; public demo không được
+  thay model nghiên cứu bằng dịch vụ inference khác.
+- **Revisit:** Không cần, trừ khi scope luận văn được GVHD phê duyệt lại.
+- **Linked:** `docs/planning/prioritized-backlog-2026-09-21.md`,
+  `docs/memory/00-PROJECT_OVERVIEW.md`, `docs/tasks/phase-5-baselines/05-pivot-decision.md`.
+
 ### 2026-10-10 — Stage A v2 tách candidate 25 intent khỏi live acceptance
 
 - **Context:** Stage A v1 có genuine live evidence nhưng chỉ phủ 16/25 intent;
@@ -55,60 +74,29 @@
   `scripts/09_generate_stage_a_v2.py`, `src/nl2sparql/dataset/stage_a_v2.py`,
   `src/nl2sparql/dataset/bilingual/assembly.py`.
 
-### 2026-10-07 — T3.3 dùng deterministic bilingual catalog, không gọi LLM
+### 2026-10-07 — T3.3 dùng deterministic bilingual catalog
 
-- **Context:** Hai phương án OpenRouter/Gemini đều cần external generation và
-  không tạo được accepted Stage B/C trong ngân sách API bằng 0. Training corpus
-  cần provenance kiểm chứng được và phải giữ benchmark wording ngoài producer.
-- **Options considered:** Tiếp tục chờ Gemini Free Tier; dùng model/router khác;
-  hoặc thay bằng catalog hữu hạn do agent soạn và renderer deterministic offline.
+- **Context:** External generation không tạo được accepted Stage B/C trong ngân
+  sách bằng 0. Training corpus cần provenance kiểm chứng được và phải giữ
+  benchmark wording ngoài producer.
+- **Options considered:** Tiếp tục chờ external generation hoặc thay bằng catalog
+  hữu hạn do agent soạn và renderer deterministic offline.
 - **Decision:** Dùng đúng 200 patterns (25 intent × English/Vietnamese × bốn
   styles), render tám record cho mỗi Stage A family, provider/model null, API
   calls `0`, recorded cost `$0.00`. Enforce hash-only held-out exclusions,
   family-aware splits, diversity, audit 100/ngôn ngữ và atomic publication.
 - **Rationale:** Luồng này byte-reproducible, không có credential/quota/privacy
   dependency và cho phép kiểm tra trực tiếp mỗi pattern/provenance claim.
-- **Consequences:** Gemini Stage B/C và Stage D trở thành historical incomplete
-  paths. Catalog và benchmark đều có shared agent authorship nên không claim
+- **Consequences:** Stage B/C và Stage D bị loại khỏi active scope. Catalog và
+  benchmark đều có shared agent authorship nên không claim
   independent authorship. Pinned Stage A chỉ phủ 16/25 intent; canonical artifact
   phải fail closed cho đến khi có accepted 25-intent source hoặc gate được duyệt
   lại. Vietnamese 100-candidate benchmark vẫn chờ user review.
 - **Revisit:** Chỉ khi accepted source/gate thay đổi bằng quyết định governance;
-  không tự tạo chín intent còn thiếu và không thay bằng LLM generation.
+  không tự tạo chín intent còn thiếu.
 - **Linked:** `docs/superpowers/specs/2026-10-07-deterministic-bilingual-training-design.md`,
   `src/nl2sparql/dataset/bilingual/`, `scripts/20_build_bilingual_training.py`,
   `scripts/21_validate_bilingual_training.py`.
-
-### 2026-10-04 — T3.3 chuyển từ paid OpenRouter sang Gemini Free Tier trực tiếp
-
-> Superseded by the 2026-10-07 deterministic bilingual catalog decision.
-
-- **Context:** T3.3 cũ pin hai model OpenRouter trả phí cho 2.000 requests, trong
-  khi dự án có ngân sách API bằng 0 và đã chọn Gemini Free Tier cho critical path.
-- **Options considered:** Giữ paid OpenRouter; dùng model OpenRouter `:free` với
-  quota thấp/availability biến động; hoặc gọi Gemini Developer API trực tiếp.
-- **Decision:** Stage B dùng `gemini-3.5-flash` temperature 0 và Stage C dùng
-  `gemini-3.5-flash-lite` temperature 0.7 qua REST API chính thức. Chỉ
-  `GEMINI_API_KEY` từ project Free Tier không gắn billing được phép dùng; cost
-  cap bằng `$0.00`, không có fallback và cần operator attestation
-  `GEMINI_FREE_TIER_CONFIRMED=1`. Cả hai stage pin `thinkingLevel=minimal`,
-  `maxOutputTokens=1024`. JSON Schema, fact anchors, checkpoints, atomic
-  publication và audit thresholds không đổi.
-- **Rationale:** Direct Gemini giữ model identity và structured output ổn định
-  hơn free-model router, tránh OpenRouter paid dependency và tái sử dụng toàn bộ
-  validation/resume pipeline. REST qua `httpx` tránh xung đột `websockets` giữa
-  `google-genai` và Gradio 4.
-- **Consequences:** Live run vẫn cần 2.000 requests và phụ thuộc quota hiển thị
-  trong Google AI Studio; quota exhaustion dừng an toàn và resume ở lần chạy kế
-  tiếp. Free Tier có thể dùng prompt/response để cải thiện sản phẩm Google và
-  limitation này phải được công bố. API response không phải authoritative billing
-  evidence; `$0.00` được ghi là contract value dựa trên operator attestation.
-  Chưa có `GEMINI_API_KEY` nên chưa tạo live Stage B/C artifacts.
-- **Revisit:** Nếu hai stable model mất Free Tier/structured output hoặc pilot
-  không đạt faithfulness/diversity; không đổi model giữa một stage đang chạy.
-- **Linked:** `docs/tasks/phase-3-dataset/03-paraphrasing.md`,
-  `src/nl2sparql/dataset/paraphrase/gemini.py`,
-  `scripts/10_paraphrase_stage_a.py`.
 
 ### 2026-10-03 — Giữ T5.1 B0 genuine run như negative result, không tune trên T3.5
 
@@ -125,7 +113,7 @@
   diagnostic artifact hash-bound, nên quyết định chỉ dựa trên nguyên tắc giữ phép
   đo genuine immutable, không tuyên bố một parser patch cụ thể là root cause.
 - **Consequences:** T5.1 genuine evaluation hoàn tất nhưng acceptance thresholds
-  không đạt. T5.4 report ghi `no_output=100%`; B1/B2/B4/B5 phải chứng minh khả
+  không đạt. T5.4 report ghi `no_output=100%`; B1/B2/B3 phải chứng minh khả
   năng generalize thay vì dùng B0 làm target cần cứu. BigQuery run dùng
   `559,594,602,496` billed bytes, estimated cost `$3.180927`.
 - **Revisit:** Chỉ xây rule-based v2 trên một development set tách biệt nếu luận
@@ -153,76 +141,13 @@
   `data/review_drafts/t3_5_candidate_set_2026-09-27/`; review/selection hiện chỉ
   có header. Cấm dùng candidate/final questions và variants cho training,
   fine-tuning, few-shot retrieval, prompt/linker/hyperparameter tuning. Genuine
-  B0–B5 accuracy chỉ mở sau user review, explicit live BigQuery verification và
+  B0–B3 accuracy chỉ mở sau user review, explicit live BigQuery verification và
   immutable finalization.
 - **Revisit:** Chỉ nâng provenance nếu sau này có authors/reviewers độc lập thật;
   không backfill claim three-pool cho snapshot hiện tại.
 - **Linked:** `docs/tasks/phase-3-dataset/05-test-set-3pool.md`,
   `docs/superpowers/specs/2026-09-27-t3-5-agent-reviewed-benchmark-design.md`,
   `data/review_drafts/t3_5_candidate_set_2026-09-27/`.
-
-### 2026-09-21 — T5.3 dùng Gemini free tier; Large Llama là optional extension
-
-- **Context:** T5.3 đã triển khai local cho Llama 3.3 70B qua OpenRouter nhưng
-  scientific run còn phụ thuộc tài khoản trả phí, provider availability và test
-  set T3.5. Dự án cần một hosted-model baseline có thể tiếp tục bằng free tier,
-  đồng thời chưa muốn biến Large Llama thành dependency bắt buộc trước khi hoàn
-  thiện hệ thống và trao đổi với giảng viên.
-- **Options considered:** Giữ Large Llama/OpenRouter là B4/B5 bắt buộc; thay hẳn
-  và xóa đường chạy Llama; hoặc dùng Gemini free tier làm B4/B5 chính, giữ Large
-  Llama như thí nghiệm mở rộng tùy chọn.
-- **Decision:** B4 là Gemini zero-shot và B5 là cùng model Gemini với đúng năm
-  examples do B2 retriever chọn. Model stable có trong free tier phải được
-  preflight, pin exact ID và fingerprint metadata trước scientific run. Workflow
-  không tự động nâng lên paid tier. Large Llama/OpenRouter được giữ như optional
-  `B4L/B5L`; không chạy chúng không chặn completion của T5.3.
-- **Rationale:** Cách này giữ phép đo zero-shot so với five-shot và cho phép hoàn
-  thiện pipeline không cần GPU 70B hoặc paid inference. Giữ đường Llama optional
-  tránh mất công triển khai đã có và cho phép bổ sung controlled same-family
-  comparison nếu giảng viên yêu cầu.
-- **Consequences:** Kết luận chính đổi thành so sánh small open-weight local model
-  với hosted proprietary frontier model. Không được quy chênh lệch cho model size
-  vì Gemini và Llama khác kiến trúc, training, tokenizer và serving stack. Free-tier
-  data-use, quota, latency, token usage và `$0 observed API charge` phải được công
-  bố; quota exhaustion phải checkpoint/resume và không fallback sang paid.
-- **Revisit:** Sau khi toàn bộ pipeline và T5.4 hoàn tất, rồi trao đổi với giảng
-  viên về việc có cần chạy optional Large Llama B4L/B5L hay không.
-- **Linked:** `docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md`,
-  `docs/superpowers/specs/2026-09-21-t5-3-gemini-baselines-design.md`,
-  `docs/research/t5-3-alternatives-2026-09-20.md`.
-
-### 2026-09-07 — T5.3 dùng GoogleSQL B4/B5 remote large-LLM với acceptance hai tầng
-
-- **Context:** Sau Pivot #1, mô tả T5.3 cũ vẫn dùng target và model đã retired,
-  trong khi B1/B2 đã có catalog, prompt, retrieval và extraction GoogleSQL được
-  chấp nhận. Inference lớn qua provider còn có rủi ro fallback, billing,
-  retry, privacy và resume artifact nếu không ràng buộc rõ.
-- **Options considered:** Giữ mô tả cũ; đưa OpenRouter vào B1/B2; dùng một
-  framework chung cho mọi baseline; hoặc tách module remote B4/B5, giữ seam
-  B1/B2 ổn định và ghi rõ hai ngưỡng acceptance.
-- **Decision:** T5.3 dùng module riêng `models/b45`: B4 zero-shot và B5 đúng
-  năm examples từ B2, model chính xác
-  `meta-llama/llama-3.3-70b-instruct`, một provider được pin với
-  `allow_fallbacks=false`, `require_parameters=true`, và
-  `data_collection="deny"`. Ledger đặt reservation bảo thủ trước request,
-  giới hạn hard cap tối đa USD 20, retry chỉ lỗi transient và không có network
-  mặc định. Publication mới luôn được seal bằng journal v4; journal v3 đã seal
-  chỉ được đọc để tương thích, còn journal v2 chỉ được migrate một chiều khi
-  resume. Hash không được coi là chữ ký xác thực.
-- **Rationale:** Tách remote billing/retry khỏi B1/B2 giữ so sánh prompt và
-  extraction có kiểm soát, trong khi provenance, cost, privacy và resume đều
-  fail closed. Readiness local và scientific được báo cáo riêng để test offline
-  không trở thành claim nghiên cứu.
-- **Consequences:** CLI có `validate`, `predict`, `evaluate`, `summarize`; live
-  request cần explicit opt-in, key, metadata fingerprint và external evidence.
-  Các report local có thể kiểm tra cấu trúc nhưng không tạo live accuracy,
-  latency, cost hay reproducibility result. Giá và availability phải lấy từ
-  metadata tại thời điểm chạy, không đóng đinh trong tài liệu.
-- **Revisit:** Sau khi có test set T3.5 finalized/reviewed, training artifact,
-  account được cấp phép và đủ ba run genuine cho mỗi baseline; khi đó xem xét
-  scientific gates bằng artifact hashes và authoritative usage.
-- **Linked:** `docs/tasks/phase-5-baselines/03-b4-b5-large-llm.md`,
-  `src/nl2sparql/models/b45/`, `scripts/18_large_llm_baselines.py`.
 
 ### 2026-09-01 — T5.2 tách local baseline logic khỏi Kaggle Llama inference
 
@@ -424,31 +349,6 @@
   hoặc transform nhưng giữ count/quota contract và tăng schema version.
 - **Linked:** `docs/tasks/phase-3-dataset/04-noise-injection.md`,
   `src/nl2sparql/dataset/noise/`, `scripts/11_inject_noise.py`.
-
-### 2026-08-09 — T3.3 dùng hai model OpenRouter với structured output và actual-cost gate
-
-> Superseded by the 2026-10-04 direct Gemini Free Tier decision.
-
-- **Context:** Stage A đã pivot sang 1.000 GoogleSQL records có live witness,
-  nhưng task paraphrase cũ vẫn mô tả SPARQL, model gợi ý chưa pin và cost estimate
-  theo bảng giá hard-code. Môi trường hiện không có LLM credential/runtime.
-- **Options considered:** Một model free-form; rewrite rules offline; hoặc hai model
-  pinned qua OpenRouter với strict schema, checkpoint và deterministic validators.
-- **Decision:** Stage B dùng `openai/gpt-4.1-mini` temperature 0; Stage C dùng
-  `google/gemini-2.5-flash` temperature 0.7. Bắt buộc structured output,
-  `require_parameters=true`, canonical fact/anchor checks, 3.000 normalized unique
-  questions, mean distance >0.30 và tổng `usage.cost` không quá $30.
-- **Rationale:** Hai model giảm single-model bias; strict schema và validators ngăn
-  semantic drift; actual API accounting bền hơn bảng giá tĩnh. Checkpoint cho phép
-  dừng/resume mà không trả tiền lại và vẫn cộng chi phí lịch sử vào cap.
-- **Consequences:** Implementation, tests, atomic writers, manifest và offline
-  preflight đã sẵn sàng. Live 2.000 calls, artifacts và manual audits phải chờ
-  `OPENROUTER_API_KEY`; không hạ acceptance hoặc sinh dữ liệu giả.
-- **Revisit:** Khi credential được cấu hình hoặc model ID mất structured-output
-  support; sau live run cập nhật audit evidence và output hashes.
-- **Linked:** `docs/tasks/phase-3-dataset/03-paraphrasing.md`,
-  `scripts/10_paraphrase_stage_a.py`,
-  `docs/superpowers/specs/2026-08-09-t3-3-sql-paraphrasing-design.md`.
 
 ### 2026-08-09 — T3.2 dùng limit-monotonic live witnesses thay vì 1.000 scans
 
@@ -795,15 +695,14 @@
 ## Quyết định chờ ghi (placeholders — điền khi đến)
 
 - [ ] Phase 0: Chốt repo URL, license, .gitignore policy.
-- [x] Phase 0: Không dùng OpenRouter cho critical path; Gemini Free Tier trực tiếp.
+- [x] Phase 0: Không dùng remote LLM provider trên critical path.
 - [ ] Phase 1: Chốt Plan A khả thi sau pilot (Pivot Point #1 chuẩn bị).
 - [ ] Phase 2: Chốt namespace ontology cuối cùng.
 - [ ] Phase 2: Chốt mức độ extension EthOn (số class/property thêm).
 - [ ] Phase 2: Chốt kích thước slice BigQuery (1 tháng → bao nhiêu transactions thực tế).
 - [x] Phase 2: **Pivot Point #1** — pivot Plan B (2026-08-09).
 - [ ] Phase 3: Chốt số templates cuối cùng (mục tiêu 25-30).
-- [x] Phase 3: Chốt LLM paraphrase (`gemini-3.5-flash` +
-  `gemini-3.5-flash-lite` qua Gemini Free Tier trực tiếp).
+- [x] Phase 3: Chốt deterministic bilingual catalog, không dùng model generation.
 - [ ] Phase 3: Chốt mức noise injection (% items, loại noise nào).
 - [ ] Phase 4: Chốt embedding model cuối (MiniLM-L6 hay multilingual?).
 - [ ] Phase 4: Chốt fuzzy threshold sau hyperparam search.

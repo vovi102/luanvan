@@ -1,172 +1,78 @@
 # 01 — Architecture
 
-## Pipeline xử lý câu hỏi (inference)
-
-```
-User question (English)
-        │
-        ▼
-┌─────────────────────────┐
-│  Schema Linker          │  sentence-transformers MiniLM
-│                         │  + property documentation embeddings
-│  → ranked properties    │  → Top-K properties được "kích hoạt"
-└─────────────────────────┘
-        │
-        ▼
-┌─────────────────────────┐
-│  Entity Linker          │  Hierarchical dictionary
-│                         │  4-stage matching:
-│  → entity URIs          │   A. Exact (case-insensitive)
-│    + class hints        │   B. Fuzzy (Levenshtein ≥ 0.85)
-└─────────────────────────┘   C. Embedding (cosine ≥ 0.75)
-        │                     D. Fallback: clarify
-        ▼
-┌─────────────────────────┐
-│  LLM Generator          │  Llama 3 8B Instruct, QLoRA fine-tuned
-│                         │  Prompt: question + linked schema/entities
-│  → SPARQL candidate     │  Constrained decoding (grammar-based)
-└─────────────────────────┘
-        │
-        ▼
-┌─────────────────────────┐
-│  Validator              │  1. Syntax check (rdflib)
-│                         │  2. Schema check (predicates exist?)
-│                         │  3. Dry-run on KG (timeout 5s)
-└─────────────────────────┘
-        │
-        ▼
-┌─────────────────────────┐
-│  Apache Jena Fuseki     │  SPARQL endpoint :3030
-│                         │
-│  → Result rows          │
-└─────────────────────────┘
-        │
-        ▼
-   User-facing output
-   (table + provenance)
-```
-
-## Pipeline xây Knowledge Graph (one-shot)
-
-```
-BigQuery Ethereum public dataset
-   - bigquery-public-data.crypto_ethereum.transactions
-   - bigquery-public-data.crypto_ethereum.blocks
-   - bigquery-public-data.crypto_ethereum.token_transfers
-   - bigquery-public-data.crypto_ethereum.contracts
-        │
-        ▼  SQL extraction (1 tháng dữ liệu)
-   CSV files (local, ~vài GB)
-        │
-        ▼  RML mapping (rules.ttl)
-        │  Tool: Morph-KGC (ưu tiên) hoặc RMLMapper
-   ethereum-kg.ttl (Turtle, ~5-10GB raw)
-        │
-        ▼  TDB2 indexing
-   Apache Jena Fuseki (local, port 3030)
-        │
-        ▼
-   SPARQL endpoint sẵn sàng
-```
-
-## Pipeline training data song ngữ hiện hành (2026-10-10)
+## Active inference pipeline
 
 ```text
-Accepted Stage A (immutable SQL/slots/provenance)
+Question (English/Vietnamese)
+        │
+        ├─ Schema linker → tables, fields, join paths
+        ├─ Entity linker → aliases, addresses, entity evidence
+        └─ Class resolver → typed constraints and coverage
+        │
+        ▼
+Small LLM generator (B1/B2/B3)
+        │  question + analytical catalog + linking context
+        ▼
+GoogleSQL candidate
+        │
+        ├─ SQLGlot parse/canonicalize
+        ├─ read-only and managed-relation allowlist
+        ├─ BigQuery dry-run
+        └─ per-query and aggregate byte/cost caps
+        ▼
+BigQuery execution → result + provenance + latency/failure trace
+```
+
+B1 không có examples; B2 thêm đúng năm examples do retriever đã pin chọn; B3
+dùng cùng contract đầu vào/đầu ra sau QLoRA. B0 là lower-bound deterministic và
+đi qua cùng validator/evaluator. Không có remote-model fallback.
+
+## Training-data pipeline
+
+```text
+Accepted Stage A (SQL/slots/provenance immutable)
         +
-Agent-authored catalog (25 intents × 2 languages × 4 styles)
-        │  literal deterministic rendering; no model/network/API
+Finite bilingual catalog (25 intents × 2 languages × 4 styles)
+        │  deterministic rendering; no model/network/API
         ▼
 8 variants per semantic family
-        │  immutable semantic checks + diversity > 0.30
+        │  semantic checks + diversity gate
         ▼
-Hash-only held-out exclusion gate
-        │  exact + 12-token n-gram leakage checks
+Hash-only held-out exclusion
+        │  exact + normalized n-gram leakage checks
         ▼
 Family-aware train/development split
-        │  agent audit: 100/language, 25 intents × 4 styles
+        │  audit 100 records/language
         ▼
-Recoverable atomic output + manifest + append-only audit
+Atomic canonical artifact + manifest
 ```
 
-Catalog provenance là agent-authored/agent-reviewed; không claim independent
-human authorship. Provider/model luôn null, calls/cost bằng 0. Stage A v2
-candidate hiện phủ 25/25 intent và expand offline thành 8.000 rows, nhưng không
-có genuine BigQuery evidence nên không phải accepted source. Publication modes
-hash-bind source data với manifest v2 và chỉ nhận lifecycle `accepted`, 1.000
-live-verified records, zero cache hits; vì vậy audit/canonical artifact vẫn chưa
-được tạo. Stage A v1 accepted 16-intent được giữ immutable làm lịch sử. English
-benchmark và Vietnamese review draft chỉ được đọc ở CLI tạo exclusion index;
-training modules chỉ nhận hash, không nhận raw wording.
+Stage A v2 hiện là candidate 25/25 intent; publication fail closed cho đến khi
+có genuine BigQuery verification cho 1.000/1.000 records với zero cache hits.
+Benchmark English đã finalized; Vietnamese draft vẫn chờ user review. Producer
+chỉ nhận exclusion hashes, không nhận raw benchmark wording.
 
-## Tách module — repo structure
+## Module boundaries
 
-```
+```text
 src/nl2sparql/
-├── kg/                       # Phase 1+2: KG construction
-│   ├── bigquery_extractor.py
-│   ├── rml_runner.py
-│   ├── fuseki_client.py
-│   └── shacl_validator.py
-│
-├── linking/                  # Phase 4: linkers
-│   ├── schema_linker.py
-│   ├── entity_linker.py
-│   ├── class_resolver.py
-│   └── entity_dictionary.py
-│
-├── dataset/                  # Phase 3: NL-SPARQL pipeline
-│   ├── templates.py
-│   ├── synthesizer.py
-│   ├── paraphraser.py
-│   ├── noise.py
-│   ├── validator.py
-│   └── bilingual/            # finite catalog, renderer, leakage/audit/publication
-│
-├── models/                   # Phase 5+6: baselines & main model
-│   ├── rule_based.py
-│   ├── llm_zero_shot.py
-│   ├── llm_few_shot.py
-│   ├── llm_finetuned.py
-│   └── full_system.py
-│
-├── decoding/                 # Phase 6: constrained decoding
-│   ├── constrained.py
-│   ├── grammar.py
-│   └── grammars/
-│
-├── validation/               # Phase 7: post-validation + recovery
-│   ├── sparql_parser.py
-│   ├── ontology_validator.py
-│   └── post_validator.py
-│
-├── evaluation/               # Phase 5: evaluation framework
-│   ├── metrics.py
-│   ├── runner.py
-│   └── analyzer.py
-│
-└── demo/                     # Phase 7: Gradio app
-    ├── app.py
-    └── examples.py
-
-ontology/                     # Ontology TTL, SHACL shapes, examples
-mappings/                     # RML mapping rules
-scripts/                      # CLI orchestration scripts
-data/                         # Không commit dữ liệu lớn
-docs/                         # Memory, tasks, thesis, literature
-notebooks/                    # Kaggle/Colab notebooks (mirror)
+├── sql/            # analytical catalog, GoogleSQL rendering/canonicalization
+├── linking/        # schema, entity and class resolution
+├── dataset/        # Stage A, deterministic bilingual corpus, leakage/audit
+├── models/
+│   ├── b0/         # rule-based baseline
+│   └── b12/        # small-LLM zero/five-shot contracts and adapters
+├── evaluation/     # canonical predictions, execution evidence, reports
+├── validation/     # SQL safety, dry-run and recovery
+└── demo/           # Gradio orchestration
 ```
 
-## Decision points đáng nhớ
+Phase 6 bổ sung B3/fine-tuning và constrained generation sau quyết định T5.5.
+Plan A modules KG/RML/Fuseki được giữ riêng để tái lập negative result, không nằm
+trên active inference path.
 
-- **TDB2 vs in-memory Fuseki:** dùng TDB2 (persistent, query nhanh hơn cho >1M triples).
-- **Morph-KGC vs RMLMapper:** ưu tiên Morph-KGC (Python-friendly, dễ debug); fallback RMLMapper nếu Morph-KGC bug.
-- **Llama 3 8B vs Mistral 7B:** ưu tiên Llama 3 8B Instruct (license rõ, ecosystem rộng); benchmark Mistral 7B nếu còn thời gian.
-- **OpenRouter cho LLM lớn:** tránh lock vào 1 API; rotate giữa Llama 3 70B / Mistral Large / Qwen2 72B.
+## Deployment
 
-## Two-tier deployment
-
-- **Tier 1 — Local notebook/Kaggle:** mô hình + Fuseki chạy local, không giới hạn.
-- **Tier 2 — Hugging Face Spaces:** demo công khai, KG nhỏ (~10% dữ liệu), không có Fuseki Java; dùng rdflib in-memory.
-
-Lý do: HF Spaces free tier không support Java/Fuseki bền vững. Tier 2 chỉ để showcase, không phải full system.
+- **Primary:** local/Kaggle với đúng small model đã pin.
+- **Optional showcase:** HF Spaces chỉ khi đủ tài nguyên để giữ đúng model hoặc
+  trình bày demo tĩnh trung thực. Không thay bằng model qua API.

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "nl2sparql-blockchain-kg"
 version = "0.1.0"
-description = "Natural language to SPARQL translation for blockchain knowledge graph analytics."
+description = "Small-LLM natural language to GoogleSQL for Ethereum analytics."
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 license = { text = "MIT" }
@@ -24,7 +24,6 @@ dependencies = [
   "jupyter>=1.0,<2",
   "loguru>=0.7,<1",
   "morph-kgc>=2.6,<3",
-  "openai>=1.30,<2",
   "pandas>=2.2,<3",
   "peft>=0.10,<1",
   "pydantic>=2,<3",

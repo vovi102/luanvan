@@ -25,7 +25,6 @@ from nl2sparql.dataset.noise.transforms import (
     ABBREVIATIONS_PATH,
     load_abbreviations,
 )
-from nl2sparql.dataset.paraphrase.contracts import STAGE_C_MODEL
 from nl2sparql.dataset.paraphrase.quality import normalize_question
 
 
@@ -49,7 +48,7 @@ def stage_c_records() -> list[dict[str, object]]:
                 "entities_used": [],
                 "stage_c": {
                     "pairwise_distances": [0.4, 0.5, 0.6],
-                    "requested_model": STAGE_C_MODEL,
+                    "producer": "deterministic-catalog-v1",
                     "cost_usd": 0.0,
                 },
             }

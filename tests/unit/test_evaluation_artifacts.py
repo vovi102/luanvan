@@ -40,10 +40,10 @@ NOW = datetime(2026, 9, 26, 12, 0, tzinfo=UTC)
 
 def _review() -> PrivacyReview:
     return PrivacyReview(
-        baseline_id="b4",
+        baseline_id="b3",
         test_set_sha256=SHA_A,
         data_egress="provider",
-        provider="gemini",
+        provider="local-small-llm",
         policy_sha256=SHA_B,
         reviewer_id="reviewer-01",
         reviewed_at=NOW,
