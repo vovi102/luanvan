@@ -41,7 +41,7 @@ Mỗi task phải có task spec riêng trong `docs/tasks/phase-2-sql/` trước 
 |---|---|---|
 | Phase 3 — Dataset | Template taxonomy, synthesis, paraphrase, noise, three-pool protocol | Target từ SPARQL sang Standard SQL; validator và canonicalization theo SQL/BigQuery. |
 | Phase 4 — Linking | Entity aliases, fuzzy/embedding matching, class resolution concept | Schema linker rank tables/columns/join paths thay vì RDF properties/classes. |
-| Phase 5 — Baselines | B0–B5, evaluation protocol, latency/cost comparison | Prompt/output parser/metrics chạy SQL; execution accuracy dùng BigQuery result semantics. |
+| Phase 5 — Baselines | B0–B3, evaluation protocol, latency/cost comparison | Prompt/output parser/metrics chạy SQL; execution accuracy dùng BigQuery result semantics. |
 | Phase 6 — Fine-tune | QLoRA, ablation methodology | Training target và constrained grammar là SQL. |
 | Phase 7 — Demo | Recovery flow, case studies, Gradio | SQL safety checks, dry-run/cost display và BigQuery execution thay Fuseki. |
 

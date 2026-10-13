@@ -13,7 +13,7 @@ Library options:
 - **lm-format-enforcer** — token mask based.
 - **guidance** (Microsoft) — alternative.
 
-Áp dụng cho B1, B2, B3 (B4/B5 không vì OpenRouter API không support custom grammar).
+Áp dụng nhất quán cho B1, B2 và B3 để đo syntax/safety gain và latency overhead.
 
 ## Phụ thuộc
 

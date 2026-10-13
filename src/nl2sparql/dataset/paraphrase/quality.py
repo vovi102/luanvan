@@ -2,16 +2,41 @@
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from datetime import date
 from itertools import combinations
-from typing import Any
+from pathlib import Path
+from typing import Any, Protocol
 
-from nl2sparql.dataset.paraphrase.contracts import (
-    ParaphraseValidationError,
-    StageCResponse,
-)
+from nl2sparql.linking.dictionary import ENTITIES_PATH
+
+
+class ParaphraseValidationError(ValueError):
+    """Raised when generated text loses required semantic anchors."""
+
+
+class StageCQuestions(Protocol):
+    casual: str
+    abbreviated: str
+    alternative: str
+
+
+def load_entity_index(path: Path = ENTITIES_PATH) -> dict[str, dict[str, str]]:
+    """Load the minimal label index required by deterministic quality checks."""
+    try:
+        entities = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ParaphraseValidationError(f"Unable to load entity context: {path}") from exc
+    return {
+        entity["address_lower"]: {
+            "owner": entity["owner"],
+            "primary_label": entity["primary_label"],
+        }
+        for entity in entities
+    }
+
 
 NUMERIC_SLOTS = {"n", "value_wei", "gas_used", "block_number", "duration_minutes"}
 
@@ -81,7 +106,7 @@ def normalized_levenshtein(left: str, right: str) -> float:
 
 
 def validate_stage_c_questions(
-    response: StageCResponse,
+    response: StageCQuestions,
     record: dict[str, Any],
     entity_index: dict[str, dict[str, str]],
 ) -> tuple[float, float, float]:

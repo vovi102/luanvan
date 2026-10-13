@@ -26,4 +26,5 @@
 - Treat **schema linking** as a measurable component, following Text-to-SQL practice.
 - Keep synthetic data correctness by generating SPARQL from templates first, then paraphrasing natural language.
 - Add domain-specific entity handling because open-domain KGQA linkers do not model exchange/protocol address clusters.
-- Include cost/latency/reproducibility columns when comparing small fine-tuned LLMs and large API LLMs.
+- Include cost/latency/reproducibility columns when comparing zero-shot,
+  five-shot and fine-tuned small LLMs.

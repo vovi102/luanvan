@@ -2,10 +2,8 @@
 
 **Status:** Approved by the user on 2026-10-07.
 
-**Supersedes:** The LLM-based English and Vietnamese training-text generation
-parts of T3.3, the “Vietnamese Stage B and C” section of
-`2026-10-04-bilingual-nl2sql-design.md`, and Tasks 2–3 plus the corresponding
-CLI 20/21 generation steps in `2026-10-04-bilingual-nl2sql.md`.
+**Supersedes:** All model-based English and Vietnamese training-text generation
+parts of T3.3.
 
 All completed bilingual normalization, benchmark, linking, prompt, translation
 baseline, evaluation, and offline workflow work remains valid.
@@ -16,12 +14,12 @@ No remote or local language model generates training paraphrases.
 
 The agent authors a finite, version-controlled bilingual template catalog. A
 deterministic offline renderer binds those templates to the existing 1,000
-validated Stage A records. Qwen, Gemini, OpenRouter, and any future solver model
-are excluded from this producer boundary. The downstream NL2SQL experiment may
-still use one pinned small Qwen model as the solver for B1/B2/B3-style
+validated Stage A records. Any solver model is excluded from this producer
+boundary. The downstream NL2SQL experiment may
+still use one pinned small Llama model as the solver for B1/B2/B3-style
 comparisons, but it must not be represented as a dataset author or reviewer.
 
-This decision removes the Gemini Free Tier quota and availability bottleneck,
+This decision removes external quota and availability bottlenecks,
 makes corpus construction reproducible without network access, and separates
 the training-data author from the model being evaluated. It does not turn the
 result into independently human-authored data: provenance must say exactly
@@ -30,12 +28,8 @@ result into independently human-authored data: provenance must say exactly
 
 ## Context
 
-The Gemini live T3.3 pilot completed 26 of 1,000 first-stage requests before
-daily request limits and repeated service unavailability made the expected
-completion time unsuitable for the thesis schedule. The checkpoint and outage
-evidence remain preserved as historical pilot evidence, but those 26 outputs
-are not canonical training records and must never be mixed with the new
-artifact.
+The prior external-generation attempt did not produce an accepted artifact and
+is not an input to the deterministic corpus.
 
 The repository has 25 accepted Stage A SQL intent templates and 1,000 accepted
 Stage A records. Each record already binds immutable SQL, slots, schema facts,
@@ -62,9 +56,8 @@ controlled surface realization without another generative model.
   human.
 - Claiming independent authorship, independent review, multiple reviewers, or
   inter-rater agreement.
-- Using Gemini, OpenRouter, Qwen, machine translation, or another LLM as a
-  fallback generator.
-- Reusing the 26 Gemini pilot outputs in the canonical training corpus.
+- Using machine translation or any language model as a fallback generator.
+- Reusing outputs from earlier external-generation attempts.
 - Changing SQL, translating identifiers, or inventing facts not present in
   Stage A.
 - Reading held-out benchmark surface text as a source for training templates.
@@ -211,8 +204,7 @@ access disabled and provider-related environment variables removed.
 
 ## Artifact and Module Boundaries
 
-The implementation should replace the blocked generation contracts rather than
-extend the Gemini runner:
+The implementation replaces the blocked generation contracts:
 
 ```text
 src/nl2sparql/dataset/bilingual/
@@ -228,20 +220,9 @@ scripts/
 
 Existing normalization, language-aware noise, retrieval, prompts, paired
 benchmark, translation baseline, and bilingual evaluation modules are reused.
-The old Gemini paraphrase modules remain only for historical T3.3 evidence and
-are not imported by the new builder.
-
-## Migration and Preservation
-
-1. Preserve the Gemini live worktree, its 26-record checkpoint, request journal,
-   and outage evidence without committing secrets or temporary checkpoint data.
-2. Mark the Gemini T3.3 attempt as an incomplete historical pilot, not a
-   completed dataset task.
-3. Do not cherry-pick the pilot outputs into the bilingual training branch.
-4. Replace only the blocked generation/assembly tasks and CLI 20/21 steps in the
-   existing plan. Completed Tasks 1 and 4–8 plus CLI 23/24 stay intact.
-5. Update backlog/evidence only after the deterministic artifact passes every
-   gate; never record completion based on code or templates alone.
+Legacy provider modules are removed. Update backlog/evidence only after the
+deterministic artifact passes every gate; never record completion based on code
+or templates alone.
 
 ## Testing Strategy
 
@@ -290,6 +271,6 @@ This design is implemented only when:
 - both 100-record agent audits meet the stated thresholds;
 - manifests report zero requests, `$0.00`, null model/provider, and honest
   agent/deterministic provenance;
-- the Gemini pilot remains excluded and preserved as incomplete evidence; and
+- earlier external-generation outputs remain excluded; and
 - artifact paths, counts, hashes, audit results, and ablation configuration are
   documented before downstream training begins.

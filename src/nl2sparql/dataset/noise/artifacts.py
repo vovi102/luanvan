@@ -17,7 +17,18 @@ from typing import Any
 from nl2sparql.dataset.noise.contracts import NoiseConfig, NoiseValidationError
 from nl2sparql.dataset.noise.pipeline import NoiseStats
 from nl2sparql.dataset.noise.transforms import ABBREVIATIONS_PATH
-from nl2sparql.dataset.paraphrase.artifacts import deterministic_audit_ids
+
+
+def deterministic_audit_ids(
+    records: Sequence[dict[str, Any]], sample_size: int, *, seed: int = 42
+) -> list[str]:
+    """Select stable audit IDs without depending on a generation provider."""
+    from random import Random
+
+    ids = sorted({str(record["id"]) for record in records})
+    if sample_size < 0 or sample_size > len(ids):
+        raise NoiseValidationError(f"Cannot sample {sample_size} audit IDs from {len(ids)} records")
+    return sorted(Random(seed).sample(ids, sample_size))
 
 
 def jsonl_bytes(records: Sequence[dict[str, Any]]) -> bytes:

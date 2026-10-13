@@ -11,7 +11,7 @@ from typing import Any
 import click
 
 from nl2sparql.evaluation import adapt_baseline_artifacts
-from nl2sparql.evaluation.adapters import B0AdaptRequest, B12AdaptRequest, B45AdaptRequest
+from nl2sparql.evaluation.adapters import B0AdaptRequest, B12AdaptRequest
 from nl2sparql.evaluation.artifacts import (
     FileExecutionJournal,
     canonical_json,
@@ -161,33 +161,6 @@ def create_cli(*, bigquery_executor_factory: BigQueryExecutorFactory | None = No
                 if path is not None
             )
             _publish(output, serialize_prediction_run(run), protected)
-            _emit({"artifact": str(output), "status": "complete"})
-        except (EvaluationError, OSError) as exc:
-            raise click.ClickException(str(exc)) from exc
-
-    @adapt_group.command("b45")
-    @click.option("--test-set", type=click.Path(path_type=Path), required=True)
-    @click.option("--report", "report_path", type=click.Path(path_type=Path), required=True)
-    @click.option("--request-log", type=click.Path(path_type=Path), required=True)
-    @click.option("--synthetic", is_flag=True)
-    @click.option("--output", type=click.Path(path_type=Path), required=True)
-    def adapt_b45_command(
-        test_set: Path,
-        report_path: Path,
-        request_log: Path,
-        synthetic: bool,
-        output: Path,
-    ) -> None:
-        """Adapt verified B4/B5 artifacts."""
-        try:
-            run = adapt_baseline_artifacts(
-                B45AdaptRequest(test_set, report_path, request_log, synthetic)
-            )
-            _publish(
-                output,
-                serialize_prediction_run(run),
-                (test_set, report_path, request_log),
-            )
             _emit({"artifact": str(output), "status": "complete"})
         except (EvaluationError, OSError) as exc:
             raise click.ClickException(str(exc)) from exc

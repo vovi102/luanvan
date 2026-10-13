@@ -339,6 +339,8 @@
 1. **No blockchain-specific NL2SPARQL benchmark:** Existing NL2SPARQL datasets focus on DBpedia/Wikidata, not Ethereum transactions, contracts, exchanges, mixers, or DeFi protocols.
 2. **Weak treatment of multi-address real-world entities:** Classic KGQA linking maps mentions to one KG entity, while blockchain analytics often maps one organization to many addresses and aliases.
 3. **Limited schema-linking analysis for domain ontologies:** Text-to-SQL literature measures schema linking heavily, but KGQA papers often hide ontology/property linking inside end-to-end scores.
-4. **Few reproducible small-LLM vs large-LLM trade-off studies for KGQA:** Recent work uses LLMs, but not often with cost, latency, privacy, and reproducibility side by side on a domain KG.
+4. **Few reproducible small-LLM adaptation studies for domain QA:** Recent work
+   rarely compares zero-shot, retrieved few-shot and fine-tuned configurations
+   with accuracy, latency, cost and reproducibility on one controlled benchmark.
 5. **Little execution-validated synthetic SPARQL data for specialized KGs:** Synthetic semantic parsing exists, but blockchain KG questions need execution filtering against real graph data and domain-specific entity sampling.
 6. **Demo transparency gap:** Many KGQA systems report answer accuracy but expose little trace of entity linking, schema linking, generated SPARQL, validation, and execution provenance to non-technical users.

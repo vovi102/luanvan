@@ -27,8 +27,6 @@ def _load_script(filename: str, name: str):
 class _RejectExternalImports:
     PREFIXES = (
         "google.cloud.bigquery",
-        "google.generativeai",
-        "openai",
         "sentence_transformers",
         "transformers",
         "torch",
@@ -221,12 +219,7 @@ def test_cli_help_and_catalog_validation_are_offline_and_secret_safe(
     monkeypatch,
 ) -> None:
     sentinel = "TOP-SECRET-PROVIDER-VALUE"
-    for name in (
-        "GEMINI_API_KEY",
-        "OPENROUTER_API_KEY",
-        "OPENAI_API_KEY",
-        "GOOGLE_APPLICATION_CREDENTIALS",
-    ):
+    for name in ("UNRELATED_SECRET", "GOOGLE_APPLICATION_CREDENTIALS"):
         monkeypatch.setenv(name, sentinel)
     blocker = _RejectExternalImports()
     sys.meta_path.insert(0, blocker)
@@ -260,7 +253,7 @@ def test_exclusion_index_mode_emits_only_hashes_and_counts(tmp_path: Path, monke
     english, vietnamese = _held_out_files(tmp_path)
     output = tmp_path / "exclusion-index.json"
     sentinel = "TOP-SECRET-PROVIDER-VALUE"
-    monkeypatch.setenv("GEMINI_API_KEY", sentinel)
+    monkeypatch.setenv("UNRELATED_SECRET", sentinel)
 
     result = CliRunner().invoke(
         module.main,
@@ -311,7 +304,7 @@ def test_build_validate_only_is_offline_zero_call_and_reports_source_shape(
     )
     assert indexed.exit_code == 0
     sentinel = "TOP-SECRET-PROVIDER-VALUE"
-    monkeypatch.setenv("OPENROUTER_API_KEY", sentinel)
+    monkeypatch.setenv("UNRELATED_SECRET", sentinel)
     blocker = _RejectExternalImports()
     sys.meta_path.insert(0, blocker)
     try:

@@ -21,7 +21,6 @@ def test_all_help_paths_are_offline_and_never_construct_bigquery() -> None:
         ["adapt", "--help"],
         ["adapt", "b0", "--help"],
         ["adapt", "b12", "--help"],
-        ["adapt", "b45", "--help"],
         ["execute", "--help"],
         ["report", "--help"],
         ["compare", "--help"],
