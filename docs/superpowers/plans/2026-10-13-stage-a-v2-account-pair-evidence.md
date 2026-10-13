@@ -22,6 +22,8 @@
 - Diagnostic mode may execute read-only queries and write diagnostic evidence, but it must never invoke the accepted writer or create any accepted artifact.
 - Candidate generation may write only the three `*-v2-candidate*` paths and remains `candidate` with `acceptance_eligible=false`.
 - Do not run final live acceptance, merge, push, create a PR, audit 100 EN plus 100 VI, or build the 8,000-record corpus.
+- Preserve the cleaned small-LLM-only scope from `main`; do not restore deleted
+  hosted/remote-model code, dependencies, tasks, or backlog history.
 - Use RED → GREEN → REFACTOR and small commits.
 
 ## Review Focus
@@ -33,6 +35,66 @@
 - The new pool may reorder as a whole, but canonicalization must never separately sort endpoints, dates, or evidence; Tasks 1-2 test reordered entries with intentionally different windows.
 
 ---
+
+### Task 0: Synchronize the Clean Small-LLM Baseline
+
+**Files:**
+
+- Merge from: `main` at or after `5ff21e1`
+- Resolve: `docs/planning/prioritized-backlog-2026-09-21.md`
+- Resolve: `docs/memory/05-DECISION_LOG.md`
+- Preserve: `docs/tasks/phase-3-dataset/02-synthetic-pipeline.md`
+
+**Interfaces:**
+
+- Consumes the cleaned B0–B3-only scope and dependency removals from `main`.
+- Produces a feature branch based on the current clean governance structure,
+  with Stage A implementation/history preserved through Git and the detailed
+  T3.2 task record.
+- Prevents Tasks 1–6 from reintroducing removed large-model/provider surfaces.
+
+- [ ] **Step 1: Merge current `main` without publishing the branch**
+
+Run `git merge --no-ff --no-commit main`. Do not merge the feature branch into
+`main`, push, or create a PR.
+
+Expected: conflicts only in governance files changed independently by the
+Stage A evidence branch and the small-LLM cleanup.
+
+- [ ] **Step 2: Resolve governance conflicts using the cleaned structure**
+
+Keep `main`'s compact small-LLM-only backlog and its 2026-10-13 decision entry.
+Do not restore deleted B4/B5, hosted-provider, or verbose active-backlog text.
+Keep detailed prior Stage A operational evidence in
+`docs/tasks/phase-3-dataset/02-synthetic-pipeline.md` and Git history. Task 5
+will later add one concise account-pair decision and current P0 status.
+
+Run `git diff --check` and scan for conflict markers.
+
+Expected: no conflict markers or whitespace errors.
+
+- [ ] **Step 3: Verify the synchronized baseline**
+
+Run:
+
+```bash
+uv sync --frozen
+uv run pytest -q
+uv run ruff format --check .
+uv run ruff check .
+```
+
+Expected: the current reduced test suite and both Ruff checks pass. Record the
+new baseline count; do not compare it with the pre-cleanup 1,646-test count.
+
+- [ ] **Step 4: Commit the merge**
+
+```bash
+git add -A
+git commit -m "merge: sync small-LLM scope into Stage A work"
+```
+
+Expected: the feature branch contains both histories and remains unpushed.
 
 ### Task 1: Relationship Evidence Contract and Captured Pool
 
@@ -317,7 +379,14 @@ to differ from Step 1.
 
 - [ ] **Step 4: Record measured diagnostic outcome**
 
-Update task, decision log, and backlog with billing state, all job/count/byte/cache facts, the result for every logical witness, candidate hashes, and the statement that diagnostic evidence is not acceptance evidence. Preserve the two earlier failed live attempts.
+Record complete billing/job/count/byte/cache facts, every logical-witness
+outcome, candidate hashes, and the statement that diagnostic evidence is not
+acceptance evidence in the task document and diagnostic artifact. Add one
+concise reverse-chronological decision-log entry for pair-level provenance and
+the diagnostic/acceptance boundary. Update only the compact T3.3/P0 status and
+next action in the backlog; do not restore removed history or out-of-scope model
+paths. Preserve the two earlier failed live attempts in the task record and Git
+history.
 
 - [ ] **Step 5: Commit diagnostic evidence**
 
@@ -370,6 +439,11 @@ Recompute candidate, v1, evidence-pool, diagnostic-report, and accepted-path sta
 git add docs/tasks/phase-3-dataset/02-synthetic-pipeline.md docs/memory/05-DECISION_LOG.md docs/planning/prioritized-backlog-2026-09-21.md
 git commit -m "docs(evidence): record pair-backed Stage A preflight"
 ```
+
+Keep detailed measurements in the T3.2 task record. In the cleaned backlog,
+update only the current Stage A/T3.3 status and next action. In the decision
+log, amend the single account-pair decision only when the measured preflight
+changes its consequences; do not add a second operational-history entry.
 
 - [ ] **Step 6: STOP for explicit acceptance approval**
 
