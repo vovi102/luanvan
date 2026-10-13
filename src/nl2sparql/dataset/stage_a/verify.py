@@ -92,6 +92,7 @@ def dry_run_witnesses(
     per_witness_bytes_cap: int = PER_TEMPLATE_BYTES_CAP,
     total_bytes_cap: int = TOTAL_WITNESS_BYTES_CAP,
     query_planner: WitnessQueryPlanner = build_single_witness_queries,
+    diagnostic_recorder: Any | None = None,
 ) -> WitnessPreflight:
     """Dry-run every unique physical witness query before any execution."""
     groups_by_id = {group.group_id: group for group in build_witness_groups(records)}
@@ -109,20 +110,21 @@ def dry_run_witnesses(
         )
         _enforce_witness_cap(query, estimated_bytes, per_witness_bytes_cap)
         first_group = groups_by_id[query.group_ids[0]]
-        results.append(
-            WitnessDryRun(
-                group_id=first_group.group_id,
-                template_id=query.template_id,
-                witness_record_id=first_group.witness_record_id,
-                estimated_bytes=estimated_bytes,
-                query_id=query.query_id,
-                query_sha256=query.query_sha256,
-                proof_kind=query.proof_kind,
-                group_ids=query.group_ids,
-                job_id=str(getattr(job, "job_id", "") or ""),
-                location=str(getattr(job, "location", location) or location),
-            )
+        result = WitnessDryRun(
+            group_id=first_group.group_id,
+            template_id=query.template_id,
+            witness_record_id=first_group.witness_record_id,
+            estimated_bytes=estimated_bytes,
+            query_id=query.query_id,
+            query_sha256=query.query_sha256,
+            proof_kind=query.proof_kind,
+            group_ids=query.group_ids,
+            job_id=str(getattr(job, "job_id", "") or ""),
+            location=str(getattr(job, "location", location) or location),
         )
+        results.append(result)
+        if diagnostic_recorder is not None:
+            diagnostic_recorder.record_initial_dry_run(result)
     total_estimated_bytes = sum(result.estimated_bytes for result in results)
     if total_estimated_bytes > total_bytes_cap:
         cap_gib = total_bytes_cap / 2**30
@@ -337,6 +339,7 @@ def verify_stage_a(
         [Sequence[dict[str, Any]], Sequence[dict[str, Any]]], None
     ] = validate_stage_a_records,
     query_planner: WitnessQueryPlanner = build_single_witness_queries,
+    diagnostic_recorder: Any | None = None,
 ) -> StageAVerificationReport:
     """Preflight, execute, and propagate non-empty witness proofs."""
     _validate_verified_at(verified_at)
@@ -348,34 +351,48 @@ def verify_stage_a(
         queries = query_planner(records)
     except WitnessEvidenceError as exc:
         raise StageAVerificationError(str(exc)) from exc
-    preflight = dry_run_witnesses(
-        client,
-        records,
-        location=location,
-        per_witness_bytes_cap=per_witness_bytes_cap,
-        total_bytes_cap=total_bytes_cap,
-        query_planner=query_planner,
-    )
+    try:
+        preflight = dry_run_witnesses(
+            client,
+            records,
+            location=location,
+            per_witness_bytes_cap=per_witness_bytes_cap,
+            total_bytes_cap=total_bytes_cap,
+            query_planner=query_planner,
+            diagnostic_recorder=diagnostic_recorder,
+        )
+    except Exception as exc:
+        if diagnostic_recorder is not None:
+            diagnostic_recorder.record_failure("initial_preflight", exc)
+        raise
     preflight_by_query = {item.query_id: item for item in preflight.witnesses}
     templates_by_id = {template["id"]: template for template in templates}
     executions: list[WitnessExecution] = []
     for query in queries:
-        estimated_bytes, dry_run_job = _dry_run_query(
-            client,
-            query,
-            location=location,
-            per_witness_bytes_cap=per_witness_bytes_cap,
-        )
-        _enforce_witness_cap(query, estimated_bytes, per_witness_bytes_cap)
+        try:
+            estimated_bytes, dry_run_job = _dry_run_query(
+                client,
+                query,
+                location=location,
+                per_witness_bytes_cap=per_witness_bytes_cap,
+            )
+            _enforce_witness_cap(query, estimated_bytes, per_witness_bytes_cap)
+        except Exception as exc:
+            if diagnostic_recorder is not None:
+                diagnostic_recorder.record_failure("immediate_dry_run", exc)
+            raise
         initial = preflight_by_query.get(query.query_id)
         if (
             initial is None
             or initial.query_sha256 != query.query_sha256
             or initial.group_ids != query.group_ids
         ):
-            raise StageAVerificationError(
+            error = StageAVerificationError(
                 f"Witness query {query.query_id} changed after initial preflight"
             )
+            if diagnostic_recorder is not None:
+                diagnostic_recorder.record_failure("immediate_dry_run", error)
+            raise error
         first_group = groups_by_id[query.group_ids[0]]
         immediate_dry_run = WitnessDryRun(
             group_id=first_group.group_id,
@@ -389,8 +406,10 @@ def verify_stage_a(
             job_id=str(getattr(dry_run_job, "job_id", "") or ""),
             location=str(getattr(dry_run_job, "location", location) or location),
         )
-        executions.append(
-            _execute_witness(
+        if diagnostic_recorder is not None:
+            diagnostic_recorder.record_immediate_dry_run(immediate_dry_run)
+        try:
+            execution = _execute_witness(
                 client,
                 query,
                 groups_by_id,
@@ -401,7 +420,15 @@ def verify_stage_a(
                 per_witness_bytes_cap=per_witness_bytes_cap,
                 clock_ns=clock_ns,
             )
-        )
+        except Exception as exc:
+            if diagnostic_recorder is not None:
+                diagnostic_recorder.record_failure("execution", exc)
+            raise
+        executions.append(execution)
+        if diagnostic_recorder is not None:
+            diagnostic_recorder.record_execution(execution)
+            for result in execution.logical_results:
+                diagnostic_recorder.record_logical_result(execution.query_id, result)
     executions_by_group: dict[str, tuple[WitnessExecution, LogicalWitnessResult]] = {}
     for execution in executions:
         for result in execution.logical_results:

@@ -202,6 +202,196 @@ def test_preflight_and_live_are_mutually_exclusive_before_provider_use(monkeypat
     assert "mutually exclusive" in result.output
 
 
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ["--preflight", "--live"],
+        ["--preflight", "--diagnostic"],
+        ["--live", "--diagnostic"],
+        ["--preflight", "--live", "--diagnostic"],
+    ],
+)
+def test_execution_modes_are_mutually_exclusive_before_billing_or_provider_use(
+    monkeypatch, flags: list[str]
+) -> None:
+    script = _load_script()
+    monkeypatch.setattr(
+        script,
+        "require_unbilled_project",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("billing queried")),
+        raising=False,
+    )
+
+    result = CliRunner().invoke(script.main, flags)
+
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
+def _unbilled_runner(command, **_kwargs):
+    return subprocess.CompletedProcess(
+        command,
+        0,
+        stdout=json.dumps(
+            {
+                "projectId": "nl2sparql-thesis",
+                "billingEnabled": False,
+                "billingAccountName": "",
+            }
+        ),
+        stderr="",
+    )
+
+
+@pytest.mark.parametrize("mode", ["diagnostic", "live"])
+def test_execution_billing_failure_happens_before_google_import_or_client_construction(
+    tmp_path: Path, monkeypatch, mode: str
+) -> None:
+    script = _load_script()
+    templates = load_templates()
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
+    records = generate_stage_a_v2_records(templates, pools)
+    monkeypatch.setattr(
+        script,
+        "require_unbilled_project",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            script.DiagnosticError("billing is enabled")
+        ),
+        raising=False,
+    )
+    real_import = builtins.__import__
+
+    def guarded_import(name, *args, **kwargs):
+        if name == "google" or name.startswith("google."):
+            raise AssertionError("Google imported before the billing gate")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    if mode == "diagnostic":
+        report_path = tmp_path / "diagnostic.json"
+        with pytest.raises(script.StageAV2WorkflowError, match="billing"):
+            script._run_diagnostic(
+                records,
+                templates,
+                project="nl2sparql-thesis",
+                location="US",
+                report_path=report_path,
+            )
+        assert json.loads(report_path.read_text())["failure"]["gate"] == "billing_guard"
+    else:
+        with pytest.raises(script.StageAV2WorkflowError, match="billing"):
+            script._run_live(
+                records,
+                templates,
+                pools,
+                project="nl2sparql-thesis",
+                location="US",
+                output_path=tmp_path / "accepted.jsonl",
+                config_path=tmp_path / "accepted.json",
+                stats_path=tmp_path / "accepted.md",
+            )
+
+
+def test_diagnostic_failure_writes_only_canonical_failure_report(
+    tmp_path: Path, monkeypatch
+) -> None:
+    script = _load_script()
+    templates = load_templates()
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
+    records = generate_stage_a_v2_records(templates, pools)
+    report_path = tmp_path / "diagnostic.json"
+    accepted = tuple(tmp_path / name for name in ("accepted.jsonl", "accepted.json", "accepted.md"))
+
+    class FailingClient:
+        def query(self, *_args, **_kwargs):
+            raise RuntimeError("quota exhausted")
+
+    monkeypatch.setattr(
+        script,
+        "write_stage_a_v2_accepted_artifacts",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("accepted writer called")),
+    )
+    monkeypatch.setattr(
+        script,
+        "write_stage_a_v2_candidate_artifacts",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("candidate writer called")),
+    )
+
+    with pytest.raises(script.StageAV2WorkflowError, match="quota exhausted"):
+        script._run_diagnostic(
+            records,
+            templates,
+            project="nl2sparql-thesis",
+            location="US",
+            report_path=report_path,
+            client=FailingClient(),
+            billing_runner=_unbilled_runner,
+        )
+
+    report = json.loads(report_path.read_text())
+    assert report["status"] == "failed"
+    assert report["failure"]["gate"] == "initial_preflight"
+    assert not any(path.exists() for path in accepted)
+
+
+def test_diagnostic_provider_failure_is_recorded_before_client_construction(
+    tmp_path: Path, monkeypatch
+) -> None:
+    script = _load_script()
+    templates = load_templates()
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
+    records = generate_stage_a_v2_records(templates, pools)
+    report_path = tmp_path / "diagnostic.json"
+    real_import = builtins.__import__
+
+    def failing_provider_import(name, *args, **kwargs):
+        if name == "google.cloud" or name.startswith("google.cloud."):
+            raise RuntimeError("provider unavailable")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", failing_provider_import)
+
+    with pytest.raises(script.StageAV2WorkflowError, match="provider unavailable"):
+        script._run_diagnostic(
+            records,
+            templates,
+            project="nl2sparql-thesis",
+            location="US",
+            report_path=report_path,
+            billing_runner=_unbilled_runner,
+        )
+
+    report = json.loads(report_path.read_text())
+    assert report["status"] == "failed"
+    assert report["failure"]["gate"] == "provider_initialization"
+
+
+def test_validate_diagnostic_report_mode_is_provider_free(tmp_path: Path, monkeypatch) -> None:
+    report_path = tmp_path / "diagnostic.json"
+    report_path.write_text(json.dumps({"mode": "diagnostic"}))
+    real_import = builtins.__import__
+
+    def guarded_import(name, *args, **kwargs):
+        if name == "google" or name.startswith("google."):
+            raise AssertionError("validation must not import Google provider modules")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    script = _load_script()
+    result = CliRunner().invoke(
+        script.main,
+        [
+            "--validate-diagnostic-report",
+            str(report_path),
+            "--value-pools",
+            "data/dataset/raw/stage-a-v2-evidence-pools.json",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "schema" in result.output
+
+
 def test_preflight_requires_evidence_backed_values_before_provider_use(monkeypatch) -> None:
     script = _load_script()
     monkeypatch.setattr(

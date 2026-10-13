@@ -13,6 +13,11 @@ from nl2sparql.dataset.generate import (
     load_value_pools,
     validate_stage_a_records,
 )
+from nl2sparql.dataset.stage_a.diagnostics import (
+    DiagnosticRecorder,
+    ProjectBillingState,
+    validate_diagnostic_report,
+)
 from nl2sparql.dataset.stage_a.planning import (
     build_single_witness_queries,
     build_stage_a_v2_witness_queries,
@@ -352,6 +357,11 @@ def test_verification_fails_closed_for_invalid_live_evidence(
         else:
             message = "cache hit"
             client = FakeWitnessClient(records, templates, cache_hit_group=group.group_id)
+    recorder = DiagnosticRecorder(
+        project_id="nl2sparql-thesis",
+        records=records,
+        verified_at="2026-08-09T12:00:00+00:00",
+    )
 
     with pytest.raises(StageAVerificationError, match=message):
         verify_stage_a(
@@ -359,7 +369,9 @@ def test_verification_fails_closed_for_invalid_live_evidence(
             records,
             templates,
             verified_at="2026-08-09T12:00:00+00:00",
+            diagnostic_recorder=recorder,
         )
+    assert recorder.failure_report()["failure"]["gate"] == "execution"
 
 
 def test_witness_budget_constant_is_exactly_96_gib() -> None:
@@ -422,6 +434,36 @@ def test_batched_verification_maps_shuffled_rows_to_all_logical_witnesses(
         record for record in report.records if record["template_id"] == "T_TX_BETWEEN_ACCOUNTS"
     ]
     assert len({record["verification"]["physical_query_id"] for record in pair_records}) == 4
+
+
+def test_verifier_emits_observational_diagnostic_events(
+    templates: list[dict[str, object]],
+) -> None:
+    records = generate_stage_a_v2_records(templates, _v2_pools())
+    client = FakeWitnessClient(records, templates)
+    recorder = DiagnosticRecorder(
+        project_id="nl2sparql-thesis",
+        records=records,
+        verified_at="2026-10-14T00:00:00+00:00",
+    )
+    recorder.record_billing_state(ProjectBillingState("nl2sparql-thesis", False, ""))
+    ticks = iter(index * 1_000_000 for index in range(126 * 2))
+
+    report = verify_stage_a(
+        client,
+        records,
+        templates,
+        verified_at="2026-10-14T00:00:00+00:00",
+        clock_ns=lambda: next(ticks),
+        record_validator=validate_stage_a_v2_records,
+        query_planner=build_stage_a_v2_witness_queries,
+        diagnostic_recorder=recorder,
+    )
+    diagnostic = recorder.complete()
+
+    validate_diagnostic_report(diagnostic, records)
+    assert len(report.witnesses) == diagnostic["summary"]["physical_query_count"] == 126
+    assert diagnostic["summary"]["logical_witness_count"] == 206
 
 
 @pytest.mark.parametrize(
@@ -560,6 +602,11 @@ def test_account_pair_batch_fails_closed(
         pair_batch_rows=FakeRows(rows, schema),
         pair_batch_cache_hit=failure == "cache",
     )
+    recorder = DiagnosticRecorder(
+        project_id="nl2sparql-thesis",
+        records=records,
+        verified_at="2026-10-10T12:00:00+00:00",
+    )
 
     with pytest.raises(StageAVerificationError, match=message):
         verify_stage_a(
@@ -569,4 +616,6 @@ def test_account_pair_batch_fails_closed(
             verified_at="2026-10-10T12:00:00+00:00",
             record_validator=validate_stage_a_v2_records,
             query_planner=build_stage_a_v2_witness_queries,
+            diagnostic_recorder=recorder,
         )
+    assert recorder.failure_report()["failure"]["gate"] == "execution"
