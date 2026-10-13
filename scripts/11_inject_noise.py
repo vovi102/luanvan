@@ -22,7 +22,7 @@ from nl2sparql.dataset.noise.transforms import (
     ABBREVIATIONS_PATH,
     load_abbreviations,
 )
-from nl2sparql.dataset.paraphrase.contracts import (
+from nl2sparql.dataset.paraphrase.quality import (
     ParaphraseValidationError,
     load_entity_index,
 )

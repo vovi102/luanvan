@@ -38,7 +38,6 @@ def _load_script(filename: str, name: str):
 class _RejectExternalImports:
     PREFIXES = (
         "google.cloud.bigquery",
-        "google.generativeai",
         "sentence_transformers",
         "transformers",
     )
@@ -158,7 +157,7 @@ def test_encoder_validate_only_is_offline_and_rejects_secret_fields(
     manifest = tmp_path / "encoder-input.json"
     _encoder_input(manifest)
     sentinel = "TOP-SECRET-VALUE"
-    monkeypatch.setenv("GEMINI_API_KEY", sentinel)
+    monkeypatch.setenv("UNRELATED_SECRET", sentinel)
     blocker = _RejectExternalImports()
     sys.meta_path.insert(0, blocker)
     try:

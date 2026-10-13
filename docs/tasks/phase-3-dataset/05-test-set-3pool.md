@@ -61,7 +61,7 @@ hành cho đúng 100 selected rows và publish JSONL/manifest immutable.
 
 - [x] Contract/profile strict, review state machine và exact final schemas.
 - [x] Offline SQL/catalog/CQ/leakage validation và guarded CLI.
-- [x] Immutable live-evidence/finalization contract và downstream B0–B5 support.
+- [x] Immutable live-evidence/finalization contract và downstream B0–B3 support.
 - [x] 120 candidate rows đạt `draft_ready`, đúng quota 36/60/24 và coverage.
 - [x] Draft manifest/report pin candidate, catalog, leakage và repository commit.
 - [x] Review/selection source tách riêng; tooling không tự tạo human decision.
@@ -75,7 +75,7 @@ hành cho đúng 100 selected rows và publish JSONL/manifest immutable.
 - [ ] Codex chạy lại offline `validate-review` và xử lý lỗi deterministic cùng user.
 - [ ] User cho phép explicit live BigQuery run; 100 SQL có current bounded evidence.
 - [ ] `finalize` publish immutable `test-100.jsonl` và manifest. Chỉ lúc đó mới
-  mở genuine B0–B5 accuracy evaluation.
+  mở genuine B0–B3 accuracy evaluation.
 
 ## Chống leakage
 

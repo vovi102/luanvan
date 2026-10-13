@@ -1,15 +1,23 @@
-# Backlog ưu tiên sau Pivot #1 — 2026-09-21
+# Backlog ưu tiên — small-LLM NL2SQL
 
 > **Canonical backlog:** dùng tài liệu này để chọn công việc tiếp theo. Các ticket
-> chi tiết trong `docs/tasks/` vẫn là nguồn acceptance, nhưng ticket còn nói về
-> SPARQL/Fuseki phải được migrate sang GoogleSQL trước khi triển khai.
+> chi tiết trong `docs/tasks/` là nguồn acceptance. Ticket còn mô tả SPARQL/Fuseki
+> phải được migrate sang GoogleSQL trước khi triển khai.
 
-## Mục tiêu hiện tại
+## Phạm vi đã chốt
 
-Hoàn thiện một nghiên cứu NL2SQL trên BigQuery có dataset và test set được review,
-đủ baseline B0–B5, đánh giá định lượng cho linking/fine-tuning, một demo an toàn,
-và luận văn có thể tái lập. Full KG/Fuseki chỉ còn là negative-result artifact của
-Plan A; không nằm trên critical path.
+Dự án nghiên cứu NL2SQL trên BigQuery với bốn cấu hình B0–B3:
+
+| ID | Cấu hình | Vai trò |
+|---|---|---|
+| B0 | Rule-based | Lower-bound deterministic |
+| B1 | Small LLM zero-shot | Baseline mô hình gốc |
+| B2 | Small LLM five-shot | Đo tác động của retrieval/examples |
+| B3 | Small LLM fine-tuned | Hệ thống đề xuất |
+
+Không dùng mô hình qua API. Contribution thực nghiệm là so sánh zero-shot,
+few-shot và fine-tuned trong cùng phạm vi small LLM, đồng thời đo đóng góp của
+schema/entity/class linking.
 
 ## Snapshot
 
@@ -17,157 +25,90 @@ Plan A; không nằm trên critical path.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3–T3.5 | Revised Stage A v2 candidate 1.000 rows/25 intent và preflight 170/126 pass, nhưng free sandbox live run fail-closed tại `syn-v2-000436` / `T_TX_BETWEEN_ACCOUNTS` vì account-pair query rỗng. 13 executions, charge `$0`, không có accepted artifacts. English T3.5 đã finalized; Vietnamese 100-candidate draft vẫn chờ user review | Chẩn đoán account-pair/value-pool contract; không retry, audit hay build trước redesign + fresh preflight/approval; không chạy Gemini hay Stage D |
-| T4.1–T4.3 | Hoàn tất reviewed development evaluation ngày 2026-09-26; ba report `ready` | Đóng; giữ snapshot/hash immutable; không claim independent holdout |
-| T5.1–T5.2 | T5.1 genuine B0 đã chạy nhưng không đạt (`0/100`, no output); T5.2 implementation local hoàn tất | Giữ B0 negative result; chờ accepted deterministic bilingual artifact rồi chạy T5.2 |
-| T5.3 | Gemini primary path và final verification đã hoàn tất | Giữ artifact; không mở lại nếu không có regression |
-| T5.4–T5.5 | T5.4-A complete; đã ingest T5.1 negative result; T5.4-B/T5.5 chờ B1/B2/B4/B5 genuine runs | Hoàn thiện training data rồi chạy các baseline còn lại |
-| Phase 6–7 | Legacy SPARQL, chưa làm | Redesign NL2SQL; chưa implement ticket cũ |
+| T3.3 | Deterministic bilingual producer hoàn tất offline; canonical artifact bị chặn vì Stage A v2 chưa có genuine BigQuery acceptance | Cung cấp evidence pools/quyền BigQuery, accept v2, audit và build 8.000 records |
+| T3.4 | Superseded | Không sinh noise dataset riêng |
+| T3.5 | English finalized; Vietnamese draft chờ user review | Finalize paired benchmark, giữ ngoài training/tuning |
+| T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
+| T5.1/B0 | Genuine negative result hoàn tất (`0/100`) | Giữ làm lower bound, không tune trên test set |
+| T5.2/B1–B2 | Implementation local hoàn tất | Chạy genuine trên Kaggle sau khi training artifact được accept |
+| T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
+| T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
+| Phase 6–7 | Ticket cũ còn SPARQL | Redesign sang NL2SQL trước khi implement |
 
 ## Thứ tự thực hiện
 
-### P0 — Bắt đầu ngay
+### P0 — Mở gate dữ liệu
 
-1. **Mở các external gate có lead time dài.** Chuẩn bị BigQuery credentials và
-   Kaggle T4; training-data generation không cần API key. T3.5 Vietnamese do
-   Codex soạn + user human-review; user cũng
-   chấm các bộ ground truth T4 theo checklist. Việc này chạy song song với code;
-   không chờ T5.3 mới bắt đầu.
-2. **T5.3-G — Migrate B4/B5 sang Gemini free tier.** Implement design đã duyệt
-   ngày 2026-09-21: model-inventory preflight, exact stable model pinning, free-tier
-   policy, privacy disclosure, quota checkpoint/resume và artifact IDs B4/B5.
-   Giữ OpenRouter Llama thành optional B4L/B5L, không để nó chặn critical path.
-3. **Migrate governance/evaluation sang NL2SQL.** Viết lại spec cho T5.4 và T5.5,
-   đồng thời chốt tên đề tài, RQ1/RQ2 và contribution claims sau pivot. T5.4 phải
-   dùng execution semantics BigQuery; T5.5 phải ra quyết định continue/scope-down/
-   drop-FT từ số liệu thật, không dùng ngưỡng SPARQL legacy.
-4. **Migrate Phase 6 và Phase 7 trước khi triển khai.** Chuyển B3, constrained
-   decoding, ablation, validator/recovery, case studies và demo sang GoogleSQL,
-   BigQuery dry-run/cost guard và analytical catalog. Không dùng các code skeleton
-   SPARQL/Fuseki hiện có làm acceptance.
+1. **Accept Stage A v2.** Cung cấp tối thiểu 45 block numbers và 45 transaction
+   hashes có provenance, BigQuery credential/quota và quyền chi phí; chạy live
+   verifier cho đủ 1.000/1.000 records với zero cache hits.
+2. **Build T3.3 canonical.** Audit 100 English + 100 Vietnamese, build/validate
+   artifact 8.000 records hai lần và xác nhận byte reproducibility.
+3. **Finalize Vietnamese T3.5.** User review 100 candidates; live verify và khóa
+   immutable. Không dùng wording hoặc gold SQL của benchmark để tune.
 
-### P1 — Hoàn thiện dữ liệu và evidence đầu vào
+### P1 — Baseline small LLM và quyết định scope
 
-5. **T3.3 — Hoàn tất deterministic bilingual artifact.** Offline Stage A v2
-   candidate đã phủ 25 intent và expand đúng 8.000 rows; candidate không phải live
-   evidence. Pool 45 provenance-bearing block numbers + 45 transaction hashes đã
-   có. Mixer coverage-gap intent đã được thay bằng
-   `T_CATEGORY_OWNER_DISTRIBUTION`/`CQ20`; candidate data/config/stats hashes mới
-   là `b3c1052f...`, `8162368c...`, `5f94062d...`. Fresh preflight 126 queries
-   đo `96.112.944.434` bytes (`89,512154864 GiB`), max
-   `14.829.419.966` bytes, gross `$0.546339` ở `$6.25/TiB`; không query nào
-   execute ở preflight. Free sandbox live attempt sau đó fail-closed tại
-   `syn-v2-000436` / `T_TX_BETWEEN_ACCOUNTS` do query rỗng; 13 executions
-   processed `1.708.003.160` bytes, billed `1.749.024.768` bytes, cache hits
-   `0`, actual charge `$0`, accepted outputs vẫn absent. Cần diagnosis/design
-   riêng và fresh preflight/approval; không retry cùng SQL. Chỉ sau live
-   acceptance mới audit 100 English + 100 Vietnamese và build/validate 8.000
-   clean records hai lần. Bilingual generation giữ API calls `0`,
-   provider/model null, recorded cost `$0.00`.
-6. **T3.4 — SUPERSEDED.** Không sinh Stage D 3.150 rows; bốn style sạch trong
-   catalog song ngữ thay thế noise injection trên critical path.
-7. **T3.5 — DONE 2026-10-02.** Benchmark agent-authored, single-human-reviewed
-   đã chọn đúng 100 câu (30/50/20), live-verify `100/100` và finalize immutable.
-   Đây là gate chung cho mọi claim accuracy; không thay bằng fixture và không
-   claim 3-pool, independent authorship/review hoặc kappa.
-8. **T4-EVAL — DONE 2026-09-26 (development acceptance).** User review/gán nhãn 50
-   câu schema-link, 100 câu entity-link và 50 câu class-resolver; Codex validate,
-   chạy evaluator và publish report hash-bound với accuracy, Recall@K và warm
-   latency. Kết quả: Schema Field Recall@10 `0.808`; Entity Top-1/F1 `1.0/1.0`;
-   Resolver plan/direction/kind accuracy `1.0/1.0/1.0`. Do linker đã được cải
-   thiện sau khi xem T4, đây là post-tuning development evidence, không phải
-   independent holdout. Các tập không được dùng để tune trên T3.5 test set.
+4. **B1/B2 genuine run.** Pin exact small-model và encoder revisions, chạy trên
+   Kaggle T4 với cùng catalog, prompt và test snapshot; publish prediction/log/report.
+5. **T5.4 comparison vòng 1.** So sánh B0/B1/B2, báo execution accuracy,
+   exact/structural match, answer metrics, latency, cost, reproducibility và
+   failure modes với CI/bootstrap đã chốt.
+6. **T5.5 decision.** Chọn full B3, scope-down B3 hoặc bỏ fine-tuning. Quyết định
+   dựa trên B1/B2 genuine metrics và linker deltas, không dựa trên fixture.
 
-T3.3 deterministic artifact là gate còn mở; T3.4 đã superseded. English T3.5 và
-T4-EVAL đã khóa immutable; Vietnamese paired benchmark chưa finalized và vẫn
-phải nằm ngoài training/tuning. Exclusion index chỉ lưu irreversible hashes.
+### P2 — Hệ thống đề xuất
 
-### P2 — Chạy baseline và quyết định scope
+7. **T6.1-SQL — B3 QLoRA** nếu T5.5 chọn fine-tuning; target là GoogleSQL từ
+   accepted deterministic bilingual artifact.
+8. **T6.2-SQL — Constrained generation.** Grammar/safety target GoogleSQL; đo
+   syntax/safety rate, execution accuracy và latency overhead.
+9. **T6.3-SQL — Ablation.** Ưu tiên `no_schema`, `no_entity`, `no_class` và
+   `no_constraint`; báo CI 95% và paired significance trên cùng test snapshot.
+10. **T5.4 comparison cuối.** Tổng hợp B0–B3 và failure analysis; nếu bỏ
+    fine-tuning thì thay B3 bằng full-system B2 + linkers + validator và ghi rõ
+    B3 không được thực hiện.
 
-9. **T5.4-A — DONE (implementation) — Evaluation framework NL2SQL.** Đã chuẩn hóa schema report
-   dùng chung cho execution accuracy, exact/structural match, answer metrics,
-   latency, observed cost, privacy, reproducibility và failure modes. Thêm paired
-   bootstrap/CI trước khi chạy toàn bộ baseline.
-10. **T5.1 — DONE (genuine negative result, 2026-10-03).** B0 abstain `100/100`:
-    coverage/exact/structural/execution đều `0.0`, inference p95 `259.65 ms`;
-    100 gold executions `ok`, estimated BigQuery cost `$3.180927`. Không tune B0
-    sau khi xem T3.5. Acceptance thresholds không đạt và được giữ làm lower-bound.
-11. **T5.2 — Chạy B1/B2 trên Kaggle T4** với pinned Llama/MiniLM snapshots và
-    accepted deterministic bilingual training snapshot; publish
-    prediction/log/report artifacts.
-12. **T5.3 — Chạy B4/B5 Gemini** ba run genuine cho mỗi baseline trên cùng test
-    snapshot. B4L/B5L chỉ chạy sau khi hệ thống chính hoàn tất và GVHD yêu cầu.
-13. **T5.4-B — Tổng hợp so sánh baseline** và failure analysis bằng framework ở
-    bước 9. Không công bố scientific readiness khi còn unresolved outcomes.
-14. **T5.5 — Pivot Point #2.** Dùng metrics B1/B2/B4/B5 và linker deltas để chốt
-    một trong ba hướng: full B3, B3 scope-down, hoặc full-system không fine-tune.
-    Cập nhật backlog và trao đổi GVHD ngay sau quyết định.
+### P3 — Demo và luận văn
 
-### P3 — Hệ thống đề xuất và bằng chứng RQ
+11. **T7.1-SQL — Validator/recovery.** SQLGlot, managed-relation allowlist,
+    BigQuery dry-run, byte cap, tối đa một retry và đầy đủ provenance.
+12. **T7.3-SQL — Local Gradio demo.** Chạy small model; hiển thị linking trace,
+    GoogleSQL, dry-run estimate, result, latency và failure trace.
+13. **T7.2-SQL — Case studies.** Chạy trên analytical layer và ghi rõ giới hạn
+    label coverage, không suy diễn AML attribution vượt evidence.
+14. **T7.4-SQL — HF Spaces optional.** Chỉ deploy nếu small model chạy được trong
+    resource budget hoặc có demo tĩnh trung thực; không thay model bằng API.
+15. **T7.5 — Thesis/slides/rehearsal.** Khóa figures sau ablation và case studies.
 
-15. **T6.1-SQL — B3 QLoRA** chỉ khi T5.5 chọn continue/scope-down; train target
-    GoogleSQL từ accepted deterministic bilingual artifact, giữ T3.5 hoàn toàn
-    ngoài training/tuning.
-16. **T6.2-SQL — Constrained decoding/structured generation.** Grammar và safety
-    target GoogleSQL; đo syntax/safety rate, execution accuracy và latency overhead.
-17. **T6.3-SQL — Ablation.** Ưu tiên `no_schema`, `no_entity`, `no_class` và
-    `no_constraint`; chỉ làm LoRA-r ablation khi compute/timeline còn đủ. Báo CI
-    95% và paired significance trên exact cùng test snapshot.
+## Luồng song song
 
-Nếu T5.5 chọn drop-FT, bỏ bước 15 và thay bước 16–17 bằng full-system B2 + T4
-linkers + SQL validator, vẫn giữ ablation component để trả lời RQ2.
+- **Lane A — Evidence:** accept Stage A v2, audit/build T3.3, finalize Vietnamese T3.5.
+- **Lane B — Model:** chuẩn bị Kaggle B1/B2 và pin model/encoder; chỉ chạy genuine
+  khi artifact đầu vào hợp lệ.
+- **Lane C — Writing:** cập nhật RQ/contributions sang small-LLM-only, viết Plan A
+  negative finding và methodology; không điền metrics chưa chạy.
 
-### P4 — Demo, case studies và luận văn
+WIP limit: một task implementation lớn và một external-evidence task đang active.
 
-18. **T7.1-SQL — Validator/recovery.** SQLGlot + managed-relation allowlist +
-    BigQuery dry-run + byte cap; retry tối đa một lần và giữ lỗi/cost provenance.
-19. **T7.3-SQL — Local Gradio demo.** Ưu tiên demo defense trước case study và
-    deploy: NL question, linking trace, GoogleSQL, dry-run estimate, result và
-    latency/failure trace.
-20. **T7.2-SQL — Ba case studies** chạy trên analytical layer và ghi rõ giới hạn
-    label coverage; không suy diễn AML attribution vượt evidence.
-21. **T7.4-SQL — HF Spaces showcase (optional).** Chỉ làm sau local demo ổn định;
-    không đặt API key trả phí hay BigQuery write access vào public Space.
-22. **T7.5 — Chốt thesis, slides và rehearsal.** Results/figures cuối chỉ khóa sau
-    T6.3 và case studies, nhưng phần nền tảng có thể viết song song từ bây giờ.
+## Loại khỏi scope
 
-## Luồng song song được phép
+- Mọi hosted/remote LLM baseline và dependency provider.
+- Full T2.5 pySHACL, tối ưu Fuseki/KG, RML/ontology extension không phục vụ luận văn.
+- Stage D noise injection riêng; deterministic bilingual styles là nguồn training.
+- Deploy thay model nghiên cứu bằng một model ngoài phạm vi.
+- Fixture/synthetic backend dùng để tick scientific acceptance.
 
-- **Lane A — Code:** T5.3 Gemini baseline → T5.4 framework → Phase 6/7 SQL specs.
-- **Lane B — Data/evidence:** accepted 25-intent Stage A → T3.3 deterministic
-  artifact; đồng thời user review Vietnamese T3.5 draft và T4 ground truth.
-- **Lane C — Writing:** cập nhật project overview/architecture/RQ theo NL2SQL,
-  viết Introduction, Background, Related Work, Plan A negative finding và
-  Methodology từ decision log. Chưa điền số liệu kết quả chưa chạy.
+## Definition of done
 
-Giới hạn WIP đề xuất: một task implementation lớn và một external-evidence task
-đang active; tránh mở đồng thời T6/T7 khi T3.5 chưa finalized.
-
-## Công việc loại khỏi critical path
-
-- Không hoàn thiện full T2.5 pySHACL hoặc tối ưu Fuseki/KG.
-- Không mở rộng ontology/RML nếu không phục vụ mô tả luận văn.
-- Không chạy paid OpenRouter B4L/B5L trước khi B0–B5 chính và T5.5 hoàn tất.
-- Không deploy HF Spaces trước khi local demo và security/privacy boundary pass.
-- Không dùng fixture/synthetic backend để tick scientific acceptance.
-
-## Definition of done cho mỗi nhóm
-
-- **Implementation complete:** test, lint, CLI/help và artifact integrity pass;
-  chưa được gọi là kết quả khoa học.
+- **Implementation complete:** test, lint, CLI/help và artifact integrity pass.
 - **Scientific complete:** input độc lập được review, genuine run hoàn tất, report
   hash-bound có metrics/latency/cost/privacy/reproducibility và không còn blocker.
-- **Superseded:** giữ artifact để tái lập lịch sử, không tiếp tục đầu tư và không
-  tính checkbox còn mở vào backlog active.
+- **Superseded/out of scope:** không xuất hiện trong active backlog hoặc acceptance;
+  lịch sử thay đổi được truy xuất qua Git.
 
-## Công việc kế tiếp cụ thể
+## Công việc kế tiếp
 
-Việc kế tiếp trên critical path là chẩn đoán vì sao deterministic account pool
-tạo cặp không có bounded transaction evidence cho `T_TX_BETWEEN_ACCOUNTS`, rồi
-viết design riêng. Free sandbox live attempt đã fail-closed tại
-`syn-v2-000436`; không retry, sửa metadata/pool bằng tay hoặc tái sử dụng approval
-cũ. Bất kỳ SQL/input plan mới nào cũng cần regeneration, fresh preflight và
-approval mới. Chỉ khi accepted artifact pass đầy đủ mới audit/build **T3.3
-deterministic** để mở T5.2 và eventual fine-tuning. English T3.5 đã khóa;
-Vietnamese T3.5 vẫn chờ review. Không dùng câu hỏi, gold SQL hoặc kết quả B0 để
-tune bất kỳ baseline nào.
+Cung cấp genuine BigQuery evidence để promote Stage A v2 25/25 intent thành
+accepted, rồi audit/build T3.3 deterministic. Sau đó chạy B1/B2 trên Kaggle và
+dùng kết quả để quyết định có thực hiện B3 hay không.

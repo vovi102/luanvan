@@ -22,12 +22,8 @@ from nl2sparql.dataset.noise.transforms import (
     protected_terms,
     transform_question,
 )
-from nl2sparql.dataset.paraphrase.artifacts import (
-    ParaphraseArtifactError,
-    validate_stage_c_records,
-)
-from nl2sparql.dataset.paraphrase.contracts import ParaphraseValidationError
 from nl2sparql.dataset.paraphrase.quality import (
+    ParaphraseValidationError,
     normalize_question,
     normalized_levenshtein,
     validate_question_anchors,
@@ -68,10 +64,13 @@ class NoiseStats:
 
 
 def _validate_source(records: Sequence[dict[str, Any]]) -> None:
-    try:
-        validate_stage_c_records(records)
-    except ParaphraseArtifactError as exc:
-        raise NoiseValidationError(f"invalid Stage C source: {exc}") from exc
+    if len(records) != 3000:
+        raise NoiseValidationError(f"Stage C requires 3000 records, received {len(records)}")
+    normalized_questions = [record.get("nl_normalized") for record in records]
+    if any(not value for value in normalized_questions) or len(set(normalized_questions)) != len(
+        normalized_questions
+    ):
+        raise NoiseValidationError("Stage C requires 3000 unique normalized questions")
     for record in records:
         question = record.get("nl")
         normalized = record.get("nl_normalized")

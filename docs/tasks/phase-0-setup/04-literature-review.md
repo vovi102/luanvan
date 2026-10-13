@@ -97,7 +97,8 @@ Chương Related Work của thesis cần cite cẩn thận. Quan trọng hơn: *
 6. **Section "Gaps identified":** 3-5 gap mà thesis sẽ giải quyết. Ví dụ:
    - "Không có benchmark NL2SPARQL chuyên cho blockchain (gap → Đóng góp 1)."
    - "Schema linking trong KGQA không xử lý multi-address-one-entity (gap → Đóng góp 2.1)."
-   - "Trade-off small vs large LLM cho domain-specific KGQA chưa được phân tích định lượng (gap → Đóng góp 3)."
+   - "Zero-shot, retrieved few-shot và fine-tuned small LLM cho domain-specific
+     analytics chưa thường được so sánh trên cùng protocol (gap → Đóng góp 3)."
 
 ## Rủi ro & note
 

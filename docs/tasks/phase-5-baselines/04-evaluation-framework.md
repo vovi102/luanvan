@@ -3,14 +3,14 @@
 ## Mục tiêu
 
 T5.4-A cung cấp framework offline-first để chuẩn hóa, kiểm chứng và so sánh bằng
-chứng của các baseline NL2SQL B0, B1, B2, B4 và B5. Framework đo sáu chiều:
+chứng của các baseline NL2SQL B0, B1, B2 và B3. Framework đo sáu chiều:
 accuracy, latency, cost, privacy, reproducibility và failure modes. Đây là task
 triển khai công cụ; việc tạo và diễn giải kết quả khoa học thật thuộc T5.4-B.
 
 ## Phạm vi và phụ thuộc
 
 - Đầu vào gold là snapshot T3.5 đã review, chứa GoogleSQL cho BigQuery.
-- Prediction và log native đến từ T5.1–T5.3; adapter không tin các metric tổng
+- Prediction và log native đến từ T5.1–T5.2 và T6.1; adapter không tin các metric tổng
   hợp sẵn trong report native.
 - T5.4-A không chạy baseline inference, không tạo kết luận nghiên cứu và không
   tự động truy cập BigQuery.
@@ -137,7 +137,8 @@ Synthetic fixtures và scripted executor được phép chứng minh pipeline v�
 ## Acceptance criteria T5.4-A
 
 - [x] Strict canonical codecs, immutable publication và tamper detection.
-- [x] Adapter B0/B1/B2/B4/B5 kiểm tra cross-file identity.
+- [x] Adapter B0/B1/B2 kiểm tra cross-file identity; B3 phải dùng cùng canonical
+  contract khi T6.1 được triển khai.
 - [x] GoogleSQL/result semantics giữ order, type và duplicate multiplicity.
 - [x] Double dry-run, fail-closed aggregate/cost guards và explicit BigQuery opt-in.
 - [x] Deterministic six-dimension report, breakdown và paired comparison.

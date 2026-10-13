@@ -220,16 +220,16 @@ def test_hashes_floats_sorted_sets_and_privacy_review_are_strict() -> None:
         Readiness((), ("z", "a"))
 
     review = PrivacyReview(
-        baseline_id="b4",
+        baseline_id="b3",
         test_set_sha256=SHA_A,
         data_egress="provider",
-        provider="gemini",
+        provider="local-small-llm",
         policy_sha256=SHA_B,
         reviewer_id="reviewer-01",
         reviewed_at=NOW,
         synthetic=False,
     )
-    assert review.provider == "gemini"
+    assert review.provider == "local-small-llm"
 
     with pytest.raises(EvaluationError, match="provider"):
         PrivacyReview(**(review.__dict__ | {"provider": None}))

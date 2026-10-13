@@ -37,7 +37,7 @@ those external gates remain listed in the handoff below.
 - A `REVISE` event followed by a high-scoring `ACCEPT` must bind the revised content, while skipped/duplicate rounds must fail; Task 3 adds state-machine tests.
 - Leakage files use heterogeneous `nl` and `question` fields and may contain objects without either; Task 2 tests deterministic extraction and fail-closed decoding without treating unrelated objects as questions.
 - Final JSONL and its manifest must avoid circular hashes while detecting any stale candidate, review, selection, catalog, or live-evidence digest; Task 4 adds tamper tests for every edge.
-- Legacy B0/B1/B2/B4/B5 loaders must accept the new exact profile only when its provenance fields are complete and must reject mixed-profile snapshots; Task 6 adds end-to-end consumer tests.
+- B0/B1/B2 loaders must accept the new exact profile only when its provenance fields are complete and must reject mixed-profile snapshots; Task 6 adds end-to-end consumer tests.
 
 ---
 
@@ -402,7 +402,7 @@ those external gates remain listed in the handoff below.
 
 - [ ] **Step 1: Write failing consumer tests**
 
-  Add one valid 100-row agent-reviewed fixture builder and cases for missing profile fields, wrong `source`, wrong `pool_b_writer`, zero/multiple reviewers, wrong review provenance, malformed digests, and a snapshot mixing legacy and reviewed rows. Assert the reviewed profile is trusted only when live evidence fields are valid, while legacy three-pool identity-disjoint checks remain unchanged. Add workflow cases proving the reviewed final snapshot cannot be the same file, symlink, or hard link as training input for B2/B5.
+  Add one valid 100-row agent-reviewed fixture builder and cases for missing profile fields, wrong `source`, wrong `pool_b_writer`, zero/multiple reviewers, wrong review provenance, malformed digests, and a snapshot mixing legacy and reviewed rows. Assert the reviewed profile is trusted only when live evidence fields are valid, while legacy three-pool identity-disjoint checks remain unchanged. Add workflow cases proving the reviewed final snapshot cannot be the same file, symlink, or hard link as training input for B2/B3.
 
 - [ ] **Step 2: Run consumer tests and verify RED**
 
@@ -565,4 +565,4 @@ those external gates remain listed in the handoff below.
 2. The user fills `final_selection.csv` with exactly 100 accepted IDs and 30/50/20 difficulty.
 3. Codex runs offline review validation and resolves any deterministic errors with the user; it does not alter human decisions.
 4. The user explicitly authorizes the guarded BigQuery command after reviewing dry-run policy and credentials.
-5. Only complete current live evidence permits `reviewed finalize` to publish `test-100.jsonl` and unlock genuine B0–B5 evaluation.
+5. Only complete current live evidence permits `reviewed finalize` to publish `test-100.jsonl` and unlock genuine B0–B3 evaluation.

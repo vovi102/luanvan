@@ -1,92 +1,63 @@
 # 02 — Tech Stack
 
-> **Quy tắc:** chỉ thay stack khi có lý do mạnh + cập nhật `05-DECISION_LOG.md`. Đừng tự ý đổi vì thấy thư viện mới hơn.
+> Chỉ thay stack khi có lý do được ghi vào decision log. Version thực tế được
+> khai báo trong `pyproject.toml` và khóa bằng `uv.lock`.
 
-## Knowledge Graph
+## Active NL2SQL stack
 
-| Mục | Lựa chọn | Phiên bản | Lý do |
-|---|---|---|---|
-| Triple store | Apache Jena Fuseki | 4.10+ | Mature, free, hỗ trợ TDB2 persistent, SPARQL 1.1 đầy đủ |
-| Storage backend | TDB2 | (built-in) | Persistent, query nhanh cho ≥1M triples |
-| RDF mapping | Morph-KGC | latest pip | Python-native, dễ debug; chuẩn RML |
-| Fallback mapping | RMLMapper | jar | Java reference impl của RML |
-| Ontology editor | Protégé | 5.6+ | De-facto, GUI tốt cho design + check consistency |
-| Validation | SHACL (pyshacl) | latest pip | W3C standard, phát hiện vi phạm constraint |
-| Library Python | rdflib | 7.x | In-memory KG cho HF Spaces tier; query offline |
-
-**Versions cụ thể được pin trong `requirements.txt` sau Phase 0.**
-
-## ML / Fine-tuning
-
-| Mục | Lựa chọn | Lý do |
+| Mục | Lựa chọn | Vai trò |
 |---|---|---|
-| LLM nhỏ chính | meta-llama/Meta-Llama-3-8B-Instruct | License rõ, ecosystem rộng |
-| LLM nhỏ phụ | mistralai/Mistral-7B-Instruct-v0.3 | So sánh, robust baseline |
-| LLM lớn (qua API) | Llama 3 70B / Mistral Large / Qwen2 72B | Qua OpenRouter free tier, không lock vendor |
-| Framework | PyTorch | 2.3+ |
-| Trainer | transformers + peft + trl + bitsandbytes | QLoRA 4-bit |
-| Tokenizer | tokenizers | (đi kèm transformers) |
-| Embedding | sentence-transformers | MiniLM-L6-v2 (fast, 384d) cho linking |
-| Constrained decoding | outlines hoặc lm-format-enforcer | Grammar-based để giảm syntax errors |
+| Query engine | BigQuery Ethereum public dataset | Genuine execution và answer evidence |
+| SQL dialect | GoogleSQL | Target duy nhất của active system |
+| SQL parser | SQLGlot | Parse, canonicalize và safety validation |
+| Small LLM chính | Llama 3 8B Instruct, exact revision phải pin trước genuine run | B1/B2 và nền cho B3 |
+| Small LLM phụ | Mistral 7B Instruct, optional | Robustness check nếu timeline cho phép |
+| Fine-tuning | PyTorch, Transformers, PEFT, TRL, bitsandbytes | QLoRA B3 trên Kaggle |
+| Embedding | sentence-transformers MiniLM | Schema/entity retrieval; multilingual revision chốt bằng dev evidence |
+| UI | Gradio | Local defense demo |
+| Package manager | uv | Environment và lockfile tái lập |
+| Quality | pytest + Ruff | Test, lint và format |
 
-**QLoRA hyperparam mặc định** (điều chỉnh sau ablation Phase 6):
-- 4-bit nf4 quantization, double quant
-- LoRA r=16, alpha=32, dropout=0.05
-- Target modules: `q_proj, k_proj, v_proj, o_proj`
-- Learning rate 2e-4, cosine scheduler
-- Batch size 4, grad accumulation 4 → effective 16
-- Epochs 3 (early stop trên val loss)
+Không dùng remote LLM inference. B0–B3 phải chạy bằng code/model đã pin trên
+local hoặc Kaggle; không có provider fallback.
 
-## Compute
+## QLoRA defaults
 
-| Mục | Tài nguyên | Hạn mức |
+- 4-bit NF4, double quantization.
+- LoRA `r=16`, `alpha=32`, `dropout=0.05`.
+- Target modules: `q_proj`, `k_proj`, `v_proj`, `o_proj`.
+- Learning rate `2e-4`, cosine scheduler.
+- Batch size 4, gradient accumulation 4, tối đa 3 epochs với early stopping.
+
+Defaults chỉ là điểm bắt đầu; config scientific phải được pin và báo đúng theo
+artifact thực tế.
+
+## Compute và data
+
+| Mục | Tài nguyên | Guard |
 |---|---|---|
-| Kaggle | T4 ×2 hoặc P100 | 30h/tuần GPU |
-| Colab (backup) | T4 free / A100 paid | hạn mức biến động |
-| OpenRouter | LLM 70B+ | free tier, rate limit |
-| Local | CPU + Fuseki | RAM ≥16GB cho TDB2 |
+| Training/inference | Kaggle T4, Colab backup | Pin model/tokenizer; ghi OOM và latency thật |
+| Development | Local CPU/GPU | Không dùng fake completion làm scientific evidence |
+| BigQuery | `bigquery-public-data.crypto_ethereum` | Date bounds, dry-run, byte/cost caps |
+| Labels | Source snapshots đã verify | Hash, chain provenance và audit trail |
 
-## Data sources
+## Demo/deployment
 
-| Mục | Nguồn | Free tier |
-|---|---|---|
-| Ethereum on-chain | BigQuery `bigquery-public-data.crypto_ethereum` | 1TB query/tháng |
-| Entity labels | Etherscan public, Dune Analytics, Arkham (manual scrape) | Sample chứ không bulk |
-| Existing ontology | EthOn (ethon.consensys.net), schema.org | Open |
+- Local Gradio là đường defense chính và dùng đúng small model nghiên cứu.
+- HF Spaces là optional; chỉ interactive nếu resource probe đủ chạy đúng model.
+- Nếu resource không đủ, dùng static sealed case studies và ghi rõ không live.
+- Không cấp BigQuery write access và không bỏ parse/allowlist/dry-run guards.
 
-## Demo / Deploy
+## Plan A historical stack
 
-| Mục | Lựa chọn | Lý do |
-|---|---|---|
-| UI | Gradio | 1 file, chạy được trên HF Spaces |
-| Hosting | HF Spaces (free CPU) | Free, public, dễ share |
-| Local serving | uvicorn + Gradio | Khi cần full system với Fuseki |
+Apache Jena Fuseki/TDB2, Morph-KGC, RML, RDFLib, EthOn và pySHACL chỉ còn phục
+vụ tái lập Plan A và negative performance finding. Chúng không nằm trên active
+NL2SQL inference path và không quyết định architecture của demo mới.
 
-## Anti-stack — KHÔNG dùng
+## Anti-stack
 
-- **Neo4j / property graph DB:** vì thesis về KG/SPARQL, không phải Cypher.
-- **Sông pha graph + embedding (RDF2Vec, etc.):** không nằm trong scope thesis này.
-- **LangChain/LlamaIndex agent framework:** lock-in nặng, đánh đổi reproducibility, đa phần black-box.
-  - Có thể dùng `langchain-text-splitters` đơn lẻ. Không dùng `LangChain agents`.
-- **OpenAI API trực tiếp:** chi phí không bền vững cho thesis dài; OpenRouter có free tier rotate.
-- **Fancy frontend (Next.js, React):** không cần. Gradio đủ.
-- **Docker compose phức tạp:** cố gắng giữ "git clone + pip install + run" càng đơn giản càng tốt.
-
-## Tooling phụ
-
-| Mục | Lựa chọn |
-|---|---|
-| Lint Python | ruff |
-| Format | ruff format (hoặc black) |
-| Type check | (optional) pyright/mypy nhẹ |
-| Test | pytest |
-| Notebook | Jupyter (Kaggle/Colab native) |
-| Tracking experiment | wandb (free tier) hoặc local CSV log |
-| Version | git + GitHub (public repo) |
-
-## Ngôn ngữ
-
-- **Code, identifiers, comments trong code:** English.
-- **Documentation, task files, memory:** Vietnamese (kèm thuật ngữ EN khi cần).
-- **Thesis:** Vietnamese (hoặc song ngữ tùy yêu cầu trường).
-- **Bài báo:** English.
+- Remote LLM API hoặc model fallback ngoài ma trận B0–B3.
+- Agent framework nặng như LangChain/LlamaIndex cho core pipeline.
+- Frontend riêng khi Gradio đã đủ cho defense.
+- BigQuery query không có date, dry-run và byte/cost guard.
+- Fixture/synthetic execution được trình bày như scientific result.
