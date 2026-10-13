@@ -6,6 +6,11 @@ from importlib import import_module
 from typing import Any
 
 _EXPORT_MODULES = {
+    "AccountPair": "account_pairs",
+    "AccountPairError": "account_pairs",
+    "AccountPairEvidence": "account_pairs",
+    "canonical_account_pair_mappings": "account_pairs",
+    "load_account_pairs": "account_pairs",
     "StageAArtifactError": "artifacts",
     "StageAArtifacts": "artifacts",
     "build_generation_config": "artifacts",

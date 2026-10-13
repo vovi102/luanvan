@@ -13,6 +13,7 @@ from types import SimpleNamespace
 import pytest
 
 from nl2sparql.dataset.generate import load_value_pools
+from nl2sparql.dataset.stage_a.account_pairs import load_account_pairs
 from nl2sparql.dataset.stage_a.evidence import (
     LogicalWitnessResult,
     StageAVerificationReport,
@@ -210,7 +211,7 @@ def test_candidate_writer_is_deterministic_and_preserves_v1_bytes(tmp_path: Path
     assert _sha256(V1_STATS) == "bc93c7a9355a34e531b275181646db269968040d2484e8a2876a8329db8579db"
     assert (
         _sha256(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
-        == "1bdbd40f5e5a31616ee537fe01a101642609c7afb07d52cd36e19af170334fc8"
+        == "cc596000e1c09f6ebcb46eb6ef3d48dbdd4953f66bb238ffb24901be4b7705e6"
     )
     v1_before = {path: path.read_bytes() for path in (V1_ARTIFACT, V1_CONFIG, V1_STATS)}
     first = tuple(tmp_path / "first" / name for name in ("data.jsonl", "config.json", "stats.md"))
@@ -292,8 +293,9 @@ def test_genuine_evidence_pool_is_hash_bound_and_well_formed() -> None:
     path = Path("data/dataset/raw/stage-a-v2-evidence-pools.json")
     pools = load_value_pools(path)
 
-    assert _sha256(path) == "1bdbd40f5e5a31616ee537fe01a101642609c7afb07d52cd36e19af170334fc8"
+    assert _sha256(path) == "cc596000e1c09f6ebcb46eb6ef3d48dbdd4953f66bb238ffb24901be4b7705e6"
     assert has_evidence_backed_live_values(pools) is True
+    assert len(load_account_pairs(pools)) == 40
     entries = [*pools["block_number"], *pools["transaction_hash"]]
     assert all(set(entry) == {"value", "source", "evidence"} for entry in entries)
 
