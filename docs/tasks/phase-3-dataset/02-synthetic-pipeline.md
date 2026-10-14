@@ -372,6 +372,32 @@ uv run python scripts/09_generate_stage_a_v2.py \
   evidence does not authorize acceptance; final approval preflight remains
   pending a successful diagnostic on a newly approved coverage contract.
 
+## Hard-intent coverage audit — 2026-10-14
+
+- Audit đã kiểm tra cả `[2026-05-31, 2026-07-01)` với accepted labels live
+  khớp dictionary local. Count exchange→DEX, cross-exchange và bridge deposit
+  đều bằng 0 trên mọi ngày. Đổi subwindow trong phạm vi này không cứu được ba
+  flow intents; bridge temporal join cũng rỗng vì deposits CTE rỗng.
+- `T_TOKEN_AFTER_NATIVE_FUNDING` có historical V1 witness và positive-funding
+  witness mới. Receipt lookup xác nhận funding thực sự thành công. Vì vậy
+  không dùng `expect_non_empty=false` làm lý do thay cả bốn hard intents.
+- Ba replacement prototypes có probe non-empty: net native flow theo owner,
+  native recipient concentration và treasury token diversity. Phương án giữ
+  25 intents / 1.000 records / 350–450–200 nhưng đổi ba training questions,
+  làm chặt funding semantics và sửa CQ annotations; **chưa được duyệt hoặc
+  implement**.
+- Exact SQL/jobs/rows/caps nằm trong
+  `docs/evidence/stage-a-v2-hard-intent-coverage-audit.json`; label snapshot
+  readback nằm trong `docs/evidence/stage-a-v2-hard-intent-label-audit.json`.
+  Bảy coverage/prototype executions processed 37.670.503.883 và billed
+  37.672.189.952 bytes, cache hits 0; billing disabled/unlinked. Kết quả audit
+  không authorize accepted publication.
+- Báo cáo và migration/CQ proposal:
+  `docs/research/stage-a-v2-hard-intent-coverage-audit-2026-10-14.md`.
+  Current template/catalogue/candidate, historical V1, benchmark và accepted
+  paths không thay đổi. Bước kế tiếp là user duyệt coverage proposal rồi chốt
+  spec/plan trước implementation.
+
 Live witness verification:
 
 ```bash

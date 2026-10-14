@@ -25,7 +25,7 @@ schema/entity/class linking.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3 | Beneficiary pool đã sửa; diagnostic dừng tại coverage-gap `T_EXCHANGE_TO_DEX_FLOW` sau 145 logical outcomes, Stage A v2 chưa accepted | Chốt coverage cho hard intents có `expect_non_empty=false` trước diagnostic/preflight mới |
+| T3.3 | Audit 31 ngày hoàn tất: ba flow intents thiếu coverage; positive native funding → token transfer có witness; Stage A v2 chưa accepted | Duyệt đề xuất thay ba intents + funding/CQ correction, rồi spec/plan và regenerate |
 | T3.4 | Superseded | Không sinh noise dataset riêng |
 | T3.5 | English finalized; Vietnamese draft chờ user review | Finalize paired benchmark, giữ ngoài training/tuning |
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
@@ -39,10 +39,12 @@ schema/entity/class linking.
 
 ### P0 — Mở gate dữ liệu
 
-1. **Accept Stage A v2.** Chốt cách xử lý hard-intent coverage, bắt đầu từ
-   `T_EXCHANGE_TO_DEX_FLOW` đang có `expect_non_empty=false`; audit ba hard
-   intents còn lại cùng cờ trước khi regenerate và chạy diagnostic mới.
-   Sau diagnostic thành công mới fresh preflight và approval live; giữ gate
+1. **Accept Stage A v2.** Duyệt
+   [coverage proposal](../research/stage-a-v2-hard-intent-coverage-audit-2026-10-14.md):
+   giữ positive/successful native funding → token transfer, thay ba flow intents
+   bằng net native flow, native recipient concentration và token diversity theo
+   treasury owner; sửa CQ mappings rõ nghĩa. Sau spec/plan, regenerate và
+   diagnostic thành công mới fresh preflight và approval live; giữ gate
    1.000/1.000 records non-empty, zero cache hits.
 2. **Build T3.3 canonical.** Audit 100 English + 100 Vietnamese, build/validate
    artifact 8.000 records hai lần và xác nhận byte reproducibility.
@@ -111,7 +113,7 @@ WIP limit: một task implementation lớn và một external-evidence task đan
 
 ## Công việc kế tiếp
 
-Chốt hard-intent coverage cho Stage A v2 trước diagnostic mới; beneficiary
-provenance đã hoàn tất. Chỉ sau diagnostic, fresh preflight và approval mới
-promote acceptance rồi audit/build T3.3 deterministic. Tiếp đó chạy B1/B2 trên
-Kaggle và dùng kết quả để quyết định có thực hiện B3 hay không.
+Duyệt coverage proposal đã có bounded probe evidence, rồi chốt spec/plan cho
+ba replacements và funding/CQ correction. Sau regenerate, diagnostic và fresh
+preflight được duyệt mới promote Stage A v2 và audit/build T3.3 deterministic.
+Tiếp đó chạy B1/B2 trên Kaggle và dùng kết quả để quyết định scope B3.
