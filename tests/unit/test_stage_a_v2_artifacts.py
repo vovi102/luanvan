@@ -458,6 +458,60 @@ def test_accepted_manifest_rejects_fabricated_or_incomplete_reports(inputs) -> N
         build_stage_a_v2_accepted_manifest(incomplete, templates, live_pools)
 
 
+@pytest.mark.parametrize("phase", ["initial", "immediate", "both"])
+def test_accepted_manifest_allows_unpersisted_provider_dry_run_ids(inputs, phase):
+    templates, pools, _ = inputs
+    live_pools = _live_pools(pools)
+    complete = _fake_live_report(generate_stage_a_v2_records(templates, live_pools))
+    if phase in {"initial", "both"}:
+        complete = replace(
+            complete,
+            preflight=replace(
+                complete.preflight,
+                witnesses=tuple(replace(item, job_id="") for item in complete.preflight.witnesses),
+            ),
+        )
+    if phase in {"immediate", "both"}:
+        complete = replace(
+            complete,
+            witnesses=tuple(
+                replace(item, immediate_dry_run=replace(item.immediate_dry_run, job_id=""))
+                for item in complete.witnesses
+            ),
+        )
+    manifest = build_stage_a_v2_accepted_manifest(complete, templates, live_pools)
+    assert manifest["verification_mode"] == "live_witness"
+    # Only in-memory construction; no permission to publish real accepted files.
+
+
+@pytest.mark.parametrize("phase", ["initial", "immediate", "execution"])
+def test_accepted_manifest_still_rejects_missing_job_id_fields(inputs, phase):
+    templates, pools, _ = inputs
+    live_pools = _live_pools(pools)
+    complete = _fake_live_report(generate_stage_a_v2_records(templates, live_pools))
+    if phase == "initial":
+        complete = replace(
+            complete,
+            preflight=replace(
+                complete.preflight,
+                witnesses=(
+                    replace(complete.preflight.witnesses[0], job_id=None),
+                    *complete.preflight.witnesses[1:],
+                ),
+            ),
+        )
+    else:
+        first = complete.witnesses[0]
+        first = (
+            replace(first, immediate_dry_run=replace(first.immediate_dry_run, job_id=None))
+            if phase == "immediate"
+            else replace(first, job_id="")
+        )
+        complete = replace(complete, witnesses=(first, *complete.witnesses[1:]))
+    with pytest.raises(StageAV2ArtifactError):
+        build_stage_a_v2_accepted_manifest(complete, templates, live_pools)
+
+
 @pytest.mark.parametrize(
     "tampering",
     ["duplicate_query", "missing_edge", "digest", "job", "cache", "immediate"],

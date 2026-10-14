@@ -1,6 +1,6 @@
 # Supported Stage A v2 intents Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement the approved keep-one/replace-three coverage proposal without weakening acceptance.
 
@@ -32,11 +32,11 @@
 
 **Interfaces:** Consumes approved audit SQL prototypes; produces TRAINING_CATALOG_PATH (Path), version-aware validate_catalog(), unchanged template record fields, new allocation IDs.
 
-- [ ] Write regression tests for historical SHA, exact CQ31–34 additions, reject version/set mismatches, exact prototype SQL, funding predicates and mappings.
-- [ ] Run `.venv/bin/pytest tests/unit/test_stage_a_v2_supported_intents.py -q`; Expected: FAIL for absent revision/replacements.
-- [ ] Add version-specific exact CQ guards, a separate training catalogue, explicit template-validator selection and approved SQL replacements.
-- [ ] Run `.venv/bin/pytest tests/unit/test_stage_a_v2_supported_intents.py tests/unit/test_query_templates.py tests/unit/test_sql_schema.py -q`; Expected: PASS.
-- [ ] Commit `feat(dataset): version supported hard-intent CQ contracts`.
+- [x] Write regression tests for historical SHA, exact CQ31–34 additions, reject version/set mismatches, exact prototype SQL, funding predicates and mappings.
+- [x] Run `.venv/bin/pytest tests/unit/test_stage_a_v2_supported_intents.py -q`; Expected: FAIL for absent revision/replacements.
+- [x] Add version-specific exact CQ guards, a separate training catalogue, explicit template-validator selection and approved SQL replacements.
+- [x] Run `.venv/bin/pytest tests/unit/test_stage_a_v2_supported_intents.py tests/unit/test_query_templates.py tests/unit/test_sql_schema.py -q`; Expected: PASS.
+- [x] Commit `feat(dataset): version supported hard-intent CQ contracts`.
 
 ### Task 2: Bilingual migration and reproducible candidate
 
@@ -44,11 +44,11 @@
 
 **Interfaces:** Consumes Task 1 template IDs/slots; produces 200 reviewed patterns and regenerated v2 candidate bytes.
 
-- [ ] Add tests for eight patterns per new intent, funding timestamp wording and concentration minimum ten; run targeted tests; Expected: FAIL before migration.
-- [ ] Replace 24 retired patterns, correct eight funding patterns, refresh content hashes using the existing digest function; regenerate candidate twice and compare bytes.
-- [ ] Run targeted bilingual/v2 tests; Expected: PASS, 1,000 records, 133 changed records, unchanged evidence pools and historical files.
-- [ ] Run `.venv/bin/pytest -q`; Expected: PASS.
-- [ ] Commit `feat(dataset): migrate bilingual supported intents and candidate`.
+- [x] Add tests for eight patterns per new intent, funding timestamp wording and concentration minimum ten; run targeted tests; Expected: FAIL before migration.
+- [x] Replace 24 retired patterns, correct eight funding patterns, refresh content hashes using the existing digest function; regenerate candidate twice and compare bytes.
+- [x] Run targeted bilingual/v2 tests; Expected: PASS, 1,000 records, 133 changed records, unchanged evidence pools and historical files.
+- [x] Run `.venv/bin/pytest -q`; Expected: PASS.
+- [x] Commit `feat(dataset): migrate bilingual supported intents and candidate`.
 
 ### Task 3: Bounded diagnostic and handoff
 
@@ -56,7 +56,14 @@
 
 **Interfaces:** Consumes Task 2 candidate; produces independently validated diagnostic and fresh dry-run preflight, never accepted files.
 
-- [ ] Inspect diagnostic controls; run only after billing disabled/unlinked and caps confirmed. Expected: retries/cache disabled.
-- [ ] Execute one bounded diagnostic and validate it locally. Expected: 206 logical witnesses, 126 physical executions, all non-empty; retain evidence and stop provider work on failure.
-- [ ] On success run fresh dry-run preflight and record measured hashes/bytes; Expected: exact candidate provenance and no accepted artifacts.
-- [ ] Review implementation and report remaining final-live approval gate.
+- [x] Inspect diagnostic controls; run only after billing disabled/unlinked and caps confirmed. Expected: retries/cache disabled.
+- [x] Execute one bounded diagnostic and validate it locally. Expected: 206 logical witnesses, 126 physical executions, all non-empty; retain evidence and stop provider work on failure.
+- [x] Conditional success branch not run: diagnostic failed at an unchanged intent, so provider work stopped as required. Initial preflight is not acceptance approval.
+- [x] Review implementation and report remaining final-live approval gate.
+
+**Execution outcome:** Tasks 1–2 verified, 1,442 tests pass. Task 3 took the specified failure branch: all four revised intents have non-empty production witnesses, but unchanged `T_LARGE_TX_TO_CLASS` / `syn-v2-000759` returned zero rows. Failed report validated offline; no retry, further provider work, accepted publication or final preflight. See the implementation provenance document for exact metrics and proposed next scope.
+
+**Final review:** Fresh reviewer identified two Important evidence-validation
+defects; both fixed with RED/GREEN regressions. Final full suite: 1,462 passed.
+No second reviewer or provider execution. See
+`docs/superpowers/reviews/2026-10-14-stage-a-v2-supported-intents.md`.

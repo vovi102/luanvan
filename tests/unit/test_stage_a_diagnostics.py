@@ -264,3 +264,56 @@ def test_successful_report_accepts_provider_dry_runs_without_persistent_job_ids(
     for dry_run in report["initial_dry_runs"] + report["immediate_dry_runs"]:
         dry_run["job_id"] = ""
     validate_diagnostic_report(report, records)
+
+
+def _partial_failed_report():
+    return json.loads(
+        Path("docs/evidence/stage-a-v2-supported-intents-diagnostic.json").read_text()
+    )
+
+
+def test_failed_diagnostic_validates_exact_candidate_and_partial_observations(diagnostic_inputs):
+    records, _ = diagnostic_inputs
+    validate_diagnostic_report(_partial_failed_report(), records)
+    with pytest.raises(DiagnosticError, match="candidate"):
+        validate_diagnostic_report(_partial_failed_report(), [])
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda report: report.__setitem__("candidate", {"bad": "digest"}),
+        lambda report: report.pop("executions"),
+        lambda report: report.__setitem__("billing", None),
+        lambda report: report["executions"][0].__setitem__("query_sha256", "0" * 64),
+        lambda report: report["executions"][0].__setitem__("job_id", ""),
+        lambda report: report["executions"][0].__setitem__("cache_hit", True),
+        lambda report: report["logical_results"].pop(),
+        lambda report: report["summary"].__setitem__("total_processed_bytes", -1),
+        lambda report: report["immediate_dry_runs"].clear(),
+        lambda report: report["executions"][0].__setitem__("row_count", 0),
+        lambda report: report["logical_results"][0].__setitem__("row_count", 2),
+        lambda report: report["logical_results"][0].__setitem__("columns", ["invented"]),
+    ],
+)
+def test_failed_diagnostic_rejects_corrupted_partial_evidence(diagnostic_inputs, mutation):
+    records, _ = diagnostic_inputs
+    report = _partial_failed_report()
+    mutation(report)
+    with pytest.raises(DiagnosticError):
+        validate_diagnostic_report(report, records)
+
+
+def test_billing_guard_failure_allows_no_observations_but_still_binds_candidate(diagnostic_inputs):
+    records, _ = diagnostic_inputs
+    recorder = DiagnosticRecorder(
+        project_id="nl2sparql-thesis",
+        records=records,
+        verified_at="2026-10-14T00:00:00+00:00",
+    )
+    recorder.record_failure("billing_guard", DiagnosticError("billing enabled"))
+    report = recorder.failure_report()
+    validate_diagnostic_report(report, records)
+    report["candidate"] = {}
+    with pytest.raises(DiagnosticError, match="candidate"):
+        validate_diagnostic_report(report, records)

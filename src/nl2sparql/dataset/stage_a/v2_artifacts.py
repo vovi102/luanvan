@@ -322,7 +322,8 @@ def _validate_report(
             groups_by_id[group_id].template_id != item.template_id for group_id in item.group_ids
         )
         or not _is_nonnegative_int(item.estimated_bytes)
-        or not item.job_id
+        # BigQuery dry runs are unpersisted: the field is required, not a nonempty ID.
+        or not isinstance(item.job_id, str)
         or not item.location
         for item in report.preflight.witnesses
     ):
@@ -358,8 +359,9 @@ def _validate_report(
             or immediate.proof_kind != execution.proof_kind
             or immediate.template_id != execution.template_id
             or immediate.group_ids != execution.group_ids
-            or not immediate.job_id
+            or not isinstance(immediate.job_id, str)
             or immediate.location != execution.location
+            or not isinstance(execution.job_id, str)
             or not execution.job_id
             or not execution.location
             or execution.columns != physical_columns

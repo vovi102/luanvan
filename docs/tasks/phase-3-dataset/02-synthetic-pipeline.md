@@ -418,6 +418,9 @@ uv run python scripts/09_generate_stage_a_v2.py \
 - Report failed đã validate offline. Không chạy provider tiếp, không chạy final
   preflight và không tạo accepted artifacts. Bước kế tiếp đề xuất audit coverage
   và CQ mapping của intent medium này; final `--live` chưa sẵn sàng.
+- Fresh review phát hiện hai guard defects: failed-report bỏ qua provenance và
+  accepted manifest không chấp nhận dry-run ID rỗng của provider. Đã sửa bằng
+  TDD, giữ execution IDs/non-empty gate nghiêm ngặt; final suite 1.462 tests pass.
 
 Live witness verification:
 

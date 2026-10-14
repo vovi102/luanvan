@@ -57,7 +57,8 @@ evidence is published. Canonical 8,000 bilingual records are not published.
 
 ## Verification and execution boundary
 
-Local verification: 1,442 tests passed (342 upstream warnings), Ruff and
+Local verification: final post-review suite **1,462 tests passed** (342 upstream
+warnings; initial implementation suite had 1,442 passing tests), Ruff and
 `git diff --check` passed, offline template and bilingual catalogue validation
 passed. The bounded diagnostic stopped at a separate unchanged intent. Initial
 dry-run (126 physical queries) estimated 81,554,265,475 bytes (~75.953 GiB)
@@ -107,3 +108,16 @@ Next proposed scope is a bounded coverage audit for `T_LARGE_TX_TO_CLASS`
 separately justified evidence-pool or contract correction. The approved scope
 required the other 21 templates to remain unchanged; that next correction is
 not silently included in this implementation.
+
+## Final review safeguards
+
+A [fresh read-only review](../superpowers/reviews/2026-10-14-stage-a-v2-supported-intents.md)
+identified two shared verifier defects, corrected in one TDD fix pass without
+provider calls. Failed-report validation now checks exact candidate provenance,
+billing state and internally consistent partial observations/row/byte totals;
+it does not require full coverage or turn failure into acceptance. Accepted
+manifest construction now permits empty-string unpersisted dry-run IDs but
+still requires actual execution IDs, complete coverage and non-empty results.
+Twenty new regression cases cover those fixes. The retained diagnostic and
+candidate bytes/hashes are unchanged. Branch/worktree remain preserved; no
+merge, push, PR, accepted artifacts or canonical bilingual publication.
