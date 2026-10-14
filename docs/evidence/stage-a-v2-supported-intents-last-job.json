@@ -1,0 +1,9 @@
+{
+  "job_id": "fb114172-bdb9-4521-8407-9448604c4ef3",
+  "location": "US",
+  "processed_bytes": 389805715,
+  "billed_bytes": 390070272,
+  "cache_hit": false,
+  "errors": null,
+  "sql": "SELECT transaction_hash, block_timestamp, to_address, to_owner, to_concept_class, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '2026-06-15', DATE '2026-06-16')\nWHERE to_concept_class = 'DEXProtocol' AND value_wei >= NUMERIC '1000000000000000000'\nORDER BY value_wei DESC\nLIMIT 1"
+}

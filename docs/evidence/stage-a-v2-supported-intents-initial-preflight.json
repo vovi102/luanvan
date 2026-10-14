@@ -1,0 +1,124 @@
+{
+  "mode": "preflight",
+  "logical_witness_count": 206,
+  "physical_query_count": 126,
+  "total_estimated_bytes": 81554265475,
+  "per_query_bytes_cap": 21474836480,
+  "total_bytes_cap": 103079215104,
+  "maximum_query": {
+    "query_id": "d3495cbd4869abbee50a991ef9be2ede81a8f47e6946d540a6ab1fa502ae4aec",
+    "template_id": "T_TOKEN_AFTER_NATIVE_FUNDING",
+    "estimated_bytes": 15091902950
+  },
+  "per_template_totals": {
+    "T_ACCOUNTS_BY_CATEGORY": {
+      "physical_query_count": 1,
+      "estimated_bytes": 117879
+    },
+    "T_BLOCKS_BY_VALIDATOR": {
+      "physical_query_count": 4,
+      "estimated_bytes": 11918496
+    },
+    "T_BLOCK_BY_NUMBER": {
+      "physical_query_count": 45,
+      "estimated_bytes": 70346880
+    },
+    "T_CATEGORY_OWNER_DISTRIBUTION": {
+      "physical_query_count": 1,
+      "estimated_bytes": 394972
+    },
+    "T_COUNT_TX_IN_RANGE": {
+      "physical_query_count": 45,
+      "estimated_bytes": 1097467136
+    },
+    "T_FAILED_HIGH_GAS_TX": {
+      "physical_query_count": 1,
+      "estimated_bytes": 198739900
+    },
+    "T_FILTER_TX_BY_VALUE": {
+      "physical_query_count": 1,
+      "estimated_bytes": 389415408
+    },
+    "T_LARGE_TX_TO_CLASS": {
+      "physical_query_count": 1,
+      "estimated_bytes": 389805715
+    },
+    "T_LIST_FAILED_TX": {
+      "physical_query_count": 1,
+      "estimated_bytes": 357617024
+    },
+    "T_LIST_KNOWN_EXCHANGES": {
+      "physical_query_count": 1,
+      "estimated_bytes": 674882
+    },
+    "T_LIST_TX_FROM_ACCOUNT": {
+      "physical_query_count": 4,
+      "estimated_bytes": 1558565392
+    },
+    "T_LIST_TX_TO_ACCOUNT": {
+      "physical_query_count": 4,
+      "estimated_bytes": 1558565392
+    },
+    "T_OWNER_NET_NATIVE_FLOW": {
+      "physical_query_count": 1,
+      "estimated_bytes": 270520799
+    },
+    "T_REPEATED_PAIR_FLOW": {
+      "physical_query_count": 1,
+      "estimated_bytes": 254272276
+    },
+    "T_TOKEN_AFTER_NATIVE_FUNDING": {
+      "physical_query_count": 1,
+      "estimated_bytes": 15091902950
+    },
+    "T_TOKEN_TRANSFERS_OF_TOKEN": {
+      "physical_query_count": 2,
+      "estimated_bytes": 29373104462
+    },
+    "T_TOKEN_VOLUME_BY_SYMBOL": {
+      "physical_query_count": 1,
+      "estimated_bytes": 14259954427
+    },
+    "T_TOP_RECIPIENTS_BY_COUNT": {
+      "physical_query_count": 1,
+      "estimated_bytes": 103229952
+    },
+    "T_TOP_SENDERS_BY_VALUE": {
+      "physical_query_count": 1,
+      "estimated_bytes": 166941516
+    },
+    "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION": {
+      "physical_query_count": 1,
+      "estimated_bytes": 270520799
+    },
+    "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY": {
+      "physical_query_count": 1,
+      "estimated_bytes": 13960325074
+    },
+    "T_TX_BETWEEN_ACCOUNTS": {
+      "physical_query_count": 4,
+      "estimated_bytes": 1557661632
+    },
+    "T_TX_BY_HASH": {
+      "physical_query_count": 1,
+      "estimated_bytes": 405314600
+    },
+    "T_TX_BY_HOUR": {
+      "physical_query_count": 1,
+      "estimated_bytes": 15899192
+    },
+    "T_TX_GROUPED_BY_OWNER": {
+      "physical_query_count": 1,
+      "estimated_bytes": 190988720
+    }
+  },
+  "acceptance_authorized": false,
+  "phase": "initial_pre_diagnostic_not_acceptance_preflight",
+  "candidate_sha256": "c20be57c884baf0c8b4dac3d6f7f81031becc7df030842963413d29c6dfc7c59",
+  "training_catalog_sha256": "2c800d4c1af74f24aed73bcb7881f1cd514ab068fecdb301d6c478fd3ce34fa0",
+  "training_catalog_version": "1.1.0",
+  "query_cache_enabled": false,
+  "request_retry_enabled": false,
+  "job_retry_enabled": false,
+  "result_retry_enabled": false
+}

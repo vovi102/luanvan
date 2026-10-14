@@ -398,6 +398,27 @@ uv run python scripts/09_generate_stage_a_v2.py \
   paths không thay đổi. Bước kế tiếp là user duyệt coverage proposal rồi chốt
   spec/plan trước implementation.
 
+## Stage A v2 approved coverage implementation — 2026-10-14
+
+- User đã duyệt keep-one/replace-three proposal; implementation và provenance:
+  `docs/research/stage-a-v2-supported-intents-implementation-2026-10-14.md`.
+- Catalogue training 1.1.0 thêm CQ31–CQ34; catalogue mặc định/historical 1.0.0
+  và benchmark/model hashes giữ nguyên. CQ01–CQ30 không đổi nghĩa.
+- Ba replacements và funding correction thay đúng 133 records. Candidate vẫn
+  1.000 records, 25 intents, seed 42, difficulty 350/450/200; derive đúng
+  206 logical groups / 126 physical queries. 200 bilingual patterns đã migrate;
+  không publish canonical 8.000 records.
+- Hai regeneration có bytes giống nhau. 1.442 tests pass; V1 và evidence pools
+  giữ nguyên. Initial bounded preflight: 81.554.265.475 bytes, dưới cap 96 GiB;
+  query lớn nhất 15.091.902.950 bytes, dưới cap 20 GiB.
+- Diagnostic xác nhận non-empty cho cả bốn revised intents, nhưng dừng ở
+  `T_LARGE_TX_TO_CLASS`, witness `syn-v2-000759`: native tới DEXProtocol >=1 ETH
+  trong ngày 15/6 trả zero rows. 93 successful physical / 164 logical results;
+  failed empty job thứ 94 được lưu metadata riêng, không retry.
+- Report failed đã validate offline. Không chạy provider tiếp, không chạy final
+  preflight và không tạo accepted artifacts. Bước kế tiếp đề xuất audit coverage
+  và CQ mapping của intent medium này; final `--live` chưa sẵn sàng.
+
 Live witness verification:
 
 ```bash
