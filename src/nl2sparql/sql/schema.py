@@ -9,6 +9,8 @@ from typing import Any
 
 CATALOG_PATH = Path(__file__).with_name("catalog") / "ethereum_analytics.json"
 CATALOG_VERSION = "1.0.0"
+TRAINING_CATALOG_PATH = CATALOG_PATH.with_name("ethereum_analytics_stage_a_v2.json")
+CATALOG_CQ_COUNTS = {"1.0.0": 30, "1.1.0": 34}
 GOOGLESQL_DIALECT = "google_standard_sql"
 BIGQUERY_LOCATION = "US"
 SOURCE_KINDS = {"partitioned_table", "logical_view", "managed_table"}
@@ -525,8 +527,10 @@ def _validate_competency_questions(
     join_paths: Mapping[str, Any],
     semantic_mappings: Sequence[Any],
     role_policies: Mapping[str, Any],
+    *,
+    question_count: int = 30,
 ) -> None:
-    expected_ids = {f"CQ{index:02d}" for index in range(1, 31)}
+    expected_ids = {f"CQ{index:02d}" for index in range(1, question_count + 1)}
     semantic_ids = {mapping["semantic_id"] for mapping in semantic_mappings}
     seen: set[str] = set()
     questions: dict[str, Mapping[str, Any]] = {}
@@ -583,7 +587,7 @@ def _validate_competency_questions(
         missing = sorted(expected_ids - seen)
         unexpected = sorted(seen - expected_ids)
         raise SchemaCatalogError(
-            f"competency_questions must contain exactly CQ01-CQ30; "
+            f"competency_questions must contain exactly CQ01-CQ{question_count:02d}; "
             f"missing={missing}, unexpected={unexpected}"
         )
 
@@ -709,7 +713,8 @@ def validate_live_schemas(
 def validate_catalog(catalog: Mapping[str, Any]) -> CatalogSummary:
     """Validate the catalog's global contract and return stable counts."""
 
-    if catalog.get("catalog_version") != CATALOG_VERSION:
+    version = catalog.get("catalog_version")
+    if not isinstance(version, str) or version not in CATALOG_CQ_COUNTS:
         raise SchemaCatalogError(f"Unsupported catalog_version: {catalog.get('catalog_version')!r}")
     if catalog.get("dialect") != GOOGLESQL_DIALECT:
         raise SchemaCatalogError(f"Unsupported dialect: {catalog.get('dialect')!r}")
@@ -758,6 +763,7 @@ def validate_catalog(catalog: Mapping[str, Any]) -> CatalogSummary:
         join_paths,
         semantic_mappings,
         role_policies,
+        question_count=CATALOG_CQ_COUNTS[version],
     )
 
     return CatalogSummary(
