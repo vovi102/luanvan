@@ -24,6 +24,28 @@
 
 ## Entries
 
+### 2026-10-14 — Beneficiary pool corrected; hard-intent coverage remains pending
+
+- **Context:** Transaction-active addresses did not prove the block beneficiary
+  role. Four beneficiaries were captured from bounded block-facts execution and
+  now drive all 40 validator records.
+- **Decision:** Keep a separate, strict beneficiary pool, preserve the fixed
+  window and 206/126 topology, and keep diagnostic outcomes separate from
+  accepted publication.
+- **Evidence:** Candidate hash
+  `563025953b52b9465dc8fe2d879cebffa8a9e1ba86ea138b2de686f01c5235ee`;
+  1,438 local tests passed. One retry-disabled diagnostic passed the former
+  beneficiary failure point but stopped at `T_EXCHANGE_TO_DEX_FLOW` after
+  74 validated executions / 145 logical outcomes. Its zero-row provider job
+  is captured separately so byte totals include all 75 executions.
+- **Consequences:** Acceptance remains pending. The failed hard intent already
+  declares `expect_non_empty=false`; three other hard intents share that
+  contract. Resolve supported-intent coverage before another full diagnostic
+  rather than inferring a role-pool repair can make these intents non-empty.
+- **Linked:** `docs/evidence/stage-a-v2-beneficiary-diagnostic.json`,
+  `docs/evidence/stage-a-v2-beneficiary-failed-job.json`,
+  `docs/tasks/phase-3-dataset/02-synthetic-pipeline.md`.
+
 ### 2026-10-14 — Tách pair provenance và diagnostic evidence khỏi acceptance
 
 - **Context:** Stage A v2 trước đây ghép độc lập hai address nên một witness

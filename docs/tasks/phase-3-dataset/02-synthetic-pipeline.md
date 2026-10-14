@@ -305,6 +305,73 @@ uv run python scripts/09_generate_stage_a_v2.py \
   intent account-bound còn lại), regenerate candidate, rồi chạy fresh preflight;
   không chạy `--live` hoặc publish acceptance nếu chưa có user approval mới.
 
+## Beneficiary correction and coverage diagnostic — 2026-10-14
+
+- `T_BLOCKS_BY_VALIDATOR` now uses its own four-entry `block_beneficiary`
+  pool; the generic transaction-address pool remains scoped to from/to intents.
+  The four beneficiaries have 3,353 / 1,267 / 861 / 572 blocks in the exact
+  half-open window `[2026-06-15, 2026-06-16)`. Forty generated records use
+  these beneficiaries with limits 1–10, retaining 206 logical witnesses and
+  126 physical queries.
+- The bounded collection job `73314dc2-669a-4a66-9452-bedfb34ed714` ran in
+  `nl2sparql-thesis` / `US` after checking disabled, unlinked billing.
+  Estimate: 1,123,720 bytes; processed: 1,040,000; billed: 10,485,760;
+  maximum bytes billed: 1,073,741,824; cache hit: false. Query SHA-256:
+  `6c4eb7681270251bf846b13b54f56208b43e1a17d11ed0d8c5695f50c23a1d2a`.
+  Pool entries retain each positive block count and first/last UTC timestamps.
+  Collection selected the top four beneficiaries by block count, with address
+  as the deterministic tie-breaker:
+
+  ```sql
+  SELECT beneficiary_address AS account, COUNT(*) AS block_count,
+  MIN(block_timestamp) AS first_seen_at, MAX(block_timestamp) AS last_seen_at
+  FROM `nl2sparql-thesis.nl2sparql_analytics.block_facts`(DATE '2026-06-15', DATE '2026-06-16')
+  WHERE REGEXP_CONTAINS(beneficiary_address, r'^0x[0-9a-f]{40}$')
+  GROUP BY account
+  ORDER BY block_count DESC, account
+  LIMIT 4
+  ```
+
+- Candidate builds are byte-identical; full local verification passed
+  1,438 tests, Ruff format/check and whitespace checks. Current SHA-256:
+  data `563025953b52b9465dc8fe2d879cebffa8a9e1ba86ea138b2de686f01c5235ee`,
+  config `06d34f8f3ef6daf095ad96d80fab98b7ac69a644555444b91830a93416281476`,
+  stats `c5fd8e35dca3ecff90e4cf032da19dc6016b28208f4527928ed5d95919beb13c`,
+  pool `a6b827732320c18a274323fe4f5a5d60ea07d380065c6c1c4707b905a081fbca`.
+  Existing pool entries and immutable v1 hashes remain intact. Diagnostic
+  validation now permits the empty job IDs actually observed for dry runs,
+  while execution evidence still requires a job ID.
+- One new diagnostic used the existing workflow with an injected client that
+  explicitly disabled SDK request/job/result retries. Its initial 126-query
+  preflight estimated 82,577,568,447 bytes (76.906353652 GiB), within the
+  96 GiB aggregate and 20 GiB individual caps. It passed the old beneficiary
+  failure point and completed 74 validated executions / 145 logical outcomes,
+  then stopped on zero rows at `syn-v2-000800` /
+  `T_EXCHANGE_TO_DEX_FLOW`. No retry or subsequent provider query was run.
+- The diagnostic report is
+  `docs/evidence/stage-a-v2-beneficiary-diagnostic.json`, SHA-256
+  `d020fb3369f4fc3ccea9b0de31b701875c3287d6e856fd184978a66911fb2842`.
+  Its successful-execution totals are processed 47,772,996,812 bytes, billed
+  48,101,326,848 bytes, cache hits zero. The failed non-empty gate still
+  corresponds to a completed provider job:
+  `b6137fe5-0794-4bcf-9c2b-20938448f73b`, processed 389,923,594 bytes,
+  billed 390,070,272 bytes, zero rows and no cache hit. Read-only job metadata
+  is preserved in `docs/evidence/stage-a-v2-beneficiary-failed-job.json`.
+  Counting that job once gives 75 physical executions, total processed
+  48,162,920,406 bytes and billed 48,491,397,120 bytes.
+- The new failure is a coverage decision, not an account-slot repair:
+  `T_EXCHANGE_TO_DEX_FLOW` already has `expect_non_empty=false`.
+  `T_TOKEN_AFTER_NATIVE_FUNDING`, `T_CROSS_EXCHANGE_FLOW` and
+  `T_BRIDGE_OUTFLOW_AFTER_EXCHANGE` also carry that flag; their outcomes
+  cannot be inferred from this incomplete diagnostic. Before another full run,
+  resolve the conflict between these coverage contracts and the v2 requirement
+  for all 25 intents to be non-empty. Changing intent semantics, labels or
+  acceptance criteria requires a new coverage decision.
+- Both historical failure reports remain unchanged, billing remained
+  disabled/unlinked, and all three accepted paths are absent. Diagnostic
+  evidence does not authorize acceptance; final approval preflight remains
+  pending a successful diagnostic on a newly approved coverage contract.
+
 Live witness verification:
 
 ```bash

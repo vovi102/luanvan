@@ -1,0 +1,21 @@
+{
+  "project": "nl2sparql-thesis",
+  "location": "US",
+  "job_id": "b6137fe5-0794-4bcf-9c2b-20938448f73b",
+  "query_sha256": "085596a47ba58c945ac4fad0a5e2ee8803aee8b47ad20e9bcc14bd79ec8dbdf6",
+  "template_id": "T_EXCHANGE_TO_DEX_FLOW",
+  "witness_record_id": "syn-v2-000800",
+  "row_count": 0,
+  "state": "DONE",
+  "provider_error": null,
+  "total_bytes_processed": 389923594,
+  "total_bytes_billed": 390070272,
+  "cache_hit": false,
+  "maximum_bytes_billed": 21474836480,
+  "slot_millis": 4126,
+  "started": "2026-10-14T12:21:06.472000+00:00",
+  "ended": "2026-10-14T12:21:07.485000+00:00",
+  "capture_method": "BigQuery jobs.get metadata; zero rows observed by diagnostic verifier",
+  "diagnostic_report": "docs/evidence/stage-a-v2-beneficiary-diagnostic.json",
+  "acceptance_authorized": false
+}
