@@ -276,15 +276,15 @@ def test_committed_candidate_matches_pair_backed_generation_contract(inputs) -> 
 
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_OUTPUT_PATH)
-        == "563025953b52b9465dc8fe2d879cebffa8a9e1ba86ea138b2de686f01c5235ee"
+        == "c20be57c884baf0c8b4dac3d6f7f81031becc7df030842963413d29c6dfc7c59"
     )
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_CONFIG_PATH)
-        == "06d34f8f3ef6daf095ad96d80fab98b7ac69a644555444b91830a93416281476"
+        == "8b14614b447301b0a49a99bd01c8dc7e8c23b4710b6595386624636d0357d40d"
     )
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_STATS_PATH)
-        == "c5fd8e35dca3ecff90e4cf032da19dc6016b28208f4527928ed5d95919beb13c"
+        == "c64bb37333bb1590dd4e01e8446a062885b590ad6095326d80a567a0a9a53187"
     )
     assert committed == generated
     assert len(committed) == manifest["record_count"] == 1000

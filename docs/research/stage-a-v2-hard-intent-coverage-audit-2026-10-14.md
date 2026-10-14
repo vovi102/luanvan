@@ -1,7 +1,9 @@
 # Audit hard-intent coverage của Stage A v2 — 2026-10-14
 
-Trạng thái: audit hoàn tất; phương án bên dưới **chờ user duyệt**. Chưa thay
-template, catalogue, candidate, benchmark hoặc acceptance gate.
+Trạng thái: audit hoàn tất; user **đã duyệt phương án** ngày 2026-10-14.
+Implementation theo `docs/superpowers/plans/2026-10-14-stage-a-v2-supported-intents.md`.
+Các hashes và observations dưới đây mô tả snapshot trước implementation;
+benchmark và acceptance gate vẫn giữ nguyên.
 
 ## Kết luận
 

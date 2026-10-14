@@ -1,4 +1,5 @@
 """Approved coverage revision must not rewrite historical research inputs."""
+
 import hashlib
 import json
 from copy import deepcopy
@@ -13,14 +14,23 @@ ROOT = Path(__file__).resolve().parents[2]
 REVISION = CATALOG_PATH.with_name("ethereum_analytics_stage_a_v2.json")
 REPLACEMENTS = {
     "owner_net_native_flow": ("T_OWNER_NET_NATIVE_FLOW", "CQ32"),
-    "treasury_native_counterparty_concentration": ("T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION", "CQ33"),
+    "treasury_native_counterparty_concentration": (
+        "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION",
+        "CQ33",
+    ),
     "treasury_token_counterparty_diversity": ("T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY", "CQ34"),
 }
 
 
 def test_catalogue_revision_preserves_historical_inputs():
-    assert hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest() == "db8393aa7258d1331387eff9825e22ca729daf93234419f00d7dd538196cb3dd"
+    assert (
+        hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest()
+        == "db8393aa7258d1331387eff9825e22ca729daf93234419f00d7dd538196cb3dd"
+    )
     old, new = load_catalog(), load_catalog(REVISION)
+    assert hashlib.sha256(REVISION.read_bytes()).hexdigest() == (
+        "2c800d4c1af74f24aed73bcb7881f1cd514ab068fecdb301d6c478fd3ce34fa0"
+    )
     assert new["catalog_version"] == "1.1.0"
     assert new["competency_questions"][:30] == old["competency_questions"]
     assert validate_catalog(new).competency_question_count == 34
@@ -34,12 +44,18 @@ def test_catalogue_revision_preserves_historical_inputs():
 
 def test_replacements_match_audited_sql_and_cqs():
     templates = {t["id"]: t for t in load_templates()}
-    audit = json.loads((ROOT / "docs/evidence/stage-a-v2-hard-intent-coverage-audit.json").read_text())
+    audit = json.loads(
+        (ROOT / "docs/evidence/stage-a-v2-hard-intent-coverage-audit.json").read_text()
+    )
     probes = {p["name"]: p for p in audit["executions"]}
     for probe, (template_id, cq) in REPLACEMENTS.items():
         template = templates[template_id]
         sql = probes[probe]["sql"]
-        expected = sql.replace("2026-06-15", "{start_date}").replace("2026-06-16", "{end_date}").replace("LIMIT 3", "LIMIT {n}")
+        expected = (
+            sql.replace("2026-06-15", "{start_date}")
+            .replace("2026-06-16", "{end_date}")
+            .replace("LIMIT 3", "LIMIT {n}")
+        )
         assert template["sql_template"] == expected
         assert template["expected_columns"] == probes[probe]["columns"]
         assert template["cq_ids"] == [cq]
@@ -56,3 +72,26 @@ def test_funding_requires_successful_positive_value_without_causal_claims():
     assert "transfers.block_timestamp >= funding.block_timestamp" in template["sql_template"]
     assert template["cq_ids"] == ["CQ31"]
     assert len(template["expected_columns"]) == 6
+
+
+def test_bilingual_patterns_cover_replacements_and_exact_semantics():
+    path = ROOT / "src/nl2sparql/dataset/bilingual/templates.json"
+    entries = json.loads(path.read_text())["entries"]
+    assert len(entries) == 200
+    for template_id, _cq in REPLACEMENTS.values():
+        subset = [e for e in entries if e["template_id"] == template_id]
+        assert len(subset) == 8
+        assert len({e["pattern"] for e in subset}) == 8
+        if "CONCENTRATION" in template_id:
+            assert all("10" in e["pattern"] for e in subset)
+    funding = [e for e in entries if e["template_id"] == "T_TOKEN_AFTER_NATIVE_FUNDING"]
+    assert all(
+        "successful positive" in e["pattern"]
+        if e["language"] == "en"
+        else "thành công" in e["pattern"] and "dương" in e["pattern"]
+        for e in funding
+    )
+    assert all(
+        "at or after" in e["pattern"] if e["language"] == "en" else "không trước" in e["pattern"]
+        for e in funding
+    )

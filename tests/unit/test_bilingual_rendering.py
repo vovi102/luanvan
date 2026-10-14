@@ -47,7 +47,11 @@ def templates() -> list[dict[str, object]]:
 
 @pytest.fixture(scope="module")
 def stage_a() -> list[dict[str, object]]:
-    return [json.loads(line) for line in STAGE_A_PATH.read_text(encoding="utf-8").splitlines()]
+    # Current semantics need a synthetic accepted v2 fixture, not rewritten v1 evidence.
+    from test_bilingual_assembly import _accepted_stage_a_fixture
+
+    payload, _manifest = _accepted_stage_a_fixture()
+    return [json.loads(line) for line in payload.decode().splitlines()]
 
 
 @pytest.fixture(scope="module")
@@ -142,10 +146,9 @@ def test_bilingual_stage_a_validation_accepts_newly_accepted_intent_coverage(
     templates: list[dict[str, object]],
 ) -> None:
     records = [dict(record) for record in stage_a]
-    template = next(
-        value for value in templates if value["id"] == "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
-    )
+    template = next(value for value in templates if value["id"] == "T_TOKEN_AFTER_NATIVE_FUNDING")
     slots = dict(template["example_fill"])
+    slots["n"] = 100  # Not present in the fixture's n=1..33 allocation.
     entity_types = {
         "ethereum_address",
         "transaction_hash",

@@ -1,6 +1,6 @@
 {
   "acceptance_eligible": false,
-  "artifact_sha256": "563025953b52b9465dc8fe2d879cebffa8a9e1ba86ea138b2de686f01c5235ee",
+  "artifact_sha256": "c20be57c884baf0c8b4dac3d6f7f81031becc7df030842963413d29c6dfc7c59",
   "candidate_value_derivation": {
     "block_number": "deterministic_offset_unverified",
     "transaction_hash": "sha256_syntax_only_unverified"
@@ -23,11 +23,8 @@
     "T_ACCOUNTS_BY_CATEGORY": 41,
     "T_BLOCKS_BY_VALIDATOR": 40,
     "T_BLOCK_BY_NUMBER": 45,
-    "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE": 33,
     "T_CATEGORY_OWNER_DISTRIBUTION": 34,
     "T_COUNT_TX_IN_RANGE": 45,
-    "T_CROSS_EXCHANGE_FLOW": 33,
-    "T_EXCHANGE_TO_DEX_FLOW": 34,
     "T_FAILED_HIGH_GAS_TX": 41,
     "T_FILTER_TX_BY_VALUE": 45,
     "T_LARGE_TX_TO_CLASS": 41,
@@ -35,18 +32,21 @@
     "T_LIST_KNOWN_EXCHANGES": 45,
     "T_LIST_TX_FROM_ACCOUNT": 40,
     "T_LIST_TX_TO_ACCOUNT": 40,
+    "T_OWNER_NET_NATIVE_FLOW": 34,
     "T_REPEATED_PAIR_FLOW": 33,
     "T_TOKEN_AFTER_NATIVE_FUNDING": 33,
     "T_TOKEN_TRANSFERS_OF_TOKEN": 41,
     "T_TOKEN_VOLUME_BY_SYMBOL": 41,
     "T_TOP_RECIPIENTS_BY_COUNT": 41,
     "T_TOP_SENDERS_BY_VALUE": 42,
+    "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION": 33,
+    "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY": 33,
     "T_TX_BETWEEN_ACCOUNTS": 40,
     "T_TX_BY_HASH": 45,
     "T_TX_BY_HOUR": 41,
     "T_TX_GROUPED_BY_OWNER": 41
   },
-  "template_library_sha256": "156a50beaa977d506c78fde07d241608afc9f2770c07dc5f2e548719d3b983e5",
+  "template_library_sha256": "1c425b7b3464f259a2dc273de6bf26001fa19552fa7e0b9f3b15ea32f23ffa7f",
   "value_pools_sha256": "c9ac6a1d80ef5dab495304b4e75f2f4333f82d588fd21fe3fd77a8508a3708c7",
   "verification_mode": "offline_candidates",
   "version": 2

@@ -285,41 +285,45 @@ def test_supported_category_distribution_and_bridge_patterns_match_sql_semantics
             "Xếp hạng {n} danh mục trong từ điển nhãn đã chấp nhận theo số chủ sở hữu "
             "duy nhất, đồng thời trả về tổng tài khoản và tỷ lệ tài khoản trên mỗi chủ sở hữu."
         ),
-        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__formal": (
-            "Find the first {n} token transfers sent from bridges within "
-            "{duration_minutes} minutes after those bridges received exchange deposits "
-            "between {start_date} and {end_date}."
+        "T_TOKEN_AFTER_NATIVE_FUNDING__en__formal": (
+            "Find {n} token transfers from funded addresses at or after successful "
+            "positive native treasury funding and strictly before {duration_minutes} "
+            "minutes elapse, between {start_date} and {end_date}."
         ),
-        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__conversational": (
-            "Which {n} token outflows left bridges within {duration_minutes} minutes "
-            "after an exchange deposit from {start_date} to {end_date}?"
+        "T_TOKEN_AFTER_NATIVE_FUNDING__en__conversational": (
+            "Which {n} token events leave funded addresses at or after successful "
+            "positive native treasury funding, but less than {duration_minutes} "
+            "minutes later, from {start_date} to {end_date}?"
         ),
-        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__abbreviated": (
-            "First {n} token outflows from bridges ≤ {duration_minutes} min after exchange "
-            "deposit, {start_date}–{end_date}."
+        "T_TOKEN_AFTER_NATIVE_FUNDING__en__abbreviated": (
+            "First {n} funded-address token transfers at or after successful positive "
+            "native treasury funding, elapsed < {duration_minutes} min, "
+            "{start_date}–{end_date}."
         ),
-        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__alternative": (
-            "For {start_date} through {end_date}, return {n} token events sent by a bridge "
-            "no later than {duration_minutes} minutes after that bridge received a deposit "
-            "from an exchange treasury."
+        "T_TOKEN_AFTER_NATIVE_FUNDING__en__alternative": (
+            "For {start_date} to {end_date}, return {n} token transfers sent by "
+            "funded addresses at or after successful positive native treasury funding "
+            "and before the {duration_minutes}-minute timestamp boundary."
         ),
-        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__formal": (
-            "Tìm {n} lượt chuyển token đầu tiên từ bridge đi ra trong vòng "
-            "{duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn, từ "
-            "{start_date} đến {end_date}."
+        "T_TOKEN_AFTER_NATIVE_FUNDING__vi__formal": (
+            "Tìm {n} lượt chuyển token từ địa chỉ được cấp native thành công có value "
+            "dương bởi kho quỹ, timestamp không trước khoản cấp và chưa đủ "
+            "{duration_minutes} phút, từ {start_date} đến {end_date}."
         ),
-        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__conversational": (
-            "Từ {start_date} tới {end_date}, {n} dòng token nào rời bridge trong "
-            "{duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn?"
+        "T_TOKEN_AFTER_NATIVE_FUNDING__vi__conversational": (
+            "Từ {start_date} tới {end_date}, {n} sự kiện token nào rời địa chỉ nhận "
+            "native từ kho quỹ thành công có value dương, timestamp không trước khoản "
+            "cấp và cách dưới {duration_minutes} phút?"
         ),
-        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__abbreviated": (
-            "{n} token outflow đầu tiên từ bridge ≤ {duration_minutes} phút sau deposit "
-            "sàn, {start_date}–{end_date}."
+        "T_TOKEN_AFTER_NATIVE_FUNDING__vi__abbreviated": (
+            "{n} token transfer đầu tiên từ địa chỉ nhận native kho quỹ thành công có "
+            "value dương; timestamp không trước khoản cấp, cách < {duration_minutes} "
+            "phút, {start_date}–{end_date}."
         ),
-        "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__alternative": (
-            "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do "
-            "bridge gửi không muộn hơn {duration_minutes} phút sau khi bridge nhận tiền "
-            "từ kho quỹ sàn."
+        "T_TOKEN_AFTER_NATIVE_FUNDING__vi__alternative": (
+            "Trong {start_date} đến {end_date}, trả {n} sự kiện token do địa chỉ được "
+            "kho quỹ cấp native thành công có value dương gửi, timestamp không trước "
+            "khoản cấp và nhỏ hơn mốc cộng {duration_minutes} phút."
         ),
     }
 

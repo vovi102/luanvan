@@ -2475,10 +2475,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ea7895979d9824e9b97ad85d244041b478aa4ce68377c1e84dcc65a3800ac89e",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__en__formal",
+      "content_sha256": "ccd04359988fbdb587f133b0f3387ee892c696f7d7e4d844fc2769f23a8d20fa",
+      "id": "T_OWNER_NET_NATIVE_FLOW__en__formal",
       "language": "en",
-      "pattern": "List the top {n} transactions from exchange treasury addresses to DEX operational addresses between {start_date} and {end_date}.",
+      "pattern": "List {n} treasury owners ranked by absolute net successful positive native flow, with incoming and outgoing wei, between {start_date} and {end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2486,15 +2486,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d61b1f50cf9760c66523e9461bb866f250d7be2cfacbe0651dd158550e1f3994",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__en__conversational",
+      "content_sha256": "0036ffc1b5d7a981a0cd75a13f20abcbebf1150fec1188796f12f97cbaafd362",
+      "id": "T_OWNER_NET_NATIVE_FLOW__en__conversational",
       "language": "en",
-      "pattern": "Can you show me {n} exchange-treasury transfers going to DEX operations from {start_date} to {end_date}?",
+      "pattern": "Which {n} treasury owners have the largest absolute incoming-minus-outgoing wei from successful positive native transactions, from {start_date} to {end_date}?",
       "placeholders": [
         "end_date",
         "n",
@@ -2502,15 +2502,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e570aab05b3a0b87086818cf32fac773bb2c9822b9dc0ab6abb3c595c2772d09",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__en__abbreviated",
+      "content_sha256": "55a7ecec691a7f63dd1573d08ca52ec21aedd3ac58f3313786076b0afd911aa1",
+      "id": "T_OWNER_NET_NATIVE_FLOW__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} exchange treasury → DEX ops txs, {start_date}–{end_date}.",
+      "pattern": "Top {n} treasury owners by absolute net native wei (successful positive txs), incoming/outgoing included, {start_date}–{end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2518,15 +2518,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "011df755005a5f1551be0c7d4cd0da75f3c3a6f8f9b59433b7684b3d29cbf1a0",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__en__alternative",
+      "content_sha256": "27f87a4678671715e22be8c917456b0c0cabc144689a696b0842d78bb90e123f",
+      "id": "T_OWNER_NET_NATIVE_FLOW__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} native flows whose sender role is exchange treasury and recipient role is DEX operational.",
+      "pattern": "Compare incoming, outgoing and net wei for {n} labeled treasury owners; rank absolute net successful positive native flow over {start_date} to {end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2534,15 +2534,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fd66da5deb76dd6116da37bb64963d0c660120f2381341d5dd77e7c7440f2159",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__formal",
+      "content_sha256": "55d2c0d532e3595fb18bb4691f0ff9598587a1b66d983f8a888ede7684c4d3c0",
+      "id": "T_OWNER_NET_NATIVE_FLOW__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch lớn nhất từ địa chỉ kho quỹ sàn tới địa chỉ vận hành DEX trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê {n} chủ sở hữu kho quỹ theo trị tuyệt đối dòng native ròng của giao dịch thành công có value dương, kèm wei vào/ra, từ {start_date} đến {end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2550,15 +2550,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ea75c75b2c4037959b4fca28cba48df0954e69c6d418c73aba57569dcd8cfb77",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__conversational",
+      "content_sha256": "366d1ad93804f06662435fdd580c727402f3352587dd59418bd83268eb95b4fc",
+      "id": "T_OWNER_NET_NATIVE_FLOW__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} giao dịch từ treasury của sàn sang bộ phận vận hành DEX từ {start_date} tới {end_date} nhé?",
+      "pattern": "Từ {start_date} tới {end_date}, {n} chủ kho quỹ nào có trị tuyệt đối wei vào trừ wei ra lớn nhất trong giao dịch native thành công có value dương?",
       "placeholders": [
         "end_date",
         "n",
@@ -2566,15 +2566,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7569e142391ccf2f38994ca5870589ec191fc657b5b90bb52aadad8b3e67d8c3",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__abbreviated",
+      "content_sha256": "1bde90ffbbfecff46ef94a5fb13d341a1a2583f797d0754f8fe168968fd821a2",
+      "id": "T_OWNER_NET_NATIVE_FLOW__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} tx treasury sàn → DEX ops, {start_date}–{end_date}.",
+      "pattern": "Top {n} chủ kho quỹ theo |wei vào − wei ra|, chỉ native thành công có value dương, kèm vào/ra, {start_date}–{end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2582,15 +2582,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "3c9d781d95d6df81f9e793db542b4f9c43cd1cccdf8ac78dced52abc76e425e0",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__alternative",
+      "content_sha256": "1d5e7e2ee7872dabf67bab5e40c7731a64ef3bab47c6abcb7dda408fee35724c",
+      "id": "T_OWNER_NET_NATIVE_FLOW__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} dòng tiền native có bên gửi là kho quỹ sàn và bên nhận là địa chỉ vận hành DEX.",
+      "pattern": "So sánh wei vào, ra và ròng của {n} chủ sở hữu kho quỹ có nhãn; xếp theo trị tuyệt đối dòng native ròng thành công có value dương từ {start_date} đến {end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2598,7 +2598,7 @@
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
@@ -2715,10 +2715,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0e0554c56cef774e3c1256a97f09b601e667ac407171ab26466cee08e1fbc3b8",
+      "content_sha256": "bb9027470e411384734afc0d6be58f5caa6ae75e5139a3e26dd83a1ad0212a29",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__formal",
       "language": "en",
-      "pattern": "Find the first {n} token transfers occurring within {duration_minutes} minutes after exchange funding between {start_date} and {end_date}.",
+      "pattern": "Find {n} token transfers from funded addresses at or after successful positive native treasury funding and strictly before {duration_minutes} minutes elapse, between {start_date} and {end_date}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2732,10 +2732,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "07367f0adea9b6ff737ca2c763c999506a20f0d4c3a7ff3cc61bf728b298e633",
+      "content_sha256": "c5e5c40ba31fb2c8d844be6c87932152d711e6e9c5ea163e11b20c1365f01bc7",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__conversational",
       "language": "en",
-      "pattern": "Which {n} token transfers followed an exchange-funded native payment within {duration_minutes} minutes from {start_date} to {end_date}?",
+      "pattern": "Which {n} token events leave funded addresses at or after successful positive native treasury funding, but less than {duration_minutes} minutes later, from {start_date} to {end_date}?",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2749,10 +2749,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "bc8963c7c7d05030e3d239aeb9239e41704732c3cad287ade3fc1f137ee184c1",
+      "content_sha256": "a38349b1c669c6d255530021769887cd3f02a9615592379378af36de293610d4",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__abbreviated",
       "language": "en",
-      "pattern": "First {n} token txs ≤ {duration_minutes} min after exchange funding, {start_date}–{end_date}.",
+      "pattern": "First {n} funded-address token transfers at or after successful positive native treasury funding, elapsed < {duration_minutes} min, {start_date}–{end_date}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2766,10 +2766,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "340350e002e716b284997703e3ffdf137a004299eb81913211d1671564b2ef99",
+      "content_sha256": "cba64b95315ddcae8a6dd4884e1adacdff8aaaf522eae0db45f65d1a8f775e82",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} token events sent by an address no later than {duration_minutes} minutes after that address received native funding from an exchange treasury.",
+      "pattern": "For {start_date} to {end_date}, return {n} token transfers sent by funded addresses at or after successful positive native treasury funding and before the {duration_minutes}-minute timestamp boundary.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2783,10 +2783,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cf39dbac2fc8c6ea1cfd292bc26c1d8cdc45e069f3a5d7dd23442f54fcb793bc",
+      "content_sha256": "05621b6d21a9039b26def44496de751bd3ed43238f008fafc0310668e2175fec",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__formal",
       "language": "vi",
-      "pattern": "Tìm {n} lượt chuyển token đầu tiên xảy ra trong vòng {duration_minutes} phút sau khi nhận tài trợ từ sàn, từ {start_date} đến {end_date}.",
+      "pattern": "Tìm {n} lượt chuyển token từ địa chỉ được cấp native thành công có value dương bởi kho quỹ, timestamp không trước khoản cấp và chưa đủ {duration_minutes} phút, từ {start_date} đến {end_date}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2800,10 +2800,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6641733b20838ad2fdcb987667f7dd3cb9ba69a1eb706497d0144e61fd521632",
+      "content_sha256": "b899408b268f201415fd9a75b3e9d1ebb7e66348127f01f582207dd6a72035e5",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} lượt chuyển token nào diễn ra trong {duration_minutes} phút sau khoản native do sàn cấp?",
+      "pattern": "Từ {start_date} tới {end_date}, {n} sự kiện token nào rời địa chỉ nhận native từ kho quỹ thành công có value dương, timestamp không trước khoản cấp và cách dưới {duration_minutes} phút?",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2817,10 +2817,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "486f9bfe09b3c0af3ce5fe5f703d11e1629db8d2bec86d6e9952a514acdce851",
+      "content_sha256": "c57a0a97dba29333244bddb5ebc2e31e009ba555b35dd8d06df1afe17d4f93d8",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} tx token đầu tiên ≤ {duration_minutes} phút sau funding sàn, {start_date}–{end_date}.",
+      "pattern": "{n} token transfer đầu tiên từ địa chỉ nhận native kho quỹ thành công có value dương; timestamp không trước khoản cấp, cách < {duration_minutes} phút, {start_date}–{end_date}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2834,10 +2834,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "021c056611e64c9a8e522b90ce0ccda7d072f2473fcb52cb35f207278398d127",
+      "content_sha256": "a3fa1473684eec0c7052eacb1c75235b7b76f8daf0cc9aa9fde16135c1fc2354",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do một địa chỉ gửi không muộn hơn {duration_minutes} phút sau khi địa chỉ đó nhận native funding từ kho quỹ sàn.",
+      "pattern": "Trong {start_date} đến {end_date}, trả {n} sự kiện token do địa chỉ được kho quỹ cấp native thành công có value dương gửi, timestamp không trước khoản cấp và nhỏ hơn mốc cộng {duration_minutes} phút.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2851,10 +2851,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c5e8c02f2401466ad93a28f277c32b304cc81ec1c0a5d92c8af21ec87b88b7e0",
-      "id": "T_CROSS_EXCHANGE_FLOW__en__formal",
+      "content_sha256": "71e8a93cc8e692a8ad2a51d25c67062b474d09bb20748228096c5c37f92f370d",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__en__formal",
       "language": "en",
-      "pattern": "List the top {n} native transactions between treasury addresses owned by different exchanges from {start_date} to {end_date}.",
+      "pattern": "Rank {n} treasury owners with at least 10 successful positive-value native transactions by the sum of squared recipient transaction-count shares between {start_date} and {end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2862,15 +2862,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "34ddd1ce5ad073c1b21b3cdd84f420727c63a0c32d7787938227e85643402a1f",
-      "id": "T_CROSS_EXCHANGE_FLOW__en__conversational",
+      "content_sha256": "58cea575b1d2a15d2c4f0b13dda372ecf8e4d67a1f9596d571fd0f757029a772",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__en__conversational",
       "language": "en",
-      "pattern": "Can you show me {n} native transfers connecting two different exchange owners between {start_date} and {end_date}?",
+      "pattern": "Which {n} treasury owners have the highest recipient count-share HHI, using at least 10 successful positive-value native transactions from {start_date} to {end_date}?",
       "placeholders": [
         "end_date",
         "n",
@@ -2878,15 +2878,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fca9562e49f6fc7008c81902fd142cac687890be89527c24cba0ebd7bd570d98",
-      "id": "T_CROSS_EXCHANGE_FLOW__en__abbreviated",
+      "content_sha256": "49d1812a04323ab4974460bdc6a0ac5b6d9427e29a0d549043df213d683515d4",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} cross-exchange treasury txs, {start_date}–{end_date}.",
+      "pattern": "Top {n} treasury owners by recipient count-share concentration (HHI), ≥10 successful positive-value native txs, {start_date}–{end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2894,15 +2894,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "5f23de46498b57515bf40ec3ba5ce90e022a3cc992d14d52078754488b258cb7",
-      "id": "T_CROSS_EXCHANGE_FLOW__en__alternative",
+      "content_sha256": "fd097b0be7f6bdbe9314c0a1386bafe885aeb8d3f407f656759df79067a830a9",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, return {n} native flows whose sender and recipient are exchange treasuries with unequal owners.",
+      "pattern": "For {start_date} to {end_date}, return {n} treasury owners ordered by native recipient count-share concentration; require at least 10 successful positive-value transactions per owner.",
       "placeholders": [
         "end_date",
         "n",
@@ -2910,15 +2910,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d869771163a4d00b3985313e9a30ab7e9ca5411d49c35c8a919ee9a02980393b",
-      "id": "T_CROSS_EXCHANGE_FLOW__vi__formal",
+      "content_sha256": "329bd5398cf8d9f00cd64b13c2cddb78a903e8afa99ca35d0d7e83985cf9f41b",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch native lớn nhất giữa các địa chỉ kho quỹ thuộc hai sàn khác nhau từ {start_date} đến {end_date}.",
+      "pattern": "Xếp {n} chủ kho quỹ có ít nhất 10 giao dịch native thành công có value dương theo tổng bình phương tỷ trọng số giao dịch tới từng địa chỉ nhận từ {start_date} đến {end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2926,15 +2926,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "8fa4dfd9c17ca51c683525223e1a8a0b06fdde2a7f9b4c170b7572f5dc5b24c5",
-      "id": "T_CROSS_EXCHANGE_FLOW__vi__conversational",
+      "content_sha256": "4e0e65e0927d83727561df448281a0c865ead31040ac0dbaad74e5e0a5456ddb",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} lượt chuyển native kết nối hai chủ sở hữu sàn khác nhau trong khoảng {start_date} tới {end_date} nhé?",
+      "pattern": "Từ {start_date} tới {end_date}, {n} chủ kho quỹ nào có HHI tỷ trọng số giao dịch theo địa chỉ nhận cao nhất, với ít nhất 10 giao dịch native thành công có value dương?",
       "placeholders": [
         "end_date",
         "n",
@@ -2942,15 +2942,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e7e016b26015fc4df983ff5ea5d870c90380df35d6b20bb3393160ab47564c9e",
-      "id": "T_CROSS_EXCHANGE_FLOW__vi__abbreviated",
+      "content_sha256": "2a070d41c28d6c1773aaae37b756038e312aaba945a8043e9e93f8b72078b468",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} tx treasury liên sàn, {start_date}–{end_date}.",
+      "pattern": "Top {n} chủ kho quỹ theo HHI tỷ trọng số giao dịch từng địa chỉ nhận, ≥10 native thành công có value dương, {start_date}–{end_date}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2958,15 +2958,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e0031fccf2e02a77cd0ee1dd35a00fac98b600bea0d853353b86a66912aab99d",
-      "id": "T_CROSS_EXCHANGE_FLOW__vi__alternative",
+      "content_sha256": "2dd808e24167a5cc97420b8d024560d8d17901930ef34c7bdc81933b117a2bc5",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy trả về {n} dòng tiền native có cả bên gửi và bên nhận là kho quỹ sàn nhưng khác chủ sở hữu.",
+      "pattern": "Trong {start_date} đến {end_date}, trả về {n} chủ kho quỹ theo mức tập trung tỷ trọng số giao dịch native tới địa chỉ nhận; mỗi chủ cần ít nhất 10 giao dịch thành công có value dương.",
       "placeholders": [
         "end_date",
         "n",
@@ -2974,143 +2974,135 @@
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f5fa0eeb5368d3daad48c13397ff4a09f208980fc3a2ab8855a20d5c3452ca57",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__formal",
+      "content_sha256": "3d47fc5f3055022ba04f38033d8081ce396a14d358b162fc925bb2409cdca07a",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__en__formal",
       "language": "en",
-      "pattern": "Find the first {n} token transfers sent from bridges within {duration_minutes} minutes after those bridges received exchange deposits between {start_date} and {end_date}.",
+      "pattern": "Rank {n} treasury owners by distinct token-transfer recipient addresses, then distinct token contracts, between {start_date} and {end_date}; include transfer-event counts.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7a3df9e18b4f4b1c9c964cb193bec8b5227f830ce22de8169247fd854b62692c",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__conversational",
+      "content_sha256": "48a794ff4ae2fdf460e2aa191f13e69f69e2806f0767e3a9f5b236d0d4a4e628",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__en__conversational",
       "language": "en",
-      "pattern": "Which {n} token outflows left bridges within {duration_minutes} minutes after an exchange deposit from {start_date} to {end_date}?",
+      "pattern": "Which {n} treasury owners reached the most distinct token recipients, breaking ties by distinct token contracts, from {start_date} to {end_date}, with event counts?",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "39a5f7267bfa5b141a854b03a1bf4dd0f4e0c4cba831fc18cb4c70f271532867",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__abbreviated",
+      "content_sha256": "0bab0535899fe5cd767708913d52cef3667cc3985ad59938e9a201703e78c9b6",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__en__abbreviated",
       "language": "en",
-      "pattern": "First {n} token outflows from bridges ≤ {duration_minutes} min after exchange deposit, {start_date}–{end_date}.",
+      "pattern": "Top {n} treasury owners: distinct token recipients, then token contracts; event counts included, {start_date}–{end_date}.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "783f5d3141706cdc0cb933a33f6b8b3e6ea032b0b41a95a4f83dc35ab0e0531b",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__alternative",
+      "content_sha256": "5e9e8222bb72715e93f61a3c3bf039afe105a8665f21b0ac37b9bcf8373cf60e",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} token events sent by a bridge no later than {duration_minutes} minutes after that bridge received a deposit from an exchange treasury.",
+      "pattern": "For {start_date} to {end_date}, list {n} treasury owners ranked by unique token-transfer recipient addresses and then unique token contracts, alongside event totals.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "56e57edcb035b6a35f87633cf602e1f4f70bdb97e7da632abf1a1e1ebf6f91a8",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__formal",
+      "content_sha256": "e2172c8bd80e3936ce5b3c3d2081b11a5deb045bd260570918923a54724da6e8",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__vi__formal",
       "language": "vi",
-      "pattern": "Tìm {n} lượt chuyển token đầu tiên từ bridge đi ra trong vòng {duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn, từ {start_date} đến {end_date}.",
+      "pattern": "Xếp {n} chủ kho quỹ theo số địa chỉ nhận token khác nhau, rồi số hợp đồng token khác nhau, từ {start_date} đến {end_date}, kèm số sự kiện chuyển.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f18f45e9430a9f5aa8ff1706740fc2bb5e2841893b2d493e0990f3b0fabc6a0c",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__conversational",
+      "content_sha256": "7fd3f12e037cd618c44536f67ebed95fa952e82775f6ab7f33ea756dbe10dd80",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} dòng token nào rời bridge trong {duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn?",
+      "pattern": "Từ {start_date} tới {end_date}, {n} chủ kho quỹ nào có nhiều địa chỉ nhận token riêng biệt nhất, phân hạng tiếp theo số hợp đồng token riêng biệt, kèm tổng sự kiện?",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7e1be3c7b604480c01b9ded60289148ec14100206e3c4367b15c4ac578b2f485",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__abbreviated",
+      "content_sha256": "8c657384befb926545de05997bc0fc75644fadb34f8d76bb793ffb41f1131c6c",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} token outflow đầu tiên từ bridge ≤ {duration_minutes} phút sau deposit sàn, {start_date}–{end_date}.",
+      "pattern": "Top {n} chủ kho quỹ: số địa chỉ nhận token riêng biệt, rồi hợp đồng token riêng biệt; kèm số sự kiện, {start_date}–{end_date}.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ca1329a6aea7e6be0b034f1559950bbbbd371bba08ff8106849ecd364329085b",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__alternative",
+      "content_sha256": "46cc93d01b9427f01c3184fa599c7f698df3cf14c913998cb5323cde34ffcf20",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do bridge gửi không muộn hơn {duration_minutes} phút sau khi bridge nhận tiền từ kho quỹ sàn.",
+      "pattern": "Trong {start_date} đến {end_date}, liệt kê {n} chủ kho quỹ xếp theo số địa chỉ nhận token khác nhau rồi số hợp đồng token khác nhau, đồng thời trả tổng sự kiện chuyển.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",

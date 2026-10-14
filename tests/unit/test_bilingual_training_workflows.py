@@ -285,6 +285,12 @@ def test_exclusion_index_mode_emits_only_hashes_and_counts(tmp_path: Path, monke
 def test_build_validate_only_is_offline_zero_call_and_reports_source_shape(
     tmp_path: Path, monkeypatch
 ) -> None:
+    from test_bilingual_assembly import _accepted_stage_a_fixture
+
+    # Synthetic accepted records exercise current semantics without changing v1 bytes.
+    payload, _manifest = _accepted_stage_a_fixture()
+    current_stage_a = tmp_path / "current-stage-a.jsonl"
+    current_stage_a.write_bytes(payload)
     validator = _load_script("21_validate_bilingual_training.py", "bilingual_training_21_prep")
     builder = _load_script("20_build_bilingual_training.py", "bilingual_training_20_validate")
     english, vietnamese = _held_out_files(tmp_path)
@@ -314,7 +320,7 @@ def test_build_validate_only_is_offline_zero_call_and_reports_source_shape(
                 "--mode",
                 "validate-only",
                 "--stage-a",
-                str(STAGE_A),
+                str(current_stage_a),
                 "--catalog",
                 str(CATALOG),
                 "--exclusion-index",
@@ -328,7 +334,7 @@ def test_build_validate_only_is_offline_zero_call_and_reports_source_shape(
     summary = json.loads(result.output)
     assert summary["status"] == "valid"
     assert summary["stage_a_records"] == 1000
-    assert summary["represented_intents"] == 16
+    assert summary["represented_intents"] == 25
     assert summary["catalog_intents"] == 25
     assert summary["expanded_records"] == 8000
     assert summary["api_request_count"] == 0
