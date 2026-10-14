@@ -422,6 +422,27 @@ uv run python scripts/09_generate_stage_a_v2.py \
   accepted manifest không chấp nhận dry-run ID rỗng của provider. Đã sửa bằng
   TDD, giữ execution IDs/non-empty gate nghiêm ngặt; final suite 1.462 tests pass.
 
+## Stage A v2 large-class coverage/CQ audit — 2026-10-14
+
+- User đã duyệt audit blocker `T_LARGE_TX_TO_CLASS`; báo cáo:
+  `docs/research/stage-a-v2-large-class-coverage-audit-2026-10-14.md`, kèm
+  CQ source audit riêng và machine-readable evidence.
+- Trong 31 ngày catalogue, DEXProtocol không có native row >=0,01 ETH, nên
+  không có window cứu được ngưỡng 1 ETH. Ngày 15/6, BridgeProtocol có 9 rows
+  >=1 ETH, ExchangeAccount có 160; exact production SQL của cả hai đã có
+  witness non-empty. Không rerun SQL thất bại.
+- Đề xuất giữ SQL/1 ETH/window cũ, đổi class fill sang BridgeProtocol cho
+  41 records, bỏ CQ21/CQ25 sai nghĩa và thêm CQ35 explicit qua revision 1.2.0;
+  bảo toàn snapshots 1.0.0/1.1.0 và không claim lại bridge-flow CQ26.
+- In-memory parameter-only counterfactual giữ 1.000 records, 25 intents,
+  350/450/200 và 206 logical / 126 physical; không ghi candidate. Rà wording
+  bilingual để không claim successful funds moved khi SQL chỉ lọc tx value.
+- Bốn bounded audit executions, billing disabled/unlinked, cache/retries tắt:
+  estimate 9.783.123.650 / cap 24 GiB; processed 9.742.808.678,
+  billed 9.753.853.952, cache 0. Source inputs và prior evidence không đổi.
+- Correction trên chờ approval riêng; audit không authorize implementation,
+  full diagnostic, accepted publication, merge hoặc push.
+
 Live witness verification:
 
 ```bash
