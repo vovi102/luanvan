@@ -4,6 +4,88 @@
     "start_date": "2026-06-15",
     "end_date": "2026-06-16"
   },
+  "block_beneficiary": [
+    {
+      "value": "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97",
+      "source": "BigQuery nl2sparql_analytics.block_facts",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "evidence": {
+        "project": "nl2sparql-thesis",
+        "location": "US",
+        "job_id": "73314dc2-669a-4a66-9452-bedfb34ed714",
+        "query_sha256": "6c4eb7681270251bf846b13b54f56208b43e1a17d11ed0d8c5695f50c23a1d2a",
+        "block_count": 3353,
+        "first_seen_at": "2026-06-15T00:00:23+00:00",
+        "last_seen_at": "2026-06-15T23:59:35+00:00",
+        "total_bytes_processed": 1040000,
+        "total_bytes_billed": 10485760,
+        "cache_hit": false,
+        "billing_enabled": false,
+        "maximum_bytes_billed": 1073741824
+      }
+    },
+    {
+      "value": "0x396343362be2a4da1ce0c1c210945346fb82aa49",
+      "source": "BigQuery nl2sparql_analytics.block_facts",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "evidence": {
+        "project": "nl2sparql-thesis",
+        "location": "US",
+        "job_id": "73314dc2-669a-4a66-9452-bedfb34ed714",
+        "query_sha256": "6c4eb7681270251bf846b13b54f56208b43e1a17d11ed0d8c5695f50c23a1d2a",
+        "block_count": 1267,
+        "first_seen_at": "2026-06-15T00:06:59+00:00",
+        "last_seen_at": "2026-06-15T23:56:35+00:00",
+        "total_bytes_processed": 1040000,
+        "total_bytes_billed": 10485760,
+        "cache_hit": false,
+        "billing_enabled": false,
+        "maximum_bytes_billed": 1073741824
+      }
+    },
+    {
+      "value": "0x95222290dd7278aa3ddd389cc1e1d165cc4bafe5",
+      "source": "BigQuery nl2sparql_analytics.block_facts",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "evidence": {
+        "project": "nl2sparql-thesis",
+        "location": "US",
+        "job_id": "73314dc2-669a-4a66-9452-bedfb34ed714",
+        "query_sha256": "6c4eb7681270251bf846b13b54f56208b43e1a17d11ed0d8c5695f50c23a1d2a",
+        "block_count": 861,
+        "first_seen_at": "2026-06-15T00:27:47+00:00",
+        "last_seen_at": "2026-06-15T23:59:59+00:00",
+        "total_bytes_processed": 1040000,
+        "total_bytes_billed": 10485760,
+        "cache_hit": false,
+        "billing_enabled": false,
+        "maximum_bytes_billed": 1073741824
+      }
+    },
+    {
+      "value": "0xdadb0d80178819f2319190d340ce9a924f783711",
+      "source": "BigQuery nl2sparql_analytics.block_facts",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "evidence": {
+        "project": "nl2sparql-thesis",
+        "location": "US",
+        "job_id": "73314dc2-669a-4a66-9452-bedfb34ed714",
+        "query_sha256": "6c4eb7681270251bf846b13b54f56208b43e1a17d11ed0d8c5695f50c23a1d2a",
+        "block_count": 572,
+        "first_seen_at": "2026-06-15T00:01:35+00:00",
+        "last_seen_at": "2026-06-15T23:57:11+00:00",
+        "total_bytes_processed": 1040000,
+        "total_bytes_billed": 10485760,
+        "cache_hit": false,
+        "billing_enabled": false,
+        "maximum_bytes_billed": 1073741824
+      }
+    }
+  ],
   "ethereum_address": [
     {"value": "0x0d0707963952f2fba59dd06f2b425ace40b492fe", "source": "nl2sparql_analytics live activity probe 2026-08-09", "evidence": "Gate.io treasury; 4361 outgoing and 280 incoming transactions on 2026-06-15"},
     {"value": "0x77021d475e36b3ab1921a0e3a8380f069d3263de", "source": "nl2sparql_analytics live activity probe 2026-08-09", "evidence": "Deribit treasury; 1210 outgoing and 25 incoming transactions on 2026-06-15"},

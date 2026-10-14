@@ -24,6 +24,7 @@ from nl2sparql.dataset.stage_a.account_pairs import (
     canonical_account_pair_mappings,
     load_account_pairs,
 )
+from nl2sparql.dataset.stage_a.beneficiaries import BeneficiaryError, load_block_beneficiaries
 from nl2sparql.dataset.templates import render_template, validate_template_library
 
 V2_DIFFICULTY_ALLOCATION = {"easy": 350, "medium": 450, "hard": 200}
@@ -105,6 +106,10 @@ def canonicalize_stage_a_v2_pools(pools: Mapping[str, Any]) -> dict[str, Any]:
             )
     if "account_pair" not in canonical:
         raise StageAV2GenerationError("account_pair must be an array")
+    try:
+        load_block_beneficiaries(pools)
+    except BeneficiaryError as exc:
+        raise StageAV2GenerationError(str(exc)) from exc
     return canonical
 
 
@@ -119,6 +124,16 @@ def _variant_fill(
     template_id = str(template["id"])
     if template_id == "T_COUNT_TX_IN_RANGE":
         fill["start_date"], fill["end_date"] = _count_windows(count)[index]
+        return fill
+    if template_id == "T_BLOCKS_BY_VALIDATOR":
+        beneficiaries = load_block_beneficiaries(pools)
+        entry = beneficiaries[index % len(beneficiaries)]
+        fill.update(
+            account=entry["value"],
+            start_date=entry["start_date"],
+            end_date=entry["end_date"],
+            n=index // len(beneficiaries) + 1,
+        )
         return fill
     if template_id == "T_TX_BETWEEN_ACCOUNTS":
         pair = account_pairs[index]

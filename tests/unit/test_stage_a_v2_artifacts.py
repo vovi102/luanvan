@@ -224,7 +224,7 @@ def test_candidate_writer_is_deterministic_and_preserves_v1_bytes(tmp_path: Path
     assert _sha256(V1_STATS) == "bc93c7a9355a34e531b275181646db269968040d2484e8a2876a8329db8579db"
     assert (
         _sha256(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
-        == "cc596000e1c09f6ebcb46eb6ef3d48dbdd4953f66bb238ffb24901be4b7705e6"
+        == "a6b827732320c18a274323fe4f5a5d60ea07d380065c6c1c4707b905a081fbca"
     )
     v1_before = {path: path.read_bytes() for path in (V1_ARTIFACT, V1_CONFIG, V1_STATS)}
     first = tuple(tmp_path / "first" / name for name in ("data.jsonl", "config.json", "stats.md"))
@@ -276,11 +276,11 @@ def test_committed_candidate_matches_pair_backed_generation_contract(inputs) -> 
 
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_OUTPUT_PATH)
-        == "bc82ef19884081f7017f138e6bfb6cf88851dcc4b209c990694828526edb5b7f"
+        == "563025953b52b9465dc8fe2d879cebffa8a9e1ba86ea138b2de686f01c5235ee"
     )
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_CONFIG_PATH)
-        == "ae5e0951641dd364c3c812aab5bbf17a5147af189aeff7cea0540c77483a4a88"
+        == "06d34f8f3ef6daf095ad96d80fab98b7ac69a644555444b91830a93416281476"
     )
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_STATS_PATH)
@@ -382,7 +382,7 @@ def test_genuine_evidence_pool_is_hash_bound_and_well_formed() -> None:
     path = Path("data/dataset/raw/stage-a-v2-evidence-pools.json")
     pools = load_value_pools(path)
 
-    assert _sha256(path) == "cc596000e1c09f6ebcb46eb6ef3d48dbdd4953f66bb238ffb24901be4b7705e6"
+    assert _sha256(path) == "a6b827732320c18a274323fe4f5a5d60ea07d380065c6c1c4707b905a081fbca"
     assert has_evidence_backed_live_values(pools) is True
     assert len(load_account_pairs(pools)) == 40
     entries = [*pools["block_number"], *pools["transaction_hash"]]

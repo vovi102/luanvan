@@ -1,6 +1,6 @@
 {
   "acceptance_eligible": false,
-  "artifact_sha256": "bc82ef19884081f7017f138e6bfb6cf88851dcc4b209c990694828526edb5b7f",
+  "artifact_sha256": "563025953b52b9465dc8fe2d879cebffa8a9e1ba86ea138b2de686f01c5235ee",
   "candidate_value_derivation": {
     "block_number": "deterministic_offset_unverified",
     "transaction_hash": "sha256_syntax_only_unverified"
@@ -47,7 +47,7 @@
     "T_TX_GROUPED_BY_OWNER": 41
   },
   "template_library_sha256": "156a50beaa977d506c78fde07d241608afc9f2770c07dc5f2e548719d3b983e5",
-  "value_pools_sha256": "b91621475148227f273f0250ff5d5fa415b5697c27d937cc61820090a1113427",
+  "value_pools_sha256": "c9ac6a1d80ef5dab495304b4e75f2f4333f82d588fd21fe3fd77a8508a3708c7",
   "verification_mode": "offline_candidates",
   "version": 2
 }

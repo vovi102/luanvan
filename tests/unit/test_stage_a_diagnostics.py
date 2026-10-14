@@ -256,3 +256,11 @@ def test_failure_report_preserves_first_failed_gate(diagnostic_inputs) -> None:
         "message": "quota exhausted",
     }
     assert report["acceptance_authorized"] is False
+
+
+def test_successful_report_accepts_provider_dry_runs_without_persistent_job_ids(diagnostic_inputs):
+    records, templates = diagnostic_inputs
+    report = _successful_report(records, templates)
+    for dry_run in report["initial_dry_runs"] + report["immediate_dry_runs"]:
+        dry_run["job_id"] = ""
+    validate_diagnostic_report(report, records)

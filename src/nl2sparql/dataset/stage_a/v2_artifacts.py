@@ -13,6 +13,7 @@ from typing import Any
 
 from nl2sparql.dataset.generate import GENERATION_SEED, PROJECT_ROOT
 from nl2sparql.dataset.stage_a.account_pairs import AccountPairError, load_account_pairs
+from nl2sparql.dataset.stage_a.beneficiaries import BeneficiaryError, load_block_beneficiaries
 from nl2sparql.dataset.stage_a.evidence import (
     StageAVerificationReport,
     WitnessDryRun,
@@ -481,7 +482,8 @@ def has_evidence_backed_live_values(pools: Mapping[str, Any]) -> bool:
             return False
     try:
         load_account_pairs(pools)
-    except AccountPairError:
+        load_block_beneficiaries(pools)
+    except (AccountPairError, BeneficiaryError):
         return False
     return True
 

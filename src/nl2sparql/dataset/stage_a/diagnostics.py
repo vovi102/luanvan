@@ -335,8 +335,15 @@ def validate_diagnostic_report(
                     isinstance(value, int) and not isinstance(value, bool) and value >= 0,
                     f"{label} {name} must be a non-negative integer",
                 )
-        _require(bool(initial_by_query[query_id].get("job_id")), "initial job ID is missing")
-        _require(bool(immediate_by_query[query_id].get("job_id")), "immediate job ID is missing")
+        # The real provider dry runs observed in our evidence have no persisted job ID.
+        _require(
+            isinstance(initial_by_query[query_id].get("job_id"), str),
+            "initial job ID field is missing",
+        )
+        _require(
+            isinstance(immediate_by_query[query_id].get("job_id"), str),
+            "immediate job ID field is missing",
+        )
         _require(bool(execution_by_query[query_id].get("job_id")), "execution job ID is missing")
 
     logical_by_group: dict[str, Mapping[str, Any]] = {}
