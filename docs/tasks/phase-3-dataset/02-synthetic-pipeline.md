@@ -443,6 +443,27 @@ uv run python scripts/09_generate_stage_a_v2.py \
 - Correction trên chờ approval riêng; audit không authorize implementation,
   full diagnostic, accepted publication, merge hoặc push.
 
+## Stage A v2 CQ35 correction — 2026-10-15
+
+- User đã duyệt correction và yêu cầu tiếp tục triển khai. Active training
+  catalogue 1.2.0 thêm CQ35, giữ nguyên bytes 1.0.0/1.1.0 và CQ01–CQ34.
+- `T_LARGE_TX_TO_CLASS` đổi example class sang BridgeProtocol, map CQ35;
+  SQL, sáu output columns, 1 ETH, ngày 15/6 và 41 medium records giữ nguyên.
+  Rà/sửa tám bilingual patterns để chỉ nói native transaction value, không
+  claim successful funds moved hoặc decoded bridge activity/CQ26.
+- Candidate đổi đúng 41 positions 759..799; hai lần regeneration giống bytes,
+  1.000 records/25 intents/seed42/350-450-200 và actual 206/126 giữ nguyên.
+  Archive templates trước CQ35 tái tạo đúng inputs của failed report lịch sử.
+- Local suite: 1.467 passed, 342 upstream warnings. Diagnostic bounded pass
+  126/126 physical và 206/206 logical, cache 0; report validate offline pass.
+- Fresh post-diagnostic preflight: 82.852.652.009 bytes (~77,16 GiB), cap 96 GiB;
+  max funding 15.392.481.552 bytes (~14,34 GiB), cap 20 GiB. Billing disabled/
+  unlinked, retries/cache tắt. Chờ explicit approval final-live cho candidate
+  `5a4e0299d8f36bc3d77bc47ed7aa6ae0c10846846924b9fcd002c04c98c06cd6`.
+  Chưa publish accepted artifacts, không merge/push/PR.
+- Provenance và kết quả mới:
+  `docs/research/stage-a-v2-cq35-implementation-2026-10-15.md`.
+
 Live witness verification:
 
 ```bash

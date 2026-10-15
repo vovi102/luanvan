@@ -1,8 +1,9 @@
 # Stage A v2 large native-to-class coverage audit — 2026-10-14
 
-Status: user-authorized audit completed. The correction below is a proposal,
-not implemented. No templates, catalogue versions, candidates, pools, historical
-evidence, benchmark/model artifacts or acceptance gates were changed.
+Status: user-authorized audit completed on 2026-10-14. The proposal was approved
+and [implemented on 2026-10-15](stage-a-v2-cq35-implementation-2026-10-15.md).
+Observations and fingerprints below describe the pre-correction audit snapshot;
+the audit itself did not change training inputs or acceptance gates.
 
 ## Conclusion and proposed correction
 
