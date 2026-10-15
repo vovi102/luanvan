@@ -37,12 +37,14 @@ from nl2sparql.dataset.stage_a.v2_artifacts import (
     build_stage_a_v2_accepted_manifest,
     build_stage_a_v2_candidate_manifest,
     has_evidence_backed_live_values,
+    validate_stage_a_v2_source_evidence,
     write_stage_a_v2_accepted_artifacts,
     write_stage_a_v2_candidate_artifacts,
 )
 from nl2sparql.dataset.stage_a_v2 import (
     canonicalize_stage_a_v2_pools,
     generate_stage_a_v2_records,
+    serialize_stage_a_v2_records,
 )
 from nl2sparql.dataset.templates import load_templates
 
@@ -227,6 +229,14 @@ def test_candidate_writer_is_deterministic_and_preserves_v1_bytes(tmp_path: Path
         == "a6b827732320c18a274323fe4f5a5d60ea07d380065c6c1c4707b905a081fbca"
     )
     v1_before = {path: path.read_bytes() for path in (V1_ARTIFACT, V1_CONFIG, V1_STATS)}
+    accepted_before = {
+        path: path.read_bytes() if path.exists() else None
+        for path in (
+            DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
+            DEFAULT_V2_ACCEPTED_CONFIG_PATH,
+            DEFAULT_V2_ACCEPTED_STATS_PATH,
+        )
+    }
     first = tuple(tmp_path / "first" / name for name in ("data.jsonl", "config.json", "stats.md"))
     second = tuple(tmp_path / "second" / name for name in ("data.jsonl", "config.json", "stats.md"))
 
@@ -255,14 +265,9 @@ def test_candidate_writer_is_deterministic_and_preserves_v1_bytes(tmp_path: Path
     assert manifest["verification_mode"] == "offline_candidates"
     assert first[2].read_text().startswith("# GoogleSQL Stage A v2 Candidate Stats\n")
     assert {path: path.read_bytes() for path in v1_before} == v1_before
-    assert not any(
-        path.exists()
-        for path in (
-            DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
-            DEFAULT_V2_ACCEPTED_CONFIG_PATH,
-            DEFAULT_V2_ACCEPTED_STATS_PATH,
-        )
-    )
+    assert {
+        path: path.read_bytes() if path.exists() else None for path in accepted_before
+    } == accepted_before
 
 
 def test_committed_candidate_matches_pair_backed_generation_contract(inputs) -> None:
@@ -325,14 +330,36 @@ def test_committed_candidate_matches_pair_backed_generation_contract(inputs) -> 
     )
     assert len(build_witness_groups(committed)) == 206
     assert len(build_stage_a_v2_witness_queries(committed)) == 126
-    assert not any(
-        path.exists()
-        for path in (
-            DEFAULT_V2_ACCEPTED_OUTPUT_PATH,
-            DEFAULT_V2_ACCEPTED_CONFIG_PATH,
-            DEFAULT_V2_ACCEPTED_STATS_PATH,
-        )
+    validate_stage_a_v2_source_evidence(
+        DEFAULT_V2_CANDIDATE_OUTPUT_PATH.read_bytes(), manifest, load_templates()
     )
+
+
+def test_committed_accepted_snapshot_has_complete_bound_live_evidence() -> None:
+    payload = DEFAULT_V2_ACCEPTED_OUTPUT_PATH.read_bytes()
+    manifest = json.loads(DEFAULT_V2_ACCEPTED_CONFIG_PATH.read_text())
+    validate_stage_a_v2_source_evidence(payload, manifest, load_templates())
+    assert manifest["lifecycle_state"] == "accepted"
+    assert manifest["verification_mode"] == "live_witness"
+    assert manifest["verified_record_count"] == manifest["record_count"] == 1000
+    assert manifest["witness_count"] == 206
+    assert manifest["physical_query_count"] == 126
+    assert manifest["cache_hit_count"] == 0
+    assert len({item["job_id"] for item in manifest["execution_evidence"]}) == 126
+    assert manifest["total_estimated_bytes"] <= 103_079_215_104
+    assert manifest["total_processed_bytes"] <= 103_079_215_104
+    assert manifest["total_billed_bytes"] <= 103_079_215_104
+    accepted = [json.loads(line) for line in payload.splitlines()]
+    candidates = [
+        json.loads(line) for line in DEFAULT_V2_CANDIDATE_OUTPUT_PATH.read_bytes().splitlines()
+    ]
+    assert [{**record, "verification": None} for record in accepted] == candidates
+    assert Counter(record["verification"]["mode"] for record in accepted) == {
+        "live_exact": 206,
+        "live_limit_monotonic": 794,
+    }
+    stats = DEFAULT_V2_ACCEPTED_STATS_PATH.read_text()
+    assert "Lifecycle state: accepted\nAcceptance eligible: true" in stats
 
 
 def test_candidate_manifest_rejects_any_live_verification_claim(inputs) -> None:
@@ -436,6 +463,26 @@ def test_accepted_artifacts_require_live_report_and_evidence_backed_values(
 
     with pytest.raises(StageAV2ArtifactError, match="evidence-backed"):
         build_stage_a_v2_accepted_manifest(report, templates, pools)
+
+
+def test_accepted_latency_total_is_order_independent_without_tolerance(inputs) -> None:
+    templates, _, _ = inputs
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
+    report = _fake_live_report(generate_stage_a_v2_records(templates, pools))
+    executions = tuple(replace(item, wall_latency_ms=0.1) for item in report.witnesses)
+    records = copy.deepcopy(report.records)
+    for record in records:
+        record["verification"]["wall_latency_ms"] = 0.1
+    fractional = replace(report, witnesses=executions, records=tuple(records))
+    manifest = build_stage_a_v2_accepted_manifest(fractional, templates, pools)
+    # Correctly rounded sum of 126 binary floats representing 0.1 ms.
+    assert manifest["total_wall_latency_ms"] == 12.600000000000001
+    payload = serialize_stage_a_v2_records(records)
+    manifest["execution_evidence"].reverse()
+    validate_stage_a_v2_source_evidence(payload, manifest, templates)
+    manifest["total_wall_latency_ms"] += 0.001
+    with pytest.raises(StageAV2ArtifactError, match="totals are inconsistent"):
+        validate_stage_a_v2_source_evidence(payload, manifest, templates)
 
 
 def test_accepted_manifest_rejects_fabricated_or_incomplete_reports(inputs) -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -268,7 +269,7 @@ def _validate_live_records(
             int(item["processed_bytes"]) for item in physical_evidence.values()
         ),
         total_billed_bytes=sum(int(item["billed_bytes"]) for item in physical_evidence.values()),
-        total_wall_latency_ms=sum(
+        total_wall_latency_ms=math.fsum(
             float(item["wall_latency_ms"]) for item in physical_evidence.values()
         ),
         cache_hit_count=sum(int(bool(item["cache_hit"])) for item in physical_evidence.values()),
@@ -561,7 +562,7 @@ def _validate_serialized_evidence(
         or manifest.get("total_billed_bytes")
         != sum(int(item.get("billed_bytes", -1)) for item in executions)
         or manifest.get("total_wall_latency_ms")
-        != sum(float(item.get("wall_latency_ms", -1)) for item in executions)
+        != math.fsum(float(item.get("wall_latency_ms", -1)) for item in executions)
     ):
         raise StageAV2ArtifactError("Accepted Stage A v2 physical evidence totals are inconsistent")
 
