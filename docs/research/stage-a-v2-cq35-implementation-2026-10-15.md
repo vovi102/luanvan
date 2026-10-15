@@ -4,6 +4,11 @@ Status: approved correction implemented; 1,467 tests passed and full bounded
 diagnostic passed. Fresh dry-only preflight is ready for separate final-live
 approval. No accepted publication.
 
+The [final independent review](../superpowers/reviews/2026-10-15-stage-a-v2-cq35.md)
+found no Critical, Important or Minor issues. Its offline checks independently
+reproduced candidate/evidence bindings; scope limitations and all implementation
+rulings are recorded there. No source or test changes followed the full suite.
+
 Implements the user-approved [coverage/CQ proposal](stage-a-v2-large-class-coverage-audit-2026-10-14.md)
 and [native plan](../superpowers/plans/2026-10-15-stage-a-v2-cq35-correction.md).
 

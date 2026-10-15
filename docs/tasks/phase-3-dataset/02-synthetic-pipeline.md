@@ -463,6 +463,9 @@ uv run python scripts/09_generate_stage_a_v2.py \
   Chưa publish accepted artifacts, không merge/push/PR.
 - Provenance và kết quả mới:
   `docs/research/stage-a-v2-cq35-implementation-2026-10-15.md`.
+- Final independent review: không có Critical/Important/Minor; chỉ kiểm tra
+  offline, không authorize final-live. Review và giới hạn assurance:
+  `docs/superpowers/reviews/2026-10-15-stage-a-v2-cq35.md`.
 
 Live witness verification:
 
