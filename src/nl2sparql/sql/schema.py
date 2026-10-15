@@ -9,8 +9,8 @@ from typing import Any
 
 CATALOG_PATH = Path(__file__).with_name("catalog") / "ethereum_analytics.json"
 CATALOG_VERSION = "1.0.0"
-TRAINING_CATALOG_PATH = CATALOG_PATH.with_name("ethereum_analytics_stage_a_v2.json")
-CATALOG_CQ_COUNTS = {"1.0.0": 30, "1.1.0": 34}
+TRAINING_CATALOG_PATH = CATALOG_PATH.with_name("ethereum_analytics_stage_a_v2_1_2.json")
+CATALOG_CQ_COUNTS = {"1.0.0": 30, "1.1.0": 34, "1.2.0": 35}
 GOOGLESQL_DIALECT = "google_standard_sql"
 BIGQUERY_LOCATION = "US"
 SOURCE_KINDS = {"partitioned_table", "logical_view", "managed_table"}

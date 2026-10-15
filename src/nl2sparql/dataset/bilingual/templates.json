@@ -2331,10 +2331,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "501752c5a1ea0c996e6d478095741e695d4861bbbdab1f4b63096b5166f00c4d",
+      "content_sha256": "826cf41d29a92e4cbb55ef6a7de20c1ac62566eaa02e775ef05376cdbf3bb062",
       "id": "T_LARGE_TX_TO_CLASS__en__formal",
       "language": "en",
-      "pattern": "List the top {n} transactions of at least {value_wei} wei sent to the {concept_class} class between {start_date} and {end_date}.",
+      "pattern": "List the top {n} transactions with native value at least {value_wei} wei and recipient label class {concept_class}, between {start_date} and {end_date}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2349,10 +2349,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "602677940bb9a65e50f2919425b5c62f31cbfa69586bfe79d0f93e1d1cffa51c",
+      "content_sha256": "fe1dd76d7caec24843f94deb0a995cfdb44e5c793f6027fe6d0b4033ba187089",
       "id": "T_LARGE_TX_TO_CLASS__en__conversational",
       "language": "en",
-      "pattern": "Which {n} transfers to {concept_class} moved no less than {value_wei} wei from {start_date} to {end_date}?",
+      "pattern": "Which {n} transactions to the {concept_class} label class had native value no less than {value_wei} wei, from {start_date} to {end_date}?",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2367,10 +2367,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fca0421001662193a35d31d09e8bae56000575c9dafbe7476f0a5eedf40420f1",
+      "content_sha256": "381bb150bfd47f04dff8ba6f6d9eb3f453ea3935cb8a4b6a2f27f40d1b6de5e6",
       "id": "T_LARGE_TX_TO_CLASS__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} txs ≥ {value_wei} wei to {concept_class}, {start_date}–{end_date}.",
+      "pattern": "Top {n} txs by native value ≥ {value_wei} wei to label class {concept_class}, {start_date}–{end_date}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2385,10 +2385,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a4a48fce50f6dcf3c5a4721159d639a9ca6c4e50403a613da7d9a8fc6f1977f1",
+      "content_sha256": "be9819ce049fae379aae2b6d997a2dc8ad39774cc55135a08ad7ca6b3d69d1db",
       "id": "T_LARGE_TX_TO_CLASS__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, find {n} transactions whose recipient class is {concept_class} and value reaches {value_wei} wei.",
+      "pattern": "During {start_date} to {end_date}, find {n} transactions whose recipient label class is {concept_class} and native value is at least {value_wei} wei.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2403,10 +2403,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "552e49f0672be9123d03a1d22f44a998aef6fa26231d5b07589adea237ddde1d",
+      "content_sha256": "ca35aa4bb00f3881b2c77ab24374603aedde8edc41b043b367a6d1de32678638",
       "id": "T_LARGE_TX_TO_CLASS__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch lớn nhất có giá trị ít nhất {value_wei} wei gửi tới lớp {concept_class} từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê {n} giao dịch đứng đầu theo giá trị native ít nhất {value_wei} wei, có lớp nhãn bên nhận là {concept_class}, từ {start_date} đến {end_date}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2421,10 +2421,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c30ecb6d7feb3ddad9ce91af36a6b4b16f85cb4e8faf9b79bfda2f9411001be5",
+      "content_sha256": "61321e55a6903c0eb8340195b6ce762e9e1746b28148c869e6310a50f7b86af3",
       "id": "T_LARGE_TX_TO_CLASS__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} giao dịch nào đến {concept_class} chuyển không dưới {value_wei} wei?",
+      "pattern": "Từ {start_date} tới {end_date}, {n} giao dịch nào có lớp nhãn bên nhận {concept_class} và giá trị native không dưới {value_wei} wei?",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2439,10 +2439,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e3b39d6528bdad1ec81a0ab980a9d3decae4cd0befd98b7205a2fbce6a7a9208",
+      "content_sha256": "d7c84355647d43f321f14cdd00d62909e38b0147f26bcdbf120ea0c28842a374",
       "id": "T_LARGE_TX_TO_CLASS__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} tx ≥ {value_wei} wei tới {concept_class}, {start_date}–{end_date}.",
+      "pattern": "Top {n} tx theo giá trị native ≥ {value_wei} wei tới lớp nhãn {concept_class}, {start_date}–{end_date}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2457,10 +2457,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "443c91fd63aa4dec8d27c985aae0eb55d67fb30cff9da38806a57c65f55d489a",
+      "content_sha256": "f510aedde89b3ae526e2110e3c483f1411e40ccea1714ba8fb786f6ce6c285ec",
       "id": "T_LARGE_TX_TO_CLASS__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} giao dịch có lớp bên nhận là {concept_class} và giá trị đạt {value_wei} wei.",
+      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} giao dịch có lớp nhãn bên nhận {concept_class} và giá trị native ít nhất {value_wei} wei.",
       "placeholders": [
         "concept_class",
         "end_date",

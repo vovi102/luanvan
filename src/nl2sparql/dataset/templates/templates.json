@@ -872,19 +872,18 @@
       "entity_labels_v1.concept_class"
     ],
     "cq_ids": [
-      "CQ21",
-      "CQ25"
+      "CQ35"
     ],
     "example_fill": {
-      "concept_class": "DEXProtocol",
+      "concept_class": "BridgeProtocol",
       "value_wei": "1000000000000000000",
       "start_date": "2026-06-15",
       "end_date": "2026-06-16",
       "n": 10
     },
     "validation": {
-      "expect_non_empty": false,
-      "scope_note": "Operational DEX coverage is small and may yield zero rows."
+      "expect_non_empty": true,
+      "scope_note": "Native transaction value to an accepted recipient label class, not decoded bridge activity or successful fund movement. BridgeProtocol >=1 ETH on June 15 has an audited non-empty witness; acceptance requires fresh complete verification."
     }
   },
   {

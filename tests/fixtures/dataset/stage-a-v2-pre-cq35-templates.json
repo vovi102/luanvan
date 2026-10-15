@@ -1,0 +1,1179 @@
+[
+  {
+    "id": "T_COUNT_TX_IN_RANGE",
+    "name": "Count transactions in time range",
+    "category": "time_range",
+    "difficulty": "easy",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      }
+    },
+    "sql_template": "SELECT COUNT(*) AS transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')",
+    "nl_seed": "How many transactions happened between {start_date} and {end_date}?",
+    "expected_columns": [
+      "transaction_count"
+    ],
+    "schema_elements": [
+      "transaction_facts",
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp"
+    ],
+    "cq_ids": [
+      "CQ01"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16"
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "One-day bounded transaction aggregate."
+    }
+  },
+  {
+    "id": "T_LIST_TX_FROM_ACCOUNT",
+    "name": "List transactions from an account",
+    "category": "entity_lookup",
+    "difficulty": "easy",
+    "slots": {
+      "account": {
+        "type": "ethereum_address"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT transaction_hash, block_timestamp, to_address, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE from_address = '{account}'\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "List {n} transactions sent by {account} between {start_date} and {end_date}.",
+    "expected_columns": [
+      "transaction_hash",
+      "block_timestamp",
+      "to_address",
+      "value_wei"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "transaction_facts.value_wei",
+      "entity_labels_v1.address"
+    ],
+    "cq_ids": [
+      "CQ04"
+    ],
+    "example_fill": {
+      "account": "0x0d0707963952f2fba59dd06f2b425ace40b492fe",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Known Binance treasury sender."
+    }
+  },
+  {
+    "id": "T_LIST_TX_TO_ACCOUNT",
+    "name": "List transactions to an account",
+    "category": "entity_lookup",
+    "difficulty": "easy",
+    "slots": {
+      "account": {
+        "type": "ethereum_address"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE to_address = '{account}'\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "List {n} transactions received by {account} between {start_date} and {end_date}.",
+    "expected_columns": [
+      "transaction_hash",
+      "block_timestamp",
+      "from_address",
+      "value_wei"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "transaction_facts.value_wei",
+      "entity_labels_v1.address"
+    ],
+    "cq_ids": [
+      "CQ05"
+    ],
+    "example_fill": {
+      "account": "0x0d0707963952f2fba59dd06f2b425ace40b492fe",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Known Binance treasury recipient."
+    }
+  },
+  {
+    "id": "T_FILTER_TX_BY_VALUE",
+    "name": "Transactions above a value threshold",
+    "category": "simple_filter",
+    "difficulty": "easy",
+    "slots": {
+      "value_wei": {
+        "type": "decimal_wei"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, to_address, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE value_wei >= NUMERIC '{value_wei}'\nORDER BY value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} transactions moved at least {value_wei} wei between {start_date} and {end_date}?",
+    "expected_columns": [
+      "transaction_hash",
+      "block_timestamp",
+      "from_address",
+      "to_address",
+      "value_wei"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "transaction_facts.value_wei"
+    ],
+    "cq_ids": [
+      "CQ02"
+    ],
+    "example_fill": {
+      "value_wei": "1000000000000000000",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "One ETH threshold."
+    }
+  },
+  {
+    "id": "T_LIST_FAILED_TX",
+    "name": "List failed transactions",
+    "category": "simple_filter",
+    "difficulty": "easy",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, to_address, receipt_gas_used\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE is_success IS FALSE\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} failed transactions between {start_date} and {end_date}.",
+    "expected_columns": [
+      "transaction_hash",
+      "block_timestamp",
+      "from_address",
+      "to_address",
+      "receipt_gas_used"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "transaction_facts.is_success",
+      "transaction_facts.receipt_gas_used"
+    ],
+    "cq_ids": [
+      "CQ03"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Failed receipt status only."
+    }
+  },
+  {
+    "id": "T_BLOCK_BY_NUMBER",
+    "name": "Block details by number",
+    "category": "entity_lookup",
+    "difficulty": "easy",
+    "slots": {
+      "block_number": {
+        "type": "block_number"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      }
+    },
+    "sql_template": "SELECT block_number, block_hash, block_timestamp, beneficiary_address, transaction_count, gas_used\nFROM `nl2sparql-thesis.nl2sparql_analytics.block_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE block_number = {block_number}",
+    "nl_seed": "What are the details for block {block_number} between {start_date} and {end_date}?",
+    "expected_columns": [
+      "block_number",
+      "block_hash",
+      "block_timestamp",
+      "beneficiary_address",
+      "transaction_count",
+      "gas_used"
+    ],
+    "schema_elements": [
+      "block_facts.block_number",
+      "block_facts.block_hash",
+      "block_facts.block_timestamp",
+      "block_facts.beneficiary_address",
+      "block_facts.transaction_count",
+      "block_facts.gas_used"
+    ],
+    "cq_ids": [
+      "CQ09"
+    ],
+    "example_fill": {
+      "block_number": 0,
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16"
+    },
+    "validation": {
+      "expect_non_empty": false,
+      "scope_note": "Block number is replaced with a live value after preflight discovery."
+    }
+  },
+  {
+    "id": "T_TX_BY_HASH",
+    "name": "Transaction details by hash",
+    "category": "entity_lookup",
+    "difficulty": "easy",
+    "slots": {
+      "transaction_hash": {
+        "type": "transaction_hash"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      }
+    },
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, to_address, value_wei, is_success\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE transaction_hash = '{transaction_hash}'",
+    "nl_seed": "Show transaction {transaction_hash} between {start_date} and {end_date}.",
+    "expected_columns": [
+      "transaction_hash",
+      "block_timestamp",
+      "from_address",
+      "to_address",
+      "value_wei",
+      "is_success"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "transaction_facts.value_wei",
+      "transaction_facts.is_success"
+    ],
+    "cq_ids": [
+      "CQ01",
+      "CQ02",
+      "CQ03"
+    ],
+    "example_fill": {
+      "transaction_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16"
+    },
+    "validation": {
+      "expect_non_empty": false,
+      "scope_note": "Hash is replaced with a live value after preflight discovery."
+    }
+  },
+  {
+    "id": "T_LIST_KNOWN_EXCHANGES",
+    "name": "List known exchange treasury accounts",
+    "category": "class_level",
+    "difficulty": "easy",
+    "slots": {
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT address, primary_label, owner, confidence\nFROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`\nWHERE address_role = 'treasury' AND category = 'exchange'\nORDER BY owner, address\nLIMIT {n}",
+    "nl_seed": "List {n} known exchange treasury accounts.",
+    "expected_columns": [
+      "address",
+      "primary_label",
+      "owner",
+      "confidence"
+    ],
+    "schema_elements": [
+      "entity_labels_v1.address",
+      "entity_labels_v1.primary_label",
+      "entity_labels_v1.owner",
+      "entity_labels_v1.confidence",
+      "entity_labels_v1.address_role",
+      "entity_labels_v1.category"
+    ],
+    "cq_ids": [
+      "CQ07",
+      "CQ10"
+    ],
+    "example_fill": {
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Treasury role remains distinct from operational endpoints."
+    }
+  },
+  {
+    "id": "T_TOP_SENDERS_BY_VALUE",
+    "name": "Top senders by native value",
+    "category": "transaction_aggregation",
+    "difficulty": "medium",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT from_address AS sender_address, SUM(value_wei) AS total_value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nGROUP BY sender_address\nORDER BY total_value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Who were the top {n} senders by wei between {start_date} and {end_date}?",
+    "expected_columns": [
+      "sender_address",
+      "total_value_wei"
+    ],
+    "schema_elements": [
+      "transaction_facts.from_address",
+      "transaction_facts.value_wei"
+    ],
+    "cq_ids": [
+      "CQ11"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Native value remains NUMERIC wei."
+    }
+  },
+  {
+    "id": "T_TOP_RECIPIENTS_BY_COUNT",
+    "name": "Top recipients by transaction count",
+    "category": "top_k",
+    "difficulty": "medium",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT to_address AS recipient_address, COUNT(*) AS transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE to_address IS NOT NULL\nGROUP BY recipient_address\nORDER BY transaction_count DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} addresses received the most transactions between {start_date} and {end_date}?",
+    "expected_columns": [
+      "recipient_address",
+      "transaction_count"
+    ],
+    "schema_elements": [
+      "transaction_facts.to_address",
+      "transaction_facts.transaction_hash"
+    ],
+    "cq_ids": [
+      "CQ12"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Null contract-creation recipients are excluded."
+    }
+  },
+  {
+    "id": "T_TX_BETWEEN_ACCOUNTS",
+    "name": "Transactions between two accounts",
+    "category": "comparison",
+    "difficulty": "medium",
+    "slots": {
+      "account": {
+        "type": "ethereum_address"
+      },
+      "account_b": {
+        "type": "ethereum_address"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT transaction_hash, block_timestamp, from_address, to_address, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE (from_address = '{account}' AND to_address = '{account_b}')\n   OR (from_address = '{account_b}' AND to_address = '{account}')\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} transactions between {account} and {account_b} from {start_date} to {end_date}.",
+    "expected_columns": [
+      "transaction_hash",
+      "block_timestamp",
+      "from_address",
+      "to_address",
+      "value_wei"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "transaction_facts.value_wei"
+    ],
+    "cq_ids": [
+      "CQ13"
+    ],
+    "example_fill": {
+      "account": "0x0d0707963952f2fba59dd06f2b425ace40b492fe",
+      "account_b": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": false,
+      "scope_note": "Specific treasury/factory pair may have no direct one-day flow."
+    }
+  },
+  {
+    "id": "T_TX_GROUPED_BY_OWNER",
+    "name": "Transactions grouped by labeled owner",
+    "category": "transaction_aggregation",
+    "difficulty": "medium",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT from_owner AS owner, COUNT(*) AS transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE from_owner IS NOT NULL\nGROUP BY owner\nORDER BY transaction_count DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} labeled owners sent the most transactions between {start_date} and {end_date}?",
+    "expected_columns": [
+      "owner",
+      "transaction_count"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.from_address",
+      "entity_labels_v1.owner"
+    ],
+    "cq_ids": [
+      "CQ20",
+      "CQ22"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Groups only addresses present in the accepted dictionary."
+    }
+  },
+  {
+    "id": "T_TOKEN_VOLUME_BY_SYMBOL",
+    "name": "Token transfer volume by symbol",
+    "category": "token_specific",
+    "difficulty": "medium",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT token_symbol, SUM(normalized_amount) AS total_amount\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '{start_date}', DATE '{end_date}')\nWHERE normalized_amount IS NOT NULL AND token_symbol IS NOT NULL\nGROUP BY token_symbol\nORDER BY total_amount DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} token symbols had the highest fungible volume between {start_date} and {end_date}?",
+    "expected_columns": [
+      "token_symbol",
+      "total_amount"
+    ],
+    "schema_elements": [
+      "token_transfer_facts.token_symbol",
+      "token_transfer_facts.normalized_amount",
+      "token_transfer_facts.is_erc20",
+      "token_transfer_facts.is_erc721"
+    ],
+    "cq_ids": [
+      "CQ15"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Only precision-safe fungible normalized amounts."
+    }
+  },
+  {
+    "id": "T_TOKEN_TRANSFERS_OF_TOKEN",
+    "name": "Transfers for a token symbol",
+    "category": "token_specific",
+    "difficulty": "medium",
+    "slots": {
+      "token_symbol": {
+        "type": "token_symbol"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT transaction_hash, log_index, block_timestamp, token_address, from_address, to_address, normalized_amount\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '{start_date}', DATE '{end_date}')\nWHERE UPPER(token_symbol) = UPPER('{token_symbol}')\nORDER BY block_timestamp DESC\nLIMIT {n}",
+    "nl_seed": "List {n} {token_symbol} transfers between {start_date} and {end_date}.",
+    "expected_columns": [
+      "transaction_hash",
+      "log_index",
+      "block_timestamp",
+      "token_address",
+      "from_address",
+      "to_address",
+      "normalized_amount"
+    ],
+    "schema_elements": [
+      "token_transfer_facts.transaction_hash",
+      "token_transfer_facts.log_index",
+      "token_transfer_facts.block_timestamp",
+      "token_transfer_facts.token_address",
+      "token_transfer_facts.from_address",
+      "token_transfer_facts.to_address",
+      "token_transfer_facts.normalized_amount",
+      "token_transfer_facts.token_symbol"
+    ],
+    "cq_ids": [
+      "CQ15"
+    ],
+    "example_fill": {
+      "token_symbol": "USDC",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "USDC is expected in the pinned window."
+    }
+  },
+  {
+    "id": "T_FAILED_HIGH_GAS_TX",
+    "name": "Failed high-gas transactions",
+    "category": "simple_filter",
+    "difficulty": "medium",
+    "slots": {
+      "gas_used": {
+        "type": "integer",
+        "min": 1,
+        "max": 100000000
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT transaction_hash, block_timestamp, receipt_gas_used, gas_price_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE is_success IS FALSE AND receipt_gas_used >= {gas_used}\nORDER BY receipt_gas_used DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} failed transactions using at least {gas_used} gas between {start_date} and {end_date}.",
+    "expected_columns": [
+      "transaction_hash",
+      "block_timestamp",
+      "receipt_gas_used",
+      "gas_price_wei"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.is_success",
+      "transaction_facts.receipt_gas_used",
+      "transaction_facts.gas_price_wei"
+    ],
+    "cq_ids": [
+      "CQ16"
+    ],
+    "example_fill": {
+      "gas_used": 500000,
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Receipt gas, not gas limit."
+    }
+  },
+  {
+    "id": "T_BLOCKS_BY_VALIDATOR",
+    "name": "Blocks by beneficiary address",
+    "category": "class_level",
+    "difficulty": "medium",
+    "slots": {
+      "account": {
+        "type": "ethereum_address"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT block_number, block_hash, block_timestamp, beneficiary_address, transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.block_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE beneficiary_address = '{account}'\nORDER BY block_number DESC\nLIMIT {n}",
+    "nl_seed": "List {n} blocks whose beneficiary was {account} between {start_date} and {end_date}.",
+    "expected_columns": [
+      "block_number",
+      "block_hash",
+      "block_timestamp",
+      "beneficiary_address",
+      "transaction_count"
+    ],
+    "schema_elements": [
+      "block_facts.block_number",
+      "block_facts.block_hash",
+      "block_facts.block_timestamp",
+      "block_facts.beneficiary_address",
+      "block_facts.transaction_count"
+    ],
+    "cq_ids": [
+      "CQ17"
+    ],
+    "example_fill": {
+      "account": "0x0000000000000000000000000000000000000000",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": false,
+      "scope_note": "Source proves beneficiary/fee recipient, not validator identity."
+    }
+  },
+  {
+    "id": "T_ACCOUNTS_BY_CATEGORY",
+    "name": "Labeled accounts grouped by category",
+    "category": "transaction_aggregation",
+    "difficulty": "medium",
+    "slots": {
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT category, address_role, COUNT(*) AS account_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`\nGROUP BY category, address_role\nORDER BY account_count DESC\nLIMIT {n}",
+    "nl_seed": "Show the top {n} label categories and roles by account count.",
+    "expected_columns": [
+      "category",
+      "address_role",
+      "account_count"
+    ],
+    "schema_elements": [
+      "entity_labels_v1.category",
+      "entity_labels_v1.address_role",
+      "entity_labels_v1.address"
+    ],
+    "cq_ids": [
+      "CQ20"
+    ],
+    "example_fill": {
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Role remains visible in grouping."
+    }
+  },
+  {
+    "id": "T_TX_BY_HOUR",
+    "name": "Transactions grouped by hour",
+    "category": "temporal_pattern",
+    "difficulty": "medium",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT TIMESTAMP_TRUNC(block_timestamp, HOUR) AS hour, COUNT(*) AS transaction_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nGROUP BY hour\nORDER BY transaction_count DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} hours had the most transactions between {start_date} and {end_date}?",
+    "expected_columns": [
+      "hour",
+      "transaction_count"
+    ],
+    "schema_elements": [
+      "transaction_facts.block_timestamp",
+      "transaction_facts.transaction_hash"
+    ],
+    "cq_ids": [
+      "CQ01"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "UTC timestamp buckets."
+    }
+  },
+  {
+    "id": "T_LARGE_TX_TO_CLASS",
+    "name": "Large transactions to a labeled concept class",
+    "category": "class_level",
+    "difficulty": "medium",
+    "slots": {
+      "concept_class": {
+        "type": "concept_class"
+      },
+      "value_wei": {
+        "type": "decimal_wei"
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT transaction_hash, block_timestamp, to_address, to_owner, to_concept_class, value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\nWHERE to_concept_class = '{concept_class}' AND value_wei >= NUMERIC '{value_wei}'\nORDER BY value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Show {n} transactions of at least {value_wei} wei to {concept_class} between {start_date} and {end_date}.",
+    "expected_columns": [
+      "transaction_hash",
+      "block_timestamp",
+      "to_address",
+      "to_owner",
+      "to_concept_class",
+      "value_wei"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.to_address",
+      "transaction_facts.value_wei",
+      "entity_labels_v1.owner",
+      "entity_labels_v1.concept_class"
+    ],
+    "cq_ids": [
+      "CQ21",
+      "CQ25"
+    ],
+    "example_fill": {
+      "concept_class": "DEXProtocol",
+      "value_wei": "1000000000000000000",
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": false,
+      "scope_note": "Operational DEX coverage is small and may yield zero rows."
+    }
+  },
+  {
+    "id": "T_OWNER_NET_NATIVE_FLOW",
+    "name": "Owner net native flow",
+    "category": "comparison",
+    "difficulty": "hard",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "WITH movements AS (\n  SELECT from_owner AS owner, 'outgoing' AS direction, value_wei\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\n  WHERE from_address_role = 'treasury' AND from_owner IS NOT NULL\n    AND receipt_status = 1 AND value_wei > 0\n  UNION ALL\n  SELECT to_owner AS owner, 'incoming' AS direction, value_wei\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\n  WHERE to_address_role = 'treasury' AND to_owner IS NOT NULL\n    AND receipt_status = 1 AND value_wei > 0\n), owner_stats AS (\n  SELECT owner,\n    SUM(IF(direction = 'incoming', value_wei, NUMERIC '0')) AS incoming_value_wei,\n    SUM(IF(direction = 'outgoing', value_wei, NUMERIC '0')) AS outgoing_value_wei,\n    COUNTIF(direction = 'incoming') AS incoming_transaction_count,\n    COUNTIF(direction = 'outgoing') AS outgoing_transaction_count\n  FROM movements\n  GROUP BY owner\n)\nSELECT owner, incoming_value_wei, outgoing_value_wei,\n  incoming_value_wei - outgoing_value_wei AS net_value_wei,\n  incoming_transaction_count, outgoing_transaction_count,\n  DENSE_RANK() OVER (ORDER BY ABS(incoming_value_wei - outgoing_value_wei) DESC) AS net_flow_rank\nFROM owner_stats\nORDER BY net_flow_rank, owner\nLIMIT {n}",
+    "nl_seed": "Rank {n} treasury owners by absolute net successful positive native flow, with incoming and outgoing wei, between {start_date} and {end_date}.",
+    "expected_columns": [
+      "owner",
+      "incoming_value_wei",
+      "outgoing_value_wei",
+      "net_value_wei",
+      "incoming_transaction_count",
+      "outgoing_transaction_count",
+      "net_flow_rank"
+    ],
+    "schema_elements": [
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "transaction_facts.value_wei",
+      "transaction_facts.receipt_status",
+      "entity_labels_v1.owner",
+      "entity_labels_v1.address_role"
+    ],
+    "cq_ids": [
+      "CQ32"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Observed external treasury native flow; not owner balance change, gas or internal transfers."
+    }
+  },
+  {
+    "id": "T_CATEGORY_OWNER_DISTRIBUTION",
+    "name": "Category owner distribution",
+    "category": "transaction_aggregation",
+    "difficulty": "hard",
+    "slots": {
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "WITH category_stats AS (\n  SELECT\n    category,\n    COUNT(DISTINCT owner) AS owner_count,\n    COUNT(DISTINCT address) AS account_count\n  FROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`\n  GROUP BY category\n)\nSELECT\n  category,\n  owner_count,\n  account_count,\n  SAFE_DIVIDE(account_count, owner_count) AS accounts_per_owner,\n  DENSE_RANK() OVER (\n    ORDER BY owner_count DESC, account_count DESC\n  ) AS owner_rank\nFROM category_stats\nORDER BY owner_rank, category\nLIMIT {n}",
+    "nl_seed": "List the top {n} accepted label categories ranked by distinct owners, including account count and accounts per owner.",
+    "expected_columns": [
+      "category",
+      "owner_count",
+      "account_count",
+      "accounts_per_owner",
+      "owner_rank"
+    ],
+    "schema_elements": [
+      "entity_labels_v1.category",
+      "entity_labels_v1.owner",
+      "entity_labels_v1.address"
+    ],
+    "cq_ids": [
+      "CQ20"
+    ],
+    "example_fill": {
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Summarizes the accepted label dictionary without claiming that one owner spans multiple categories."
+    }
+  },
+  {
+    "id": "T_TOKEN_AFTER_NATIVE_FUNDING",
+    "name": "Token transfer after native funding",
+    "category": "multi_hop",
+    "difficulty": "hard",
+    "slots": {
+      "duration_minutes": {
+        "type": "duration_minutes",
+        "min": 1,
+        "max": 1440
+      },
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "WITH funding AS (\n  SELECT transaction_hash, block_timestamp, from_address, to_address\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\n  WHERE to_address IS NOT NULL AND from_address_role = 'treasury'\n    AND value_wei > 0 AND receipt_status = 1\n), transfers AS (\n  SELECT transaction_hash, log_index, block_timestamp, from_address, to_address, token_symbol, normalized_amount\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '{start_date}', DATE '{end_date}')\n)\nSELECT funding.transaction_hash AS funding_hash, transfers.transaction_hash AS transfer_hash, transfers.log_index, funding.to_address AS funded_address, transfers.token_symbol, transfers.normalized_amount\nFROM funding\nJOIN transfers ON transfers.from_address = funding.to_address\n  AND transfers.block_timestamp >= funding.block_timestamp\n  AND transfers.block_timestamp < TIMESTAMP_ADD(funding.block_timestamp, INTERVAL {duration_minutes} MINUTE)\nORDER BY transfers.block_timestamp\nLIMIT {n}",
+    "nl_seed": "Find {n} token transfers from funded addresses at or after successful positive native treasury funding, before {duration_minutes} minutes elapse, between {start_date} and {end_date}.",
+    "expected_columns": [
+      "funding_hash",
+      "transfer_hash",
+      "log_index",
+      "funded_address",
+      "token_symbol",
+      "normalized_amount"
+    ],
+    "schema_elements": [
+      "transaction_facts.transaction_hash",
+      "transaction_facts.block_timestamp",
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "token_transfer_facts.transaction_hash",
+      "token_transfer_facts.log_index",
+      "token_transfer_facts.block_timestamp",
+      "token_transfer_facts.from_address",
+      "token_transfer_facts.token_symbol",
+      "token_transfer_facts.normalized_amount",
+      "entity_labels_v1.address_role",
+      "transaction_facts.value_wei",
+      "transaction_facts.receipt_status"
+    ],
+    "cq_ids": [
+      "CQ31"
+    ],
+    "example_fill": {
+      "duration_minutes": 60,
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Timestamp association only: equal timestamps allowed, upper duration bound exclusive; no causality or funded-address ownership claim."
+    }
+  },
+  {
+    "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION",
+    "name": "Treasury native recipient concentration",
+    "category": "transaction_aggregation",
+    "difficulty": "hard",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "WITH pair_counts AS (\n  SELECT from_owner AS owner, to_address, COUNT(*) AS pair_transaction_count\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '{start_date}', DATE '{end_date}')\n  WHERE from_address_role = 'treasury' AND from_owner IS NOT NULL\n    AND to_address IS NOT NULL AND receipt_status = 1 AND value_wei > 0\n  GROUP BY owner, to_address\n), pair_shares AS (\n  SELECT owner, to_address, pair_transaction_count,\n    SAFE_DIVIDE(pair_transaction_count, SUM(pair_transaction_count) OVER (PARTITION BY owner)) AS recipient_share\n  FROM pair_counts\n), owner_stats AS (\n  SELECT owner, SUM(pair_transaction_count) AS transaction_count,\n    COUNT(*) AS distinct_recipient_count,\n    SUM(recipient_share * recipient_share) AS concentration_index,\n    MAX(recipient_share) AS largest_recipient_share\n  FROM pair_shares\n  GROUP BY owner\n  HAVING SUM(pair_transaction_count) >= 10\n)\nSELECT owner, transaction_count, distinct_recipient_count, concentration_index,\n  largest_recipient_share,\n  DENSE_RANK() OVER (ORDER BY concentration_index DESC) AS concentration_rank\nFROM owner_stats\nORDER BY concentration_rank, owner\nLIMIT {n}",
+    "nl_seed": "Rank {n} treasury owners with at least 10 successful positive-value native transactions by recipient count-share concentration between {start_date} and {end_date}.",
+    "expected_columns": [
+      "owner",
+      "transaction_count",
+      "distinct_recipient_count",
+      "concentration_index",
+      "largest_recipient_share",
+      "concentration_rank"
+    ],
+    "schema_elements": [
+      "transaction_facts.to_address",
+      "transaction_facts.value_wei",
+      "transaction_facts.receipt_status",
+      "entity_labels_v1.owner",
+      "entity_labels_v1.address_role"
+    ],
+    "cq_ids": [
+      "CQ33"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Count-share HHI by recipient address; minimum 10 successful positive-value transactions; no actor or AML inference."
+    }
+  },
+  {
+    "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY",
+    "name": "Treasury token counterparty diversity",
+    "category": "token_specific",
+    "difficulty": "hard",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "WITH owner_stats AS (\n  SELECT from_owner AS owner,\n    COUNT(*) AS token_transfer_count,\n    COUNT(DISTINCT token_address) AS distinct_token_count,\n    COUNT(DISTINCT to_address) AS distinct_recipient_count\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '{start_date}', DATE '{end_date}')\n  WHERE from_address_role = 'treasury' AND from_owner IS NOT NULL AND to_address IS NOT NULL\n  GROUP BY owner\n)\nSELECT owner, token_transfer_count, distinct_token_count, distinct_recipient_count,\n  DENSE_RANK() OVER (ORDER BY distinct_recipient_count DESC, distinct_token_count DESC) AS diversity_rank\nFROM owner_stats\nORDER BY diversity_rank, owner\nLIMIT {n}",
+    "nl_seed": "Rank {n} treasury owners by distinct token-transfer recipients, then distinct token contracts, between {start_date} and {end_date}.",
+    "expected_columns": [
+      "owner",
+      "token_transfer_count",
+      "distinct_token_count",
+      "distinct_recipient_count",
+      "diversity_rank"
+    ],
+    "schema_elements": [
+      "token_transfer_facts.token_address",
+      "token_transfer_facts.to_address",
+      "entity_labels_v1.owner",
+      "entity_labels_v1.address_role"
+    ],
+    "cq_ids": [
+      "CQ34"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Transfer-event counts and distinct contract/recipient counts; no heterogeneous token-amount sum."
+    }
+  },
+  {
+    "id": "T_REPEATED_PAIR_FLOW",
+    "name": "Repeated transaction pairs",
+    "category": "temporal_pattern",
+    "difficulty": "hard",
+    "slots": {
+      "start_date": {
+        "type": "date"
+      },
+      "end_date": {
+        "type": "date"
+      },
+      "n": {
+        "type": "integer",
+        "min": 1,
+        "max": 100
+      }
+    },
+    "sql_template": "SELECT from_address, to_address, COUNT(*) AS transaction_count, SUM(value_wei) AS total_value_wei\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '{start_date}', DATE '{end_date}')\nWHERE to_address IS NOT NULL\nGROUP BY from_address, to_address\nHAVING transaction_count > 1\nORDER BY transaction_count DESC, total_value_wei DESC\nLIMIT {n}",
+    "nl_seed": "Which {n} address pairs repeated transactions most often between {start_date} and {end_date}?",
+    "expected_columns": [
+      "from_address",
+      "to_address",
+      "transaction_count",
+      "total_value_wei"
+    ],
+    "schema_elements": [
+      "transaction_facts.from_address",
+      "transaction_facts.to_address",
+      "transaction_facts.transaction_hash",
+      "transaction_facts.value_wei"
+    ],
+    "cq_ids": [
+      "CQ23",
+      "CQ28"
+    ],
+    "example_fill": {
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-16",
+      "n": 10
+    },
+    "validation": {
+      "expect_non_empty": true,
+      "scope_note": "Direct repeated pairs; no unsupported actor identity inferred."
+    }
+  }
+]

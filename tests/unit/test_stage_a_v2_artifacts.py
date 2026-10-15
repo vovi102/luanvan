@@ -276,11 +276,11 @@ def test_committed_candidate_matches_pair_backed_generation_contract(inputs) -> 
 
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_OUTPUT_PATH)
-        == "c20be57c884baf0c8b4dac3d6f7f81031becc7df030842963413d29c6dfc7c59"
+        == "5a4e0299d8f36bc3d77bc47ed7aa6ae0c10846846924b9fcd002c04c98c06cd6"
     )
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_CONFIG_PATH)
-        == "8b14614b447301b0a49a99bd01c8dc7e8c23b4710b6595386624636d0357d40d"
+        == "edc924b6e9718a1edb0a0d10485104b0b7612a1b02eb1236636d8d9979486d03"
     )
     assert (
         _sha256(DEFAULT_V2_CANDIDATE_STATS_PATH)

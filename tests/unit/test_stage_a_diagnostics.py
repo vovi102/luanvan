@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import subprocess
 from dataclasses import replace
@@ -26,7 +27,7 @@ from nl2sparql.dataset.stage_a.evidence import (
     build_witness_groups,
 )
 from nl2sparql.dataset.stage_a.planning import build_stage_a_v2_witness_queries
-from nl2sparql.dataset.stage_a_v2 import generate_stage_a_v2_records
+from nl2sparql.dataset.stage_a_v2 import generate_stage_a_v2_records, serialize_stage_a_v2_records
 from nl2sparql.dataset.templates import load_templates
 
 
@@ -272,8 +273,21 @@ def _partial_failed_report():
     )
 
 
-def test_failed_diagnostic_validates_exact_candidate_and_partial_observations(diagnostic_inputs):
-    records, _ = diagnostic_inputs
+@pytest.fixture
+def historical_diagnostic_inputs():
+    templates = load_templates(Path("tests/fixtures/dataset/stage-a-v2-pre-cq35-templates.json"))
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
+    records = generate_stage_a_v2_records(templates, pools)
+    assert hashlib.sha256(serialize_stage_a_v2_records(records)).hexdigest() == (
+        "c20be57c884baf0c8b4dac3d6f7f81031becc7df030842963413d29c6dfc7c59"
+    )
+    return records, templates
+
+
+def test_failed_diagnostic_validates_exact_candidate_and_partial_observations(
+    historical_diagnostic_inputs,
+):
+    records, _ = historical_diagnostic_inputs
     validate_diagnostic_report(_partial_failed_report(), records)
     with pytest.raises(DiagnosticError, match="candidate"):
         validate_diagnostic_report(_partial_failed_report(), [])
@@ -296,12 +310,20 @@ def test_failed_diagnostic_validates_exact_candidate_and_partial_observations(di
         lambda report: report["logical_results"][0].__setitem__("columns", ["invented"]),
     ],
 )
-def test_failed_diagnostic_rejects_corrupted_partial_evidence(diagnostic_inputs, mutation):
-    records, _ = diagnostic_inputs
+def test_failed_diagnostic_rejects_corrupted_partial_evidence(
+    historical_diagnostic_inputs, mutation
+):
+    records, _ = historical_diagnostic_inputs
     report = _partial_failed_report()
     mutation(report)
     with pytest.raises(DiagnosticError):
         validate_diagnostic_report(report, records)
+
+
+def test_historical_failed_report_rejects_revised_cq35_candidate(diagnostic_inputs):
+    records, _ = diagnostic_inputs
+    with pytest.raises(DiagnosticError, match="candidate"):
+        validate_diagnostic_report(_partial_failed_report(), records)
 
 
 def test_billing_guard_failure_allows_no_observations_but_still_binds_candidate(diagnostic_inputs):
