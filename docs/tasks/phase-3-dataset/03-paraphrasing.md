@@ -28,8 +28,11 @@ uv run python scripts/21_validate_bilingual_training.py --help
 
 ## Trạng thái
 
-Implementation offline hoàn tất. Canonical publication đang chờ Stage A v2
-được accept bằng genuine BigQuery evidence và audit decisions hoàn chỉnh.
+Implementation offline hoàn tất. Stage A v2 đã được accept bằng genuine BigQuery
+evidence ngày 2026-10-15; canonical publication còn chờ audit 100 EN + 100 VI và
+các build/validation gates. Chưa tạo corpus 8.000 records trong lượt final-live.
+
+Evidence: `docs/research/stage-a-v2-final-live-acceptance-2026-10-15.md`.
 
 ## Tài liệu
 

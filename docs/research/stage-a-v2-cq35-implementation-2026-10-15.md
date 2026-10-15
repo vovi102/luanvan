@@ -1,13 +1,16 @@
 # Stage A v2 CQ35 correction — 2026-10-15
 
-Status: approved correction implemented; 1,467 tests passed and full bounded
-diagnostic passed. Fresh dry-only preflight is ready for separate final-live
-approval. No accepted publication.
+Status: correction implemented and reviewed; the user subsequently approved
+final-live and the local accepted V2 publication succeeded. See the
+[acceptance report](stage-a-v2-final-live-acceptance-2026-10-15.md) for the new
+run and post-publication checks. The diagnostic/preflight details below describe
+the earlier approval handoff, not the current lifecycle.
 
 The [final independent review](../superpowers/reviews/2026-10-15-stage-a-v2-cq35.md)
 found no Critical, Important or Minor issues. Its offline checks independently
 reproduced candidate/evidence bindings; scope limitations and all implementation
-rulings are recorded there. No source or test changes followed the full suite.
+rulings are recorded there. This review predates the separately approved
+final-live run and its small latency-summation fix recorded in the acceptance report.
 
 Implements the user-approved [coverage/CQ proposal](stage-a-v2-large-class-coverage-audit-2026-10-14.md)
 and [native plan](../superpowers/plans/2026-10-15-stage-a-v2-cq35-correction.md).
@@ -101,7 +104,7 @@ It binds the exact candidate, template-library and 1.2.0 catalogue fingerprints:
   still points to `entity_labels_snapshot_cdc7856df81f`, matching the unchanged
   local dictionary hash prefix. This is not a fresh full data-column hash check.
 
-Neither diagnostic nor preflight published accepted artifacts. All three
-accepted-v2 paths remain absent. Final `--live` requires explicit approval of
-this candidate/preflight, keeps all safety gates, and would execute witnesses
-again before publishing accepted outputs. No merge, push or PR is authorized.
+Neither diagnostic nor preflight published accepted artifacts. At that handoff,
+all three accepted-v2 paths remained absent and final-live required separate
+approval. That approval and subsequent successful execution/publication are
+recorded in the acceptance report above. No merge, push or PR is authorized.

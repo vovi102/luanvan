@@ -467,7 +467,27 @@ uv run python scripts/09_generate_stage_a_v2.py \
   offline, không authorize final-live. Review và giới hạn assurance:
   `docs/superpowers/reviews/2026-10-15-stage-a-v2-cq35.md`.
 
-Live witness verification:
+## Stage A v2 — final-live accepted, 2026-10-15
+
+- User duyệt final-live sau handoff CQ35 tại `cf811f1`. Fresh preflight và
+  verifier initial/immediate preflights: 82.854.752.185 bytes, dưới cap 96 GiB;
+  query lớn nhất 15.392.481.552 bytes, dưới cap 20 GiB.
+- 126/126 executions, 206/206 logical witnesses pass; cache 0. Processed
+  80.089.662.489 bytes, billed 80.594.599.936 bytes. Billing disabled/unlinked,
+  SDK retries/cache tắt; không retry hoặc chạy lại failed acceptance cũ.
+- Ba accepted outputs V2 đã được tạo, 1.000/1.000 records verified, đủ 25
+  intents, 350/450/200, seed 42; proof 206 exact + 794 LIMIT-monotonic.
+  Data SHA-256 `15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203`.
+  V1, candidate, pools và historical evidence không đổi.
+- Post-run phát hiện/sửa lỗi cộng float latency theo thứ tự bằng `math.fsum`
+  ở hai đường aggregation, không nới tolerance/gate, không sửa generated
+  artifacts hoặc gọi lại provider. Artifact integrity checks: 38 tests pass;
+  full suite 1.469 passed, 342 upstream warnings, 332,22s. Ruff/format/diff pass.
+- Acceptance/evidence đầy đủ:
+  `docs/research/stage-a-v2-final-live-acceptance-2026-10-15.md`.
+  Chưa audit 100 EN + 100 VI/build canonical 8.000; không merge/push/PR.
+
+Historical Stage A v1 live witness verification:
 
 ```bash
 uv run python scripts/09_generate_stage_a.py --live
