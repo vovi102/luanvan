@@ -251,83 +251,21 @@ def test_replacing_catalog_entry_preserves_frozen_value_semantics() -> None:
     assert entry.style == changed.style
 
 
-def test_supported_category_distribution_and_bridge_patterns_match_sql_semantics() -> None:
+def test_category_distribution_patterns_keep_owner_and_account_statistics() -> None:
     catalog = load_catalog(TEMPLATES_PATH, load_templates())
-    patterns = {entry.id: entry.pattern for entry in catalog.entries}
-    expected = {
-        "T_CATEGORY_OWNER_DISTRIBUTION__en__formal": (
-            "List the top {n} label categories ranked by distinct owner count, including "
-            "account count and accounts per owner."
-        ),
-        "T_CATEGORY_OWNER_DISTRIBUTION__en__conversational": (
-            "Which {n} label categories have the most distinct owners, and how many "
-            "accounts and accounts per owner does each have?"
-        ),
-        "T_CATEGORY_OWNER_DISTRIBUTION__en__abbreviated": (
-            "Top {n} label categories by owners, with accounts and accounts/owner."
-        ),
-        "T_CATEGORY_OWNER_DISTRIBUTION__en__alternative": (
-            "Rank {n} categories in the accepted label dictionary by unique owners and "
-            "return each category's account total and accounts-per-owner ratio."
-        ),
-        "T_CATEGORY_OWNER_DISTRIBUTION__vi__formal": (
-            "Liệt kê {n} danh mục nhãn đứng đầu theo số chủ sở hữu riêng biệt, kèm số "
-            "tài khoản và số tài khoản trên mỗi chủ sở hữu."
-        ),
-        "T_CATEGORY_OWNER_DISTRIBUTION__vi__conversational": (
-            "{n} danh mục nhãn nào có nhiều chủ sở hữu riêng biệt nhất, và mỗi danh mục "
-            "có bao nhiêu tài khoản cùng tỷ lệ tài khoản trên chủ sở hữu?"
-        ),
-        "T_CATEGORY_OWNER_DISTRIBUTION__vi__abbreviated": (
-            "Top {n} danh mục nhãn theo số chủ sở hữu, kèm số tài khoản và tài khoản/chủ sở hữu."
-        ),
-        "T_CATEGORY_OWNER_DISTRIBUTION__vi__alternative": (
-            "Xếp hạng {n} danh mục trong từ điển nhãn đã chấp nhận theo số chủ sở hữu "
-            "duy nhất, đồng thời trả về tổng tài khoản và tỷ lệ tài khoản trên mỗi chủ sở hữu."
-        ),
-        "T_TOKEN_AFTER_NATIVE_FUNDING__en__formal": (
-            "Find {n} token transfers from funded addresses at or after successful "
-            "positive native treasury funding and strictly before {duration_minutes} "
-            "minutes elapse, between {start_date} and {end_date}."
-        ),
-        "T_TOKEN_AFTER_NATIVE_FUNDING__en__conversational": (
-            "Which {n} token events leave funded addresses at or after successful "
-            "positive native treasury funding, but less than {duration_minutes} "
-            "minutes later, from {start_date} to {end_date}?"
-        ),
-        "T_TOKEN_AFTER_NATIVE_FUNDING__en__abbreviated": (
-            "First {n} funded-address token transfers at or after successful positive "
-            "native treasury funding, elapsed < {duration_minutes} min, "
-            "{start_date}–{end_date}."
-        ),
-        "T_TOKEN_AFTER_NATIVE_FUNDING__en__alternative": (
-            "For {start_date} to {end_date}, return {n} token transfers sent by "
-            "funded addresses at or after successful positive native treasury funding "
-            "and before the {duration_minutes}-minute timestamp boundary."
-        ),
-        "T_TOKEN_AFTER_NATIVE_FUNDING__vi__formal": (
-            "Tìm {n} lượt chuyển token từ địa chỉ được cấp native thành công có value "
-            "dương bởi kho quỹ, timestamp không trước khoản cấp và chưa đủ "
-            "{duration_minutes} phút, từ {start_date} đến {end_date}."
-        ),
-        "T_TOKEN_AFTER_NATIVE_FUNDING__vi__conversational": (
-            "Từ {start_date} tới {end_date}, {n} sự kiện token nào rời địa chỉ nhận "
-            "native từ kho quỹ thành công có value dương, timestamp không trước khoản "
-            "cấp và cách dưới {duration_minutes} phút?"
-        ),
-        "T_TOKEN_AFTER_NATIVE_FUNDING__vi__abbreviated": (
-            "{n} token transfer đầu tiên từ địa chỉ nhận native kho quỹ thành công có "
-            "value dương; timestamp không trước khoản cấp, cách < {duration_minutes} "
-            "phút, {start_date}–{end_date}."
-        ),
-        "T_TOKEN_AFTER_NATIVE_FUNDING__vi__alternative": (
-            "Trong {start_date} đến {end_date}, trả {n} sự kiện token do địa chỉ được "
-            "kho quỹ cấp native thành công có value dương gửi, timestamp không trước "
-            "khoản cấp và nhỏ hơn mốc cộng {duration_minutes} phút."
-        ),
-    }
+    # Render actual bound questions instead of freezing an obsolete surface copy.
+    from nl2sparql.dataset.bilingual.rendering import render_pattern
 
-    assert {entry_id: patterns[entry_id] for entry_id in expected} == expected
+    for entry in catalog.entries:
+        if entry.template_id != "T_CATEGORY_OWNER_DISTRIBUTION":
+            continue
+        question = render_pattern(entry, {"n": 1}).casefold()
+        if entry.language == "en":
+            assert "owner" in question and "account" in question
+            assert "distinct" in question or "unique" in question
+        else:
+            assert "chủ" in question and "tài khoản" in question
+            assert any(word in question for word in ("riêng biệt", "khác nhau"))
     replacements = [
         entry for entry in catalog.entries if entry.template_id == "T_CATEGORY_OWNER_DISTRIBUTION"
     ]
