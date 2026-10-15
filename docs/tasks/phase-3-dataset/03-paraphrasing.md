@@ -34,6 +34,20 @@ các build/validation gates. Chưa tạo corpus 8.000 records trong lượt fina
 
 Evidence: `docs/research/stage-a-v2-final-live-acceptance-2026-10-15.md`.
 
+### Agent audit — 2026-10-15
+
+Đã đọc và chấm đủ 100 EN + 100 VI, seed 42, phủ 25 intents × 4 styles mỗi
+ngôn ngữ. EN: faithful 67/100, natural 96/100; VI: faithful 73/100, natural
+93/100. Cả hai **fail faithfulness gate 95/100**, dù naturalness đạt 90/100.
+Giữ đủ 200 quyết định agent-reviewed, không coi là human/independent review.
+
+Hai lần lấy mẫu byte-identical; binding ID/hash/provenance pass. Validator từ
+chối publication ở đúng faithfulness threshold. Không sửa catalog/SQL, không
+gọi provider, không publish canonical 8.000 records. Accepted Stage A V2 không
+đổi. Cần task sửa wording/top-k/date boundary rồi fresh audit trước publication.
+
+Report: `docs/research/bilingual-training-agent-audit-2026-10-15.md`.
+
 ## Tài liệu
 
 - Spec: `docs/superpowers/specs/2026-10-07-deterministic-bilingual-training-design.md`
