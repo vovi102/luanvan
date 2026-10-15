@@ -48,6 +48,23 @@ gọi provider, không publish canonical 8.000 records. Accepted Stage A V2 khô
 
 Report: `docs/research/bilingual-training-agent-audit-2026-10-15.md`.
 
+### Catalogue correction + re-audit r1 — 2026-10-15
+
+User đã duyệt sửa wording và audit lại. Chỉ đổi 200 patterns/content digests,
+giữ renderer, schema, SQL và accepted Stage A V2. Catalog cũ được archive nguyên
+bytes; sample/200 quyết định fail ban đầu giữ nguyên.
+
+Audit r1: 100 EN + 100 VI, seed 42 và cách chọn mẫu không đổi. Mỗi ngôn ngữ
+100/100 faithful, 100/100 natural, vượt gate 95/90. Binding/provenance pass;
+quyết định cũ bị từ chối khi ghép với digest mới. Đây là cùng agent tự review,
+không phải human/independent review; không suy ra chất lượng ngoài mẫu.
+
+36 focused tests pass; full suite 1.485 passed, 342 upstream warnings, 510,32s.
+Ruff/format/diff pass. Chưa publish corpus canonical 8.000 hoặc manifest,
+không gọi provider.
+
+Report: `docs/research/bilingual-training-audit-correction-r1-2026-10-15.md`.
+
 ## Tài liệu
 
 - Spec: `docs/superpowers/specs/2026-10-07-deterministic-bilingual-training-design.md`

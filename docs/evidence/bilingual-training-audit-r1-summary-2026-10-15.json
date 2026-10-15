@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "revision": "audit-correction-r1",
+  "reviewer_type": "agent",
+  "independent_or_human_review": false,
+  "api_request_count": 0,
+  "canonical_publication": false,
+  "binding_validation": "passed",
+  "full_population_sample_selection": "passed",
+  "historical_decisions_rejected_for_new_records": true,
+  "thresholds": {
+    "faithful_minimum_per_100": 95,
+    "natural_minimum_per_100": 90
+  },
+  "languages": [
+    {
+      "language": "en",
+      "sample_size": 100,
+      "faithful_count": 100,
+      "natural_count": 100,
+      "accepted_count": 100,
+      "passed": true
+    },
+    {
+      "language": "vi",
+      "sample_size": 100,
+      "faithful_count": 100,
+      "natural_count": 100,
+      "accepted_count": 100,
+      "passed": true
+    }
+  ],
+  "source_and_evidence_sha256": {
+    "data/dataset/raw/synthetic-stage-a-v2.jsonl": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203",
+    "data/dataset/raw/generation-config-v2.json": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695",
+    "src/nl2sparql/dataset/bilingual/templates.json": "9a62ebb166b6e46da7d6970aeddf675ae05a58284242eea7f5625c8fcf88dbd7",
+    "docs/evidence/bilingual-training-audit-r1-sample-2026-10-15.jsonl": "a767a2ea9a3e7cb5d556a482352a90223fb41fc331660b0e1d2abda872f3d55d",
+    "docs/evidence/bilingual-training-audit-r1-decisions-2026-10-15.jsonl": "3d10f0d0e1f3db9e46367e7b924cc8e1232ef33f29361bf26d463dad2a76df62"
+  }
+}
