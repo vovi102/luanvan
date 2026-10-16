@@ -1,0 +1,37 @@
+{"mode": "export", "offline_guard": {"credential_reads": 0, "network_attempts": 0, "provider_imports": 1, "subprocess_attempts": 0}, "script": "scripts/22_b2_training.py"}
+Traceback (most recent call last):
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 74, in <module>
+    runpy.run_path(script,run_name="__main__")
+  File "<frozen runpy>", line 291, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "scripts/22_b2_training.py", line 11, in <module>
+    from nl2sparql.models.b12.canonical_training import EXPORT, ROOT, build_training_export
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/models/b12/__init__.py", line 4, in <module>
+    from nl2sparql.models.b12.baseline import BaselineB1, BaselineB2
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/models/b12/baseline.py", line 19, in <module>
+    from nl2sparql.models.b12.extraction import extract_google_sql
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/models/b12/extraction.py", line 7, in <module>
+    from nl2sparql.dataset.testset.contracts import TestSetError
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/dataset/testset/__init__.py", line 14, in <module>
+    from nl2sparql.dataset.testset.live import LiveEvidence, LiveEvidenceRecord, SqlPolicy, verify_sql
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/dataset/testset/live.py", line 14, in <module>
+    from google.cloud import bigquery
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 38, in guarded_import
+    raise RuntimeError("Provider/model import blocked during offline build")
+RuntimeError: Provider/model import blocked during offline build
