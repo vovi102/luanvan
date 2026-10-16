@@ -12,16 +12,19 @@ from google.cloud import bigquery
 
 from nl2sparql.dataset.generate import validate_stage_a_records
 from nl2sparql.dataset.stage_a.evidence import (
+    LogicalWitnessResult,
     StageAVerificationReport,
     WitnessDryRun,
     WitnessEvidenceError,
     WitnessExecution,
     WitnessGroup,
     WitnessPreflight,
+    WitnessQuery,
 )
 from nl2sparql.dataset.stage_a.evidence import (
     build_witness_groups as _build_witness_groups,
 )
+from nl2sparql.dataset.stage_a.planning import build_single_witness_queries
 from nl2sparql.dataset.templates import PER_TEMPLATE_BYTES_CAP
 from nl2sparql.sql.constants import DEFAULT_LOCATION
 
@@ -49,31 +52,34 @@ def _query_config(*, dry_run: bool, maximum_bytes_billed: int) -> bigquery.Query
     )
 
 
-def _dry_run_group(
+WitnessQueryPlanner = Callable[[Sequence[Mapping[str, Any]]], tuple[WitnessQuery, ...]]
+
+
+def _dry_run_query(
     client: Any,
-    group: WitnessGroup,
+    query: WitnessQuery,
     *,
     location: str,
     per_witness_bytes_cap: int,
-) -> int:
+) -> tuple[int, Any]:
     job = client.query(
-        group.sql,
+        query.sql,
         job_config=_query_config(
             dry_run=True,
             maximum_bytes_billed=per_witness_bytes_cap,
         ),
         location=location,
     )
-    return int(getattr(job, "total_bytes_processed", 0) or 0)
+    return int(getattr(job, "total_bytes_processed", 0) or 0), job
 
 
 def _enforce_witness_cap(
-    group: WitnessGroup, estimated_bytes: int, per_witness_bytes_cap: int
+    query: WitnessQuery, estimated_bytes: int, per_witness_bytes_cap: int
 ) -> None:
     if estimated_bytes > per_witness_bytes_cap:
         cap_gib = per_witness_bytes_cap / 2**30
         raise StageAVerificationError(
-            f"Witness {group.group_id} ({group.template_id}) exceeds the "
+            f"Witness query {query.query_id} ({query.template_id}) exceeds the "
             f"{cap_gib:g} GiB cap: {estimated_bytes} bytes"
         )
 
@@ -85,26 +91,40 @@ def dry_run_witnesses(
     location: str = DEFAULT_LOCATION,
     per_witness_bytes_cap: int = PER_TEMPLATE_BYTES_CAP,
     total_bytes_cap: int = TOTAL_WITNESS_BYTES_CAP,
+    query_planner: WitnessQueryPlanner = build_single_witness_queries,
+    diagnostic_recorder: Any | None = None,
 ) -> WitnessPreflight:
-    """Dry-run every unique witness before any Stage A execution."""
-    groups = build_witness_groups(records)
+    """Dry-run every unique physical witness query before any execution."""
+    groups_by_id = {group.group_id: group for group in build_witness_groups(records)}
+    try:
+        queries = query_planner(records)
+    except WitnessEvidenceError as exc:
+        raise StageAVerificationError(str(exc)) from exc
     results: list[WitnessDryRun] = []
-    for group in groups:
-        estimated_bytes = _dry_run_group(
+    for query in queries:
+        estimated_bytes, job = _dry_run_query(
             client,
-            group,
+            query,
             location=location,
             per_witness_bytes_cap=per_witness_bytes_cap,
         )
-        _enforce_witness_cap(group, estimated_bytes, per_witness_bytes_cap)
-        results.append(
-            WitnessDryRun(
-                group_id=group.group_id,
-                template_id=group.template_id,
-                witness_record_id=group.witness_record_id,
-                estimated_bytes=estimated_bytes,
-            )
+        _enforce_witness_cap(query, estimated_bytes, per_witness_bytes_cap)
+        first_group = groups_by_id[query.group_ids[0]]
+        result = WitnessDryRun(
+            group_id=first_group.group_id,
+            template_id=query.template_id,
+            witness_record_id=first_group.witness_record_id,
+            estimated_bytes=estimated_bytes,
+            query_id=query.query_id,
+            query_sha256=query.query_sha256,
+            proof_kind=query.proof_kind,
+            group_ids=query.group_ids,
+            job_id=str(getattr(job, "job_id", "") or ""),
+            location=str(getattr(job, "location", location) or location),
         )
+        results.append(result)
+        if diagnostic_recorder is not None:
+            diagnostic_recorder.record_initial_dry_run(result)
     total_estimated_bytes = sum(result.estimated_bytes for result in results)
     if total_estimated_bytes > total_bytes_cap:
         cap_gib = total_bytes_cap / 2**30
@@ -131,19 +151,118 @@ def _row_mapping(row: Any) -> dict[str, Any]:
     raise StageAVerificationError(f"Witness result row is not mappable: {type(row).__name__}")
 
 
+def _logical_results(
+    query: WitnessQuery,
+    groups_by_id: Mapping[str, WitnessGroup],
+    records_by_id: Mapping[str, Mapping[str, Any]],
+    templates_by_id: Mapping[str, Mapping[str, Any]],
+    rows: list[Any],
+    columns: tuple[str, ...],
+) -> tuple[LogicalWitnessResult, ...]:
+    expected_columns = tuple(templates_by_id[query.template_id]["expected_columns"])
+    if query.proof_kind == "single":
+        group = groups_by_id[query.group_ids[0]]
+        if columns != expected_columns:
+            raise StageAVerificationError(
+                f"Witness {group.witness_record_id} returned columns {columns}; "
+                f"expected {expected_columns}"
+            )
+        if not rows:
+            raise StageAVerificationError(
+                f"Witness {group.witness_record_id} requires a non-empty result"
+            )
+        if group.template_id == "T_COUNT_TX_IN_RANGE":
+            transaction_count = _row_mapping(rows[0]).get("transaction_count")
+            if (
+                not isinstance(transaction_count, int)
+                or isinstance(transaction_count, bool)
+                or transaction_count <= 0
+            ):
+                raise StageAVerificationError(
+                    f"Witness {group.witness_record_id} requires a positive transaction_count"
+                )
+        return (
+            LogicalWitnessResult(
+                group_id=group.group_id,
+                witness_record_id=group.witness_record_id,
+                row_count=len(rows),
+                columns=columns,
+            ),
+        )
+    if query.proof_kind not in {"tx_hash_batch", "account_pair_batch"}:
+        raise StageAVerificationError(f"Unsupported witness proof kind: {query.proof_kind}")
+    batch_columns = ("witness_group_id", *expected_columns)
+    if columns != batch_columns:
+        raise StageAVerificationError(
+            f"Witness batch {query.query_id} returned columns {columns}; expected {batch_columns}"
+        )
+    rows_by_group: dict[str, dict[str, Any]] = {}
+    requested = set(query.group_ids)
+    for row in rows:
+        values = _row_mapping(row)
+        group_id = values.get("witness_group_id")
+        if not isinstance(group_id, str) or group_id not in requested:
+            raise StageAVerificationError(
+                f"Witness batch {query.query_id} returned an unexpected group ID"
+            )
+        if group_id in rows_by_group:
+            raise StageAVerificationError(
+                f"Witness batch {query.query_id} returned a duplicate group ID"
+            )
+        rows_by_group[group_id] = values
+    if set(rows_by_group) != requested:
+        raise StageAVerificationError(
+            f"Witness batch {query.query_id} result membership is incomplete"
+        )
+    logical_results: list[LogicalWitnessResult] = []
+    for group_id in query.group_ids:
+        group = groups_by_id[group_id]
+        record = records_by_id[group.witness_record_id]
+        if query.proof_kind == "tx_hash_batch":
+            expected_hash = record["slot_values"]["transaction_hash"]
+            if rows_by_group[group_id].get("transaction_hash") != expected_hash:
+                raise StageAVerificationError(
+                    f"Witness batch {query.query_id} returned the wrong transaction hash"
+                )
+        else:
+            expected_pair = {
+                record["slot_values"]["account"],
+                record["slot_values"]["account_b"],
+            }
+            observed_pair = {
+                rows_by_group[group_id].get("from_address"),
+                rows_by_group[group_id].get("to_address"),
+            }
+            if observed_pair != expected_pair:
+                raise StageAVerificationError(
+                    f"Witness batch {query.query_id} returned the wrong account pair"
+                )
+        logical_results.append(
+            LogicalWitnessResult(
+                group_id=group_id,
+                witness_record_id=group.witness_record_id,
+                row_count=1,
+                columns=expected_columns,
+            )
+        )
+    return tuple(logical_results)
+
+
 def _execute_witness(
     client: Any,
-    group: WitnessGroup,
-    template: Mapping[str, Any],
+    query: WitnessQuery,
+    groups_by_id: Mapping[str, WitnessGroup],
+    records_by_id: Mapping[str, Mapping[str, Any]],
+    templates_by_id: Mapping[str, Mapping[str, Any]],
     *,
-    estimated_bytes: int,
+    immediate_dry_run: WitnessDryRun,
     location: str,
     per_witness_bytes_cap: int,
     clock_ns: Callable[[], int],
 ) -> WitnessExecution:
     start_ns = clock_ns()
     job = client.query(
-        group.sql,
+        query.sql,
         job_config=_query_config(
             dry_run=False,
             maximum_bytes_billed=per_witness_bytes_cap,
@@ -156,47 +275,44 @@ def _execute_witness(
     schema = getattr(row_iterator, "schema", None)
     if schema is None:
         raise StageAVerificationError(
-            f"Witness {group.witness_record_id} result does not expose columns"
+            f"Witness query {query.query_id} result does not expose columns"
         )
     columns = tuple(field.name for field in schema)
-    expected_columns = tuple(template["expected_columns"])
-    if columns != expected_columns:
-        raise StageAVerificationError(
-            f"Witness {group.witness_record_id} returned columns {columns}; "
-            f"expected {expected_columns}"
-        )
-    if not rows:
-        raise StageAVerificationError(
-            f"Witness {group.witness_record_id} requires a non-empty result"
-        )
-    if group.template_id == "T_COUNT_TX_IN_RANGE":
-        transaction_count = _row_mapping(rows[0]).get("transaction_count")
-        if (
-            not isinstance(transaction_count, int)
-            or isinstance(transaction_count, bool)
-            or transaction_count <= 0
-        ):
-            raise StageAVerificationError(
-                f"Witness {group.witness_record_id} requires a positive transaction_count"
-            )
+    logical_results = _logical_results(
+        query,
+        groups_by_id,
+        records_by_id,
+        templates_by_id,
+        rows,
+        columns,
+    )
     cache_hit = bool(getattr(job, "cache_hit", False))
     if cache_hit:
         raise StageAVerificationError(
-            f"Witness {group.witness_record_id} produced an unexpected cache hit"
+            f"Witness query {query.query_id} produced an unexpected cache hit"
         )
+    first_group = groups_by_id[query.group_ids[0]]
     return WitnessExecution(
-        group_id=group.group_id,
-        template_id=group.template_id,
-        witness_record_id=group.witness_record_id,
+        group_id=first_group.group_id,
+        template_id=query.template_id,
+        witness_record_id=first_group.witness_record_id,
         row_count=len(rows),
         columns=columns,
-        estimated_bytes=estimated_bytes,
+        estimated_bytes=immediate_dry_run.estimated_bytes,
         processed_bytes=int(getattr(job, "total_bytes_processed", 0) or 0),
         billed_bytes=int(getattr(job, "total_bytes_billed", 0) or 0),
         wall_latency_ms=(end_ns - start_ns) / 1_000_000,
         server_latency_ms=_server_latency_ms(job),
         slot_millis=int(getattr(job, "slot_millis", 0) or 0),
         cache_hit=cache_hit,
+        query_id=query.query_id,
+        query_sha256=query.query_sha256,
+        proof_kind=query.proof_kind,
+        group_ids=query.group_ids,
+        job_id=str(getattr(job, "job_id", "") or ""),
+        location=str(getattr(job, "location", location) or location),
+        immediate_dry_run=immediate_dry_run,
+        logical_results=logical_results,
     )
 
 
@@ -222,53 +338,119 @@ def verify_stage_a(
     record_validator: Callable[
         [Sequence[dict[str, Any]], Sequence[dict[str, Any]]], None
     ] = validate_stage_a_records,
+    query_planner: WitnessQueryPlanner = build_single_witness_queries,
+    diagnostic_recorder: Any | None = None,
 ) -> StageAVerificationReport:
     """Preflight, execute, and propagate non-empty witness proofs."""
     _validate_verified_at(verified_at)
     record_validator(records, templates)
     groups = build_witness_groups(records)
-    preflight = dry_run_witnesses(
-        client,
-        records,
-        location=location,
-        per_witness_bytes_cap=per_witness_bytes_cap,
-        total_bytes_cap=total_bytes_cap,
-    )
-    templates_by_id = {template["id"]: template for template in templates}
-    executions: list[WitnessExecution] = []
-    for group in groups:
-        estimated_bytes = _dry_run_group(
+    groups_by_id = {group.group_id: group for group in groups}
+    records_by_id = {str(record["id"]): record for record in records}
+    try:
+        queries = query_planner(records)
+    except WitnessEvidenceError as exc:
+        raise StageAVerificationError(str(exc)) from exc
+    try:
+        preflight = dry_run_witnesses(
             client,
-            group,
+            records,
             location=location,
             per_witness_bytes_cap=per_witness_bytes_cap,
+            total_bytes_cap=total_bytes_cap,
+            query_planner=query_planner,
+            diagnostic_recorder=diagnostic_recorder,
         )
-        _enforce_witness_cap(group, estimated_bytes, per_witness_bytes_cap)
-        executions.append(
-            _execute_witness(
+    except Exception as exc:
+        if diagnostic_recorder is not None:
+            diagnostic_recorder.record_failure("initial_preflight", exc)
+        raise
+    preflight_by_query = {item.query_id: item for item in preflight.witnesses}
+    templates_by_id = {template["id"]: template for template in templates}
+    executions: list[WitnessExecution] = []
+    for query in queries:
+        try:
+            estimated_bytes, dry_run_job = _dry_run_query(
                 client,
-                group,
-                templates_by_id[group.template_id],
-                estimated_bytes=estimated_bytes,
+                query,
+                location=location,
+                per_witness_bytes_cap=per_witness_bytes_cap,
+            )
+            _enforce_witness_cap(query, estimated_bytes, per_witness_bytes_cap)
+        except Exception as exc:
+            if diagnostic_recorder is not None:
+                diagnostic_recorder.record_failure("immediate_dry_run", exc)
+            raise
+        initial = preflight_by_query.get(query.query_id)
+        if (
+            initial is None
+            or initial.query_sha256 != query.query_sha256
+            or initial.group_ids != query.group_ids
+        ):
+            error = StageAVerificationError(
+                f"Witness query {query.query_id} changed after initial preflight"
+            )
+            if diagnostic_recorder is not None:
+                diagnostic_recorder.record_failure("immediate_dry_run", error)
+            raise error
+        first_group = groups_by_id[query.group_ids[0]]
+        immediate_dry_run = WitnessDryRun(
+            group_id=first_group.group_id,
+            template_id=query.template_id,
+            witness_record_id=first_group.witness_record_id,
+            estimated_bytes=estimated_bytes,
+            query_id=query.query_id,
+            query_sha256=query.query_sha256,
+            proof_kind=query.proof_kind,
+            group_ids=query.group_ids,
+            job_id=str(getattr(dry_run_job, "job_id", "") or ""),
+            location=str(getattr(dry_run_job, "location", location) or location),
+        )
+        if diagnostic_recorder is not None:
+            diagnostic_recorder.record_immediate_dry_run(immediate_dry_run)
+        try:
+            execution = _execute_witness(
+                client,
+                query,
+                groups_by_id,
+                records_by_id,
+                templates_by_id,
+                immediate_dry_run=immediate_dry_run,
                 location=location,
                 per_witness_bytes_cap=per_witness_bytes_cap,
                 clock_ns=clock_ns,
             )
-        )
-    groups_by_id = {group.group_id: group for group in groups}
-    executions_by_group = {execution.group_id: execution for execution in executions}
+        except Exception as exc:
+            if diagnostic_recorder is not None:
+                diagnostic_recorder.record_failure("execution", exc)
+            raise
+        executions.append(execution)
+        if diagnostic_recorder is not None:
+            diagnostic_recorder.record_execution(execution)
+            for result in execution.logical_results:
+                diagnostic_recorder.record_logical_result(execution.query_id, result)
+    executions_by_group: dict[str, tuple[WitnessExecution, LogicalWitnessResult]] = {}
+    for execution in executions:
+        for result in execution.logical_results:
+            if result.group_id in executions_by_group:
+                raise StageAVerificationError(
+                    f"Witness group {result.group_id} has multiple physical proofs"
+                )
+            executions_by_group[result.group_id] = (execution, result)
+    if set(executions_by_group) != set(groups_by_id):
+        raise StageAVerificationError("Physical witness plan does not cover every logical group")
     verified_records: list[dict[str, Any]] = []
     for candidate in records:
         record = copy.deepcopy(candidate)
         group = groups_by_id[record["witness_group_id"]]
-        execution = executions_by_group[group.group_id]
+        execution, logical_result = executions_by_group[group.group_id]
         mode = "live_exact" if record["id"] == group.witness_record_id else "live_limit_monotonic"
         record["verification"] = {
             "mode": mode,
             "non_empty": True,
             "witness_group_id": group.group_id,
             "witness_record_id": group.witness_record_id,
-            "witness_row_count": execution.row_count,
+            "witness_row_count": logical_result.row_count,
             "estimated_bytes": execution.estimated_bytes,
             "processed_bytes": execution.processed_bytes,
             "billed_bytes": execution.billed_bytes,
@@ -276,6 +458,10 @@ def verify_stage_a(
             "server_latency_ms": execution.server_latency_ms,
             "slot_millis": execution.slot_millis,
             "cache_hit": execution.cache_hit,
+            "physical_query_id": execution.query_id,
+            "query_sha256": execution.query_sha256,
+            "job_id": execution.job_id,
+            "location": execution.location,
             "verified_at": verified_at,
         }
         verified_records.append(record)

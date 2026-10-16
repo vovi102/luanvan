@@ -3,10 +3,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "380e72a9688a979edadf8ac0416412fc29be22de8b244622eb77e88825d7e4bb",
+      "content_sha256": "25c10626a3a43a7b717fe648f17fc953f71dc2f2846d905a1147b5afda5fb9b0",
       "id": "T_COUNT_TX_IN_RANGE__en__formal",
       "language": "en",
-      "pattern": "How many transactions occurred between {start_date} and {end_date}?",
+      "pattern": "Count all transactions. Window: from {start_date} up to but excluding {end_date}.",
       "placeholders": [
         "end_date",
         "start_date"
@@ -18,10 +18,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "2468c6295fcd07841d59d2888952ce52e1ccea86ca0c49050a9fc875bc8a5ec5",
+      "content_sha256": "3dc053fc34f63d0ad01c1127ac23ff7128af9bb92f161552d2325d5bed095b0e",
       "id": "T_COUNT_TX_IN_RANGE__en__conversational",
       "language": "en",
-      "pattern": "Can you tell me the transaction count from {start_date} to {end_date}?",
+      "pattern": "Could you tell me how many transactions occurred? Use the window starting {start_date}, stopping before {end_date}.",
       "placeholders": [
         "end_date",
         "start_date"
@@ -33,10 +33,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7abde1b9469a5effd081c4621d53e42a5de90d2fedb75316a5ad3972c139934a",
+      "content_sha256": "e4789c482252b13c266ab572960198415810ceaaf92ea47bac0f83046b7b19ba",
       "id": "T_COUNT_TX_IN_RANGE__en__abbreviated",
       "language": "en",
-      "pattern": "Tx count, {start_date}–{end_date}?",
+      "pattern": "Tx count; [{start_date}, {end_date}).",
       "placeholders": [
         "end_date",
         "start_date"
@@ -48,10 +48,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "98875704160ef10c4ae6ad16590df737e922bd94436e203045f667d8a03aea81",
+      "content_sha256": "fb0ac3f2ded76729c0ab3e476939e414ba59cf84d68998e86e6bb3b35ea6e6b1",
       "id": "T_COUNT_TX_IN_RANGE__en__alternative",
       "language": "en",
-      "pattern": "For the period beginning {start_date} and ending {end_date}, what was the total number of transactions?",
+      "pattern": "Calculate the total number of recorded transactions. Restrict the search to on or after {start_date} but before {end_date}.",
       "placeholders": [
         "end_date",
         "start_date"
@@ -63,10 +63,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "43e7ea5c1a6837ec5ce153ce57c67fc30774d09e80913cb2b85dc60d9d6a05de",
+      "content_sha256": "989ef661b55f7da77d1e428974da4f2e410b4ab7d399dd9e1b370df8083a50b1",
       "id": "T_COUNT_TX_IN_RANGE__vi__formal",
       "language": "vi",
-      "pattern": "Có bao nhiêu giao dịch được thực hiện trong khoảng từ {start_date} đến {end_date}?",
+      "pattern": "Đếm tổng số giao dịch. Phạm vi: từ {start_date} đến trước {end_date}.",
       "placeholders": [
         "end_date",
         "start_date"
@@ -78,10 +78,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0725c84b2d6f0a88c2cabcb5a025b44f541faf312a6286121f9e6f6261be114c",
+      "content_sha256": "0979289e02ff1650cec22595f8e51b0bf41fb10f2dfe5d388eaeef19bf7ae205",
       "id": "T_COUNT_TX_IN_RANGE__vi__conversational",
       "language": "vi",
-      "pattern": "Bạn cho mình biết số giao dịch từ {start_date} tới {end_date} nhé?",
+      "pattern": "Bạn đếm giúp mình số giao dịch nhé. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}.",
       "placeholders": [
         "end_date",
         "start_date"
@@ -93,10 +93,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ce1e3132c451720f21675a3affa44f6e2f12c5cc5d23d6dcf369ca8db11ebae0",
+      "content_sha256": "93126472b8af58a20071feddf15cbf112b67effc324037538b0078f11c2cb1f2",
       "id": "T_COUNT_TX_IN_RANGE__vi__abbreviated",
       "language": "vi",
-      "pattern": "SL giao dịch {start_date}–{end_date}?",
+      "pattern": "SL giao dịch; [{start_date}, {end_date}).",
       "placeholders": [
         "end_date",
         "start_date"
@@ -108,10 +108,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "afd5e480cbe41f17e9959804630b8a39f39ae6e54d38bbdcf13f7b062d6cb6a4",
+      "content_sha256": "930b34abacd59ef8ee29cf1f223cd8577b7cd19b85ec01653763f09e08b49a99",
       "id": "T_COUNT_TX_IN_RANGE__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn bắt đầu ngày {start_date} và kết thúc ngày {end_date}, tổng số giao dịch là bao nhiêu?",
+      "pattern": "Cho biết có tất cả bao nhiêu giao dịch được ghi nhận. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}.",
       "placeholders": [
         "end_date",
         "start_date"
@@ -123,10 +123,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f7ff1489d60329bdb1ad4f62a27300d7f7a1f2d8deba5a542c16626596b8e303",
+      "content_sha256": "86bbcd20d93c9759c6c18d32ca770340d6649e738dd740190af7acd1e4ee0071",
       "id": "T_LIST_TX_FROM_ACCOUNT__en__formal",
       "language": "en",
-      "pattern": "List the latest {n} transactions sent by {account} between {start_date} and {end_date}.",
+      "pattern": "List the latest transactions whose sender is {account}. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -140,10 +140,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "84336fe79f0e029ba58dcd19cbdd6c2edbb0807ec544663346c4222e3c92bbd7",
+      "content_sha256": "365017325a9303f91f2c1b0ee8c1d1265ca09eabbf5b6a4949ff05f38a3c0b03",
       "id": "T_LIST_TX_FROM_ACCOUNT__en__conversational",
       "language": "en",
-      "pattern": "Could you show me {n} transfers that {account} sent from {start_date} to {end_date}?",
+      "pattern": "I'd like the newest transactions sent by address {account}. Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -157,10 +157,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cfb5fe996cd40e60cc61fa241f2fadfd7b7f4fcdbd6ff451ef5ac93feb11383b",
+      "content_sha256": "3c5c44e02d4feec7281fdf6a38bda6a8cc0d7ea8520a0a1a8f5a598f428b5bf7",
       "id": "T_LIST_TX_FROM_ACCOUNT__en__abbreviated",
       "language": "en",
-      "pattern": "Latest {n} outgoing txs: {account}, {start_date}–{end_date}.",
+      "pattern": "Latest outgoing txs from {account}; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -174,10 +174,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f6dbd00498af31235cc340fe48c2a6f4d3a220a8f72b9fa85593cd8e693de466",
+      "content_sha256": "22314f6bdf1e7912514298c8e6c167f4d77362af00e38f2f8eca6d0915ad3031",
       "id": "T_LIST_TX_FROM_ACCOUNT__en__alternative",
       "language": "en",
-      "pattern": "From the interval {start_date} through {end_date}, return {n} transactions whose sender is {account}.",
+      "pattern": "Return transactions originating at {account}, newest timestamps first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "account",
         "end_date",
@@ -191,10 +191,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "518184c7b55ecce4a02d5062bfef650a99eb9715f25cbddc0a34d1d761230c28",
+      "content_sha256": "2f689be20fa5d00bcda8e341f0a927cf3bbaa16c7e961d53efdc44635b719719",
       "id": "T_LIST_TX_FROM_ACCOUNT__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch gần nhất do {account} gửi trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê giao dịch gần nhất có địa chỉ gửi {account}. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -208,10 +208,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "8dbcef9f16fba5ac2c42ea6a9810d778e08af51080eba59cb1bebe5119506577",
+      "content_sha256": "7ad829e415abd93d534b24a61694dac5335b2b7e619fe0fe02ab504f7e4e85a8",
       "id": "T_LIST_TX_FROM_ACCOUNT__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} giao dịch mà {account} đã gửi từ {start_date} tới {end_date} được không?",
+      "pattern": "Bạn cho mình xem giao dịch mới nhất do {account} gửi nhé. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "account",
         "end_date",
@@ -225,10 +225,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cb0bd8386f30b3383c61d5fe26b73adb1b6d5be5c95c3472b54f56f850dcfb4b",
+      "content_sha256": "b726165a7137dd8e04090be02542659f6b5ddd47982eb6306e2ff4785ad9475b",
       "id": "T_LIST_TX_FROM_ACCOUNT__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} tx đi mới nhất: {account}, {start_date}–{end_date}.",
+      "pattern": "Tx đi mới nhất: {account}; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -242,10 +242,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "98bf787381c05597a15ee0dd4f950370cf9b6a8082856a64f4eef4d8df4db4b6",
+      "content_sha256": "8f45216f7d845fc56c2961d5ca86676ac8658ee4b462e07acbab8128ef41c3e7",
       "id": "T_LIST_TX_FROM_ACCOUNT__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy trả về {n} giao dịch có địa chỉ gửi là {account}.",
+      "pattern": "Tra cứu giao dịch xuất phát từ {account}, ưu tiên timestamp mới nhất. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "account",
         "end_date",
@@ -259,10 +259,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c66fa85448b0e32e0d3882f6259a04cb9a99882872fd297e05c339c213ffbba0",
+      "content_sha256": "3f9f1699e840da5997b8adfd6cfadf8e97d7325def67dbe57081f9aea73c090e",
       "id": "T_LIST_TX_TO_ACCOUNT__en__formal",
       "language": "en",
-      "pattern": "List the latest {n} transactions received by {account} between {start_date} and {end_date}.",
+      "pattern": "List the latest transactions whose recipient is {account}. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -276,10 +276,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1d443130d08427282ecb2be41ed3a4ed10ae5fcaead99b83e878f04901660e83",
+      "content_sha256": "51018ac719d3d65154037252d9405b1adbaab6c5459047d8215f975f2a1be2b8",
       "id": "T_LIST_TX_TO_ACCOUNT__en__conversational",
       "language": "en",
-      "pattern": "Can I see {n} transfers sent to {account} from {start_date} to {end_date}?",
+      "pattern": "Could you show the newest transactions addressed to {account}? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -293,10 +293,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0db83be6cedcce4ab8e040f5a331f1bbb7d12cd08d52e778a27f759a9b52516b",
+      "content_sha256": "e126c46525789cf105c2e3ab7f8c47c9da404a7b8f171290805efdfa04b7c04a",
       "id": "T_LIST_TX_TO_ACCOUNT__en__abbreviated",
       "language": "en",
-      "pattern": "Latest {n} incoming txs: {account}, {start_date}–{end_date}.",
+      "pattern": "Latest incoming txs to {account}; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -310,10 +310,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "9997e83872b5ecb1d62c8a97aab36949a22d3560646982ce75b4f182f7f55b90",
+      "content_sha256": "d276ffaa47da3e9a7f25c8a38232dc7950991dafd23dc24a93ea5b78aaff9e5b",
       "id": "T_LIST_TX_TO_ACCOUNT__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} transactions whose recipient is {account}.",
+      "pattern": "Retrieve transactions targeting {account}, with newest timestamps first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "account",
         "end_date",
@@ -327,10 +327,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "dc17f9ebf1db27500995d9a46ba0be4f51bf57927d3b84ca9bade14b9fcc01e6",
+      "content_sha256": "01a017d8a1989b581b6a579af438b6e80dabee73ecebebc0231b23a8ddd45de4",
       "id": "T_LIST_TX_TO_ACCOUNT__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch gần nhất mà {account} nhận trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê giao dịch gần nhất có địa chỉ nhận {account}. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -344,10 +344,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "753ae4c195535c97f97f04c87b0b52a5b17042bd103b9f7858b081301fa87306",
+      "content_sha256": "95015b189d22ed3eef768734a94bdb1761827207284f0e2495dd0dcb969dc910",
       "id": "T_LIST_TX_TO_ACCOUNT__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} giao dịch gửi đến {account} từ {start_date} tới {end_date} nhé?",
+      "pattern": "Mình muốn xem giao dịch mới nhất gửi tới {account}. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "account",
         "end_date",
@@ -361,10 +361,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f6caa0853ed4489428f82c474d0d93d6b8210d2e1eb782440ceb1dd96e21d855",
+      "content_sha256": "63c46ad42106a2167048c558267195317ff9282ca01808854141deac1d98c6f7",
       "id": "T_LIST_TX_TO_ACCOUNT__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} tx vào mới nhất: {account}, {start_date}–{end_date}.",
+      "pattern": "Tx vào mới nhất: {account}; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -378,10 +378,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "3f7d3336a2dbd23939c5c8796baa67d65c8e3120a4a3018373bec51af303bf7e",
+      "content_sha256": "dba0ebf24c737b0208babe1b6207a3ee0bc5e3cd8bef6c53e6a01c853ef3f846",
       "id": "T_LIST_TX_TO_ACCOUNT__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} giao dịch có địa chỉ nhận là {account}.",
+      "pattern": "Tra cứu giao dịch có bên nhận là {account}, ưu tiên timestamp mới nhất. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "account",
         "end_date",
@@ -395,10 +395,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "60d5481f2b3e31278fe68ce72938376bee20fa4e703dc3ef887a085fd3ac53de",
+      "content_sha256": "9d0ead2c2bc83007ea1da3ac70083d0d9f0bc0aca52116d041ff02929d48c2a5",
       "id": "T_FILTER_TX_BY_VALUE__en__formal",
       "language": "en",
-      "pattern": "Return the top {n} transactions worth at least {value_wei} wei between {start_date} and {end_date}.",
+      "pattern": "List transactions with the largest native value, requiring at least {value_wei} wei. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -412,10 +412,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "5a0b38b1bfe4b7881fae069758159717357ce105e044a9140f7cbec20966bba6",
+      "content_sha256": "c11688367e4ea0113dae8a4b41dd21378c4bd917a05b6ac54b79fe54f669bcde",
       "id": "T_FILTER_TX_BY_VALUE__en__conversational",
       "language": "en",
-      "pattern": "Which {n} biggest transfers moved no less than {value_wei} wei from {start_date} to {end_date}?",
+      "pattern": "Which transactions have the highest native value while meeting a minimum of {value_wei} wei? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -429,10 +429,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "2d5bdaeb72a7bb683a6246edad7fa887e09e492c41929af9eb2c5a05119bfd2e",
+      "content_sha256": "1a7ef7feafbe2fca566a7b347279a75f2218e29fb49723dcd319303942c1f3b1",
       "id": "T_FILTER_TX_BY_VALUE__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} txs ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "pattern": "Top txs by native value, value ≥ {value_wei} wei; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -446,10 +446,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "8fbd78f3749707204fe0f2efd852629bdc285c5ab6d6170914156b01cf5e2075",
+      "content_sha256": "34176585e99c1a5316360673e2d5cd327ff75088d68dd10d464dbf14486c6903",
       "id": "T_FILTER_TX_BY_VALUE__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, find {n} transactions meeting a minimum value of {value_wei} wei.",
+      "pattern": "Find transactions whose native value is no less than {value_wei} wei and rank largest values first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -463,10 +463,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f4a4c323bede60cd9bd11f8d3eba5273c42634562f9fd267c32e207f9eecc7f9",
+      "content_sha256": "a860fcb1b45f15240f5f9a8a60de4a3410520cb4f031b49fd7feb6f05a2e2ff2",
       "id": "T_FILTER_TX_BY_VALUE__vi__formal",
       "language": "vi",
-      "pattern": "Trả về {n} giao dịch lớn nhất có giá trị ít nhất {value_wei} wei trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê giao dịch có giá trị native lớn nhất, với ngưỡng ít nhất {value_wei} wei. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -480,10 +480,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "93c001801940aec9b931054b8afcf5b75c8ba6a8a89463de9ce63783c8986945",
+      "content_sha256": "7b2874e131f72ee30ebf8097203aa00d5eae4b5b713be9479f1891fe82a55ae4",
       "id": "T_FILTER_TX_BY_VALUE__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} giao dịch lớn nhất chuyển không dưới {value_wei} wei là những giao dịch nào?",
+      "pattern": "Giao dịch nào có giá trị native cao nhất và không dưới {value_wei} wei. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -497,10 +497,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "052c0c6fc589ce869c6c66cdb8a8ffa6b25f71b688b1234f8e5d3348f5dd6cb8",
+      "content_sha256": "05bec3ef4f4f1f00bf23d7b742da0db647f957884ae8c786a54183048a9f5294",
       "id": "T_FILTER_TX_BY_VALUE__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} tx ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "pattern": "Top tx theo giá trị native ≥ {value_wei} wei; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -514,10 +514,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "61603dc2f321e70c8345e90a70889b798e0a88ba70f3fb87d6e5351fdaec1f0a",
+      "content_sha256": "daa62d410d223ff3d3ffdb4749ce390e17d26df8a749e16cbcff5b5443f24384",
       "id": "T_FILTER_TX_BY_VALUE__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} giao dịch đạt ngưỡng tối thiểu {value_wei} wei.",
+      "pattern": "Tìm giao dịch đạt ít nhất {value_wei} wei, rồi xếp giá trị native lớn nhất lên trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -531,10 +531,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a7e3df58944bc58d154ed917ae168cb846103b50ff8d6f4151d1f6117451c969",
+      "content_sha256": "c1b5030879b820eccec0a2b675106243b8fab76e6db2c02664caae1a58de2303",
       "id": "T_LIST_FAILED_TX__en__formal",
       "language": "en",
-      "pattern": "List the latest {n} failed transactions between {start_date} and {end_date}.",
+      "pattern": "List the latest transactions marked unsuccessful. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -547,10 +547,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e77c0389df6dde9d2b63fcf04d5669b5966a077c17e2fe7952551dc44fd9468e",
+      "content_sha256": "4dfa41b25682cadb26ec8c034b863f24b0f643c1080a8675d5a191cbac7faa65",
       "id": "T_LIST_FAILED_TX__en__conversational",
       "language": "en",
-      "pattern": "Can you show me {n} transactions that failed from {start_date} to {end_date}?",
+      "pattern": "Could you show the newest transactions that failed? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -563,10 +563,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c361eb127e91f342a8953e00b4f4eca0fa21c06e5da9a12b01346628e45724d0",
+      "content_sha256": "bd172b39aca4f50bda884a1d77fbe0d31a333c926230edd6a977790c2eeecd1d",
       "id": "T_LIST_FAILED_TX__en__abbreviated",
       "language": "en",
-      "pattern": "Latest {n} failed txs, {start_date}–{end_date}.",
+      "pattern": "Latest failed txs; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -579,10 +579,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "67c6ae282e358118a3a2667a97e059ef6286f822748d4a1e456701ad11889d0c",
+      "content_sha256": "5c6df675b831cc5f191ce506b9b2baac9bb7a9562abb2fb364305977c008f9f4",
       "id": "T_LIST_FAILED_TX__en__alternative",
       "language": "en",
-      "pattern": "For the period {start_date} through {end_date}, return {n} unsuccessful transactions.",
+      "pattern": "Find unsuccessful transactions and place the newest timestamps first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -595,10 +595,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "48c52dd732034d43a85ab040af0c546144d135ef42795e9acceb02f746ae222a",
+      "content_sha256": "156555edabd104892a7561079dc316cd7e69e178bb6fcce9d2ecbe0c38fc4a38",
       "id": "T_LIST_FAILED_TX__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch thất bại gần nhất trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê các giao dịch thất bại gần nhất. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -611,10 +611,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "52b4d6d11d62998ba6a4cdb6c64f3e0108a5c3ef3a433c5439fbfaa5b0a4c0fa",
+      "content_sha256": "832d3c03be138ed10bd427f988be48c34b9cd8658e514c528751d9844423f563",
       "id": "T_LIST_FAILED_TX__vi__conversational",
       "language": "vi",
-      "pattern": "Bạn cho mình xem {n} giao dịch bị lỗi từ {start_date} tới {end_date} nhé?",
+      "pattern": "Cho mình xem giao dịch mới nhất có trạng thái thất bại nhé. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -627,10 +627,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "5b97dbcfb0994a837524d152c74a339e5eaa3d4c4b94b6b11fd0310c6b66be72",
+      "content_sha256": "c6f991bac43813dbe69a7a0a40225a6a031cfcf4958edbbe258c5a310612b808",
       "id": "T_LIST_FAILED_TX__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} tx lỗi mới nhất, {start_date}–{end_date}.",
+      "pattern": "Tx lỗi mới nhất; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -643,10 +643,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "2b6500e268f88136a95176c90d2b99ffc0e0d17997c96f3922daaa489dd6a5e8",
+      "content_sha256": "dfc9e47fbe3bc3c3ff5100adc40b3746ff1b3dad754bc175952ae1052213b9a8",
       "id": "T_LIST_FAILED_TX__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy trả về {n} giao dịch không thành công.",
+      "pattern": "Tìm giao dịch không thành công, xếp timestamp mới nhất lên trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -659,10 +659,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6b5b9e52acfdabfd8b03ca57232d2a628021666d35dd3259d9fb417a65c7dd55",
+      "content_sha256": "3df930a252b03d2f534c2a5c86d2bbe2d505ac0ae7c45418fef566dfd6c11422",
       "id": "T_BLOCK_BY_NUMBER__en__formal",
       "language": "en",
-      "pattern": "Show the details of block {block_number} within the date window {start_date} to {end_date}.",
+      "pattern": "Show block facts for block number {block_number}. Window: from {start_date} up to but excluding {end_date}.",
       "placeholders": [
         "block_number",
         "end_date",
@@ -675,10 +675,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d8001c71d49c87dddeed801d36e43dec2051716470f0afaf07fc5eb9b6407411",
+      "content_sha256": "db74ea65c22ebdbe82b2d9233356957b23d4e27dd75e2e8a7a39a83429de0d6f",
       "id": "T_BLOCK_BY_NUMBER__en__conversational",
       "language": "en",
-      "pattern": "What information do we have for block {block_number} between {start_date} and {end_date}?",
+      "pattern": "What details are available for block {block_number}? Use the window starting {start_date}, stopping before {end_date}.",
       "placeholders": [
         "block_number",
         "end_date",
@@ -691,10 +691,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cf69302b29b9d287b1accb13c5dc24ac203e2b5b1e64e256f1513a161a7f1688",
+      "content_sha256": "e39bde3cbe4e12476abea86906811374af70c09abb0ee2e5e3adc9df83b312a8",
       "id": "T_BLOCK_BY_NUMBER__en__abbreviated",
       "language": "en",
-      "pattern": "Block {block_number} details, {start_date}–{end_date}.",
+      "pattern": "Block {block_number}: details; [{start_date}, {end_date}).",
       "placeholders": [
         "block_number",
         "end_date",
@@ -707,10 +707,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "442f20d3fb604dd8bc95fd8ebdf5815a1c0537af911f8c0ddc75ffa4949cb6c8",
+      "content_sha256": "b5d034c0bb668cd38ab3fc0626534d3acb06f6c0e868b0c41ff0064e7ba77bd5",
       "id": "T_BLOCK_BY_NUMBER__en__alternative",
       "language": "en",
-      "pattern": "Look up block number {block_number} using the bounded period from {start_date} through {end_date}.",
+      "pattern": "Look up the block identified by number {block_number}. Restrict the search to on or after {start_date} but before {end_date}.",
       "placeholders": [
         "block_number",
         "end_date",
@@ -723,10 +723,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0e9af35da6c07ea7e60d24229b7392bf30391246d65f4c8bb60510ef8c4cd368",
+      "content_sha256": "20ba84c8c7dff9ac230691084e44002e44b89e78940a1dcfcaf9f8ebf6ecc9ab",
       "id": "T_BLOCK_BY_NUMBER__vi__formal",
       "language": "vi",
-      "pattern": "Hiển thị chi tiết của khối {block_number} trong khoảng ngày từ {start_date} đến {end_date}.",
+      "pattern": "Hiển thị thông tin của khối số {block_number}. Phạm vi: từ {start_date} đến trước {end_date}.",
       "placeholders": [
         "block_number",
         "end_date",
@@ -739,10 +739,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ce56752f649a99131f02d6ead8e1c24e93b2c60846dd6e5bcf9b4b717b440fd4",
+      "content_sha256": "64743b1bb817d4958353de9d95b58808a8a7498ff3d453f9ffe8fce01a4b2f4b",
       "id": "T_BLOCK_BY_NUMBER__vi__conversational",
       "language": "vi",
-      "pattern": "Có thông tin gì về khối {block_number} trong thời gian {start_date} tới {end_date}?",
+      "pattern": "Bạn tra giúp mình chi tiết khối {block_number} nhé. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}.",
       "placeholders": [
         "block_number",
         "end_date",
@@ -755,10 +755,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "673285f8a8916d23353946b2a277918487d4af447c257a0ffd6ffe0936394a53",
+      "content_sha256": "6888e187f9c2ad1ca64961f65d40cac2ae00f110a5442e75ab4ab0ed6aca5953",
       "id": "T_BLOCK_BY_NUMBER__vi__abbreviated",
       "language": "vi",
-      "pattern": "Chi tiết block {block_number}, {start_date}–{end_date}.",
+      "pattern": "Chi tiết block {block_number}; [{start_date}, {end_date}).",
       "placeholders": [
         "block_number",
         "end_date",
@@ -771,10 +771,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "adec010639401f71bc618be9cfcc39df363404b1e3e760233b65308069e703cb",
+      "content_sha256": "71ee3dbefb30b74f5c063b96eb81feeeab8d51565af6f208e1843694c9c2d0f5",
       "id": "T_BLOCK_BY_NUMBER__vi__alternative",
       "language": "vi",
-      "pattern": "Tra cứu khối số {block_number} với phạm vi thời gian giới hạn từ {start_date} đến {end_date}.",
+      "pattern": "Tìm bản ghi khối mang số hiệu {block_number}. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}.",
       "placeholders": [
         "block_number",
         "end_date",
@@ -787,10 +787,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a76d825b3a76fa9d1fcfdc0f5cd60fbbc6bfeafdce8cd6db9a0e63ce19b8295f",
+      "content_sha256": "aa7634caa5b7365f4efbb72c2b00d3df617812e35576250b38595723cdf97da0",
       "id": "T_TX_BY_HASH__en__formal",
       "language": "en",
-      "pattern": "Show transaction {transaction_hash} within the date window {start_date} to {end_date}.",
+      "pattern": "Show the transaction identified by hash {transaction_hash}. Window: from {start_date} up to but excluding {end_date}.",
       "placeholders": [
         "end_date",
         "start_date",
@@ -803,10 +803,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "837ddcb1d4e4bc0ac8dd461360e49ba9466cfe30e0e55b257dafd523340ba36b",
+      "content_sha256": "d00c324b60a6aaa1a8942cd39dd84021a432946f06b0b6b4ed6a9bf7bb54796c",
       "id": "T_TX_BY_HASH__en__conversational",
       "language": "en",
-      "pattern": "Can you look up the transaction {transaction_hash} between {start_date} and {end_date}?",
+      "pattern": "Could you look up transaction {transaction_hash} for me? Use the window starting {start_date}, stopping before {end_date}.",
       "placeholders": [
         "end_date",
         "start_date",
@@ -819,10 +819,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c1af1f6b76642ae5669974e549cc7547a12bfc8b0fb0641d5aa106bc99970af7",
+      "content_sha256": "4ce3159917dcb49f27d4817615266cbef4d2b57ef11c6c5436763b3ecf868a43",
       "id": "T_TX_BY_HASH__en__abbreviated",
       "language": "en",
-      "pattern": "Tx {transaction_hash}, {start_date}–{end_date}.",
+      "pattern": "Tx hash {transaction_hash}: details; [{start_date}, {end_date}).",
       "placeholders": [
         "end_date",
         "start_date",
@@ -835,10 +835,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "015134ef242a3f76625b5b49fe4f5e60e17e712394d75f85e34ba1b4b0f623a0",
+      "content_sha256": "dcd6fc0da852b4808e76859612865b42f60dbae9a2d655e8f8306222d2632ae4",
       "id": "T_TX_BY_HASH__en__alternative",
       "language": "en",
-      "pattern": "Retrieve the transaction identified by {transaction_hash} using the bounded period {start_date} through {end_date}.",
+      "pattern": "Retrieve the recorded transaction whose hash equals {transaction_hash}. Restrict the search to on or after {start_date} but before {end_date}.",
       "placeholders": [
         "end_date",
         "start_date",
@@ -851,10 +851,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a4dd30b0ef4c10b516fee23f9f2d2ef625fc7542fc3beb584506f92e0b093d27",
+      "content_sha256": "be0b55aa573779d764dbf5bb5cb2ec6b3abe8faf5de053296771952d7eea6754",
       "id": "T_TX_BY_HASH__vi__formal",
       "language": "vi",
-      "pattern": "Hiển thị giao dịch {transaction_hash} trong khoảng ngày từ {start_date} đến {end_date}.",
+      "pattern": "Hiển thị giao dịch có mã băm {transaction_hash}. Phạm vi: từ {start_date} đến trước {end_date}.",
       "placeholders": [
         "end_date",
         "start_date",
@@ -867,10 +867,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fb5914f86f2914601ac34740310fa38e1b02cddda3ff70fa4bd5da504f1d9b0d",
+      "content_sha256": "f2e40c6822fa4d24ce37db1050a7489da62553b5bc8a2f822989bc42f76fe3e3",
       "id": "T_TX_BY_HASH__vi__conversational",
       "language": "vi",
-      "pattern": "Bạn tra giúp giao dịch {transaction_hash} từ {start_date} tới {end_date} được không?",
+      "pattern": "Bạn tìm giúp giao dịch {transaction_hash} nhé. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}.",
       "placeholders": [
         "end_date",
         "start_date",
@@ -883,10 +883,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "05a1465e88059cbae0a29245d06ab846d12751b3307755fea31a60eb62e85c18",
+      "content_sha256": "7fd6310c5d55e8118af251faffc317d15dba981bcdca6e09a04803c37f536407",
       "id": "T_TX_BY_HASH__vi__abbreviated",
       "language": "vi",
-      "pattern": "GD {transaction_hash}, {start_date}–{end_date}.",
+      "pattern": "Chi tiết GD {transaction_hash}; [{start_date}, {end_date}).",
       "placeholders": [
         "end_date",
         "start_date",
@@ -899,10 +899,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "2367bbd49ea85af8cf2507dadc24f5800bf1ee1d6cb1d28ca36b3eaed0ab99b8",
+      "content_sha256": "dfb0ba01f8766bcc1a3d6c075d8a38b03e79bd457f7754319f4c19abc4d98aca",
       "id": "T_TX_BY_HASH__vi__alternative",
       "language": "vi",
-      "pattern": "Truy xuất giao dịch có mã {transaction_hash} với phạm vi thời gian giới hạn từ {start_date} đến {end_date}.",
+      "pattern": "Tra cứu bản ghi giao dịch mang hash {transaction_hash}. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}.",
       "placeholders": [
         "end_date",
         "start_date",
@@ -915,10 +915,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e3c902c4a83114b4e61850b4a506e465c92b8983ef702b085c2ea3a4582d2acc",
+      "content_sha256": "126c869bcf14c0b07d5edd705a0b918cdba8f892891b5cf3e4a1c836178211cb",
       "id": "T_LIST_KNOWN_EXCHANGES__en__formal",
       "language": "en",
-      "pattern": "List {n} known exchange treasury accounts.",
+      "pattern": "List labeled addresses with exchange category and treasury role. Limit: {n}.",
       "placeholders": [
         "n"
       ],
@@ -929,10 +929,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1c1bcbeb82781d0839e91787090280857c52faa7a4ebb82b3fca43eb238b5487",
+      "content_sha256": "573a4f8fe87da8caba99b23f8acc2aa10d39f3ec350db9440e32f4169ffe63bc",
       "id": "T_LIST_KNOWN_EXCHANGES__en__conversational",
       "language": "en",
-      "pattern": "Can you show me {n} treasury addresses belonging to known exchanges?",
+      "pattern": "Could you show known exchange treasury accounts? Please cap the result at {n}.",
       "placeholders": [
         "n"
       ],
@@ -943,10 +943,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "00784c00c6360b322535bc3270460f7470da542df30a45ff3327d19a9d90940e",
+      "content_sha256": "cc5e1d0b0419d76d08c7db518902cee1975e77df150c52fdaadbdc3af323727f",
       "id": "T_LIST_KNOWN_EXCHANGES__en__abbreviated",
       "language": "en",
-      "pattern": "{n} known exchange treasury accounts.",
+      "pattern": "Known exchange treasury addresses; cap {n}.",
       "placeholders": [
         "n"
       ],
@@ -957,10 +957,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "db407b9fdb4757f51f75ae36f73c710a42b985a0ebfb898ddaca50cd4ab4a803",
+      "content_sha256": "17d6b50e98569967d425adb383e18ef9159e0dc532eaf9f120c40bfd4b8ebea2",
       "id": "T_LIST_KNOWN_EXCHANGES__en__alternative",
       "language": "en",
-      "pattern": "Return {n} labeled accounts whose category is exchange and whose role is treasury.",
+      "pattern": "Return accounts labeled as exchange treasuries in the accepted dictionary. Use {n} as the row limit.",
       "placeholders": [
         "n"
       ],
@@ -971,10 +971,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "70832de2904023c137c342930b5526948c8cd8840b1b270bc5179947ce73992c",
+      "content_sha256": "b9bed2141aab886051d46b64d280f7e942c78255c0c368572981608e234edfcc",
       "id": "T_LIST_KNOWN_EXCHANGES__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} tài khoản kho quỹ của các sàn giao dịch đã biết.",
+      "pattern": "Liệt kê địa chỉ có nhãn loại sàn giao dịch và vai trò kho quỹ. Giới hạn: {n}.",
       "placeholders": [
         "n"
       ],
@@ -985,10 +985,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f1352689285865b9ead4b05e5276ebc59a4836baa40c388963563fb09c5d536b",
+      "content_sha256": "eae51ead41fa3444b4d754e3ae6262a48eba5955ad5578c88824a4f0b5c109bb",
       "id": "T_LIST_KNOWN_EXCHANGES__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} địa chỉ kho quỹ thuộc các sàn đã biết nhé?",
+      "pattern": "Cho mình xem tài khoản kho quỹ của các sàn đã biết nhé. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "n"
       ],
@@ -999,10 +999,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "012a842c82a5f7bec593b89218ec3529228ea228a092d8c8398ebcab039f2047",
+      "content_sha256": "d2880b66c91818fd3d4d49315d4409dc63c6a318a46b2bb0476b8d2a79086ae8",
       "id": "T_LIST_KNOWN_EXCHANGES__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} TK treasury của sàn đã biết.",
+      "pattern": "TK treasury của sàn đã biết; tối đa {n}.",
       "placeholders": [
         "n"
       ],
@@ -1013,10 +1013,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "623c41e2a8c4db33e19c82bc157a341a5139a042b2149bef9e8289884368606c",
+      "content_sha256": "a64f24efdad9aba9ee40419a3524e865e9989f20968b85f060182029ba37fc64",
       "id": "T_LIST_KNOWN_EXCHANGES__vi__alternative",
       "language": "vi",
-      "pattern": "Trả về {n} tài khoản được gán nhãn có loại là sàn giao dịch và vai trò là kho quỹ.",
+      "pattern": "Tra cứu các tài khoản được từ điển nhãn xác định là kho quỹ của sàn giao dịch. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "n"
       ],
@@ -1027,10 +1027,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "4a864ac14a752ef74db9e6ce094a8cf449f5c77ecf4bf7e0639985430b9c858c",
+      "content_sha256": "f87be616bbcdc73ebde8e05056f881ba88f9a7752a681a6e41058bd21a3a00f5",
       "id": "T_TOP_SENDERS_BY_VALUE__en__formal",
       "language": "en",
-      "pattern": "Rank the top {n} sending addresses by total wei sent between {start_date} and {end_date}.",
+      "pattern": "Rank sender addresses by the largest sum of native transaction value in wei. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1043,10 +1043,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6469d5d18a69d2792a11658a874957e3e9eb2720ab47a32b0519ec78e4ff7a32",
+      "content_sha256": "090e421e68a3733c7fa2e40a4a48a5ebe160f627e4bd0a44d66cc1d2c7cfe28a",
       "id": "T_TOP_SENDERS_BY_VALUE__en__conversational",
       "language": "en",
-      "pattern": "Who sent the most value from {start_date} to {end_date}? Show the top {n} senders in wei.",
+      "pattern": "Which sender addresses have the highest total native transaction value, measured in wei? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1059,10 +1059,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "2f2f9866921e22e5a859ac907c57b04dcd745e78cd8a89c81150f3fce03b97b4",
+      "content_sha256": "e5e4cad87256a8182fb1700abd624b8bfa33ce54e22b70ebbf58a51c339eb3fd",
       "id": "T_TOP_SENDERS_BY_VALUE__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} senders by wei, {start_date}–{end_date}.",
+      "pattern": "Top senders by summed native value (wei); [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1075,10 +1075,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "9f50ebb39834f7f735c4debe75c5c5dbd5d98a79c4daa9a30985ad0e39127cc5",
+      "content_sha256": "84ae3287399bd7c1d5154ffc0907a023b74d2a9504068c9061c23c91ba7692bc",
       "id": "T_TOP_SENDERS_BY_VALUE__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, aggregate native value by sender and return the leading {n} addresses.",
+      "pattern": "Group native transaction value by sender address and return the highest wei totals first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -1091,10 +1091,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1df8e3d05a79a520135c863b3e86d88ce9cd45598c3afe8c8ba8caae6a50aff6",
+      "content_sha256": "3557f70c9f0dd80ebc0787f6b94028b617f9b91bd41f9e63f23ddc5ea918e473",
       "id": "T_TOP_SENDERS_BY_VALUE__vi__formal",
       "language": "vi",
-      "pattern": "Xếp hạng {n} địa chỉ gửi nhiều wei nhất trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Xếp địa chỉ gửi theo tổng giá trị native của các giao dịch, tính bằng wei và từ cao xuống thấp. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1107,10 +1107,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "9e835e56ef634e2e1a79cc5dea6d3f418a83d0774be784c786ac2f445907368e",
+      "content_sha256": "49eb009342cb8d539563891fb910976e98b11c644e61f9f07f56dbad86312fbb",
       "id": "T_TOP_SENDERS_BY_VALUE__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, ai gửi tổng giá trị lớn nhất? Cho mình top {n} địa chỉ theo wei.",
+      "pattern": "Địa chỉ gửi nào có tổng giá trị native của giao dịch cao nhất theo wei. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -1123,10 +1123,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e49d445b4bb815f3babeacf3922aad72cb34eaa69582532bf021e881b72fb068",
+      "content_sha256": "595d8b085f0757838ad786a8cebaf93d369ae7173c772493632fbfe08279daed",
       "id": "T_TOP_SENDERS_BY_VALUE__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} địa chỉ gửi theo wei, {start_date}–{end_date}.",
+      "pattern": "Top địa chỉ gửi theo tổng giá trị native (wei); [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1139,10 +1139,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "24a4ca0644aa63850c820995c17583af8c185377d8fc72cb5383a5a5f8578eb4",
+      "content_sha256": "c3cb1cf0edecaededfd97ac393ac98cd9f63ec34598e618d23dce43d11c449f8",
       "id": "T_TOP_SENDERS_BY_VALUE__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy cộng giá trị native theo bên gửi và trả về {n} địa chỉ dẫn đầu.",
+      "pattern": "Cộng giá trị native của các giao dịch theo địa chỉ gửi rồi xếp tổng wei lớn nhất lên trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -1155,10 +1155,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e5146512b46b32b49497c0360180c687da11b26edccf1c7f976ea55976ef89b1",
+      "content_sha256": "2a6aceaad0c9696afecca9421d3e47256cb6ef44172f32b41f2c4fd4905cfeac",
       "id": "T_TOP_RECIPIENTS_BY_COUNT__en__formal",
       "language": "en",
-      "pattern": "Return the top {n} recipient addresses by transaction count between {start_date} and {end_date}.",
+      "pattern": "Rank recipient addresses by the highest transaction counts. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1171,10 +1171,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "47d99b38210ce6d80ca6bcd798c14fabe1f941eee35e4341d018d05695273e5d",
+      "content_sha256": "c16c751b445f8a954b390b12727a671ead4c3cca360226615ed3f5d356ced7bd",
       "id": "T_TOP_RECIPIENTS_BY_COUNT__en__conversational",
       "language": "en",
-      "pattern": "Which addresses received the most transactions from {start_date} to {end_date}? Show {n} of them.",
+      "pattern": "Which recipient addresses appear in the most transactions? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1187,10 +1187,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a04519e4ad2931a35ff20055e46471606a6d6af18169fc1ac0de7b4a1beea189",
+      "content_sha256": "bf13fdcafe87514418ce9911e6ed581034bd71b8535266ae876262a24c78f7e1",
       "id": "T_TOP_RECIPIENTS_BY_COUNT__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} recipients by tx count, {start_date}–{end_date}.",
+      "pattern": "Top recipients by tx count; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1203,10 +1203,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7955c097d25b70e7fe18fc7f10c8e86853cd8d8e21fd2d3e56370a78238ff4ea",
+      "content_sha256": "94410199c169dd0653092b904a9bbc4280efa4f134f6588ed861f81bf1298bb6",
       "id": "T_TOP_RECIPIENTS_BY_COUNT__en__alternative",
       "language": "en",
-      "pattern": "Across {start_date} through {end_date}, count transactions per non-null recipient and list the leading {n} addresses.",
+      "pattern": "Count transactions for each non-null recipient and return the largest address counts first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -1219,10 +1219,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "13cdc6ff24ed6a89befd5c82a83c81b5225d0d84e0b3a42c8fd881900d57d347",
+      "content_sha256": "a1d04a423c177ba9bc779ecca85c8f6f90845ea153399ffa8a086942bc4314b7",
       "id": "T_TOP_RECIPIENTS_BY_COUNT__vi__formal",
       "language": "vi",
-      "pattern": "Trả về {n} địa chỉ nhận nhiều giao dịch nhất trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Xếp hạng địa chỉ nhận theo số giao dịch nhiều nhất. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1235,10 +1235,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6151bf191fae1d0623d1faea4c8d330e91b52906bf257f241bd369e11840881c",
+      "content_sha256": "515addc4d29a31a1b1a010c6d3d667278f9dd2809977136dfe478d737183ef98",
       "id": "T_TOP_RECIPIENTS_BY_COUNT__vi__conversational",
       "language": "vi",
-      "pattern": "Địa chỉ nào nhận nhiều giao dịch nhất từ {start_date} tới {end_date}? Cho mình xem {n} địa chỉ.",
+      "pattern": "Địa chỉ nhận nào xuất hiện trong nhiều giao dịch nhất. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -1251,10 +1251,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d9d7545e48f3551d716fa8b274a908a861dc13aac0228ce6e1efb7af179c6ec6",
+      "content_sha256": "b30a84d6a3f78561cc819f2b92d1db680cdc3c180ec903dfb451f71ba964236a",
       "id": "T_TOP_RECIPIENTS_BY_COUNT__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} bên nhận theo SL tx, {start_date}–{end_date}.",
+      "pattern": "Top bên nhận theo SL tx; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1267,10 +1267,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "2b2669b4f9191ea959f3514c94f070e6839574586a7347aa5733718868769aa2",
+      "content_sha256": "6e6b96c6885235fed6c23559bab7d76d854719cc5664469043158936e0240f96",
       "id": "T_TOP_RECIPIENTS_BY_COUNT__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy đếm giao dịch theo từng địa chỉ nhận khác null và liệt kê {n} địa chỉ dẫn đầu.",
+      "pattern": "Đếm giao dịch của từng địa chỉ nhận khác null, rồi xếp số lượng lớn nhất lên trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -1283,10 +1283,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d88006b5c7923598fda8c83dbd22e4574d2c6841fb6e742e6d1a4892619ef18d",
+      "content_sha256": "f5fef2faa323a2448c03d4d4a354ebc13775d267dc3153a4c1cf5807c011ad3a",
       "id": "T_TX_BETWEEN_ACCOUNTS__en__formal",
       "language": "en",
-      "pattern": "List the latest {n} transactions in either direction between {account} and {account_b} from {start_date} to {end_date}.",
+      "pattern": "List the latest transactions in either direction between {account} and {account_b}. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "account",
         "account_b",
@@ -1301,10 +1301,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "208d81afc786c80d3f904aa7b6ffa320344dbd1dc92c02f57f4751aa9880701f",
+      "content_sha256": "72a6664c04226a2ed572613965f3d476c892161aaf620af52de8ac5665ef4986",
       "id": "T_TX_BETWEEN_ACCOUNTS__en__conversational",
       "language": "en",
-      "pattern": "Can I see {n} transfers exchanged by {account} and {account_b} between {start_date} and {end_date}?",
+      "pattern": "Could you show the newest transactions linking {account} with {account_b}, in both directions? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "account",
         "account_b",
@@ -1319,10 +1319,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cf507bceae4db65532f283fff4e2098e79139c9ba99d8136ca14e9077ee42450",
+      "content_sha256": "1399ca1c290978c83aa747d64303f4c610056b2d83e2a7c38cedad1336e883d7",
       "id": "T_TX_BETWEEN_ACCOUNTS__en__abbreviated",
       "language": "en",
-      "pattern": "{n} latest txs: {account} ↔ {account_b}, {start_date}–{end_date}.",
+      "pattern": "Latest txs: {account} ↔ {account_b}; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "account",
         "account_b",
@@ -1337,10 +1337,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "71e5a2f0e4e4e9b62b0ea674f0c39c86df316923b6fb414e0755a2e2c2c18da5",
+      "content_sha256": "2c21447a7fdaedd1ab1343380cce5fe691721bfa542ce158937eb5987724238b",
       "id": "T_TX_BETWEEN_ACCOUNTS__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} transactions where {account} and {account_b} are the two counterparties.",
+      "pattern": "Find transactions whose counterparties are {account} and {account_b}; include both directions, newest timestamps first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "account",
         "account_b",
@@ -1355,10 +1355,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f96bcabbf0e8ea85275b08daf484425bccaff212a62ff684a3418daed0cadf83",
+      "content_sha256": "4b3f2032d54f5fce0e13082344758323d32291cddcf99c27d614fcc14cccb4a3",
       "id": "T_TX_BETWEEN_ACCOUNTS__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch gần nhất theo cả hai chiều giữa {account} và {account_b} từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê giao dịch gần nhất giữa {account} và {account_b} theo cả hai chiều. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "account",
         "account_b",
@@ -1373,10 +1373,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "de953d50c80f4d9cd5dfbd5f075e05767cdbe16a80151fa3548389d72fd6b9a0",
+      "content_sha256": "9bb0430b78a5f851fc449a572b008040e5db932e168a15b65e4e93fffdbee689",
       "id": "T_TX_BETWEEN_ACCOUNTS__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} giao dịch qua lại giữa {account} với {account_b} trong khoảng {start_date} tới {end_date} nhé?",
+      "pattern": "Mình muốn xem giao dịch mới nhất qua lại giữa {account} với {account_b}. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "account",
         "account_b",
@@ -1391,10 +1391,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6f4ce99c0f1da36a35a46a0f39a8ab6118aef6360f9cc7a9632e320206ccbd1b",
+      "content_sha256": "e60502bd56243437416ffcd28bd5a877d7d8042cecff246edec573e8e8be7be1",
       "id": "T_TX_BETWEEN_ACCOUNTS__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} tx mới nhất: {account} ↔ {account_b}, {start_date}–{end_date}.",
+      "pattern": "Tx mới nhất: {account} ↔ {account_b}; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "account",
         "account_b",
@@ -1409,10 +1409,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "72b29a1f0e7c309a227e8264f184013903425bb07cacd27425554b31c5a2a518",
+      "content_sha256": "2cfe9cd4aa3feb2569db368a05689e7c7e4f3b7f39f6dcdc197e50962412498d",
       "id": "T_TX_BETWEEN_ACCOUNTS__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} giao dịch mà {account} và {account_b} là hai bên đối ứng.",
+      "pattern": "Tìm giao dịch có hai bên đối ứng {account} và {account_b}; lấy cả hai chiều, xếp timestamp mới nhất trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "account",
         "account_b",
@@ -1427,10 +1427,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6e9cf91f9d5fa1fbdc25edf5f03a1c0c37a8bc3bf7a82e893e5cc1314107b08b",
+      "content_sha256": "2df5d824677a9441e32cd7a600bafafda46ca324c844d04b17efed13401e810e",
       "id": "T_TX_GROUPED_BY_OWNER__en__formal",
       "language": "en",
-      "pattern": "Return the top {n} labeled owners by number of transactions sent between {start_date} and {end_date}.",
+      "pattern": "Rank labeled owners by the highest outgoing transaction counts. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1443,10 +1443,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f70969fe8f981873522fe61bb35f2310ca2b5ea3a590d4f641318abac0bc7808",
+      "content_sha256": "47fc4477559d0af91059f9d0d924ab94cf0b5a68b85be9da5660cf9af59068c1",
       "id": "T_TX_GROUPED_BY_OWNER__en__conversational",
       "language": "en",
-      "pattern": "Which labeled owners sent the most transactions from {start_date} to {end_date}? Show the first {n}.",
+      "pattern": "Which known owners are associated with the most sender-side transactions? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1459,10 +1459,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "20e3076dd876599b86dc625ed7126449122e874a538f25d254c7e97beb9d4344",
+      "content_sha256": "2193e39c94df1ea9962f0b1a897a160e8280374cff0448603b226bab4cc714c1",
       "id": "T_TX_GROUPED_BY_OWNER__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} labeled senders by tx count, {start_date}–{end_date}.",
+      "pattern": "Top labeled owners by outgoing tx count; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1475,10 +1475,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ec68340fb0bb4282f7a791937269cb4b92b36bac0f792d07378f517194f929b5",
+      "content_sha256": "cf8eb6377cc05dd0173088760da44714921c1550405387285d61a0b880c63058",
       "id": "T_TX_GROUPED_BY_OWNER__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, group outgoing transactions by known owner and list the leading {n} groups.",
+      "pattern": "Group transactions by their labeled sender owner, not by individual address, and list the highest counts first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -1491,10 +1491,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "68c7d37ca6cafa80fe9a2384e16f7a5fa1f47a76c4774fb10ecbfb78d67d3c4f",
+      "content_sha256": "7c9904d342f91befc8a16480d2376c47536c791fa5126562a9ef391a56462ac5",
       "id": "T_TX_GROUPED_BY_OWNER__vi__formal",
       "language": "vi",
-      "pattern": "Trả về {n} chủ sở hữu đã gán nhãn gửi nhiều giao dịch nhất trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Xếp chủ sở hữu có nhãn theo số giao dịch đi nhiều nhất. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1507,10 +1507,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1b70da2b67fbe0e3f615cae380a7c7e45de4c9ac7be83e37b73c20c38c15f7b5",
+      "content_sha256": "1b6a9123808a386378269c3f37990b859e25cdb78c3c2fab2ad4f31afbab9d36",
       "id": "T_TX_GROUPED_BY_OWNER__vi__conversational",
       "language": "vi",
-      "pattern": "Chủ sở hữu có nhãn nào gửi nhiều giao dịch nhất từ {start_date} tới {end_date}? Cho mình xem {n} bên đầu tiên.",
+      "pattern": "Chủ sở hữu đã biết nào gắn với nhiều giao dịch ở phía gửi nhất. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -1523,10 +1523,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "19fb41ed6142ff5c9b0649e754a662f138e3da932b4f7ff349c5a08aabaeafd0",
+      "content_sha256": "5c31dcd8ffd31a1715d6a80d0910ba1a288cf54f72c52da0735fdce6151565a9",
       "id": "T_TX_GROUPED_BY_OWNER__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} owner có nhãn theo SL tx gửi, {start_date}–{end_date}.",
+      "pattern": "Top owner có nhãn theo SL tx đi; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1539,10 +1539,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c69d51145f971f585f939531738c9726401e5b9e2d0deb6be8c9ab7648085bf4",
+      "content_sha256": "a5e693ac4d966a694de4193b429108563a7c3467da93a753deec3064b44554c8",
       "id": "T_TX_GROUPED_BY_OWNER__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy nhóm giao dịch đi theo chủ sở hữu đã biết và liệt kê {n} nhóm dẫn đầu.",
+      "pattern": "Nhóm giao dịch theo chủ sở hữu của bên gửi, không theo từng địa chỉ, rồi xếp số lượng lớn nhất trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -1555,10 +1555,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "b107927c272fed41179d902550a9df1164645fe0901b7773ddcb875bbcb266db",
+      "content_sha256": "3b96d62668262b19d0af6a0cd9bd894fd7ae7152cfbd549c12d3eb322e771b9f",
       "id": "T_TOKEN_VOLUME_BY_SYMBOL__en__formal",
       "language": "en",
-      "pattern": "List the top {n} token symbols by total fungible transfer volume between {start_date} and {end_date}.",
+      "pattern": "Rank token symbols by the largest summed normalized transfer amount. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1571,10 +1571,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e98002ee6b289e15666acfbf954cb2db5aac0d301c9b49b8cadbe4a10b04cd53",
+      "content_sha256": "fd55bf191021926e6739d42cb7602f9b3ecb050b6b7d0619217b1fbec10092be",
       "id": "T_TOKEN_VOLUME_BY_SYMBOL__en__conversational",
       "language": "en",
-      "pattern": "Which tokens moved the most fungible amount from {start_date} to {end_date}? Show {n} symbols.",
+      "pattern": "Which token symbols have the most normalized transfer volume? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1587,10 +1587,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1b32043890d48ca2ceb8d04aeaca13012b110afa079fffdbab15c123e929c31e",
+      "content_sha256": "1359467d963c267327118f973d39dcb156648e6c3fb1fee5a8504a3443b1e484",
       "id": "T_TOKEN_VOLUME_BY_SYMBOL__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} tokens by fungible volume, {start_date}–{end_date}.",
+      "pattern": "Top token symbols by normalized volume; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1603,10 +1603,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "31953fb00c19e39b0f4cab1d0325e1c71f0ea7df3eb70f688ad8fcf3c9547f45",
+      "content_sha256": "c2119f8b6b81cfa4e25d7330c888378422d523dcefdfdce1d8677799658cc4d9",
       "id": "T_TOKEN_VOLUME_BY_SYMBOL__en__alternative",
       "language": "en",
-      "pattern": "Across {start_date} through {end_date}, sum normalized fungible amounts per token symbol and return the leading {n}.",
+      "pattern": "Add non-null normalized transfer amounts per token symbol and return the highest totals first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -1619,10 +1619,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c336d32799c7aae9e01987267739013074d3445fbfac43d7eb8403614a853744",
+      "content_sha256": "09159f5403e31b67226e014d0788f4bc1935fa86f6a679bef967d81a186f2b8a",
       "id": "T_TOKEN_VOLUME_BY_SYMBOL__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} ký hiệu token có tổng khối lượng chuyển fungible lớn nhất từ {start_date} đến {end_date}.",
+      "pattern": "Xếp ký hiệu token theo tổng lượng chuyển đã chuẩn hóa lớn nhất. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1635,10 +1635,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c2306bc7c93a15c8b6de3e4b390cb041a17de4ba8a16f543d4bc34ff294d65a8",
+      "content_sha256": "f2b1e6797ce7b93a455d721fa510a6e3ca9570f7ab6f4ecbc093ff40866aa523",
       "id": "T_TOKEN_VOLUME_BY_SYMBOL__vi__conversational",
       "language": "vi",
-      "pattern": "Token nào có lượng fungible được chuyển nhiều nhất từ {start_date} tới {end_date}? Cho mình xem {n} ký hiệu.",
+      "pattern": "Ký hiệu token nào có tổng khối lượng chuyển chuẩn hóa cao nhất. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -1651,10 +1651,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "70b930bd11945c4a66bb14ec55aed29d2d7e95273e99168885ebfcba25d38a8d",
+      "content_sha256": "ec8505a97e111b3bf6402c512d0e80b86512d4fce6c3eae827a5a42b3023f94d",
       "id": "T_TOKEN_VOLUME_BY_SYMBOL__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} token theo volume fungible, {start_date}–{end_date}.",
+      "pattern": "Top ký hiệu token theo lượng chuẩn hóa; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1667,10 +1667,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0b2066df5aaf397cf743f5fd0a40179db05e4633cc4521b619cf01e932a6e2dd",
+      "content_sha256": "dd86492d6b8f6decfcc106a6606c6122f37bace10c279fee944f51846257abe7",
       "id": "T_TOKEN_VOLUME_BY_SYMBOL__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy cộng lượng fungible chuẩn hóa theo ký hiệu token và trả về {n} mục dẫn đầu.",
+      "pattern": "Cộng lượng chuyển chuẩn hóa khác null theo ký hiệu token, rồi xếp tổng lớn nhất lên trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -1683,10 +1683,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "78459ea70c4d46b3f0aed4dde3a910d9d4428792f1d65246a9c25c2ea84c6fc4",
+      "content_sha256": "da85f84cac828621ac7b8e8b301c2ecfabe8383b2809b0243e94c813aa2e8976",
       "id": "T_TOKEN_TRANSFERS_OF_TOKEN__en__formal",
       "language": "en",
-      "pattern": "List the latest {n} transfers of {token_symbol} between {start_date} and {end_date}.",
+      "pattern": "List the latest transfer events for token symbol {token_symbol}. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1700,10 +1700,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "458fd5ad777ac21f12b254d5a44bf42cdb325077d6d875f5f91f4cc1c29e2c23",
+      "content_sha256": "ecfb04b46a37e13ab11aedfc92e661b670f7dca46314cab352072de18a4c139e",
       "id": "T_TOKEN_TRANSFERS_OF_TOKEN__en__conversational",
       "language": "en",
-      "pattern": "Can you show me {n} recent {token_symbol} token transfers from {start_date} to {end_date}?",
+      "pattern": "Could you show the newest {token_symbol} token-transfer events? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1717,10 +1717,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "529a57c400497ccaa960c96fae6fa51ef40cb0840fc09633dea25b6891e98ac9",
+      "content_sha256": "ffb4d64503fdca5d00b9481db1301ff405d30a3fcefc990c8deec4743c630c5e",
       "id": "T_TOKEN_TRANSFERS_OF_TOKEN__en__abbreviated",
       "language": "en",
-      "pattern": "Latest {n} {token_symbol} transfers, {start_date}–{end_date}.",
+      "pattern": "Latest {token_symbol} transfer events; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1734,10 +1734,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e5d74e73be5f758a03590b0210c093b90dadac5ef5e5c8c45031754019f0a210",
+      "content_sha256": "44ad557a34b88a3932a1f417f5c6b1b19e1c9fea14d90fd30936921af49add72",
       "id": "T_TOKEN_TRANSFERS_OF_TOKEN__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} transfer events whose token symbol is {token_symbol}.",
+      "pattern": "Find transfer-event rows with symbol {token_symbol} and return the newest timestamps first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -1751,10 +1751,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "88bf7b9f5a74ac2202ab58cf5dd25b36a23b9553c3c0a074cacf15f0b38a3b56",
+      "content_sha256": "e238ec9c7c9efc64d4b6d157643468d52cafb38a404a1a1fbe9ab645af7af705",
       "id": "T_TOKEN_TRANSFERS_OF_TOKEN__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} lượt chuyển {token_symbol} gần nhất trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê sự kiện chuyển token {token_symbol} gần nhất. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1768,10 +1768,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "df71b7fb7cd6d998d866585d29c919a15c9101342a3a782fea6bbee9842d6ab1",
+      "content_sha256": "3176956a33c8f148652fecc576b685fc4d23a97b2a2e2d82305fbf2527c80897",
       "id": "T_TOKEN_TRANSFERS_OF_TOKEN__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} giao dịch chuyển token {token_symbol} gần đây từ {start_date} tới {end_date} nhé?",
+      "pattern": "Cho mình xem sự kiện chuyển token {token_symbol} mới nhất nhé. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -1785,10 +1785,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "11260c2d25a0de69237d836248eedfb318dab07c402d3406f48d85330d9e9b16",
+      "content_sha256": "9f0facb5909e22a2549a178689e4966f9c6c62a0ee408007a4416b17ffc4722c",
       "id": "T_TOKEN_TRANSFERS_OF_TOKEN__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} transfer {token_symbol} mới nhất, {start_date}–{end_date}.",
+      "pattern": "Transfer {token_symbol} mới nhất; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -1802,10 +1802,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f711eb8c30d6c35de5ec7511d53f084335e52aa3eaf0cd4cf1adfe1c28dca43e",
+      "content_sha256": "5c53f0d95718d0806d2f9c85237fe4b3eaeaba59c9624f31d9bb866340bc2e2d",
       "id": "T_TOKEN_TRANSFERS_OF_TOKEN__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện chuyển có ký hiệu token là {token_symbol}.",
+      "pattern": "Tìm bản ghi sự kiện chuyển có ký hiệu {token_symbol}, xếp timestamp mới nhất trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -1819,10 +1819,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1fbd1eb1af68789cb0505eabf27548f77e287b9124f2ea11ac411da794c556ff",
+      "content_sha256": "eb84167ba6638a773dcde526fbd1e861e624c07eb98be10c1672603c2eb73a41",
       "id": "T_FAILED_HIGH_GAS_TX__en__formal",
       "language": "en",
-      "pattern": "Return the top {n} failed transactions using at least {gas_used} gas between {start_date} and {end_date}.",
+      "pattern": "List failed transactions with the highest receipt gas used, requiring at least {gas_used} gas. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "gas_used",
@@ -1836,10 +1836,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "3865683c80ccef01a2d5f08fa8e0591b50b55f51d9cf1f708887178ea7874d20",
+      "content_sha256": "801cbaa866a181621d31b2556af08ebe69cc3157e00cf85b5d1fab0936f540cb",
       "id": "T_FAILED_HIGH_GAS_TX__en__conversational",
       "language": "en",
-      "pattern": "Which {n} failed transactions consumed no less than {gas_used} gas from {start_date} to {end_date}?",
+      "pattern": "Which failed transactions consumed the most receipt gas while using no less than {gas_used}? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "gas_used",
@@ -1853,10 +1853,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ad68444f7d43854ce7eec04dca339b395eda202b414c126df25cb419e0c05bbd",
+      "content_sha256": "68f8fc92a2d925742c2ee5037bd31bbb4cc204bdc43e8f9590f7c6df0832d722",
       "id": "T_FAILED_HIGH_GAS_TX__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} failed txs ≥ {gas_used} gas, {start_date}–{end_date}.",
+      "pattern": "Top failed txs by receipt gas used ≥ {gas_used}; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "gas_used",
@@ -1870,10 +1870,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1cc1ee88678970498617c1385efa054e28c6ae2ba8cf41506384bc1c76345094",
+      "content_sha256": "a038bc71390dd529a8c2a8232f3d226ff9a2c7b644132e7b5ef634b6a5d584b1",
       "id": "T_FAILED_HIGH_GAS_TX__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, find {n} unsuccessful transactions meeting the receipt-gas threshold {gas_used}.",
+      "pattern": "Find unsuccessful transactions using at least {gas_used} gas and return the highest receipt-gas usage first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "gas_used",
@@ -1887,10 +1887,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "2622fa668d53c42f6f9cea51833b5d5105719f0c7460f8e4605e3461cbc88a38",
+      "content_sha256": "c06f649ea338f99e672a6c68d82bd025c3cdeda5d80095cb3cd48303b78c60db",
       "id": "T_FAILED_HIGH_GAS_TX__vi__formal",
       "language": "vi",
-      "pattern": "Trả về {n} giao dịch thất bại dùng ít nhất {gas_used} gas trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê giao dịch thất bại có receipt gas đã dùng cao nhất, ít nhất {gas_used} gas. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "gas_used",
@@ -1904,10 +1904,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "453d2cec2be94ec009f3de3334a5aae5e82022d468c8442e06348276b2e54edf",
+      "content_sha256": "fdeb1dda825d25381aad2529cd50c29d797cf45d5e6684e21d6e8ebb6ce00fcc",
       "id": "T_FAILED_HIGH_GAS_TX__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} giao dịch lỗi nào tiêu thụ không dưới {gas_used} gas?",
+      "pattern": "Giao dịch lỗi nào dùng nhiều gas nhất theo receipt và không dưới {gas_used}. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "gas_used",
@@ -1921,10 +1921,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7b8cd50c6c6c27ba6aa3fe17f0266d4eb1c3fe5eb760e37d23aff84f4c22c12c",
+      "content_sha256": "cf14a765c381d814a1b0b6523428d14a1fda51bd8fe002231c80b6099405347b",
       "id": "T_FAILED_HIGH_GAS_TX__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} tx lỗi ≥ {gas_used} gas, {start_date}–{end_date}.",
+      "pattern": "Top tx lỗi theo receipt gas đã dùng ≥ {gas_used}; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "gas_used",
@@ -1938,10 +1938,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "3dd9c0d36fd7a7e1ddd799a7ea40ba47a9e135525f19bd2e58d383d6f9966522",
+      "content_sha256": "f72942159987ada7ce956e2a7c729ba624cc5ea5aa18bd372b1fab7f25622a17",
       "id": "T_FAILED_HIGH_GAS_TX__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} giao dịch không thành công đạt ngưỡng receipt gas {gas_used}.",
+      "pattern": "Tìm giao dịch không thành công dùng ít nhất {gas_used} gas, xếp mức tiêu thụ gas trong receipt cao nhất trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "gas_used",
@@ -1955,10 +1955,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ad0408c5715111ecfe9a1e7c985b3cf7944f65918d944868a18aa6fc6247e6a5",
+      "content_sha256": "92bc2af07cded577c4927b30c831a335b069e4494a21523159280ad9acaecb01",
       "id": "T_BLOCKS_BY_VALIDATOR__en__formal",
       "language": "en",
-      "pattern": "List the latest {n} blocks whose beneficiary address is {account} between {start_date} and {end_date}.",
+      "pattern": "List the latest blocks whose beneficiary address is {account}. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -1972,10 +1972,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "da16f98185a9c568b6141779ff1bb148e6819d8c78a1833d914c4043f79e42f3",
+      "content_sha256": "53e0a41155de426d51246bc98b3fedb3dc393c9785f7b91bba6ac08649e111ed",
       "id": "T_BLOCKS_BY_VALIDATOR__en__conversational",
       "language": "en",
-      "pattern": "Can you show me {n} blocks credited to beneficiary {account} from {start_date} to {end_date}?",
+      "pattern": "Could you show the newest blocks with fee-recipient address {account}? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -1989,10 +1989,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "79aef846621f5ce92729008ab5bb36929690a1e1119b3215656b79d4b093ad20",
+      "content_sha256": "2571a489d25883db87cfa6c9759c213f21868a5f5ab2d92b3574b4a029d2c626",
       "id": "T_BLOCKS_BY_VALIDATOR__en__abbreviated",
       "language": "en",
-      "pattern": "Latest {n} blocks for beneficiary {account}, {start_date}–{end_date}.",
+      "pattern": "Latest blocks for beneficiary {account}; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -2006,10 +2006,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c554e0dff2daf488d862f245a359267dfcc1997b5b27c54a805ba18206f113ae",
+      "content_sha256": "189661a44f385d0e78d85a7fd780e5a370b1b7617adcd0b8285c96a0501ad77b",
       "id": "T_BLOCKS_BY_VALIDATOR__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} blocks with fee-recipient address {account}.",
+      "pattern": "Find blocks naming {account} as beneficiary, ordered by newest block number first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "account",
         "end_date",
@@ -2023,10 +2023,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fa141a39b2a958290f6d633bff74f9980ae371790463f46a040d2532df5f3613",
+      "content_sha256": "52053098904d976bdf4b64a1425752d0b7070c5943cb440ae9cb02219f8b9f38",
       "id": "T_BLOCKS_BY_VALIDATOR__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} khối gần nhất có địa chỉ beneficiary là {account} trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê khối gần nhất có địa chỉ beneficiary {account}. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -2040,10 +2040,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6cf1e6fb663f44b7e25a503d0baddef5fab44a27a279f0833e9ae8a02675407a",
+      "content_sha256": "b8755f0ff6d35cb0320e07392436ae35e676c35f1ebbe09cba86338442c866bb",
       "id": "T_BLOCKS_BY_VALIDATOR__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} khối ghi nhận beneficiary {account} từ {start_date} tới {end_date} nhé?",
+      "pattern": "Bạn cho mình xem khối mới nhất có địa chỉ nhận phí {account} nhé. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "account",
         "end_date",
@@ -2057,10 +2057,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1cf5bb82a5faf83444ab2296e09aa48239a400df39fb259089cc472f245bbd8e",
+      "content_sha256": "6e3a3f2acf8c396432c627c440492ed7cfea7882c5c972bee5522f0a222ca1c6",
       "id": "T_BLOCKS_BY_VALIDATOR__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} block mới nhất của beneficiary {account}, {start_date}–{end_date}.",
+      "pattern": "Block mới nhất, beneficiary {account}; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "account",
         "end_date",
@@ -2074,10 +2074,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "5daabda48a5c8b9629eab2d48eddd0b5a2f6c7badfa52c361408eaa302090039",
+      "content_sha256": "057abaff855fad2b17f66d7716a16b7c26377e1d9547514283071b6aa681ddbb",
       "id": "T_BLOCKS_BY_VALIDATOR__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} khối có địa chỉ nhận phí là {account}.",
+      "pattern": "Tìm khối ghi nhận beneficiary {account}, xếp số khối mới nhất lên trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "account",
         "end_date",
@@ -2091,10 +2091,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "06cdfd7955ac552963eb0b63fd1b4f62768481670370666c66c4d91d074a229e",
+      "content_sha256": "9d63070cf5cc46c04beb2fa313f506f553f87d9e33f3f5c9d6d689dce4209b50",
       "id": "T_ACCOUNTS_BY_CATEGORY__en__formal",
       "language": "en",
-      "pattern": "List the top {n} label category and address-role groups by account count.",
+      "pattern": "Rank label category and address-role groups by the highest account counts. Limit: {n}.",
       "placeholders": [
         "n"
       ],
@@ -2105,10 +2105,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ee647184484b5ff8ea8edb0bb8de928a3ff4bc3ef75a55852101493045e79954",
+      "content_sha256": "83d7a7795bf43c639e17707222b996b5d81c9be9a6be8fcaccb16f178233fc8b",
       "id": "T_ACCOUNTS_BY_CATEGORY__en__conversational",
       "language": "en",
-      "pattern": "Which category-and-role combinations contain the most labeled accounts? Show {n} groups.",
+      "pattern": "Which category-and-role combinations contain the most labeled accounts? Please cap the result at {n}.",
       "placeholders": [
         "n"
       ],
@@ -2119,10 +2119,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "9e3a1d05ec86bf2847c0dcfd949df616cb72a7565933bacdda4a6fc1479ab5da",
+      "content_sha256": "0b1523907daa35d089d02c3ab76205397b605d23d21a8c26a48c342fe02609c4",
       "id": "T_ACCOUNTS_BY_CATEGORY__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} category/role groups by account count.",
+      "pattern": "Top category/role groups by account count; cap {n}.",
       "placeholders": [
         "n"
       ],
@@ -2133,10 +2133,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7c1f35d94e13c6896a0ebf43748e6fcc3934eb0c91f9aef65815164a982b7f4d",
+      "content_sha256": "d93a6792734502ac9c85d3afd82d5cf107d72b7a0bd9bf0c40acdd8bd5f6250e",
       "id": "T_ACCOUNTS_BY_CATEGORY__en__alternative",
       "language": "en",
-      "pattern": "Group labeled addresses by category and role, then return the {n} groups with the largest membership.",
+      "pattern": "Group dictionary addresses by category and role and list the largest groups first. Use {n} as the row limit.",
       "placeholders": [
         "n"
       ],
@@ -2147,10 +2147,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c899205f81f409b9aa31563485dcd6ce3fcba0d9230d6cba6fdc5f97e983ff23",
+      "content_sha256": "7d396ac0e3277b8f723c39b25addbfc1716297ee4d2629fd2efaac01bcb9c1db",
       "id": "T_ACCOUNTS_BY_CATEGORY__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} nhóm loại nhãn và vai trò địa chỉ có nhiều tài khoản nhất.",
+      "pattern": "Xếp nhóm loại nhãn và vai trò địa chỉ theo số tài khoản nhiều nhất. Giới hạn: {n}.",
       "placeholders": [
         "n"
       ],
@@ -2161,10 +2161,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "b3a2d208c794a077a8e164f2705000e480a59a14d1cef9f0419a107fccb70f6d",
+      "content_sha256": "a633da8a0bce3111f89e8ef9a5a4e4dca159ce9c9521086f6e45d59e54a788f6",
       "id": "T_ACCOUNTS_BY_CATEGORY__vi__conversational",
       "language": "vi",
-      "pattern": "Tổ hợp loại và vai trò nào chứa nhiều tài khoản có nhãn nhất? Cho mình xem {n} nhóm.",
+      "pattern": "Tổ hợp loại nhãn với vai trò nào có nhiều tài khoản nhất. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "n"
       ],
@@ -2175,10 +2175,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d4ca79a7aa704870b0855ec261a765da43216f683fdd49f51c1f99a7d9066446",
+      "content_sha256": "6b1c48457f3f78dae33e88b8e3b7fee5cf7295eee47e197d94f37411beceb904",
       "id": "T_ACCOUNTS_BY_CATEGORY__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} nhóm category/role theo SL tài khoản.",
+      "pattern": "Top nhóm category/role theo SL tài khoản; tối đa {n}.",
       "placeholders": [
         "n"
       ],
@@ -2189,10 +2189,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "50f5abfdd4d0cf76e433a06ff76948d9ad507f5fdfbf84ced40089f677259a80",
+      "content_sha256": "5f9c0232badc8d2f8b6e10c6b8a46daa84b8c42cfe5e77cfa320b49113d586ac",
       "id": "T_ACCOUNTS_BY_CATEGORY__vi__alternative",
       "language": "vi",
-      "pattern": "Hãy nhóm các địa chỉ đã gán nhãn theo loại và vai trò, rồi trả về {n} nhóm có số thành viên lớn nhất.",
+      "pattern": "Nhóm địa chỉ trong từ điển theo loại và vai trò, rồi liệt kê nhóm có số thành viên lớn nhất trước. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "n"
       ],
@@ -2203,10 +2203,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "9c605bcfd39d4da019254ca860348cc3c80a552eda4e45f6c25a7995090c3635",
+      "content_sha256": "995e703c7a1da502ff5efef8f5770a9e26100dbf1bcb93613a8b44936750276f",
       "id": "T_TX_BY_HOUR__en__formal",
       "language": "en",
-      "pattern": "Return the top {n} hourly buckets by transaction count between {start_date} and {end_date}.",
+      "pattern": "Rank hourly timestamp buckets by the highest transaction counts. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2219,10 +2219,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "edb61fbe5def2672c263bdff0c2a01fa0ba46f91789541fa8c3a3673c416b6d1",
+      "content_sha256": "b20feb63c74533b665f27ab27eb0cba6dec341d651bb5dca3c04d5edcc6ff75b",
       "id": "T_TX_BY_HOUR__en__conversational",
       "language": "en",
-      "pattern": "Which hours were busiest from {start_date} to {end_date}? Show the top {n} by transactions.",
+      "pattern": "Which hourly periods contain the most transactions? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2235,10 +2235,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "3419c2ba81d97cd5863831aacee21d9ef5d47ad93b2843eaf2e0ce861c52a014",
+      "content_sha256": "e151d89a3165cf60e1ef08ae33087ba0aa2cd1b96474bb9da25cf6a479c4f87c",
       "id": "T_TX_BY_HOUR__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} hours by tx count, {start_date}–{end_date}.",
+      "pattern": "Top hours by tx count; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2251,10 +2251,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ea25c48b953488dd5ef4778fd2b929ba6c63c5fd8e4e326fc10e4d583df849b2",
+      "content_sha256": "1e90b3dc1b3a1f64317eaa190295998bd4d2e57e373a6442e5052323200bec8c",
       "id": "T_TX_BY_HOUR__en__alternative",
       "language": "en",
-      "pattern": "Across {start_date} through {end_date}, aggregate transactions by hour and list the leading {n} periods.",
+      "pattern": "Group transactions into hourly buckets and return the busiest periods first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -2267,10 +2267,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c76c35c9d24e35e047c97681838537f64942e05cb3ec3657cd7b3a41585c8a68",
+      "content_sha256": "2cad7eb8b8ec3864636d6fc99320bf084724bd3ea614283e9cf750fdf108d46f",
       "id": "T_TX_BY_HOUR__vi__formal",
       "language": "vi",
-      "pattern": "Trả về {n} khung giờ có nhiều giao dịch nhất trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Xếp khung giờ theo số giao dịch nhiều nhất. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2283,10 +2283,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "b4e0a25df398e4ca5a26718cfcb4270a889f913e699a95ba6b2cc8ba30a29f75",
+      "content_sha256": "d2136f7c59415707580e8f7c69c39b372cf956be3d8f3502d0cba2f35e4f5216",
       "id": "T_TX_BY_HOUR__vi__conversational",
       "language": "vi",
-      "pattern": "Những giờ nào bận nhất từ {start_date} tới {end_date}? Cho mình top {n} theo số giao dịch.",
+      "pattern": "Khung giờ nào ghi nhận nhiều giao dịch nhất. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -2299,10 +2299,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f61c31d2e78ea39d2f7333977ace481210827e6be786bcfa214c3701aa5ca859",
+      "content_sha256": "268f7efa3c1499604e0c732857120a3bc5847d2bd1a13a2a9b3771981f6aafba",
       "id": "T_TX_BY_HOUR__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} giờ theo SL tx, {start_date}–{end_date}.",
+      "pattern": "Top giờ theo SL tx; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2315,10 +2315,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "47581f1aae716dd11e34e6d6cff667dfd2b79a54c4d6723540543bcac996013a",
+      "content_sha256": "ec53991d4c9d5000bd05df780a5f48aac8843fe9028b8074c475e72f88b1f16c",
       "id": "T_TX_BY_HOUR__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tổng hợp giao dịch theo giờ và liệt kê {n} khoảng dẫn đầu.",
+      "pattern": "Gom giao dịch thành từng khoảng một giờ, rồi liệt kê khoảng đông giao dịch nhất trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -2331,10 +2331,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "501752c5a1ea0c996e6d478095741e695d4861bbbdab1f4b63096b5166f00c4d",
+      "content_sha256": "7ccc154a5f48eea1c201aa57d9ad3127b7e42c70724541ebee7ceefe1d635915",
       "id": "T_LARGE_TX_TO_CLASS__en__formal",
       "language": "en",
-      "pattern": "List the top {n} transactions of at least {value_wei} wei sent to the {concept_class} class between {start_date} and {end_date}.",
+      "pattern": "List transactions with the highest native value of at least {value_wei} wei and recipient label class {concept_class}. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2349,10 +2349,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "602677940bb9a65e50f2919425b5c62f31cbfa69586bfe79d0f93e1d1cffa51c",
+      "content_sha256": "9efbb75d921cd43f6ebf2c51c5c3286111549fdd44f4d60ad8f76a9dad0678b3",
       "id": "T_LARGE_TX_TO_CLASS__en__conversational",
       "language": "en",
-      "pattern": "Which {n} transfers to {concept_class} moved no less than {value_wei} wei from {start_date} to {end_date}?",
+      "pattern": "Which transactions have the largest native value, no less than {value_wei} wei, with recipients labeled {concept_class}? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2367,10 +2367,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fca0421001662193a35d31d09e8bae56000575c9dafbe7476f0a5eedf40420f1",
+      "content_sha256": "f99f4d4b8f75da8f6d906627318ca5977ceb2d716478e8f69788718333701ca4",
       "id": "T_LARGE_TX_TO_CLASS__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} txs ≥ {value_wei} wei to {concept_class}, {start_date}–{end_date}.",
+      "pattern": "Top txs by native value ≥ {value_wei} wei, recipient label class {concept_class}; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2385,10 +2385,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a4a48fce50f6dcf3c5a4721159d639a9ca6c4e50403a613da7d9a8fc6f1977f1",
+      "content_sha256": "a3ba0c6593243bedddd11c7dd001551b97126d0ea6ee650487b76c9c30c84892",
       "id": "T_LARGE_TX_TO_CLASS__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, find {n} transactions whose recipient class is {concept_class} and value reaches {value_wei} wei.",
+      "pattern": "Find transactions to recipient label class {concept_class} with native value at least {value_wei} wei; rank largest values first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2403,10 +2403,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "552e49f0672be9123d03a1d22f44a998aef6fa26231d5b07589adea237ddde1d",
+      "content_sha256": "431a0de356c0aa6fd434c0fa10a9f11d2fd73848d545f4b526be54f2f949fd1f",
       "id": "T_LARGE_TX_TO_CLASS__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch lớn nhất có giá trị ít nhất {value_wei} wei gửi tới lớp {concept_class} từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê giao dịch có giá trị native cao nhất, ít nhất {value_wei} wei, và lớp nhãn bên nhận {concept_class}. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2421,10 +2421,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c30ecb6d7feb3ddad9ce91af36a6b4b16f85cb4e8faf9b79bfda2f9411001be5",
+      "content_sha256": "e5fc291787d6983f465badd042e2418f5e9e0d63e6e49b069b68fbfdde465de9",
       "id": "T_LARGE_TX_TO_CLASS__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} giao dịch nào đến {concept_class} chuyển không dưới {value_wei} wei?",
+      "pattern": "Giao dịch nào có giá trị native lớn nhất, không dưới {value_wei} wei, với bên nhận thuộc lớp nhãn {concept_class}. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2439,10 +2439,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e3b39d6528bdad1ec81a0ab980a9d3decae4cd0befd98b7205a2fbce6a7a9208",
+      "content_sha256": "8d51a594ad28334abb55d5264d9c6206c091ccb577ae23ac85e582ede3822f7c",
       "id": "T_LARGE_TX_TO_CLASS__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} tx ≥ {value_wei} wei tới {concept_class}, {start_date}–{end_date}.",
+      "pattern": "Top tx theo giá trị native ≥ {value_wei} wei, lớp nhãn bên nhận {concept_class}; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2457,10 +2457,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "443c91fd63aa4dec8d27c985aae0eb55d67fb30cff9da38806a57c65f55d489a",
+      "content_sha256": "32e44f8df360204a517d17f48ba7a65e3f88ab8c1bbebc68d711235c4cdbd3ff",
       "id": "T_LARGE_TX_TO_CLASS__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} giao dịch có lớp bên nhận là {concept_class} và giá trị đạt {value_wei} wei.",
+      "pattern": "Tìm giao dịch có lớp nhãn bên nhận {concept_class} và ít nhất {value_wei} wei; xếp giá trị native lớn nhất trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "concept_class",
         "end_date",
@@ -2475,10 +2475,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ea7895979d9824e9b97ad85d244041b478aa4ce68377c1e84dcc65a3800ac89e",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__en__formal",
+      "content_sha256": "352a3f5142677720f91970aa064b77dad51ece2a842c5c787c2537c654802667",
+      "id": "T_OWNER_NET_NATIVE_FLOW__en__formal",
       "language": "en",
-      "pattern": "List the top {n} transactions from exchange treasury addresses to DEX operational addresses between {start_date} and {end_date}.",
+      "pattern": "Rank treasury owners by the largest absolute net native flow, including incoming and outgoing wei; count only successful positive-value transactions. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2486,15 +2486,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d61b1f50cf9760c66523e9461bb866f250d7be2cfacbe0651dd158550e1f3994",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__en__conversational",
+      "content_sha256": "5686d387bbcb0589043d50a61ba5b85a305db002e00a5b80db0b5bae2670ebb2",
+      "id": "T_OWNER_NET_NATIVE_FLOW__en__conversational",
       "language": "en",
-      "pattern": "Can you show me {n} exchange-treasury transfers going to DEX operations from {start_date} to {end_date}?",
+      "pattern": "Which treasury owners have the biggest absolute difference between incoming and outgoing native wei, using only successful transactions with positive value? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2502,15 +2502,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e570aab05b3a0b87086818cf32fac773bb2c9822b9dc0ab6abb3c595c2772d09",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__en__abbreviated",
+      "content_sha256": "395abb66efe6649b0e43fee834fb00492dae8b56f6ba8cb2709fd3a2c702852d",
+      "id": "T_OWNER_NET_NATIVE_FLOW__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} exchange treasury → DEX ops txs, {start_date}–{end_date}.",
+      "pattern": "Top treasury owners by |native wei in − out|; successful positive-value txs only; include in/out totals; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2518,15 +2518,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "011df755005a5f1551be0c7d4cd0da75f3c3a6f8f9b59433b7684b3d29cbf1a0",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__en__alternative",
+      "content_sha256": "93f0b8e8016d78d20b082cd8ea28538dd872aab8f084cba4ec73abfb8d3ea2e9",
+      "id": "T_OWNER_NET_NATIVE_FLOW__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} native flows whose sender role is exchange treasury and recipient role is DEX operational.",
+      "pattern": "Compare incoming, outgoing and net native wei for labeled treasury owners; rank absolute net values descending using successful positive transactions only. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -2534,15 +2534,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fd66da5deb76dd6116da37bb64963d0c660120f2381341d5dd77e7c7440f2159",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__formal",
+      "content_sha256": "48bac98f71f1dcdc31d43e84b18b9875d695556dd5f771b9e0ef8c20b8d5abe6",
+      "id": "T_OWNER_NET_NATIVE_FLOW__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch lớn nhất từ địa chỉ kho quỹ sàn tới địa chỉ vận hành DEX trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Xếp chủ sở hữu kho quỹ theo trị tuyệt đối dòng native ròng lớn nhất; kèm wei vào và ra, chỉ tính giao dịch thành công có giá trị dương. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2550,15 +2550,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ea75c75b2c4037959b4fca28cba48df0954e69c6d418c73aba57569dcd8cfb77",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__conversational",
+      "content_sha256": "33dd9b591f212b82fec20a365b7fc35184de918904aff345eef36dfc2378c763",
+      "id": "T_OWNER_NET_NATIVE_FLOW__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} giao dịch từ treasury của sàn sang bộ phận vận hành DEX từ {start_date} tới {end_date} nhé?",
+      "pattern": "Chủ kho quỹ nào có chênh lệch tuyệt đối giữa wei native vào và ra lớn nhất, nếu chỉ tính giao dịch thành công có giá trị dương. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -2566,15 +2566,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7569e142391ccf2f38994ca5870589ec191fc657b5b90bb52aadad8b3e67d8c3",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__abbreviated",
+      "content_sha256": "29c531fb54b06ff4fc8fcb79fb1b0ff76e7497a868e392f4daa5820935941aed",
+      "id": "T_OWNER_NET_NATIVE_FLOW__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} tx treasury sàn → DEX ops, {start_date}–{end_date}.",
+      "pattern": "Top chủ kho quỹ theo |wei native vào − ra|; tx thành công, giá trị dương; kèm tổng vào/ra; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2582,15 +2582,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "3c9d781d95d6df81f9e793db542b4f9c43cd1cccdf8ac78dced52abc76e425e0",
-      "id": "T_EXCHANGE_TO_DEX_FLOW__vi__alternative",
+      "content_sha256": "030fde18027ae20a424b011b5ca8cfd63f01e7a6e5f4406113e6b18da8179188",
+      "id": "T_OWNER_NET_NATIVE_FLOW__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} dòng tiền native có bên gửi là kho quỹ sàn và bên nhận là địa chỉ vận hành DEX.",
+      "pattern": "So sánh wei native vào, ra và ròng của từng chủ kho quỹ có nhãn; xếp trị tuyệt đối ròng giảm dần, chỉ dùng giao dịch thành công có giá trị dương. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -2598,151 +2598,127 @@
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_EXCHANGE_TO_DEX_FLOW"
+      "template_id": "T_OWNER_NET_NATIVE_FLOW"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "227f45bdb092e5f892d99ed3a97e2cd7a55c6014b6d3e0bd1ee779bbda66a017",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__formal",
+      "content_sha256": "a9b0ed90606144b3fcf1741701ef73343c77d62416d060fc6ffba5085ece9ef5",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__en__formal",
       "language": "en",
-      "pattern": "List the top {n} mixer-to-DEX transactions worth at least {value_wei} wei from {start_date} to {end_date}.",
+      "pattern": "Rank label categories by the most distinct owners, including account counts and accounts per owner. Limit: {n}.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ad9807b1c3ed1c7fb41a1bf4ad03dc601c1d918df4eaa7ac51aa6e6f698e02f7",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__conversational",
+      "content_sha256": "1b6557aa35f6af2aa2fa4afddd13349aade7d22b1c5e201bded0fd0e7cc2d4cb",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__en__conversational",
       "language": "en",
-      "pattern": "From {start_date} to {end_date}, which {n} mixer-to-DEX flows were worth at least {value_wei} wei?",
+      "pattern": "Which label categories have the largest number of unique owners, and what are their account totals and accounts-per-owner ratios? Please cap the result at {n}.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "3d8135da9d12c06bbd40090bfcf37e6b3f0949c9b5a4c3e6f1161d4259f2b7f7",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__abbreviated",
+      "content_sha256": "1a06e468733f94a2dc34c5ea1628e9c21c07b94a04124154836f8f828bbc54e1",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} mixer → DEX flows ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "pattern": "Top label categories by distinct owners; include accounts and accounts/owner; cap {n}.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6ad572834e3a6fa8d16fa92548d26af0c6c328dc595a5368d4d1cba76ff5015a",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__en__alternative",
+      "content_sha256": "e17ea2a6b52f1083f55e126f71ecb276b71261f5ab607201ebeb7f417599cc9d",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, find {n} native transfers from a mixer class to a DEX class with value at least {value_wei} wei.",
+      "pattern": "Group the accepted dictionary by category and order by distinct owner count, then account count, both descending; report accounts per owner too. Use {n} as the row limit.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "a890cd275dc9a4b5d3d4e626b5b7bbe9b55f905c0407572ced7778be2d0e0fc6",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__formal",
+      "content_sha256": "8f81abfb5a9d67fbc5fb0adbc2e241fe5b67919050a409e783ffb399de1dfe0e",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch lớn nhất từ mixer tới DEX có giá trị ít nhất {value_wei} wei trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Xếp danh mục nhãn theo số chủ sở hữu riêng biệt nhiều nhất, kèm số tài khoản và tỷ lệ tài khoản trên chủ sở hữu. Giới hạn: {n}.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7b9a24fe731751cae5b9d1a3b59a05662ba2813566ca5f19b1c89a1c1c000fa2",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__conversational",
+      "content_sha256": "06aa595e203ad385b1eabfab571a272f02b9325dae91e81487eb6a8e76b5e903",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} dòng tiền nào từ mixer sang DEX có giá trị từ {value_wei} wei trở lên?",
+      "pattern": "Danh mục nhãn nào có nhiều chủ sở hữu khác nhau nhất, cùng tổng tài khoản và số tài khoản trên mỗi chủ. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cc0037eb2c12b43e9d4ef1e7fc6f1f111bf1c2f6c74a7e246e544f88aac7eb83",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__abbreviated",
+      "content_sha256": "2e5a3c87fe3937bd0db8fd80f34a59f074eff8984f94466c518190e0b900a614",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} flow mixer → DEX ≥ {value_wei} wei, {start_date}–{end_date}.",
+      "pattern": "Top danh mục nhãn theo chủ sở hữu riêng biệt; kèm tài khoản và tài khoản/chủ sở hữu; tối đa {n}.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cf6a57c54c833a755e3a339e8d8235e6825326c4863425eed0a45b871e40365e",
-      "id": "T_MIXER_TO_DEX_LARGE_FLOW__vi__alternative",
+      "content_sha256": "3fd3e43873ba6d0e9714674845ce2a7cebf36395f3e7c97cb40aba5788fbb7e5",
+      "id": "T_CATEGORY_OWNER_DISTRIBUTION__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy tìm {n} lượt chuyển native từ lớp mixer sang lớp DEX có giá trị không nhỏ hơn {value_wei} wei.",
+      "pattern": "Nhóm từ điển nhãn đã chấp nhận theo danh mục; xếp số chủ khác nhau rồi số tài khoản giảm dần, đồng thời trả tỷ lệ tài khoản trên chủ. Lấy tối đa {n} kết quả.",
       "placeholders": [
-        "end_date",
-        "n",
-        "start_date",
-        "value_wei"
+        "n"
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_MIXER_TO_DEX_LARGE_FLOW"
+      "template_id": "T_CATEGORY_OWNER_DISTRIBUTION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0e0554c56cef774e3c1256a97f09b601e667ac407171ab26466cee08e1fbc3b8",
+      "content_sha256": "54a49c598de2538d7f1ef67351160aae3645aa70bf1ad0e436c4a2028123520b",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__formal",
       "language": "en",
-      "pattern": "Find the first {n} token transfers occurring within {duration_minutes} minutes after exchange funding between {start_date} and {end_date}.",
+      "pattern": "List the earliest token transfers sent by funded addresses, at or after successful positive-value native treasury funding and strictly less than {duration_minutes} minutes later. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2756,10 +2732,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "07367f0adea9b6ff737ca2c763c999506a20f0d4c3a7ff3cc61bf728b298e633",
+      "content_sha256": "7895ac13a4b323afbf3eba3512bee63add52b3c1445c8fbdfa431fab8598acab",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__conversational",
       "language": "en",
-      "pattern": "Which {n} token transfers followed an exchange-funded native payment within {duration_minutes} minutes from {start_date} to {end_date}?",
+      "pattern": "Could you show the first token events sent by a funded address at or after its successful positive native funding from a treasury, with elapsed time below {duration_minutes} minutes? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2773,10 +2749,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "bc8963c7c7d05030e3d239aeb9239e41704732c3cad287ade3fc1f137ee184c1",
+      "content_sha256": "6827cb0dc06afa7d68657eda53ad35e08a352c168ad49ff113dc340ae9132304",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__abbreviated",
       "language": "en",
-      "pattern": "First {n} token txs ≤ {duration_minutes} min after exchange funding, {start_date}–{end_date}.",
+      "pattern": "Earliest funded-address token transfers: successful positive native treasury funding; at or after funding, elapsed <{duration_minutes} min; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2790,10 +2766,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "340350e002e716b284997703e3ffdf137a004299eb81913211d1671564b2ef99",
+      "content_sha256": "0ad035fe1cb0f67d8780b5aed84d535175cf1bae8e903b969bed31eb5ceacd9b",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} token events sent by an address no later than {duration_minutes} minutes after that address received native funding from an exchange treasury.",
+      "pattern": "Find token-transfer events whose sender received successful positive native treasury funding; include events at or after funding but strictly before {duration_minutes} minutes have elapsed, earliest transfers first. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2807,10 +2783,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cf39dbac2fc8c6ea1cfd292bc26c1d8cdc45e069f3a5d7dd23442f54fcb793bc",
+      "content_sha256": "a7956ffc2fa4aa4debc02b674d76fc6d388f4d79ecec543a1b5467c161b445d3",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__formal",
       "language": "vi",
-      "pattern": "Tìm {n} lượt chuyển token đầu tiên xảy ra trong vòng {duration_minutes} phút sau khi nhận tài trợ từ sàn, từ {start_date} đến {end_date}.",
+      "pattern": "Liệt kê lượt chuyển token sớm nhất từ địa chỉ được kho quỹ cấp native thành công với giá trị dương; thời điểm chuyển không trước khoản cấp và cách dưới {duration_minutes} phút. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2824,10 +2800,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "6641733b20838ad2fdcb987667f7dd3cb9ba69a1eb706497d0144e61fd521632",
+      "content_sha256": "6b22babdbfb5512a630f58600dfdd39029446c01237e348d6d5164757f66cc66",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} lượt chuyển token nào diễn ra trong {duration_minutes} phút sau khoản native do sàn cấp?",
+      "pattern": "Cho mình xem sự kiện chuyển token đầu tiên từ địa chỉ được kho quỹ cấp native thành công với giá trị dương; timestamp token không trước khoản cấp và độ trễ dưới {duration_minutes} phút. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2841,10 +2817,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "486f9bfe09b3c0af3ce5fe5f703d11e1629db8d2bec86d6e9952a514acdce851",
+      "content_sha256": "6ea6791b4bce0e3a67348a01cc205c562a42ae3e580640289de19f8776094df5",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} tx token đầu tiên ≤ {duration_minutes} phút sau funding sàn, {start_date}–{end_date}.",
+      "pattern": "Token transfer sớm nhất từ địa chỉ nhận native kho quỹ; khoản cấp thành công, giá trị dương; không trước khoản cấp, trễ <{duration_minutes} phút; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2858,10 +2834,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "021c056611e64c9a8e522b90ce0ccda7d072f2473fcb52cb35f207278398d127",
+      "content_sha256": "5b5629d1eaa50b4d5961c0309d873e92f4aa0ea545afa0d3d0221e6e8b1e6911",
       "id": "T_TOKEN_AFTER_NATIVE_FUNDING__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do một địa chỉ gửi không muộn hơn {duration_minutes} phút sau khi địa chỉ đó nhận native funding từ kho quỹ sàn.",
+      "pattern": "Tìm các sự kiện chuyển token do địa chỉ đã nhận native từ kho quỹ gửi; khoản cấp phải có giá trị dương và thành công. Lấy timestamp token không trước timestamp cấp native và cách dưới {duration_minutes} phút, xếp sớm nhất trước. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "duration_minutes",
         "end_date",
@@ -2875,10 +2851,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "c5e8c02f2401466ad93a28f277c32b304cc81ec1c0a5d92c8af21ec87b88b7e0",
-      "id": "T_CROSS_EXCHANGE_FLOW__en__formal",
+      "content_sha256": "a7e0f4e2ce803d429e82685559d069ec0127f5b5e5563000241ffce7e49861bb",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__en__formal",
       "language": "en",
-      "pattern": "List the top {n} native transactions between treasury addresses owned by different exchanges from {start_date} to {end_date}.",
+      "pattern": "Rank treasury owners by the highest sum of squared recipient transaction-count shares; require at least 10 successful positive-value native transactions per owner. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2886,15 +2862,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "34ddd1ce5ad073c1b21b3cdd84f420727c63a0c32d7787938227e85643402a1f",
-      "id": "T_CROSS_EXCHANGE_FLOW__en__conversational",
+      "content_sha256": "652bed24a5e110ec315d089f54d3c4a79f6d8bc00b3acf6c3a5142fd088c609a",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__en__conversational",
       "language": "en",
-      "pattern": "Can you show me {n} native transfers connecting two different exchange owners between {start_date} and {end_date}?",
+      "pattern": "Which treasury owners have the highest recipient count-share HHI when only successful positive native transactions count, with a minimum of 10 per owner? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2902,15 +2878,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fca9562e49f6fc7008c81902fd142cac687890be89527c24cba0ebd7bd570d98",
-      "id": "T_CROSS_EXCHANGE_FLOW__en__abbreviated",
+      "content_sha256": "0b0a5cbe7155a38d3a1552f3fb629c8d093aa12a106f42a62986ff68e5f4330f",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} cross-exchange treasury txs, {start_date}–{end_date}.",
+      "pattern": "Top treasury owners by recipient count-share HHI; ≥10 successful positive-value native txs per owner; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2918,15 +2894,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "5f23de46498b57515bf40ec3ba5ce90e022a3cc992d14d52078754488b258cb7",
-      "id": "T_CROSS_EXCHANGE_FLOW__en__alternative",
+      "content_sha256": "26958374340a34b6abc276149417364bf2e75be3a8eca12df093b9ab5b856d52",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__en__alternative",
       "language": "en",
-      "pattern": "During {start_date} through {end_date}, return {n} native flows whose sender and recipient are exchange treasuries with unequal owners.",
+      "pattern": "Calculate recipient transaction-count-share concentration for each treasury owner using successful positive native transactions; keep owners with at least 10 and rank HHI descending. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -2934,15 +2910,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d869771163a4d00b3985313e9a30ab7e9ca5411d49c35c8a919ee9a02980393b",
-      "id": "T_CROSS_EXCHANGE_FLOW__vi__formal",
+      "content_sha256": "20486bcbc4f8fea1a83e6ff01d0f95faed41fb2d3cfdf9804bff436a62a3382e",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__vi__formal",
       "language": "vi",
-      "pattern": "Liệt kê {n} giao dịch native lớn nhất giữa các địa chỉ kho quỹ thuộc hai sàn khác nhau từ {start_date} đến {end_date}.",
+      "pattern": "Xếp chủ kho quỹ theo tổng bình phương tỷ trọng số giao dịch tới từng địa chỉ nhận cao nhất; mỗi chủ cần ít nhất 10 giao dịch native thành công có giá trị dương. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2950,15 +2926,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "8fa4dfd9c17ca51c683525223e1a8a0b06fdde2a7f9b4c170b7572f5dc5b24c5",
-      "id": "T_CROSS_EXCHANGE_FLOW__vi__conversational",
+      "content_sha256": "d1190450250a8f388e32b53bf129b4a1c23def2a78ff6170dab5bc3ea5de855e",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__vi__conversational",
       "language": "vi",
-      "pattern": "Cho mình xem {n} lượt chuyển native kết nối hai chủ sở hữu sàn khác nhau trong khoảng {start_date} tới {end_date} nhé?",
+      "pattern": "Chủ kho quỹ nào có HHI tỷ trọng số giao dịch theo địa chỉ nhận cao nhất; chỉ tính giao dịch native thành công, giá trị dương, và mỗi chủ phải có ít nhất 10 giao dịch. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -2966,15 +2942,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e7e016b26015fc4df983ff5ea5d870c90380df35d6b20bb3393160ab47564c9e",
-      "id": "T_CROSS_EXCHANGE_FLOW__vi__abbreviated",
+      "content_sha256": "aa346d472cd21a9978733f1307beea2156217aa646b5372c0d1394da24e4490a",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} tx treasury liên sàn, {start_date}–{end_date}.",
+      "pattern": "Top chủ kho quỹ theo HHI tỷ trọng số tx từng địa chỉ nhận; ≥10 giao dịch native thành công, giá trị dương, mỗi chủ; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -2982,15 +2958,15 @@
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "e0031fccf2e02a77cd0ee1dd35a00fac98b600bea0d853353b86a66912aab99d",
-      "id": "T_CROSS_EXCHANGE_FLOW__vi__alternative",
+      "content_sha256": "4bc0537d54631c216301cc402a32fbb1c87a9c46db0570273288d6e2ed729b3b",
+      "id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy trả về {n} dòng tiền native có cả bên gửi và bên nhận là kho quỹ sàn nhưng khác chủ sở hữu.",
+      "pattern": "Tính mức tập trung tỷ trọng số giao dịch theo bên nhận cho từng chủ kho quỹ; chỉ dùng giao dịch native thành công có giá trị dương, giữ chủ có ít nhất 10 giao dịch và xếp HHI giảm dần. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",
@@ -2998,151 +2974,143 @@
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_CROSS_EXCHANGE_FLOW"
+      "template_id": "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f5fa0eeb5368d3daad48c13397ff4a09f208980fc3a2ab8855a20d5c3452ca57",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__formal",
+      "content_sha256": "f8acfce0d78e2fb64cd3833334a444035cfec37bc4aae100a9be151cf0e0b334",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__en__formal",
       "language": "en",
-      "pattern": "Find the first {n} token transfers sent from bridges within {duration_minutes} minutes after those bridges received exchange deposits between {start_date} and {end_date}.",
+      "pattern": "Rank treasury owners by the most distinct token-transfer recipient addresses, then distinct token contracts; include transfer-event counts. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7a3df9e18b4f4b1c9c964cb193bec8b5227f830ce22de8169247fd854b62692c",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__conversational",
+      "content_sha256": "6e1901304b0f1a2f4d9dd457090fdbd262a83e0570b5e4b122922bf4f93bb75b",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__en__conversational",
       "language": "en",
-      "pattern": "Which {n} token outflows left bridges within {duration_minutes} minutes after an exchange deposit from {start_date} to {end_date}?",
+      "pattern": "Which treasury owners reach the most unique token recipients, breaking ties by distinct token contracts, and how many transfer events do they have? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "39a5f7267bfa5b141a854b03a1bf4dd0f4e0c4cba831fc18cb4c70f271532867",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__abbreviated",
+      "content_sha256": "17a2140883696110b199841deeb6ceb4eedafed2a8bf8a1cf06122edf6d3d8e3",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__en__abbreviated",
       "language": "en",
-      "pattern": "First {n} token outflows from bridges ≤ {duration_minutes} min after exchange deposit, {start_date}–{end_date}.",
+      "pattern": "Top treasury owners: distinct token recipients, then token contracts; event totals included; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "783f5d3141706cdc0cb933a33f6b8b3e6ea032b0b41a95a4f83dc35ab0e0531b",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__en__alternative",
+      "content_sha256": "d2a043b2ac559a48637f1e3404ebe500dc6c06cdbe1072e97ac675510d6a4ff3",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__en__alternative",
       "language": "en",
-      "pattern": "For {start_date} through {end_date}, return {n} token events sent by a bridge no later than {duration_minutes} minutes after that bridge received a deposit from an exchange treasury.",
+      "pattern": "Compare treasury owners by unique token-transfer recipient count first and unique token contract count second, both descending, alongside event totals. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "56e57edcb035b6a35f87633cf602e1f4f70bdb97e7da632abf1a1e1ebf6f91a8",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__formal",
+      "content_sha256": "779d9b361c0062e099dc56f3c39882083c2920299c70277494db4f7780d41c8d",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__vi__formal",
       "language": "vi",
-      "pattern": "Tìm {n} lượt chuyển token đầu tiên từ bridge đi ra trong vòng {duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn, từ {start_date} đến {end_date}.",
+      "pattern": "Xếp chủ kho quỹ theo số địa chỉ nhận token khác nhau nhiều nhất, rồi số hợp đồng token khác nhau; kèm số sự kiện chuyển. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "formal",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "f18f45e9430a9f5aa8ff1706740fc2bb5e2841893b2d493e0990f3b0fabc6a0c",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__conversational",
+      "content_sha256": "27e2982d325818cc035e2968694d0c35d6371ac79b5a078eb8a829ebb3d73b68",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__vi__conversational",
       "language": "vi",
-      "pattern": "Từ {start_date} tới {end_date}, {n} dòng token nào rời bridge trong {duration_minutes} phút sau khi bridge nhận khoản nạp từ sàn?",
+      "pattern": "Chủ kho quỹ nào có nhiều bên nhận token riêng biệt nhất; nếu bằng nhau thì xét số hợp đồng token khác nhau, và cho biết tổng sự kiện chuyển. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "conversational",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "7e1be3c7b604480c01b9ded60289148ec14100206e3c4367b15c4ac578b2f485",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__abbreviated",
+      "content_sha256": "3c7fb550753e7e3fee3431896cb5a1d46bd700cdc3465775ce8386969d50071b",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__vi__abbreviated",
       "language": "vi",
-      "pattern": "{n} token outflow đầu tiên từ bridge ≤ {duration_minutes} phút sau deposit sàn, {start_date}–{end_date}.",
+      "pattern": "Top chủ kho quỹ: bên nhận token riêng biệt, rồi hợp đồng token riêng biệt; kèm tổng sự kiện; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "abbreviated",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ca1329a6aea7e6be0b034f1559950bbbbd371bba08ff8106849ecd364329085b",
-      "id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE__vi__alternative",
+      "content_sha256": "4e9fef499b4bb091dac43604ec32a8fe1815cc40478aa8ef42367f5ba5cdeedc",
+      "id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY__vi__alternative",
       "language": "vi",
-      "pattern": "Với giai đoạn {start_date} đến {end_date}, hãy trả về {n} sự kiện token do bridge gửi không muộn hơn {duration_minutes} phút sau khi bridge nhận tiền từ kho quỹ sàn.",
+      "pattern": "So sánh các chủ kho quỹ theo số địa chỉ nhận token khác nhau trước, rồi số hợp đồng token khác nhau, đều giảm dần; đồng thời trả số sự kiện chuyển. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
-        "duration_minutes",
         "end_date",
         "n",
         "start_date"
       ],
       "review_type": "agent-reviewed",
       "style": "alternative",
-      "template_id": "T_BRIDGE_OUTFLOW_AFTER_EXCHANGE"
+      "template_id": "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY"
     },
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "d833108b5ccd66949959c26d44652a3ff18c3ca4712754bdbca57dd5da62143a",
+      "content_sha256": "8b704ab080569219b58e81b1451068acd2c00ae5d9a43d946db7872bcfa18213",
       "id": "T_REPEATED_PAIR_FLOW__en__formal",
       "language": "en",
-      "pattern": "Return the top {n} sender-recipient pairs by repeated transaction count between {start_date} and {end_date}.",
+      "pattern": "Rank directed sender-recipient pairs with at least two transactions by the highest transaction count, then summed transaction value in wei. Window: from {start_date} up to but excluding {end_date}. Limit: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -3155,10 +3123,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "5221dea81ab31439cd851a6a99e1430057405baa487ef599c7e1f47a058396ce",
+      "content_sha256": "8816aaf6dc60ac473fe8253e2fa9d7c15b724bd88b0f4f95422d90d6e9df2b63",
       "id": "T_REPEATED_PAIR_FLOW__en__conversational",
       "language": "en",
-      "pattern": "Which address pairs transacted most often from {start_date} to {end_date}? Show the first {n}.",
+      "pattern": "Which directed address pairs have the most transactions, counting only pairs with at least two and breaking ties by total transaction value? Use the window starting {start_date}, stopping before {end_date}. Please cap the result at {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -3171,10 +3139,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "1a860d161f674bda66fba8c6afbcedec8b7e53af1f48b255e6701b03e7551215",
+      "content_sha256": "e8eee7012986fc245758a4d8a729ab3635c0ba6b513caec9c07b852498eae4e7",
       "id": "T_REPEATED_PAIR_FLOW__en__abbreviated",
       "language": "en",
-      "pattern": "Top {n} repeated address pairs, {start_date}–{end_date}.",
+      "pattern": "Top directed sender-recipient pairs; tx count >1; rank count then total wei descending; [{start_date}, {end_date}); cap {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -3187,10 +3155,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "ba1d26348d9310beaa98e029d51f1f0d347ffdc3cd291fa3c57dbefbd24516fd",
+      "content_sha256": "daa2f23807d3c75b03a9f498bcf347fa43653bf47bcd49fe446728160483feb0",
       "id": "T_REPEATED_PAIR_FLOW__en__alternative",
       "language": "en",
-      "pattern": "Across {start_date} through {end_date}, group transactions by directional address pair and list the {n} pairs with the highest frequency.",
+      "pattern": "Group transactions by directed sender-recipient pair, require at least two occurrences, and order by count then summed wei, both descending. Restrict the search to on or after {start_date} but before {end_date}. Use {n} as the row limit.",
       "placeholders": [
         "end_date",
         "n",
@@ -3203,10 +3171,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "cdad9ddc3526e94b3e740fb0cf7c9397d24cd88d402516f6e410863468fa6fb4",
+      "content_sha256": "a180dade562ee3c1be738f1687c359d8afc06030d652252d34dc1b9ce0d2d4ea",
       "id": "T_REPEATED_PAIR_FLOW__vi__formal",
       "language": "vi",
-      "pattern": "Trả về {n} cặp địa chỉ gửi-nhận có số giao dịch lặp lại nhiều nhất trong khoảng từ {start_date} đến {end_date}.",
+      "pattern": "Xếp cặp gửi-nhận có hướng với ít nhất hai giao dịch theo số giao dịch nhiều nhất, rồi tổng giá trị giao dịch bằng wei. Phạm vi: từ {start_date} đến trước {end_date}. Giới hạn: {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -3219,10 +3187,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "0c06c39c3d1da10aad08263aa117419e3c568ebe9184b1313ab1a43da58ea309",
+      "content_sha256": "1840e9e8611b0e64e4d4e4f8c6a1f8e634a263322827a2fa588f6d603163d13e",
       "id": "T_REPEATED_PAIR_FLOW__vi__conversational",
       "language": "vi",
-      "pattern": "Cặp địa chỉ nào giao dịch thường xuyên nhất từ {start_date} tới {end_date}? Cho mình xem {n} cặp đầu tiên.",
+      "pattern": "Cặp địa chỉ có hướng nào giao dịch nhiều nhất; chỉ xét cặp có ít nhất hai giao dịch, nếu bằng nhau thì so tổng giá trị giao dịch. Khoảng xét bắt đầu {start_date} và dừng trước {end_date}. Cho mình tối đa {n} kết quả nhé.",
       "placeholders": [
         "end_date",
         "n",
@@ -3235,10 +3203,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fa71768b907c1c74dfe1558c16e5dadb20db92b7564983060d1bd1885411ef27",
+      "content_sha256": "7d2661c42514da99c58458f5b1588d525b8bcc6c94e77e8dd9fea7b4e5231b70",
       "id": "T_REPEATED_PAIR_FLOW__vi__abbreviated",
       "language": "vi",
-      "pattern": "Top {n} cặp địa chỉ lặp tx, {start_date}–{end_date}.",
+      "pattern": "Top cặp gửi-nhận có hướng; số tx >1; xếp số tx rồi tổng wei giảm dần; [{start_date}, {end_date}); tối đa {n}.",
       "placeholders": [
         "end_date",
         "n",
@@ -3251,10 +3219,10 @@
     {
       "author_type": "agent",
       "catalog_schema_version": "1.0.0",
-      "content_sha256": "fcb7967997f84f59ca634d8ce7c6e51f2f829f1d4476d75658fd4bf3b6869218",
+      "content_sha256": "b4959ff7db5155e171fec12c9babc520e1a50491e535d7c6f06ab25b42e9832f",
       "id": "T_REPEATED_PAIR_FLOW__vi__alternative",
       "language": "vi",
-      "pattern": "Trong giai đoạn {start_date} đến {end_date}, hãy nhóm giao dịch theo cặp địa chỉ có hướng và liệt kê {n} cặp có tần suất cao nhất.",
+      "pattern": "Nhóm giao dịch theo cặp địa chỉ gửi-nhận có hướng; giữ cặp xuất hiện ít nhất hai lần, xếp số giao dịch rồi tổng wei đều giảm dần. Chỉ xét kỳ bắt đầu {start_date} và kết thúc trước {end_date}. Lấy tối đa {n} kết quả.",
       "placeholders": [
         "end_date",
         "n",

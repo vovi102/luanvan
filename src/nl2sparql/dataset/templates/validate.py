@@ -14,7 +14,12 @@ if TYPE_CHECKING:
     from google.cloud import bigquery
 
 from nl2sparql.sql.constants import DEFAULT_LOCATION
-from nl2sparql.sql.schema import load_catalog, validate_catalog, validate_date_window
+from nl2sparql.sql.schema import (
+    TRAINING_CATALOG_PATH,
+    load_catalog,
+    validate_catalog,
+    validate_date_window,
+)
 
 TEMPLATES_PATH = Path(__file__).with_name("templates.json")
 PER_TEMPLATE_BYTES_CAP = 21_474_836_480
@@ -142,7 +147,7 @@ def _require_strings(value: object, owner: str) -> list[str]:
 
 
 def _catalog_references() -> tuple[set[str], set[str], set[str]]:
-    catalog = load_catalog()
+    catalog = load_catalog(TRAINING_CATALOG_PATH)
     validate_catalog(catalog)
     relations = set(catalog["analytical_relations"])
     elements = set(relations)

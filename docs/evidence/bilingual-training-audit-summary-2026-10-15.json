@@ -1,0 +1,51 @@
+{
+  "status": "failed",
+  "binding_validation": "passed",
+  "audit_schema_version": "1.0.0",
+  "reviewer_type": "agent",
+  "independent_or_human_review": false,
+  "api_request_count": 0,
+  "source_lifecycle": "accepted",
+  "expanded_in_memory": 8000,
+  "thresholds": {
+    "faithful_minimum_per_100": 95,
+    "natural_minimum_per_100": 90
+  },
+  "languages": [
+    {
+      "language": "en",
+      "sample_size": 100,
+      "intent_style_strata": 100,
+      "faithful_count": 67,
+      "natural_count": 96,
+      "accepted_count": 65,
+      "rejected_count": 35,
+      "faithful_gate_passed": false,
+      "natural_gate_passed": true,
+      "passed": false,
+      "gate_error": "audit requires at least 95 faithful records, received 67"
+    },
+    {
+      "language": "vi",
+      "sample_size": 100,
+      "intent_style_strata": 100,
+      "faithful_count": 73,
+      "natural_count": 93,
+      "accepted_count": 70,
+      "rejected_count": 30,
+      "faithful_gate_passed": false,
+      "natural_gate_passed": true,
+      "passed": false,
+      "gate_error": "audit requires at least 95 faithful records, received 73"
+    }
+  ],
+  "canonical_publication": false,
+  "source_and_evidence_sha256": {
+    "data/dataset/raw/synthetic-stage-a-v2.jsonl": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203",
+    "data/dataset/raw/generation-config-v2.json": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695",
+    "src/nl2sparql/dataset/bilingual/templates.json": "00d5dc083bd22aeeee4a8515c0cda0fb0f18cc972584f0e0f57681954cbf6cfe",
+    "data/dataset/processed/bilingual-training-exclusion-index.json": "83d76676a00588703d7136772f956770254a656ad1b4c1fab1dfbcc61e1b91b7",
+    "docs/evidence/bilingual-training-audit-sample-2026-10-15.jsonl": "de01254165eca7a361f3c4e6b092189b4dc39f72bfc610577ddd0d32f60fe1b9",
+    "docs/evidence/bilingual-training-audit-decisions-2026-10-15.jsonl": "3aea05fc16e2d8c552a16ff4092a9b178a91efff6db347397ccd87a21a97795d"
+  }
+}

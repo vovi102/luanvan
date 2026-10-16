@@ -1,0 +1,24 @@
+{
+  "status": "accepted",
+  "started_at": "2026-10-15T13:41:37.918477+00:00",
+  "finished_at": "2026-10-15T13:51:43.886985+00:00",
+  "candidate_sha256": "5a4e0299d8f36bc3d77bc47ed7aa6ae0c10846846924b9fcd002c04c98c06cd6",
+  "accepted_sha256": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203",
+  "authorization": "Explicit user final-live approval; diagnostic observations alone do not authorize acceptance.",
+  "summary": {
+    "logical_witness_count": 206,
+    "physical_query_count": 126,
+    "total_initial_estimated_bytes": 82854752185,
+    "total_immediate_estimated_bytes": 82854752185,
+    "total_processed_bytes": 80089662489,
+    "total_billed_bytes": 80594599936,
+    "cache_hit_count": 0
+  },
+  "artifacts": {
+    "/home/khoavd/WORKSPACE/LuanVan/.worktrees/feat-stage-a-v2-batch-verification/data/dataset/raw/synthetic-stage-a-v2.jsonl": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203",
+    "/home/khoavd/WORKSPACE/LuanVan/.worktrees/feat-stage-a-v2-batch-verification/data/dataset/raw/generation-config-v2.json": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695",
+    "/home/khoavd/WORKSPACE/LuanVan/.worktrees/feat-stage-a-v2-batch-verification/data/dataset/raw/stats-v2.md": "5dc8ca95194cea888eda75a0d5b314f096a73459f8c90b5c52c8515471974416"
+  },
+  "preflight_path": "docs/evidence/stage-a-v2-cq35-final-live-preflight-2026-10-15.json",
+  "observations_path": "docs/evidence/stage-a-v2-cq35-final-live-witnesses-2026-10-15.json"
+}

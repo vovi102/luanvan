@@ -1,0 +1,91 @@
+{
+  "mode": "coverage_audit",
+  "acceptance_authorized": false,
+  "project": "nl2sparql-thesis",
+  "location": "US",
+  "billing_enabled": false,
+  "billing_account_empty": true,
+  "view_query": "SELECT\n  address,\n  chain_id,\n  primary_label,\n  owner,\n  category,\n  concept_class,\n  address_role,\n  aliases,\n  confidence,\n  verified_date,\n  sources,\n  dictionary_sha256\nFROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_snapshot_cdc7856df81f`",
+  "query": "SELECT dictionary_sha256, address_role, concept_class, COUNT(*) AS entity_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1`\nGROUP BY dictionary_sha256, address_role, concept_class\nORDER BY address_role, concept_class",
+  "query_sha256": "f270ccb34f5fa1bd29f845e076a7f961fed299bfdfcf54aff1d0e0cde9c2ddf8",
+  "job_id": "4e8e2490-f3b7-4c71-a7c8-99e602097c09",
+  "estimated_bytes": 452124,
+  "processed_bytes": 452124,
+  "billed_bytes": 10485760,
+  "maximum_bytes_billed": 67108864,
+  "cache_hit": false,
+  "rows": [
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "operational",
+      "concept_class": "BridgeProtocol",
+      "entity_count": 5
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "operational",
+      "concept_class": "DEXProtocol",
+      "entity_count": 3
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "operational",
+      "concept_class": "LendingProtocol",
+      "entity_count": 1
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "operational",
+      "concept_class": "MEVActor",
+      "entity_count": 2
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "operational",
+      "concept_class": "TokenContract",
+      "entity_count": 3
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "token",
+      "concept_class": "BridgeProtocol",
+      "entity_count": 1
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "token",
+      "concept_class": "DEXProtocol",
+      "entity_count": 2
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "token",
+      "concept_class": "LendingProtocol",
+      "entity_count": 7
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "token",
+      "concept_class": "StablecoinIssuer",
+      "entity_count": 1
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "token",
+      "concept_class": "StakingAccount",
+      "entity_count": 5
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "token",
+      "concept_class": "TokenContract",
+      "entity_count": 5075
+    },
+    {
+      "dictionary_sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e",
+      "address_role": "treasury",
+      "concept_class": "ExchangeAccount",
+      "entity_count": 30
+    }
+  ]
+}

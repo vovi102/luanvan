@@ -1,0 +1,2 @@
+{"mode": "build", "records": 8000, "status": "published"}
+{"mode": "build", "offline_guard": {"credential_reads": 0, "network_attempts": 0, "provider_imports": 0, "subprocess_attempts": 0}, "script": "scripts/20_build_bilingual_training.py"}

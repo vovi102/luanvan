@@ -1,9 +1,37 @@
 # Query Template Library
 
 This directory contains the active T3.1 GoogleSQL template library for the
-synthetic dataset pipeline. The 25 stable template IDs and their approved
-difficulty/category distribution are preserved from the original taxonomy, but
-the executable contract now targets the managed BigQuery analytical layer.
+synthetic dataset pipeline. It contains 25 intents targeting the managed
+BigQuery analytical layer. The approved 2026-10-14 coverage revision replaces
+three unsupported-by-data flow intents with owner net native flow, native
+recipient concentration and token counterparty diversity; it also tightens
+native funding to successful positive-value transactions.
+
+Template validation explicitly uses `ethereum_analytics_stage_a_v2_1_2.json`
+(catalogue 1.2.0, CQ01–CQ35). Previous training catalogue
+`ethereum_analytics_stage_a_v2.json` remains byte-identical at 1.1.0.
+The default `ethereum_analytics.json` remains
+the byte-identical historical 1.0.0 catalogue for benchmark/model consumers.
+CQ01–CQ30 keep their meanings; CQ31–CQ35 are GoogleSQL training extensions,
+not retroactive changes to the ontology SPARQL questions. Catalogue support
+does not establish non-empty data coverage.
+
+Funding maps to CQ31, not the opposite-direction historical CQ29. Its token
+timestamp can equal the funding timestamp and must be strictly before the
+duration boundary; no causation, account ownership or within-block order is
+claimed. New replacements map only to CQ32/CQ33/CQ34, not retired CQ13/CQ22/CQ26.
+
+The 2026-10-15 correction maps `T_LARGE_TX_TO_CLASS` to CQ35. Its example uses
+BridgeProtocol >=1 ETH on June 15; SQL and projection stay unchanged. This is
+recipient label-class membership and native transaction value, not decoded
+bridge activity, successful funds received, or historical CQ21/CQ25/CQ26 coverage.
+Pre-CQ35 templates are frozen in the test fixture
+`tests/fixtures/dataset/stage-a-v2-pre-cq35-templates.json` to reconstruct the
+unchanged failed diagnostic's inputs independently of the active revision.
+
+Historical v1 rows must be paired with their historical template snapshot;
+the current bilingual renderer deliberately rejects v1 funding SQL drift.
+Do not rewrite historical rows or loosen that guard to reuse the new patterns.
 
 ## Template contract v2
 

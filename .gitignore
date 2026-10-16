@@ -21,6 +21,7 @@ venv/
 .worktrees/
 .local/
 data/dataset/raw/.noise-publish-*
+data/dataset/processed/.bilingual-publish-*.lock
 
 # Notebooks
 .ipynb_checkpoints/

@@ -1,0 +1,76 @@
+"""Validate reviewed bindings and report failed gates without publishing corpus."""
+from collections import Counter
+from dataclasses import asdict
+import hashlib
+import json
+from pathlib import Path
+
+from nl2sparql.dataset.bilingual.assembly import (
+    AssemblyValidationError, assign_group_splits, select_audit_sample,
+    validate_audit, validate_audit_evidence, validate_stage_a_source,
+)
+from nl2sparql.dataset.bilingual.contracts import AuditEvent, SplitConfig, load_catalog
+from nl2sparql.dataset.bilingual.rendering import expand_stage_a
+from nl2sparql.dataset.templates import load_templates
+
+sample_path = Path("docs/evidence/bilingual-training-audit-sample-2026-10-15.jsonl")
+audit_path = Path("docs/evidence/bilingual-training-audit-decisions-2026-10-15.jsonl")
+source_path = Path("data/dataset/raw/synthetic-stage-a-v2.jsonl")
+manifest_path = Path("data/dataset/raw/generation-config-v2.json")
+catalog_path = Path("src/nl2sparql/dataset/bilingual/templates.json")
+exclusion_path = Path("data/dataset/processed/bilingual-training-exclusion-index.json")
+source_bytes = source_path.read_bytes()
+source_evidence = validate_stage_a_source(source_bytes, manifest_path.read_bytes(), require_accepted=True)
+templates = load_templates()
+catalog = load_catalog(catalog_path, templates)
+records = assign_group_splits(
+    expand_stage_a([json.loads(line) for line in source_bytes.splitlines()], catalog, templates),
+    SplitConfig(seed=42, development_percent=10),
+)
+record_index = {record.id: record for record in records}
+samples = [json.loads(line) for line in sample_path.read_text().splitlines()]
+events = tuple(AuditEvent(**json.loads(line)) for line in audit_path.read_text().splitlines())
+assert len(samples) == len(events) == 200
+assert len({row["id"] for row in samples}) == 200
+assert len({event.event_id for event in events}) == 200
+assert {row["id"] for row in samples} == {event.record_id for event in events}
+assert all(row == json.loads(json.dumps(asdict(record_index[row["id"]]))) for row in samples)
+assert all(event.record_sha256 == record_index[event.record_id].record_sha256 for event in events)
+assert all(event.decision == ("accept" if event.faithful and event.natural else "reject") for event in events)
+summaries = []
+for language in ("en", "vi"):
+    selected = select_audit_sample(records, language, seed=42)
+    assert {row["id"] for row in samples if row["language"] == language} == set(selected)
+    selected_events = tuple(event for event in events if event.record_id in selected)
+    strata = Counter((record_index[event.record_id].catalog_entry_id) for event in selected_events)
+    assert len(strata) == 100 and set(strata.values()) == {1}
+    faithful = sum(event.faithful for event in selected_events)
+    natural = sum(event.natural for event in selected_events)
+    accepted = sum(event.decision == "accept" for event in selected_events)
+    try:
+        validate_audit(selected_events, selected, records=records, language=language)
+    except AssemblyValidationError as error:
+        assert str(error) == f"audit requires at least 95 faithful records, received {faithful}"
+        gate_error = str(error)
+    else:
+        raise AssertionError("This failed manual audit must not pass publication gates")
+    summaries.append({"language": language, "sample_size": 100, "intent_style_strata": len(strata),
+        "faithful_count": faithful, "natural_count": natural, "accepted_count": accepted,
+        "rejected_count": 100 - accepted, "faithful_gate_passed": faithful >= 95,
+        "natural_gate_passed": natural >= 90, "passed": False, "gate_error": gate_error})
+try:
+    validate_audit_evidence(events, records=records, seed=42)
+except AssemblyValidationError as error:
+    assert str(error) == summaries[0]["gate_error"]
+else:
+    raise AssertionError("Combined failed audit must fail closed")
+assert not Path("data/dataset/processed/bilingual-training.jsonl").exists()
+assert not Path("data/dataset/processed/bilingual-training-manifest.json").exists()
+print(json.dumps({"status": "failed", "binding_validation": "passed",
+    "audit_schema_version": "1.0.0", "reviewer_type": "agent",
+    "independent_or_human_review": False, "api_request_count": 0,
+    "source_lifecycle": source_evidence.lifecycle_state, "expanded_in_memory": len(records),
+    "thresholds": {"faithful_minimum_per_100": 95, "natural_minimum_per_100": 90},
+    "languages": summaries, "canonical_publication": False,
+    "source_and_evidence_sha256": {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in (source_path, manifest_path, catalog_path, exclusion_path, sample_path, audit_path)}}, indent=2))

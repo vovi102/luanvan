@@ -1,0 +1,150 @@
+"""Explicitly approved one-shot CQ35 acceptance; never repeat a failed run."""
+from datetime import UTC, datetime
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+from google.cloud import bigquery
+from nl2sparql.dataset.generate import load_value_pools
+from nl2sparql.dataset.stage_a.diagnostics import (
+    DiagnosticRecorder, require_unbilled_project,
+    validate_diagnostic_report, write_diagnostic_report,
+)
+from nl2sparql.dataset.stage_a.planning import build_stage_a_v2_witness_queries
+from nl2sparql.dataset.stage_a.verify import verify_stage_a
+from nl2sparql.dataset.stage_a.v2_artifacts import (
+    DEFAULT_V2_ACCEPTED_OUTPUT_PATH, DEFAULT_V2_ACCEPTED_CONFIG_PATH,
+    DEFAULT_V2_ACCEPTED_STATS_PATH, write_stage_a_v2_accepted_artifacts,
+    has_evidence_backed_live_values,
+)
+from nl2sparql.dataset.stage_a_v2 import (
+    generate_stage_a_v2_records, serialize_stage_a_v2_records,
+    validate_stage_a_v2_records,
+)
+from nl2sparql.dataset.templates import load_templates, PER_TEMPLATE_BYTES_CAP
+from nl2sparql.sql.schema import TRAINING_CATALOG_PATH
+
+ROOT = Path("docs/evidence")
+PREFLIGHT = ROOT / "stage-a-v2-cq35-final-live-preflight-2026-10-15.json"
+OBSERVATIONS = ROOT / "stage-a-v2-cq35-final-live-witnesses-2026-10-15.json"
+OUTCOME = ROOT / "stage-a-v2-cq35-final-live-outcome-2026-10-15.json"
+ATTEMPT = Path(".superpowers/sdd/2026-10-15-stage-a-v2-cq35-correction/final-live.started")
+TARGETS = (DEFAULT_V2_ACCEPTED_OUTPUT_PATH, DEFAULT_V2_ACCEPTED_CONFIG_PATH,
+           DEFAULT_V2_ACCEPTED_STATS_PATH)
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def save(path, value):
+    with path.open("x") as stream:
+        stream.write(json.dumps(value, indent=2, default=str) + "\n")
+
+
+class NoRetryJob:
+    def __init__(self, job):
+        self.job = job
+
+    def __getattr__(self, name):
+        return getattr(self.job, name)
+
+    def result(self):
+        return self.job.result(retry=None, job_retry=None)
+
+
+class NoRetryClient:
+    def __init__(self):
+        self.client = bigquery.Client(project="nl2sparql-thesis", location="US")
+        self.jobs = []
+        self.dry_count = 0
+
+    def query(self, sql, **kwargs):
+        config = kwargs["job_config"]
+        assert config.use_query_cache is False
+        assert 0 < config.maximum_bytes_billed <= PER_TEMPLATE_BYTES_CAP
+        job = NoRetryJob(self.client.query(sql, retry=None, job_retry=None, **kwargs))
+        if config.dry_run:
+            self.dry_count += 1
+            if self.dry_count % 40 == 0:
+                print(f"Dry runs: {self.dry_count}", flush=True)
+        else:
+            self.jobs.append(job)
+            print(f"Execution submitted: {len(self.jobs)}/126 job={job.job_id}", flush=True)
+        return job
+
+
+assert not any(path.exists() for path in (*TARGETS, PREFLIGHT, OBSERVATIONS, OUTCOME, ATTEMPT))
+templates = load_templates()
+pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
+assert has_evidence_backed_live_values(pools)
+records = generate_stage_a_v2_records(templates, pools)
+candidate_hash = hashlib.sha256(serialize_stage_a_v2_records(records)).hexdigest()
+assert candidate_hash == "5a4e0299d8f36bc3d77bc47ed7aa6ae0c10846846924b9fcd002c04c98c06cd6"
+assert candidate_hash == digest(Path("data/dataset/raw/synthetic-stage-a-v2-candidate.jsonl"))
+assert digest(TRAINING_CATALOG_PATH) == "37101b56dbb7fb0ad135b73f2aafdf66e44a9a2c00ab0963ad45569969f057f5"
+assert digest(Path("src/nl2sparql/dataset/templates/templates.json")) == "6f4393d9a118942a82c976f04c37ec1c51a3056a662ffd915d6db637c41ae8f9"
+spec = importlib.util.spec_from_file_location("cq35_workflow", "scripts/09_generate_stage_a_v2.py")
+workflow = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(workflow)
+started = datetime.now(UTC).isoformat()
+save(ATTEMPT, {"started_at": started, "candidate_sha256": candidate_hash,
+    "approval": "User: ok e duyệt, in response to final-live approval request"})
+recorder = DiagnosticRecorder(project_id="nl2sparql-thesis", records=records, verified_at=started)
+client = None
+try:
+    state = require_unbilled_project("nl2sparql-thesis")
+    recorder.record_billing_state(state)
+    client = NoRetryClient()
+    view = client.client.get_table("nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1", retry=None)
+    dictionary_hash = digest(Path("src/nl2sparql/linking/dictionary/entities.json"))
+    assert "entity_labels_snapshot_" + dictionary_hash[:12] in view.view_query
+    preflight = workflow._run_preflight(records, project="nl2sparql-thesis", location="US", client=client)
+    assert not client.jobs
+    preflight.update({"phase": "approved_final_live_preflight", "observed_at": datetime.now(UTC).isoformat(),
+        "candidate_sha256": candidate_hash, "training_catalog_sha256": digest(TRAINING_CATALOG_PATH),
+        "template_library_sha256": digest(Path("src/nl2sparql/dataset/templates/templates.json")),
+        "billing": {"project_id": state.project_id, "billing_enabled": False, "billing_account_empty": True},
+        "query_cache_enabled": False, "request_retry_enabled": False, "job_retry_enabled": False,
+        "result_retry_enabled": False, "label_view_query": view.view_query,
+        "label_view_etag": view.etag, "local_dictionary_sha256": dictionary_hash,
+        "label_binding_scope": "Metadata snapshot-prefix check, not a fresh full data-column hash check."})
+    save(PREFLIGHT, preflight)
+    print(f"Fresh preflight PASS: {preflight['total_estimated_bytes']} bytes", flush=True)
+    recorder.record_billing_state(require_unbilled_project("nl2sparql-thesis"))
+    report = verify_stage_a(client, records, templates, verified_at=started, location="US",
+        record_validator=validate_stage_a_v2_records,
+        query_planner=build_stage_a_v2_witness_queries, diagnostic_recorder=recorder)
+    observations = recorder.complete()
+    validate_diagnostic_report(observations, records)
+    write_diagnostic_report(OBSERVATIONS, observations)
+    # This recorder schema never grants acceptance authority. Authorization comes
+    # from the user's explicit approval above; these are fresh live observations.
+    assert len(report.witnesses) == 126 and len(report.records) == 1000
+    assert not any(path.exists() for path in TARGETS)
+    artifacts = write_stage_a_v2_accepted_artifacts(report, templates, pools)
+    save(OUTCOME, {"status": "accepted", "started_at": started, "finished_at": datetime.now(UTC).isoformat(),
+        "candidate_sha256": candidate_hash, "accepted_sha256": artifacts.artifact_sha256,
+        "authorization": "Explicit user final-live approval; diagnostic observations alone do not authorize acceptance.",
+        "summary": observations["summary"],
+        "artifacts": {str(path): digest(path) for path in TARGETS},
+        "preflight_path": str(PREFLIGHT), "observations_path": str(OBSERVATIONS)})
+    print(json.dumps(json.loads(OUTCOME.read_text()), indent=2), flush=True)
+except Exception as error:
+    recorder.record_failure("final_live", error)
+    if not OBSERVATIONS.exists():
+        write_diagnostic_report(OBSERVATIONS, recorder.failure_report())
+    failed_job = None
+    if client is not None and client.jobs:
+        job = client.jobs[-1]
+        failed_job = {"job_id": job.job_id, "location": job.location,
+            "query_sha256": hashlib.sha256(job.query.encode()).hexdigest(),
+            "processed_bytes": job.total_bytes_processed, "billed_bytes": job.total_bytes_billed,
+            "cache_hit": job.cache_hit, "errors": job.errors}
+    if not OUTCOME.exists():
+        save(OUTCOME, {"status": "failed", "started_at": started, "error": str(error),
+            "error_type": type(error).__name__, "last_submitted_job": failed_job,
+            "accepted_paths_present": {str(path): path.exists() for path in TARGETS},
+            "note": "Stopped without retry. Last submitted job may not have completed verification."})
+    raise

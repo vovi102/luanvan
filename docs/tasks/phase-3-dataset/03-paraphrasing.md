@@ -28,8 +28,61 @@ uv run python scripts/21_validate_bilingual_training.py --help
 
 ## Trạng thái
 
-Implementation offline hoàn tất. Canonical publication đang chờ Stage A v2
-được accept bằng genuine BigQuery evidence và audit decisions hoàn chỉnh.
+Implementation và canonical clean publication hoàn tất trong lượt build
+2026-10-15; kiểm tra cuối và bàn giao tiếp tục ngày 2026-10-16.
+Stage A v2 đã được accept bằng genuine BigQuery evidence; sau correction/audit
+r1, user duyệt build offline. Corpus canonical có 8.000 records (4.000 EN +
+4.000 VI), 1.000 families, 25 intents; train/development = 7.208/792.
+Hai build byte-identical; cả hai staging triples và canonical đều pass CLI 21.
+Các mục audit bên dưới ghi lịch sử từng thời điểm, không phải trạng thái chờ hiện tại.
+
+Evidence: `docs/research/stage-a-v2-final-live-acceptance-2026-10-15.md`.
+
+### Agent audit — 2026-10-15
+
+Đã đọc và chấm đủ 100 EN + 100 VI, seed 42, phủ 25 intents × 4 styles mỗi
+ngôn ngữ. EN: faithful 67/100, natural 96/100; VI: faithful 73/100, natural
+93/100. Cả hai **fail faithfulness gate 95/100**, dù naturalness đạt 90/100.
+Giữ đủ 200 quyết định agent-reviewed, không coi là human/independent review.
+
+Hai lần lấy mẫu byte-identical; binding ID/hash/provenance pass. Validator từ
+chối publication ở đúng faithfulness threshold. Không sửa catalog/SQL, không
+gọi provider, không publish canonical 8.000 records. Accepted Stage A V2 không
+đổi. Cần task sửa wording/top-k/date boundary rồi fresh audit trước publication.
+
+Report: `docs/research/bilingual-training-agent-audit-2026-10-15.md`.
+
+### Catalogue correction + re-audit r1 — 2026-10-15
+
+User đã duyệt sửa wording và audit lại. Chỉ đổi 200 patterns/content digests,
+giữ renderer, schema, SQL và accepted Stage A V2. Catalog cũ được archive nguyên
+bytes; sample/200 quyết định fail ban đầu giữ nguyên.
+
+Audit r1: 100 EN + 100 VI, seed 42 và cách chọn mẫu không đổi. Mỗi ngôn ngữ
+100/100 faithful, 100/100 natural, vượt gate 95/90. Binding/provenance pass;
+quyết định cũ bị từ chối khi ghép với digest mới. Đây là cùng agent tự review,
+không phải human/independent review; không suy ra chất lượng ngoài mẫu.
+
+36 focused tests pass; full suite 1.485 passed, 342 upstream warnings, 510,32s.
+Ruff/format/diff pass. Chưa publish corpus canonical 8.000 hoặc manifest,
+không gọi provider.
+
+Report: `docs/research/bilingual-training-audit-correction-r1-2026-10-15.md`.
+
+### Canonical clean build — 2026-10-15
+
+Đã publish ba artifacts corpus/manifest/audit bằng publisher giao dịch sẵn có,
+giữ nguyên accepted source, SQL/slots, catalog và audit r1. Không family nào
+cross train/dev; diversity và digest-only leakage gates pass. Hai build và ba
+lượt validate-artifact chạy offline, zero observed credential/network/provider/
+subprocess attempts. Không đọc benchmark wording, không train/evaluate model.
+Audit vẫn là same-agent review, không phải human/independent review.
+
+Fresh verification: 94 bilingual tests pass (8 workflow + 34 assembly + 52
+remaining); Ruff/format/diff pass. Không coi lượt test bị ngắt trước đó là pass;
+không claim đã chạy lại full repository suite trong lượt build này.
+
+Report: `docs/research/bilingual-training-canonical-build-2026-10-15.md`.
 
 ## Tài liệu
 

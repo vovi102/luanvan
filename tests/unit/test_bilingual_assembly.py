@@ -44,12 +44,14 @@ from nl2sparql.dataset.bilingual.rendering import (
 from nl2sparql.dataset.generate import load_value_pools
 from nl2sparql.dataset.paraphrase.quality import normalize_question
 from nl2sparql.dataset.stage_a.evidence import (
+    LogicalWitnessResult,
     StageAVerificationReport,
     WitnessDryRun,
     WitnessExecution,
     WitnessPreflight,
     build_witness_groups,
 )
+from nl2sparql.dataset.stage_a.planning import build_stage_a_v2_witness_queries
 from nl2sparql.dataset.stage_a.v2_artifacts import build_stage_a_v2_accepted_manifest
 from nl2sparql.dataset.stage_a_v2 import (
     generate_stage_a_v2_records,
@@ -65,7 +67,7 @@ def _sha(value: bytes) -> str:
 @lru_cache(maxsize=1)
 def _accepted_stage_a_fixture() -> tuple[bytes, bytes]:
     templates = load_templates()
-    pools = load_value_pools()
+    pools = load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
     pools["block_number"] = [
         {"value": 10_000_000 + index, "source": "BigQuery", "evidence": f"block-{index}"}
         for index in range(45)
@@ -81,28 +83,68 @@ def _accepted_stage_a_fixture() -> tuple[bytes, bytes]:
     records = generate_stage_a_v2_records(templates, pools)
     groups = build_witness_groups(records)
     templates_by_id = {template["id"]: template for template in templates}
+    groups_by_id = {group.group_id: group for group in groups}
+    queries = build_stage_a_v2_witness_queries(records)
+    dry_runs = tuple(
+        WitnessDryRun(
+            group_id=query.group_ids[0],
+            template_id=query.template_id,
+            witness_record_id=groups_by_id[query.group_ids[0]].witness_record_id,
+            estimated_bytes=10,
+            query_id=query.query_id,
+            query_sha256=query.query_sha256,
+            proof_kind=query.proof_kind,
+            group_ids=query.group_ids,
+            job_id=f"dry-{index}",
+            location="US",
+        )
+        for index, query in enumerate(queries)
+    )
     executions = tuple(
         WitnessExecution(
-            group_id=group.group_id,
-            template_id=group.template_id,
-            witness_record_id=group.witness_record_id,
-            row_count=1,
-            columns=tuple(templates_by_id[group.template_id]["expected_columns"]),
-            estimated_bytes=10,
-            processed_bytes=10,
-            billed_bytes=10,
+            group_id=query.group_ids[0],
+            template_id=query.template_id,
+            witness_record_id=groups_by_id[query.group_ids[0]].witness_record_id,
+            row_count=len(query.group_ids),
+            columns=(
+                ("witness_group_id", *templates_by_id[query.template_id]["expected_columns"])
+                if query.proof_kind in {"tx_hash_batch", "account_pair_batch"}
+                else tuple(templates_by_id[query.template_id]["expected_columns"])
+            ),
+            estimated_bytes=11,
+            processed_bytes=12,
+            billed_bytes=13,
             wall_latency_ms=1.0,
             server_latency_ms=0.5,
             slot_millis=1,
             cache_hit=False,
+            query_id=query.query_id,
+            query_sha256=query.query_sha256,
+            proof_kind=query.proof_kind,
+            group_ids=query.group_ids,
+            job_id=f"exec-{index}",
+            location="US",
+            immediate_dry_run=replace(dry_runs[index], estimated_bytes=11, job_id=f"redry-{index}"),
+            logical_results=tuple(
+                LogicalWitnessResult(
+                    group_id=group_id,
+                    witness_record_id=groups_by_id[group_id].witness_record_id,
+                    row_count=1,
+                    columns=tuple(templates_by_id[query.template_id]["expected_columns"]),
+                )
+                for group_id in query.group_ids
+            ),
         )
-        for group in groups
+        for index, query in enumerate(queries)
     )
-    groups_by_id = {group.group_id: group for group in groups}
+    executions_by_group = {
+        group_id: execution for execution in executions for group_id in execution.group_ids
+    }
     verified_records = []
     for candidate in records:
         record = dict(candidate)
         group = groups_by_id[record["witness_group_id"]]
+        execution = executions_by_group[group.group_id]
         record["verification"] = {
             "mode": (
                 "live_exact" if record["id"] == group.witness_record_id else "live_limit_monotonic"
@@ -111,25 +153,20 @@ def _accepted_stage_a_fixture() -> tuple[bytes, bytes]:
             "witness_group_id": group.group_id,
             "witness_record_id": group.witness_record_id,
             "witness_row_count": 1,
-            "estimated_bytes": 10,
-            "processed_bytes": 10,
-            "billed_bytes": 10,
+            "estimated_bytes": 11,
+            "processed_bytes": 12,
+            "billed_bytes": 13,
             "wall_latency_ms": 1.0,
             "server_latency_ms": 0.5,
             "slot_millis": 1,
             "cache_hit": False,
+            "physical_query_id": execution.query_id,
+            "query_sha256": execution.query_sha256,
+            "job_id": execution.job_id,
+            "location": execution.location,
             "verified_at": "2026-10-09T12:00:00+00:00",
         }
         verified_records.append(record)
-    dry_runs = tuple(
-        WitnessDryRun(
-            group_id=group.group_id,
-            template_id=group.template_id,
-            witness_record_id=group.witness_record_id,
-            estimated_bytes=10,
-        )
-        for group in groups
-    )
     report = StageAVerificationReport(
         preflight=WitnessPreflight(
             witnesses=dry_runs,

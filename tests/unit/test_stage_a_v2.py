@@ -6,10 +6,12 @@ import copy
 import hashlib
 import json
 from collections import Counter
+from pathlib import Path
 
 import pytest
 
 from nl2sparql.dataset.generate import RECORD_FIELDS, load_value_pools
+from nl2sparql.dataset.stage_a.account_pairs import canonical_account_pair_mappings
 from nl2sparql.dataset.stage_a_v2 import (
     V2_DIFFICULTY_ALLOCATION,
     V2_TEMPLATE_ALLOCATION,
@@ -28,7 +30,7 @@ def templates() -> list[dict[str, object]]:
 
 @pytest.fixture(scope="module")
 def pools() -> dict[str, object]:
-    return load_value_pools()
+    return load_value_pools(Path("data/dataset/raw/stage-a-v2-evidence-pools.json"))
 
 
 @pytest.fixture(scope="module")
@@ -138,6 +140,67 @@ def test_v2_candidate_varies_data_bound_hash_and_block_slots(
     assert len(hashes) == len(set(hashes)) == V2_TEMPLATE_ALLOCATION["T_TX_BY_HASH"]
     assert len(blocks) == len(set(blocks)) == V2_TEMPLATE_ALLOCATION["T_BLOCK_BY_NUMBER"]
     assert all(value.startswith("0x") and len(value) == 66 for value in hashes)
+
+
+def test_between_accounts_consumes_verified_pairs_atomically(
+    records: list[dict[str, object]], pools: dict[str, object]
+) -> None:
+    pair_records = [
+        record for record in records if record["template_id"] == "T_TX_BETWEEN_ACCOUNTS"
+    ]
+    canonical_pairs = canonical_account_pair_mappings(pools)
+
+    assert len(pair_records) == len(canonical_pairs) == 40
+    for record, pair in zip(pair_records, canonical_pairs, strict=True):
+        slots = record["slot_values"]
+        assert isinstance(slots, dict)
+        assert {
+            name: slots[name] for name in ("account", "account_b", "start_date", "end_date")
+        } == {name: pair[name] for name in ("account", "account_b", "start_date", "end_date")}
+    failed_pair = frozenset(
+        {
+            "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8",
+            "0x77021d475e36b3ab1921a0e3a8380f069d3263de",
+        }
+    )
+    evidenced_pairs = {
+        frozenset({str(pair["account"]), str(pair["account_b"])}) for pair in canonical_pairs
+    }
+    generated_pairs = {
+        frozenset({str(record["slot_values"]["account"]), str(record["slot_values"]["account_b"])})
+        for record in pair_records
+    }
+    assert failed_pair not in generated_pairs
+    assert generated_pairs == evidenced_pairs
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing", "empty", "short", "malformed", "endpoint_copy", "window_copy", "evidence_copy"],
+)
+def test_v2_generation_fails_closed_on_invalid_relationship_pool(
+    templates: list[dict[str, object]], pools: dict[str, object], mutation: str
+) -> None:
+    changed = copy.deepcopy(pools)
+    entries = changed["account_pair"]
+    assert isinstance(entries, list)
+    if mutation == "missing":
+        changed.pop("account_pair")
+    elif mutation == "empty":
+        changed["account_pair"] = []
+    elif mutation == "short":
+        entries.pop()
+    elif mutation == "malformed":
+        entries[0] = "not-an-object"
+    elif mutation == "endpoint_copy":
+        entries[1]["account"] = entries[0]["account"]
+    elif mutation == "window_copy":
+        entries[1]["start_date"] = "2026-06-14"
+    else:
+        entries[1]["evidence"] = copy.deepcopy(entries[0]["evidence"])
+
+    with pytest.raises(StageAV2GenerationError, match="account"):
+        generate_stage_a_v2_records(templates, changed)
 
 
 def test_v2_validation_rejects_coverage_and_digest_tampering(

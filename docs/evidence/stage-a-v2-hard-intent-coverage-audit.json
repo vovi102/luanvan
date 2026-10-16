@@ -1,0 +1,621 @@
+{
+  "acceptance_authorized": false,
+  "billing": {
+    "billing_account_empty": true,
+    "billing_enabled": false,
+    "project_id": "nl2sparql-thesis"
+  },
+  "collector_note": "Initial helper failed while reading QueryJob.schema; recovered completed native job via jobs.get and existing-job result retrieval. Native SQL was executed once. Additional stdout was truncated by the capture limit; four completed jobs were recovered using jobs.get and existing-job results. Two missing per-query dry-run estimates were confirmed post-execution and are marked separately.",
+  "confirmation_matches_original_total": true,
+  "confirmed_total_estimated_bytes": 38395363189,
+  "evidence_completed_at": "2026-10-14T12:52:57.253272+00:00",
+  "executions": [
+    {
+      "billed_bytes": 8168407040,
+      "cache_hit": false,
+      "columns": [
+        "activity_date",
+        "treasury_outgoing_count",
+        "treasury_incoming_count",
+        "positive_native_funding_count",
+        "exchange_to_dex_count",
+        "cross_exchange_count",
+        "bridge_deposit_count"
+      ],
+      "immediate_estimated_bytes": 8168280322,
+      "job_id": "446543da-92ad-461a-8459-174fee21f846",
+      "location": "US",
+      "maximum_bytes_billed": 17179869184,
+      "name": "native_month_coverage",
+      "processed_bytes": 8168280322,
+      "query_sha256": "c143e522559a0730b42b4c8d15d5a1397541a431524955a5656b888a377a2d02",
+      "recovered_existing_job": true,
+      "row_count": 30,
+      "rows": [
+        {
+          "activity_date": "2026-06-01",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2322,
+          "treasury_incoming_count": 399,
+          "treasury_outgoing_count": 7743
+        },
+        {
+          "activity_date": "2026-06-02",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2642,
+          "treasury_incoming_count": 425,
+          "treasury_outgoing_count": 8540
+        },
+        {
+          "activity_date": "2026-06-03",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2916,
+          "treasury_incoming_count": 381,
+          "treasury_outgoing_count": 8546
+        },
+        {
+          "activity_date": "2026-06-04",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 3352,
+          "treasury_incoming_count": 424,
+          "treasury_outgoing_count": 9872
+        },
+        {
+          "activity_date": "2026-06-05",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2770,
+          "treasury_incoming_count": 963,
+          "treasury_outgoing_count": 9931
+        },
+        {
+          "activity_date": "2026-06-06",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2820,
+          "treasury_incoming_count": 307,
+          "treasury_outgoing_count": 8108
+        },
+        {
+          "activity_date": "2026-06-07",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2346,
+          "treasury_incoming_count": 251,
+          "treasury_outgoing_count": 6850
+        },
+        {
+          "activity_date": "2026-06-08",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2804,
+          "treasury_incoming_count": 660,
+          "treasury_outgoing_count": 10290
+        },
+        {
+          "activity_date": "2026-06-09",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2763,
+          "treasury_incoming_count": 419,
+          "treasury_outgoing_count": 8393
+        },
+        {
+          "activity_date": "2026-06-10",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2692,
+          "treasury_incoming_count": 301,
+          "treasury_outgoing_count": 7667
+        },
+        {
+          "activity_date": "2026-06-11",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2408,
+          "treasury_incoming_count": 348,
+          "treasury_outgoing_count": 7159
+        },
+        {
+          "activity_date": "2026-06-12",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2528,
+          "treasury_incoming_count": 307,
+          "treasury_outgoing_count": 7047
+        },
+        {
+          "activity_date": "2026-06-13",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2895,
+          "treasury_incoming_count": 235,
+          "treasury_outgoing_count": 7760
+        },
+        {
+          "activity_date": "2026-06-14",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2893,
+          "treasury_incoming_count": 243,
+          "treasury_outgoing_count": 7469
+        },
+        {
+          "activity_date": "2026-06-15",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2155,
+          "treasury_incoming_count": 433,
+          "treasury_outgoing_count": 8139
+        },
+        {
+          "activity_date": "2026-06-16",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2225,
+          "treasury_incoming_count": 337,
+          "treasury_outgoing_count": 7486
+        },
+        {
+          "activity_date": "2026-06-17",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2689,
+          "treasury_incoming_count": 321,
+          "treasury_outgoing_count": 8278
+        },
+        {
+          "activity_date": "2026-06-18",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2226,
+          "treasury_incoming_count": 277,
+          "treasury_outgoing_count": 8074
+        },
+        {
+          "activity_date": "2026-06-19",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2441,
+          "treasury_incoming_count": 218,
+          "treasury_outgoing_count": 7314
+        },
+        {
+          "activity_date": "2026-06-20",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2727,
+          "treasury_incoming_count": 214,
+          "treasury_outgoing_count": 7351
+        },
+        {
+          "activity_date": "2026-06-21",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2795,
+          "treasury_incoming_count": 201,
+          "treasury_outgoing_count": 6674
+        },
+        {
+          "activity_date": "2026-06-22",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2499,
+          "treasury_incoming_count": 297,
+          "treasury_outgoing_count": 7303
+        },
+        {
+          "activity_date": "2026-06-23",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2742,
+          "treasury_incoming_count": 307,
+          "treasury_outgoing_count": 8212
+        },
+        {
+          "activity_date": "2026-06-24",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2494,
+          "treasury_incoming_count": 404,
+          "treasury_outgoing_count": 8040
+        },
+        {
+          "activity_date": "2026-06-25",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2550,
+          "treasury_incoming_count": 410,
+          "treasury_outgoing_count": 8146
+        },
+        {
+          "activity_date": "2026-06-26",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2392,
+          "treasury_incoming_count": 369,
+          "treasury_outgoing_count": 7874
+        },
+        {
+          "activity_date": "2026-06-27",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2322,
+          "treasury_incoming_count": 231,
+          "treasury_outgoing_count": 6647
+        },
+        {
+          "activity_date": "2026-06-28",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2334,
+          "treasury_incoming_count": 205,
+          "treasury_outgoing_count": 6295
+        },
+        {
+          "activity_date": "2026-06-29",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2092,
+          "treasury_incoming_count": 328,
+          "treasury_outgoing_count": 7392
+        },
+        {
+          "activity_date": "2026-06-30",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2664,
+          "treasury_incoming_count": 422,
+          "treasury_outgoing_count": 9303
+        }
+      ],
+      "sql": "SELECT DATE(block_timestamp) AS activity_date,\n  COUNTIF(from_address_role = 'treasury') AS treasury_outgoing_count,\n  COUNTIF(to_address_role = 'treasury') AS treasury_incoming_count,\n  COUNTIF(from_address_role = 'treasury' AND value_wei > 0) AS positive_native_funding_count,\n  COUNTIF(from_address_role = 'treasury' AND from_category = 'exchange'\n    AND to_address_role = 'operational' AND to_concept_class = 'DEXProtocol') AS exchange_to_dex_count,\n  COUNTIF(from_address_role = 'treasury' AND to_address_role = 'treasury'\n    AND from_owner != to_owner) AS cross_exchange_count,\n  COUNTIF(from_address_role = 'treasury' AND to_address_role = 'operational'\n    AND to_concept_class = 'BridgeProtocol') AS bridge_deposit_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '2026-06-01', DATE '2026-07-01')\nGROUP BY activity_date\nORDER BY activity_date"
+    },
+    {
+      "billed_bytes": 14748221440,
+      "cache_hit": false,
+      "columns": [
+        "funding_hash",
+        "transfer_hash",
+        "log_index",
+        "funded_address",
+        "funding_value_wei",
+        "token_symbol",
+        "normalized_amount"
+      ],
+      "immediate_estimated_bytes": 15036262472,
+      "job_id": "6b75de22-a455-48d1-a19f-4f8528c84473",
+      "location": "US",
+      "maximum_bytes_billed": 21474836480,
+      "name": "positive_native_funding_token_witness",
+      "processed_bytes": 14747316737,
+      "query_sha256": "c2602677a16dc5b8e39805bc4be70cb8b8bb466f01a4359a212fd6d814d9e852",
+      "recovered_existing_job": false,
+      "row_count": 1,
+      "rows": [
+        {
+          "funded_address": "0x2f9a818f6034d91e0cdc89c0088b481d8d9ba742",
+          "funding_hash": "0x71342b32a8d423f7bc2962bbb064d447fa222394f3acbead14781f961f8458f8",
+          "funding_value_wei": "4587720000000",
+          "log_index": 426,
+          "normalized_amount": "4253.3773",
+          "token_symbol": "JASMY",
+          "transfer_hash": "0xf10b2ae500159f0b926cb8f0c003083dd51655b4150393b016ba57d0c6485b30"
+        }
+      ],
+      "sql": "WITH funding AS (\n  SELECT transaction_hash, block_timestamp, to_address, value_wei\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '2026-06-15', DATE '2026-06-16')\n  WHERE to_address IS NOT NULL AND from_address_role = 'treasury' AND value_wei > 0\n), transfers AS (\n  SELECT transaction_hash, log_index, block_timestamp, from_address, token_symbol, normalized_amount\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '2026-06-15', DATE '2026-06-16')\n)\nSELECT funding.transaction_hash AS funding_hash, transfers.transaction_hash AS transfer_hash,\n  transfers.log_index, funding.to_address AS funded_address, funding.value_wei AS funding_value_wei,\n  transfers.token_symbol, transfers.normalized_amount\nFROM funding\nJOIN transfers ON transfers.from_address = funding.to_address\n  AND transfers.block_timestamp >= funding.block_timestamp\n  AND transfers.block_timestamp < TIMESTAMP_ADD(funding.block_timestamp, INTERVAL 60 MINUTE)\nORDER BY transfers.block_timestamp, funding.transaction_hash, transfers.transaction_hash, transfers.log_index\nLIMIT 1"
+    },
+    {
+      "billed_bytes": 13731102720,
+      "cache_hit": false,
+      "columns": [
+        "owner",
+        "token_transfer_count",
+        "distinct_token_count",
+        "distinct_recipient_count",
+        "diversity_rank"
+      ],
+      "immediate_estimated_bytes": 13935460631,
+      "job_id": "dcf4f0ae-ebd8-4633-bd13-e9ec28e0dfeb",
+      "location": "US",
+      "maximum_bytes_billed": 21474836480,
+      "name": "treasury_token_counterparty_diversity",
+      "processed_bytes": 13730898176,
+      "query_sha256": "a375b0862f51acc5c7a48519d0cdb92b2dc1d1950b1d64b0c80a5c76577923e9",
+      "recovered_existing_job": false,
+      "row_count": 3,
+      "rows": [
+        {
+          "distinct_recipient_count": 1363,
+          "distinct_token_count": 441,
+          "diversity_rank": 1,
+          "owner": "Gate.io",
+          "token_transfer_count": 4085
+        },
+        {
+          "distinct_recipient_count": 380,
+          "distinct_token_count": 99,
+          "diversity_rank": 2,
+          "owner": "Indodax",
+          "token_transfer_count": 597
+        },
+        {
+          "distinct_recipient_count": 225,
+          "distinct_token_count": 24,
+          "diversity_rank": 3,
+          "owner": "Poloniex",
+          "token_transfer_count": 318
+        }
+      ],
+      "sql": "WITH owner_stats AS (\n  SELECT from_owner AS owner,\n    COUNT(*) AS token_transfer_count,\n    COUNT(DISTINCT token_address) AS distinct_token_count,\n    COUNT(DISTINCT to_address) AS distinct_recipient_count\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers`(DATE '2026-06-15', DATE '2026-06-16')\n  WHERE from_address_role = 'treasury' AND from_owner IS NOT NULL AND to_address IS NOT NULL\n  GROUP BY owner\n)\nSELECT owner, token_transfer_count, distinct_token_count, distinct_recipient_count,\n  DENSE_RANK() OVER (ORDER BY distinct_recipient_count DESC, distinct_token_count DESC) AS diversity_rank\nFROM owner_stats\nORDER BY diversity_rank, owner\nLIMIT 3"
+    },
+    {
+      "billed_bytes": 309329920,
+      "cache_hit": false,
+      "columns": [
+        "activity_date",
+        "treasury_outgoing_count",
+        "treasury_incoming_count",
+        "positive_native_funding_count",
+        "exchange_to_dex_count",
+        "cross_exchange_count",
+        "bridge_deposit_count"
+      ],
+      "job_id": "92b5fc25-43a9-469f-bf98-e1d8d898c01c",
+      "location": "US",
+      "maximum_bytes_billed": 1073741824,
+      "name": "native_boundary_day_coverage",
+      "processed_bytes": 309003566,
+      "query_sha256": "a02a617f136b6f4cca7c6e7ca279d2224f0b72c2c27da37ed549ef926f82ddc2",
+      "recovered_existing_job": true,
+      "row_count": 1,
+      "rows": [
+        {
+          "activity_date": "2026-05-31",
+          "bridge_deposit_count": 0,
+          "cross_exchange_count": 0,
+          "exchange_to_dex_count": 0,
+          "positive_native_funding_count": 2546,
+          "treasury_incoming_count": 307,
+          "treasury_outgoing_count": 6340
+        }
+      ],
+      "sql": "SELECT DATE(block_timestamp) AS activity_date,\n  COUNTIF(from_address_role = 'treasury') AS treasury_outgoing_count,\n  COUNTIF(to_address_role = 'treasury') AS treasury_incoming_count,\n  COUNTIF(from_address_role = 'treasury' AND value_wei > 0) AS positive_native_funding_count,\n  COUNTIF(from_address_role = 'treasury' AND from_category = 'exchange'\n    AND to_address_role = 'operational' AND to_concept_class = 'DEXProtocol') AS exchange_to_dex_count,\n  COUNTIF(from_address_role = 'treasury' AND to_address_role = 'treasury'\n    AND from_owner != to_owner) AS cross_exchange_count,\n  COUNTIF(from_address_role = 'treasury' AND to_address_role = 'operational'\n    AND to_concept_class = 'BridgeProtocol') AS bridge_deposit_count\nFROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '2026-05-31', DATE '2026-06-01')\nGROUP BY activity_date\nORDER BY activity_date"
+    },
+    {
+      "billed_bytes": 270532608,
+      "cache_hit": false,
+      "columns": [
+        "owner",
+        "incoming_value_wei",
+        "outgoing_value_wei",
+        "net_value_wei",
+        "incoming_transaction_count",
+        "outgoing_transaction_count",
+        "net_flow_rank"
+      ],
+      "job_id": "919fc676-2b1a-4425-acf9-7da37103c952",
+      "location": "US",
+      "maximum_bytes_billed": 2147483648,
+      "name": "owner_net_native_flow",
+      "processed_bytes": 270520799,
+      "query_sha256": "0de29c27e7b054211c6d7822d201ae2150e31045736d4875441f2d87db1a9154",
+      "recovered_existing_job": true,
+      "row_count": 3,
+      "rows": [
+        {
+          "incoming_transaction_count": 3,
+          "incoming_value_wei": "3",
+          "net_flow_rank": 1,
+          "net_value_wei": "-22868566897141582155306",
+          "outgoing_transaction_count": 179,
+          "outgoing_value_wei": "22868566897141582155309",
+          "owner": "Gemini"
+        },
+        {
+          "incoming_transaction_count": 26,
+          "incoming_value_wei": "43015108033880000000000",
+          "net_flow_rank": 2,
+          "net_value_wei": "-8845501711760000000000",
+          "outgoing_transaction_count": 143,
+          "outgoing_value_wei": "51860609745640000000000",
+          "owner": "Bitfinex"
+        },
+        {
+          "incoming_transaction_count": 280,
+          "incoming_value_wei": "3705039512340056298832",
+          "net_flow_rank": 3,
+          "net_value_wei": "-6828256005919943701168",
+          "outgoing_transaction_count": 302,
+          "outgoing_value_wei": "10533295518260000000000",
+          "owner": "Gate.io"
+        }
+      ],
+      "sql": "WITH movements AS (\n  SELECT from_owner AS owner, 'outgoing' AS direction, value_wei\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '2026-06-15', DATE '2026-06-16')\n  WHERE from_address_role = 'treasury' AND from_owner IS NOT NULL\n    AND receipt_status = 1 AND value_wei > 0\n  UNION ALL\n  SELECT to_owner AS owner, 'incoming' AS direction, value_wei\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '2026-06-15', DATE '2026-06-16')\n  WHERE to_address_role = 'treasury' AND to_owner IS NOT NULL\n    AND receipt_status = 1 AND value_wei > 0\n), owner_stats AS (\n  SELECT owner,\n    SUM(IF(direction = 'incoming', value_wei, NUMERIC '0')) AS incoming_value_wei,\n    SUM(IF(direction = 'outgoing', value_wei, NUMERIC '0')) AS outgoing_value_wei,\n    COUNTIF(direction = 'incoming') AS incoming_transaction_count,\n    COUNTIF(direction = 'outgoing') AS outgoing_transaction_count\n  FROM movements\n  GROUP BY owner\n)\nSELECT owner, incoming_value_wei, outgoing_value_wei,\n  incoming_value_wei - outgoing_value_wei AS net_value_wei,\n  incoming_transaction_count, outgoing_transaction_count,\n  DENSE_RANK() OVER (ORDER BY ABS(incoming_value_wei - outgoing_value_wei) DESC) AS net_flow_rank\nFROM owner_stats\nORDER BY net_flow_rank, owner\nLIMIT 3"
+    },
+    {
+      "billed_bytes": 270532608,
+      "cache_hit": false,
+      "columns": [
+        "owner",
+        "transaction_count",
+        "distinct_recipient_count",
+        "concentration_index",
+        "largest_recipient_share",
+        "concentration_rank"
+      ],
+      "job_id": "752c9133-e4a6-407a-a7bc-2467291ba1d5",
+      "location": "US",
+      "maximum_bytes_billed": 2147483648,
+      "name": "treasury_native_counterparty_concentration",
+      "processed_bytes": 270520799,
+      "query_sha256": "8455428143115ada6e6dd245e49c7517421618fab98421eeca0f77e3ed25fd29",
+      "recovered_existing_job": true,
+      "row_count": 3,
+      "rows": [
+        {
+          "concentration_index": 0.19627017455374768,
+          "concentration_rank": 1,
+          "distinct_recipient_count": 18,
+          "largest_recipient_share": 0.222682119205298,
+          "owner": "Deribit",
+          "transaction_count": 1208
+        },
+        {
+          "concentration_index": 0.1604479436647273,
+          "concentration_rank": 2,
+          "distinct_recipient_count": 61,
+          "largest_recipient_share": 0.38461538461538464,
+          "owner": "Bitfinex",
+          "transaction_count": 143
+        },
+        {
+          "concentration_index": 0.09183673469387756,
+          "concentration_rank": 3,
+          "distinct_recipient_count": 12,
+          "largest_recipient_share": 0.14285714285714285,
+          "owner": "Bitrue",
+          "transaction_count": 14
+        }
+      ],
+      "sql": "WITH pair_counts AS (\n  SELECT from_owner AS owner, to_address, COUNT(*) AS pair_transaction_count\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '2026-06-15', DATE '2026-06-16')\n  WHERE from_address_role = 'treasury' AND from_owner IS NOT NULL\n    AND to_address IS NOT NULL AND receipt_status = 1 AND value_wei > 0\n  GROUP BY owner, to_address\n), pair_shares AS (\n  SELECT owner, to_address, pair_transaction_count,\n    SAFE_DIVIDE(pair_transaction_count, SUM(pair_transaction_count) OVER (PARTITION BY owner)) AS recipient_share\n  FROM pair_counts\n), owner_stats AS (\n  SELECT owner, SUM(pair_transaction_count) AS transaction_count,\n    COUNT(*) AS distinct_recipient_count,\n    SUM(recipient_share * recipient_share) AS concentration_index,\n    MAX(recipient_share) AS largest_recipient_share\n  FROM pair_shares\n  GROUP BY owner\n  HAVING SUM(pair_transaction_count) >= 10\n)\nSELECT owner, transaction_count, distinct_recipient_count, concentration_index,\n  largest_recipient_share,\n  DENSE_RANK() OVER (ORDER BY concentration_index DESC) AS concentration_rank\nFROM owner_stats\nORDER BY concentration_rank, owner\nLIMIT 3"
+    },
+    {
+      "billed_bytes": 174063616,
+      "cache_hit": false,
+      "columns": [
+        "transaction_hash",
+        "block_timestamp",
+        "from_address",
+        "to_address",
+        "value_wei",
+        "receipt_status"
+      ],
+      "job_id": "732cbc89-e35a-41a9-ad89-193e5ce72dad",
+      "location": "US",
+      "maximum_bytes_billed": 1073741824,
+      "name": "positive_funding_receipt_check",
+      "processed_bytes": 173963484,
+      "query_sha256": "c314ca026cb180ba5da96f58b8118df4e8fc629a9d1471fc408d2a8589570ba0",
+      "recovered_existing_job": true,
+      "row_count": 1,
+      "rows": [
+        {
+          "block_timestamp": "2026-06-15T00:04:35+00:00",
+          "from_address": "0x0639556f03714a74a5feeaf5736a4a64ff70d206",
+          "receipt_status": 1,
+          "to_address": "0x2f9a818f6034d91e0cdc89c0088b481d8d9ba742",
+          "transaction_hash": "0x71342b32a8d423f7bc2962bbb064d447fa222394f3acbead14781f961f8458f8",
+          "value_wei": "4587720000000"
+        }
+      ],
+      "sql": "SELECT transaction_hash, block_timestamp, from_address, to_address, value_wei, receipt_status\nFROM `nl2sparql-thesis.nl2sparql_analytics.transaction_facts`(DATE '2026-06-15', DATE '2026-06-16')\nWHERE transaction_hash = '0x71342b32a8d423f7bc2962bbb064d447fa222394f3acbead14781f961f8458f8'\nLIMIT 1"
+    }
+  ],
+  "initial_dry_runs": [
+    {
+      "estimated_bytes": 8168280322,
+      "maximum_bytes_billed": 17179869184,
+      "name": "native_month_coverage",
+      "query_sha256": "c143e522559a0730b42b4c8d15d5a1397541a431524955a5656b888a377a2d02"
+    },
+    {
+      "estimated_bytes": 15036262472,
+      "maximum_bytes_billed": 21474836480,
+      "name": "positive_native_funding_token_witness",
+      "query_sha256": "c2602677a16dc5b8e39805bc4be70cb8b8bb466f01a4359a212fd6d814d9e852"
+    },
+    {
+      "estimated_bytes": 13935460631,
+      "maximum_bytes_billed": 21474836480,
+      "name": "treasury_token_counterparty_diversity",
+      "query_sha256": "a375b0862f51acc5c7a48519d0cdb92b2dc1d1950b1d64b0c80a5c76577923e9"
+    },
+    {
+      "estimated_bytes": 309003566,
+      "maximum_bytes_billed": 1073741824,
+      "name": "native_boundary_day_coverage",
+      "query_sha256": "a02a617f136b6f4cca7c6e7ca279d2224f0b72c2c27da37ed549ef926f82ddc2"
+    },
+    {
+      "estimated_bytes": 270520799,
+      "maximum_bytes_billed": 2147483648,
+      "name": "owner_net_native_flow",
+      "query_sha256": "0de29c27e7b054211c6d7822d201ae2150e31045736d4875441f2d87db1a9154"
+    }
+  ],
+  "mode": "coverage_audit",
+  "original_total_estimated_bytes": 38395363189,
+  "post_execution_confirmation_dry_runs": [
+    {
+      "capture_phase": "post_execution_confirmation",
+      "estimated_bytes": 270520799,
+      "maximum_bytes_billed": 2147483648,
+      "name": "treasury_native_counterparty_concentration",
+      "query_sha256": "8455428143115ada6e6dd245e49c7517421618fab98421eeca0f77e3ed25fd29"
+    },
+    {
+      "capture_phase": "post_execution_confirmation",
+      "estimated_bytes": 405314600,
+      "maximum_bytes_billed": 1073741824,
+      "name": "positive_funding_receipt_check",
+      "query_sha256": "c314ca026cb180ba5da96f58b8118df4e8fc629a9d1471fc408d2a8589570ba0"
+    }
+  ],
+  "rejected_dry_runs": [
+    {
+      "correction": "Rename pair-level transaction_count to pair_transaction_count to avoid an aggregate alias in HAVING.",
+      "error": "Aggregations of aggregations are not allowed at [18:14]",
+      "executed": false,
+      "job_id": "0a260a60-35c4-400a-9943-22d78a7d36af",
+      "name": "treasury_native_counterparty_concentration",
+      "query_sha256": "d8a995e8e7196d80bface427e3691221f96a0bf2e22bd671644571569053e7d0",
+      "sql": "WITH pair_counts AS (\n  SELECT from_owner AS owner, to_address, COUNT(*) AS transaction_count\n  FROM `nl2sparql-thesis.nl2sparql_analytics.labeled_transactions`(DATE '2026-06-15', DATE '2026-06-16')\n  WHERE from_address_role = 'treasury' AND from_owner IS NOT NULL\n    AND to_address IS NOT NULL AND receipt_status = 1 AND value_wei > 0\n  GROUP BY owner, to_address\n), pair_shares AS (\n  SELECT owner, to_address, transaction_count,\n    SAFE_DIVIDE(transaction_count, SUM(transaction_count) OVER (PARTITION BY owner)) AS recipient_share\n  FROM pair_counts\n), owner_stats AS (\n  SELECT owner, SUM(transaction_count) AS transaction_count,\n    COUNT(*) AS distinct_recipient_count,\n    SUM(recipient_share * recipient_share) AS concentration_index,\n    MAX(recipient_share) AS largest_recipient_share\n  FROM pair_shares\n  GROUP BY owner\n  HAVING SUM(transaction_count) >= 10\n)\nSELECT owner, transaction_count, distinct_recipient_count, concentration_index,\n  largest_recipient_share,\n  DENSE_RANK() OVER (ORDER BY concentration_index DESC) AS concentration_rank\nFROM owner_stats\nORDER BY concentration_rank, owner\nLIMIT 3"
+    }
+  ],
+  "status": "completed",
+  "summary": {
+    "cache_hit_count": 0,
+    "physical_execution_count": 7,
+    "total_billed_bytes": 37672189952,
+    "total_processed_bytes": 37670503883
+  },
+  "timestamp": "2026-10-14T12:40:14.881533+00:00",
+  "total_bytes_cap": 51539607552,
+  "total_estimated_bytes": 38395363189,
+  "initial_three_probe_total_estimated_bytes": 37140003425
+}

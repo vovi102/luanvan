@@ -23,11 +23,35 @@ class WitnessGroup:
 
 
 @dataclass(frozen=True)
+class WitnessQuery:
+    query_id: str
+    query_sha256: str
+    proof_kind: str
+    template_id: str
+    group_ids: tuple[str, ...]
+    sql: str
+
+
+@dataclass(frozen=True)
+class LogicalWitnessResult:
+    group_id: str
+    witness_record_id: str
+    row_count: int
+    columns: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class WitnessDryRun:
     group_id: str
     template_id: str
     witness_record_id: str
     estimated_bytes: int
+    query_id: str = ""
+    query_sha256: str = ""
+    proof_kind: str = "single"
+    group_ids: tuple[str, ...] = ()
+    job_id: str = ""
+    location: str = ""
 
 
 @dataclass(frozen=True)
@@ -50,6 +74,14 @@ class WitnessExecution:
     server_latency_ms: float | None
     slot_millis: int
     cache_hit: bool
+    query_id: str = ""
+    query_sha256: str = ""
+    proof_kind: str = "single"
+    group_ids: tuple[str, ...] = ()
+    job_id: str = ""
+    location: str = ""
+    immediate_dry_run: WitnessDryRun | None = None
+    logical_results: tuple[LogicalWitnessResult, ...] = ()
 
 
 @dataclass(frozen=True)

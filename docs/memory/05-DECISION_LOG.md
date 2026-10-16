@@ -24,6 +24,59 @@
 
 ## Entries
 
+### 2026-10-14 — Beneficiary pool corrected; hard-intent coverage remains pending
+
+- **Context:** Transaction-active addresses did not prove the block beneficiary
+  role. Four beneficiaries were captured from bounded block-facts execution and
+  now drive all 40 validator records.
+- **Decision:** Keep a separate, strict beneficiary pool, preserve the fixed
+  window and 206/126 topology, and keep diagnostic outcomes separate from
+  accepted publication.
+- **Evidence:** Candidate hash
+  `563025953b52b9465dc8fe2d879cebffa8a9e1ba86ea138b2de686f01c5235ee`;
+  1,438 local tests passed. One retry-disabled diagnostic passed the former
+  beneficiary failure point but stopped at `T_EXCHANGE_TO_DEX_FLOW` after
+  74 validated executions / 145 logical outcomes. Its zero-row provider job
+  is captured separately so byte totals include all 75 executions.
+- **Consequences:** Acceptance remains pending. The failed hard intent already
+  declares `expect_non_empty=false`; three other hard intents share that
+  contract. Resolve supported-intent coverage before another full diagnostic
+  rather than inferring a role-pool repair can make these intents non-empty.
+- **Linked:** `docs/evidence/stage-a-v2-beneficiary-diagnostic.json`,
+  `docs/evidence/stage-a-v2-beneficiary-failed-job.json`,
+  `docs/tasks/phase-3-dataset/02-synthetic-pipeline.md`.
+
+### 2026-10-14 — Tách pair provenance và diagnostic evidence khỏi acceptance
+
+- **Context:** Stage A v2 trước đây ghép độc lập hai address nên một witness
+  `T_TX_BETWEEN_ACCOUNTS` rỗng. Pool mới chứng minh 40 quan hệ account-pair,
+  nhưng diagnostic tiếp theo phát hiện một address giao dịch không đồng nghĩa là
+  block beneficiary: `T_BLOCKS_BY_VALIDATOR` vẫn trả rỗng.
+- **Options considered:** Coi pair evidence là đủ cho mọi account-bound intent;
+  hạ non-empty gate; retry cùng candidate; hoặc giữ role/relationship provenance
+  riêng và công bố diagnostic failure mà không promote acceptance.
+- **Decision:** Generator consume nguyên tử 40 pair + date window; verifier batch
+  thành bốn query 10-pair nhưng giữ 206 logical witnesses / 126 physical queries.
+  Diagnostic chỉ được chạy khi billing disabled/unlinked và luôn có
+  `acceptance_authorized=false`; failure report được giữ nguyên, không retry và
+  không gọi accepted writer.
+- **Rationale:** Một endpoint có transaction relationship không chứng minh nó có
+  mọi semantic role khác. Tách evidence theo quan hệ/role ngăn provenance hợp lệ
+  của intent này bị tái sử dụng sai cho intent khác, đồng thời giữ failure làm
+  kết quả khoa học thay vì sửa threshold hậu nghiệm.
+- **Consequences:** Pair-backed candidate hash là
+  `bc82ef19884081f7017f138e6bfb6cf88851dcc4b209c990694828526edb5b7f`.
+  Diagnostic `04c09aff49422274b1ad1b3a577f98a0c20e250d439a4675e8b684c57e30fb87`
+  dừng tại `syn-v2-000637` sau 13 executions / 66 logical outcomes; ba accepted
+  artifacts vẫn absent. Promotion cần beneficiary-specific evidence và audit
+  các intent account-bound còn lại.
+- **Revisit:** Sau khi có relationship-specific pools mới, candidate được
+  regenerate và fresh preflight được user duyệt; không dùng report diagnostic
+  hiện tại để authorize `--live`.
+- **Linked:** `docs/evidence/stage-a-v2-account-pair-diagnostic.json`,
+  `docs/tasks/phase-3-dataset/02-synthetic-pipeline.md`,
+  `src/nl2sparql/dataset/stage_a/diagnostics.py`.
+
 ### 2026-10-13 — Thu gọn phạm vi mô hình còn B0–B3 small-LLM-only
 
 - **Context:** Baseline mô hình bên ngoài làm tăng dependency, chi phí, privacy

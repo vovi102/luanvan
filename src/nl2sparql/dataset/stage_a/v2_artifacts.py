@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ from pathlib import Path
 from typing import Any
 
 from nl2sparql.dataset.generate import GENERATION_SEED, PROJECT_ROOT
+from nl2sparql.dataset.stage_a.account_pairs import AccountPairError, load_account_pairs
+from nl2sparql.dataset.stage_a.beneficiaries import BeneficiaryError, load_block_beneficiaries
 from nl2sparql.dataset.stage_a.evidence import (
     StageAVerificationReport,
     WitnessDryRun,
@@ -56,6 +59,10 @@ _LIVE_VERIFICATION_FIELDS = frozenset(
         "server_latency_ms",
         "slot_millis",
         "cache_hit",
+        "physical_query_id",
+        "query_sha256",
+        "job_id",
+        "location",
         "verified_at",
     }
 )
@@ -94,6 +101,9 @@ _ACCEPTED_MANIFEST_FIELDS = frozenset(
         "template_library_sha256",
         "value_pools_sha256",
         "witness_count",
+        "physical_query_count",
+        "preflight_evidence",
+        "execution_evidence",
         "total_estimated_bytes",
         "total_processed_bytes",
         "total_billed_bytes",
@@ -120,6 +130,7 @@ class StageAV2CandidateArtifacts:
 @dataclass(frozen=True)
 class _LiveEvidenceSummary:
     witness_count: int
+    physical_query_count: int
     verified_at: str
     total_processed_bytes: int
     total_billed_bytes: int
@@ -174,10 +185,7 @@ def _validate_live_records(
         raise StageAV2ArtifactError(str(exc)) from exc
     records_by_id = {str(record["id"]): record for record in records}
     verified_at_values: set[str] = set()
-    processed = 0
-    billed = 0
-    wall = 0.0
-    cache_hits = 0
+    physical_evidence: dict[str, dict[str, Any]] = {}
     for group in groups:
         shared_evidence: dict[str, Any] | None = None
         for record_id in group.member_record_ids:
@@ -203,6 +211,14 @@ def _validate_live_records(
                 or not _is_nonnegative_number(verification["wall_latency_ms"])
                 or not _is_nonnegative_int(verification["witness_row_count"])
                 or verification["witness_row_count"] == 0
+                or not isinstance(verification["physical_query_id"], str)
+                or not verification["physical_query_id"]
+                or not isinstance(verification["query_sha256"], str)
+                or len(verification["query_sha256"]) != _SHA256_LENGTH
+                or not isinstance(verification["job_id"], str)
+                or not verification["job_id"]
+                or not isinstance(verification["location"], str)
+                or not verification["location"]
             ):
                 raise StageAV2ArtifactError(
                     "Accepted Stage A v2 live verification values are invalid"
@@ -221,19 +237,42 @@ def _validate_live_records(
                     "Accepted Stage A v2 witness members require identical execution evidence"
                 )
         assert shared_evidence is not None
-        processed += int(shared_evidence["processed_bytes"])
-        billed += int(shared_evidence["billed_bytes"])
-        wall += float(shared_evidence["wall_latency_ms"])
-        cache_hits += int(bool(shared_evidence["cache_hit"]))
+        physical_query_id = str(shared_evidence["physical_query_id"])
+        physical_values = {
+            key: shared_evidence[key]
+            for key in (
+                "query_sha256",
+                "job_id",
+                "location",
+                "estimated_bytes",
+                "processed_bytes",
+                "billed_bytes",
+                "wall_latency_ms",
+                "server_latency_ms",
+                "slot_millis",
+                "cache_hit",
+                "verified_at",
+            )
+        }
+        existing = physical_evidence.setdefault(physical_query_id, physical_values)
+        if existing != physical_values:
+            raise StageAV2ArtifactError(
+                "Accepted Stage A v2 shared physical evidence is inconsistent"
+            )
     if len(verified_at_values) != 1:
         raise StageAV2ArtifactError("Accepted Stage A v2 requires one live verification timestamp")
     return _LiveEvidenceSummary(
         witness_count=len(groups),
+        physical_query_count=len(physical_evidence),
         verified_at=next(iter(verified_at_values)),
-        total_processed_bytes=processed,
-        total_billed_bytes=billed,
-        total_wall_latency_ms=wall,
-        cache_hit_count=cache_hits,
+        total_processed_bytes=sum(
+            int(item["processed_bytes"]) for item in physical_evidence.values()
+        ),
+        total_billed_bytes=sum(int(item["billed_bytes"]) for item in physical_evidence.values()),
+        total_wall_latency_ms=math.fsum(
+            float(item["wall_latency_ms"]) for item in physical_evidence.values()
+        ),
+        cache_hit_count=sum(int(bool(item["cache_hit"])) for item in physical_evidence.values()),
     )
 
 
@@ -261,38 +300,72 @@ def _validate_report(
     except WitnessEvidenceError as exc:
         raise StageAV2ArtifactError(str(exc)) from exc
     groups_by_id = {group.group_id: group for group in groups}
-    expected_ids = set(groups_by_id)
+    expected_group_ids = set(groups_by_id)
     if not isinstance(report.preflight, WitnessPreflight) or any(
         not isinstance(item, WitnessDryRun) for item in report.preflight.witnesses
     ):
         raise StageAV2ArtifactError("Accepted Stage A v2 requires complete preflight evidence")
-    preflight_by_id = {item.group_id: item for item in report.preflight.witnesses}
-    if (
-        len(preflight_by_id) != len(report.preflight.witnesses)
-        or set(preflight_by_id) != expected_ids
-        or report.preflight.total_estimated_bytes
-        != sum(item.estimated_bytes for item in report.preflight.witnesses)
+    preflight_by_id = {item.query_id: item for item in report.preflight.witnesses}
+    if len(preflight_by_id) != len(
+        report.preflight.witnesses
+    ) or report.preflight.total_estimated_bytes != sum(
+        item.estimated_bytes for item in report.preflight.witnesses
     ):
         raise StageAV2ArtifactError("Accepted Stage A v2 requires complete witness evidence")
     if any(
-        item.template_id != groups_by_id[item.group_id].template_id
-        or item.witness_record_id != groups_by_id[item.group_id].witness_record_id
+        not item.query_id
+        or len(item.query_sha256) != _SHA256_LENGTH
+        or item.proof_kind not in {"single", "tx_hash_batch", "account_pair_batch"}
+        or not item.group_ids
+        or len(set(item.group_ids)) != len(item.group_ids)
+        or not set(item.group_ids) <= expected_group_ids
+        or any(
+            groups_by_id[group_id].template_id != item.template_id for group_id in item.group_ids
+        )
         or not _is_nonnegative_int(item.estimated_bytes)
+        # BigQuery dry runs are unpersisted: the field is required, not a nonempty ID.
+        or not isinstance(item.job_id, str)
+        or not item.location
         for item in report.preflight.witnesses
     ):
         raise StageAV2ArtifactError("Accepted Stage A v2 preflight evidence is inconsistent")
     if any(not isinstance(item, WitnessExecution) for item in report.witnesses):
         raise StageAV2ArtifactError("Accepted Stage A v2 requires typed witness executions")
-    executions_by_id = {item.group_id: item for item in report.witnesses}
-    if len(executions_by_id) != len(report.witnesses) or set(executions_by_id) != expected_ids:
+    executions_by_id = {item.query_id: item for item in report.witnesses}
+    if (
+        len(executions_by_id) != len(report.witnesses)
+        or set(executions_by_id) != set(preflight_by_id)
+        or len(executions_by_id) != summary.physical_query_count
+    ):
         raise StageAV2ArtifactError("Accepted Stage A v2 requires complete witness evidence")
     templates_by_id = {str(template["id"]): template for template in templates}
+    logical_edges: dict[str, tuple[WitnessExecution, Any]] = {}
     for execution in report.witnesses:
-        group = groups_by_id[execution.group_id]
+        initial = preflight_by_id[execution.query_id]
+        immediate = execution.immediate_dry_run
+        expected_columns = tuple(templates_by_id[execution.template_id]["expected_columns"])
+        physical_columns = (
+            ("witness_group_id", *expected_columns)
+            if execution.proof_kind in {"tx_hash_batch", "account_pair_batch"}
+            else expected_columns
+        )
         if (
-            execution.template_id != group.template_id
-            or execution.witness_record_id != group.witness_record_id
-            or execution.columns != tuple(templates_by_id[group.template_id]["expected_columns"])
+            not isinstance(immediate, WitnessDryRun)
+            or execution.query_sha256 != initial.query_sha256
+            or execution.proof_kind != initial.proof_kind
+            or execution.template_id != initial.template_id
+            or execution.group_ids != initial.group_ids
+            or immediate.query_id != execution.query_id
+            or immediate.query_sha256 != execution.query_sha256
+            or immediate.proof_kind != execution.proof_kind
+            or immediate.template_id != execution.template_id
+            or immediate.group_ids != execution.group_ids
+            or not isinstance(immediate.job_id, str)
+            or immediate.location != execution.location
+            or not isinstance(execution.job_id, str)
+            or not execution.job_id
+            or not execution.location
+            or execution.columns != physical_columns
             or not _is_nonnegative_int(execution.row_count)
             or execution.row_count == 0
             or not _is_nonnegative_int(execution.estimated_bytes)
@@ -307,9 +380,26 @@ def _validate_report(
             execution.server_latency_ms
         ):
             raise StageAV2ArtifactError("Accepted Stage A v2 witness execution is invalid")
+        if len(execution.logical_results) != len(execution.group_ids):
+            raise StageAV2ArtifactError("Accepted Stage A v2 logical evidence is incomplete")
+        for logical in execution.logical_results:
+            group = groups_by_id.get(logical.group_id)
+            if (
+                group is None
+                or logical.group_id not in execution.group_ids
+                or logical.witness_record_id != group.witness_record_id
+                or logical.columns != tuple(templates_by_id[group.template_id]["expected_columns"])
+                or not _is_nonnegative_int(logical.row_count)
+                or logical.row_count == 0
+                or logical.group_id in logical_edges
+            ):
+                raise StageAV2ArtifactError("Accepted Stage A v2 logical evidence is inconsistent")
+            logical_edges[logical.group_id] = (execution, logical)
+    if set(logical_edges) != expected_group_ids:
+        raise StageAV2ArtifactError("Accepted Stage A v2 requires complete witness evidence")
     for record in records:
         verification = record["verification"]
-        execution = executions_by_id[str(record["witness_group_id"])]
+        execution, logical = logical_edges[str(record["witness_group_id"])]
         if (
             any(
                 verification[key] != getattr(execution, key)
@@ -324,9 +414,15 @@ def _validate_report(
                     "slot_millis",
                     "cache_hit",
                 )
-                if key != "row_count"
+                if key not in {"witness_record_id", "row_count", "estimated_bytes"}
             )
-            or verification["witness_row_count"] != execution.row_count
+            or verification["witness_record_id"] != logical.witness_record_id
+            or verification["estimated_bytes"] != execution.immediate_dry_run.estimated_bytes
+            or verification["witness_row_count"] != logical.row_count
+            or verification["physical_query_id"] != execution.query_id
+            or verification["query_sha256"] != execution.query_sha256
+            or verification["job_id"] != execution.job_id
+            or verification["location"] != execution.location
         ):
             raise StageAV2ArtifactError(
                 "Accepted Stage A v2 record evidence does not match witness execution"
@@ -387,6 +483,11 @@ def has_evidence_backed_live_values(pools: Mapping[str, Any]) -> bool:
             values.append(entry["value"])
         if len({_canonical_json(value) for value in values}) != len(values):
             return False
+    try:
+        load_account_pairs(pools)
+        load_block_beneficiaries(pools)
+    except (AccountPairError, BeneficiaryError):
+        return False
     return True
 
 
@@ -401,6 +502,69 @@ def _v1_supersession() -> dict[str, object]:
 def _validate_supersession(value: object) -> None:
     if value != _v1_supersession():
         raise StageAV2ArtifactError("Stage A v2 supersession evidence is invalid")
+
+
+def _validate_serialized_evidence(
+    manifest: Mapping[str, Any], summary: _LiveEvidenceSummary
+) -> None:
+    preflight = manifest.get("preflight_evidence")
+    executions = manifest.get("execution_evidence")
+    if not isinstance(preflight, list) or not isinstance(executions, list):
+        raise StageAV2ArtifactError("Accepted Stage A v2 evidence graph is missing")
+    preflight_by_id: dict[str, Mapping[str, Any]] = {}
+    for item in preflight:
+        if not isinstance(item, Mapping) or not isinstance(item.get("query_id"), str):
+            raise StageAV2ArtifactError("Accepted Stage A v2 preflight graph is invalid")
+        query_id = str(item["query_id"])
+        if query_id in preflight_by_id:
+            raise StageAV2ArtifactError("Accepted Stage A v2 physical query IDs must be unique")
+        preflight_by_id[query_id] = item
+    execution_by_id: dict[str, Mapping[str, Any]] = {}
+    logical_group_ids: set[str] = set()
+    for item in executions:
+        if not isinstance(item, Mapping) or not isinstance(item.get("query_id"), str):
+            raise StageAV2ArtifactError("Accepted Stage A v2 execution graph is invalid")
+        query_id = str(item["query_id"])
+        if query_id in execution_by_id:
+            raise StageAV2ArtifactError("Accepted Stage A v2 physical query IDs must be unique")
+        initial = preflight_by_id.get(query_id)
+        immediate = item.get("immediate_dry_run")
+        results = item.get("logical_results")
+        if (
+            initial is None
+            or not isinstance(immediate, Mapping)
+            or not isinstance(results, list)
+            or item.get("query_sha256") != initial.get("query_sha256")
+            or item.get("group_ids") != initial.get("group_ids")
+            or item.get("template_id") != initial.get("template_id")
+            or item.get("proof_kind") != initial.get("proof_kind")
+            or item.get("cache_hit") is not False
+        ):
+            raise StageAV2ArtifactError("Accepted Stage A v2 evidence graph is inconsistent")
+        result_ids = [result.get("group_id") for result in results if isinstance(result, Mapping)]
+        if (
+            len(result_ids) != len(results)
+            or result_ids != item.get("group_ids")
+            or logical_group_ids.intersection(result_ids)
+        ):
+            raise StageAV2ArtifactError("Accepted Stage A v2 logical evidence graph is invalid")
+        logical_group_ids.update(result_ids)
+        execution_by_id[query_id] = item
+    if (
+        set(execution_by_id) != set(preflight_by_id)
+        or len(preflight_by_id) != summary.physical_query_count
+        or manifest.get("physical_query_count") != summary.physical_query_count
+        or len(logical_group_ids) != summary.witness_count
+        or manifest.get("total_estimated_bytes")
+        != sum(int(item.get("estimated_bytes", -1)) for item in preflight)
+        or manifest.get("total_processed_bytes")
+        != sum(int(item.get("processed_bytes", -1)) for item in executions)
+        or manifest.get("total_billed_bytes")
+        != sum(int(item.get("billed_bytes", -1)) for item in executions)
+        or manifest.get("total_wall_latency_ms")
+        != math.fsum(float(item.get("wall_latency_ms", -1)) for item in executions)
+    ):
+        raise StageAV2ArtifactError("Accepted Stage A v2 physical evidence totals are inconsistent")
 
 
 def validate_stage_a_v2_source_evidence(
@@ -461,12 +625,14 @@ def validate_stage_a_v2_source_evidence(
             raise StageAV2ArtifactError("Stage A v2 candidate evidence is inconsistent")
         return
     summary = _validate_live_records(records, templates)
+    _validate_serialized_evidence(manifest, summary)
     if (
         manifest.get("acceptance_eligible") is not True
         or manifest.get("verification_mode") != "live_witness"
         or manifest.get("verified_record_count") != len(records)
         or manifest.get("verified_at") != summary.verified_at
         or manifest.get("witness_count") != summary.witness_count
+        or manifest.get("physical_query_count") != summary.physical_query_count
         or not _is_nonnegative_int(manifest.get("total_estimated_bytes"))
         or manifest.get("total_processed_bytes") != summary.total_processed_bytes
         or manifest.get("total_billed_bytes") != summary.total_billed_bytes
@@ -485,11 +651,57 @@ def build_stage_a_v2_accepted_manifest(
     """Build an accepted manifest only from complete live witness evidence."""
     if not has_evidence_backed_live_values(pools):
         raise StageAV2ArtifactError(
-            "Accepted Stage A v2 requires evidence-backed block and transaction values"
+            "Accepted Stage A v2 requires evidence-backed block, transaction, "
+            "and account-pair values"
         )
     records, summary = _validate_report(report, templates, pools)
     payload = serialize_stage_a_v2_records(records)
     preflight = report.preflight
+    preflight_evidence = [
+        {
+            "query_id": item.query_id,
+            "query_sha256": item.query_sha256,
+            "proof_kind": item.proof_kind,
+            "template_id": item.template_id,
+            "group_ids": list(item.group_ids),
+            "job_id": item.job_id,
+            "location": item.location,
+            "estimated_bytes": item.estimated_bytes,
+        }
+        for item in preflight.witnesses
+    ]
+    execution_evidence = [
+        {
+            "query_id": item.query_id,
+            "query_sha256": item.query_sha256,
+            "proof_kind": item.proof_kind,
+            "template_id": item.template_id,
+            "group_ids": list(item.group_ids),
+            "job_id": item.job_id,
+            "location": item.location,
+            "immediate_dry_run": {
+                "job_id": item.immediate_dry_run.job_id,
+                "location": item.immediate_dry_run.location,
+                "estimated_bytes": item.immediate_dry_run.estimated_bytes,
+            },
+            "logical_results": [
+                {
+                    "group_id": result.group_id,
+                    "witness_record_id": result.witness_record_id,
+                    "row_count": result.row_count,
+                    "columns": list(result.columns),
+                }
+                for result in item.logical_results
+            ],
+            "processed_bytes": item.processed_bytes,
+            "billed_bytes": item.billed_bytes,
+            "wall_latency_ms": item.wall_latency_ms,
+            "server_latency_ms": item.server_latency_ms,
+            "slot_millis": item.slot_millis,
+            "cache_hit": item.cache_hit,
+        }
+        for item in report.witnesses
+    ]
     return {
         "version": 2,
         "lifecycle_state": "accepted",
@@ -506,6 +718,9 @@ def build_stage_a_v2_accepted_manifest(
         "template_library_sha256": _sha256(_canonical_json(_canonical_templates(templates))),
         "value_pools_sha256": _sha256(_canonical_json(canonicalize_stage_a_v2_pools(pools))),
         "witness_count": summary.witness_count,
+        "physical_query_count": summary.physical_query_count,
+        "preflight_evidence": preflight_evidence,
+        "execution_evidence": execution_evidence,
         "total_estimated_bytes": preflight.total_estimated_bytes,
         "total_processed_bytes": summary.total_processed_bytes,
         "total_billed_bytes": summary.total_billed_bytes,
