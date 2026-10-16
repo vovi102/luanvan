@@ -84,6 +84,19 @@ không claim đã chạy lại full repository suite trong lượt build này.
 
 Report: `docs/research/bilingual-training-canonical-build-2026-10-15.md`.
 
+### Downstream B2 integration — 2026-10-16
+
+Hoàn tất offline tại `9adf02c`: lossless train-only export
+`data/dataset/processed/b2-training.jsonl`, 7.208 records / 901 families, hash riêng
+bind canonical publication `2b652a3`. Không đổi canonical, SQL, ID, family/slot
+provenance, không rename `style` thành `text_variant`, không thêm acceptance flag.
+B2 xác minh exact canonical train projection và exact consumed fingerprint trước
+cache/encoder. 792 development records tuyệt đối không vào retrieval. Training
+adapter/test đã khóa trước khi mở benchmark VI để soạn review pack.
+
+Report: `docs/research/b2-training-integration-2026-10-16.md`.
+Genuine encoder/Kaggle inference vẫn pending; integration không phải model evidence.
+
 ## Tài liệu
 
 - Spec: `docs/superpowers/specs/2026-10-07-deterministic-bilingual-training-design.md`

@@ -1,0 +1,132 @@
+{
+  "artifacts": {
+    "data/review_packs/t3_5_vi_2026-10-16/README.md": {
+      "bytes": 4780,
+      "sha256": "f7eb6babfb294671fe32ece7c9d805447570fd7fff9fb255a24a46e17f827256"
+    },
+    "data/review_packs/t3_5_vi_2026-10-16/manifest.json": {
+      "bytes": 6541,
+      "sha256": "08e2e1367e4e33b6bf031944ec33f18d42fc8d403e12c5f4d801fc9698be7aa6"
+    },
+    "docs/evidence/b2-training-2026-10-16/canonical-validation.log": {
+      "bytes": 473,
+      "sha256": "d44e48ff0a432ebaeebe9b818f1489fcb91762da773e4eff8b52442003588d62"
+    },
+    "docs/evidence/b2-training-2026-10-16/export-guard-typing-error.log": {
+      "bytes": 10308,
+      "sha256": "9282b63caf04b2b4dd60682d8476855863ee9e2ceb39b9f3f02527e9dbea3b48"
+    },
+    "docs/evidence/b2-training-2026-10-16/export-initial-guard-rejection.log": {
+      "bytes": 3190,
+      "sha256": "2cad7917a9a2a73d2c99182368f3a231a0491db276bb71c5585db96bf7e77204"
+    },
+    "docs/evidence/b2-training-2026-10-16/export-two.log": {
+      "bytes": 320,
+      "sha256": "e38fbe0295e6babfd4863e46f2549aa9dd5a0fd835c689fde83af0f768b55f76"
+    },
+    "docs/evidence/b2-training-2026-10-16/export.log": {
+      "bytes": 320,
+      "sha256": "e38fbe0295e6babfd4863e46f2549aa9dd5a0fd835c689fde83af0f768b55f76"
+    },
+    "docs/evidence/b2-training-2026-10-16/focused-tests.log": {
+      "bytes": 110,
+      "sha256": "c6e3b7eca41e046f3ea23f72ab9a3ede56d23b3d930b185a2555a7dcbc765d8e"
+    },
+    "docs/evidence/b2-training-2026-10-16/full-suite.log": {
+      "bytes": 3426,
+      "sha256": "754276f190e1d180311469c7dce67b2f99b0e07599577f210cbe02c8125b85f8"
+    },
+    "docs/evidence/b2-training-2026-10-16/validate.log": {
+      "bytes": 324,
+      "sha256": "6f946f268ef21c8804306a95c0b19151c03902cb671b89282143b9bfd22d8f27"
+    },
+    "docs/evidence/vietnamese-review-pack-2026-10-16/build.log": {
+      "bytes": 200,
+      "sha256": "e7efb3fd74748399eb6a25b549450ad8b56e00c73cbaa1538c708737088b12a5"
+    },
+    "docs/evidence/vietnamese-review-pack-2026-10-16/integrity.log": {
+      "bytes": 213,
+      "sha256": "3eadc1a8c4247828a83c51304c3b4a9acdd6e0cee4a7d7c9670de889e8673198"
+    },
+    "docs/evidence/vietnamese-review-pack-2026-10-16/rebuild.log": {
+      "bytes": 200,
+      "sha256": "e7efb3fd74748399eb6a25b549450ad8b56e00c73cbaa1538c708737088b12a5"
+    },
+    "docs/evidence/vietnamese-review-pack-2026-10-16/validate-draft.log": {
+      "bytes": 309,
+      "sha256": "98939a2e79eba0e13a053a19d3fac2f94e37b2825b1ba37d2093deee24edcfb9"
+    },
+    "docs/evidence/vietnamese-review-pack-builder-2026-10-16.txt": {
+      "bytes": 4731,
+      "sha256": "3152e0173fe9696f04eb7d4200ae8b90961f59d39cd558ade95f545ce1224980"
+    },
+    "docs/evidence/vietnamese-review-pack-integrity-2026-10-16.txt": {
+      "bytes": 2161,
+      "sha256": "73a9c77e7c739020e6d5f2e6f4e4bbf804e06979f475332d7142e127cea3424f"
+    },
+    "docs/research/offline-data-handoff-2026-10-16.md": {
+      "bytes": 5356,
+      "sha256": "e302ccffdd6a4ce446ea1c4df163968ddc52454b56fdc320888d1132eaaabf32"
+    }
+  },
+  "base_commit": "544fa82",
+  "branch": "feat/t33-b2-offline",
+  "date": "2026-10-16",
+  "existing_evidence_snapshots": {
+    "data/dataset/test/live-evidence.json": "21cfee8601c7670f23581bb0c6755f306ca41aab2029dd6b50a6d65fab25f969",
+    "data/dataset/test/manifest.json": "719d41ff065a5b720c64b18de5c2f6ae2988d054000158e5a43d045ddf461f17",
+    "data/dataset/test/test-100.jsonl": "5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d",
+    "data/eval/canonical/b0-run-01.json": "9a9647fe9215111e68c57cad310d57b9be66b081b528e36adfadae8cbef97be5",
+    "reports/evaluation/b0-run-01.json": "156d261d283086ea6da31b7a1d0e0d791a8324a0a871f59d6e90f467f228ea77"
+  },
+  "fresh_checks": {
+    "b2_data_preflight": "CLI22 validate exit 0; 7208 records; no encoder/model/cache required",
+    "b2_export": "two guarded exports byte-identical for snapshot and manifest",
+    "canonical_cli21": "validate-artifact status=valid; 8000 records",
+    "document_links": "33 relative links resolve",
+    "focused": {
+      "duration_seconds": 99.42,
+      "passed": 42
+    },
+    "full_suite": {
+      "command": "PYTHONPATH=src /home/khoavd/WORKSPACE/LuanVan/.venv/bin/python -m pytest -q",
+      "duration_seconds": 563.75,
+      "exit_code": 0,
+      "log": "docs/evidence/b2-training-2026-10-16/full-suite.log",
+      "passed": 1505,
+      "warnings": 342
+    },
+    "lint": "Ruff check and format check four Python files; git diff --check pass",
+    "pack": "rebuilt byte-identical; independent integrity check exit 0; sources/training lock unchanged; trailing blank lines corrected in builder/rendered Markdown, rebuilt and rechecked",
+    "vietnamese_draft": "validate-draft exit 0; paired_draft_valid; 100 pairs"
+  },
+  "native_no_subagents": true,
+  "next_steps": [
+    "User reviews Vietnamese batches 01\u201310; only explicit human decisions enter original event log",
+    "Finalize Vietnamese and exact evidence binding under existing gates; live only if separately authorized and needed",
+    "Pin genuine model/encoder and run B1/B2 on Kaggle",
+    "T5.4 comparison",
+    "T5.5 B3 scope decision"
+  ],
+  "not_performed": [
+    "live BigQuery or external network calls",
+    "model/encoder downloads",
+    "GPU inference/training or genuine evaluation",
+    "Kaggle upload",
+    "merge/push/PR",
+    "Stage D noise or hosted LLM baselines"
+  ],
+  "offline_only": true,
+  "post_lock_training_code_test_changes": false,
+  "status": {
+    "b0": "genuine 0/100 in existing canonical report; no new evaluation",
+    "b1_b2": "no genuine Kaggle runs",
+    "english": "finalized; 120 human ACCEPT events, 100 selected (existing, not rereviewed)",
+    "stage_a_v2": "accepted genuine live evidence (existing, not rerun)",
+    "t33": "canonical published 2b652a3 (existing); validated freshly offline",
+    "t33_to_b2": "implemented and locked locally",
+    "vietnamese": "100 candidates, 0 human events, review aids only, not finalized"
+  },
+  "training_lock_before_benchmark_content": true,
+  "training_lock_commit": "9adf02c"
+}

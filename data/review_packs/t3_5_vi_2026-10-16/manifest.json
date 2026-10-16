@@ -1,0 +1,213 @@
+{
+  "batch_size": 10,
+  "batches": [
+    {
+      "batch": 1,
+      "markdown": "batch-01.md",
+      "pair_ids": [
+        "pair-t35-001",
+        "pair-t35-002",
+        "pair-t35-003",
+        "pair-t35-004",
+        "pair-t35-005",
+        "pair-t35-006",
+        "pair-t35-007",
+        "pair-t35-008",
+        "pair-t35-010",
+        "pair-t35-011"
+      ],
+      "worksheet": "batch-01.csv"
+    },
+    {
+      "batch": 2,
+      "markdown": "batch-02.md",
+      "pair_ids": [
+        "pair-t35-012",
+        "pair-t35-013",
+        "pair-t35-014",
+        "pair-t35-015",
+        "pair-t35-016",
+        "pair-t35-019",
+        "pair-t35-020",
+        "pair-t35-021",
+        "pair-t35-022",
+        "pair-t35-023"
+      ],
+      "worksheet": "batch-02.csv"
+    },
+    {
+      "batch": 3,
+      "markdown": "batch-03.md",
+      "pair_ids": [
+        "pair-t35-024",
+        "pair-t35-025",
+        "pair-t35-026",
+        "pair-t35-028",
+        "pair-t35-029",
+        "pair-t35-030",
+        "pair-t35-031",
+        "pair-t35-032",
+        "pair-t35-033",
+        "pair-t35-034"
+      ],
+      "worksheet": "batch-03.csv"
+    },
+    {
+      "batch": 4,
+      "markdown": "batch-04.md",
+      "pair_ids": [
+        "pair-t35-039",
+        "pair-t35-040",
+        "pair-t35-041",
+        "pair-t35-042",
+        "pair-t35-043",
+        "pair-t35-044",
+        "pair-t35-045",
+        "pair-t35-046",
+        "pair-t35-047",
+        "pair-t35-048"
+      ],
+      "worksheet": "batch-04.csv"
+    },
+    {
+      "batch": 5,
+      "markdown": "batch-05.md",
+      "pair_ids": [
+        "pair-t35-049",
+        "pair-t35-050",
+        "pair-t35-051",
+        "pair-t35-052",
+        "pair-t35-053",
+        "pair-t35-055",
+        "pair-t35-056",
+        "pair-t35-058",
+        "pair-t35-059",
+        "pair-t35-060"
+      ],
+      "worksheet": "batch-05.csv"
+    },
+    {
+      "batch": 6,
+      "markdown": "batch-06.md",
+      "pair_ids": [
+        "pair-t35-061",
+        "pair-t35-063",
+        "pair-t35-064",
+        "pair-t35-065",
+        "pair-t35-066",
+        "pair-t35-067",
+        "pair-t35-068",
+        "pair-t35-069",
+        "pair-t35-070",
+        "pair-t35-072"
+      ],
+      "worksheet": "batch-06.csv"
+    },
+    {
+      "batch": 7,
+      "markdown": "batch-07.md",
+      "pair_ids": [
+        "pair-t35-073",
+        "pair-t35-075",
+        "pair-t35-076",
+        "pair-t35-077",
+        "pair-t35-078",
+        "pair-t35-079",
+        "pair-t35-080",
+        "pair-t35-081",
+        "pair-t35-082",
+        "pair-t35-083"
+      ],
+      "worksheet": "batch-07.csv"
+    },
+    {
+      "batch": 8,
+      "markdown": "batch-08.md",
+      "pair_ids": [
+        "pair-t35-084",
+        "pair-t35-086",
+        "pair-t35-087",
+        "pair-t35-088",
+        "pair-t35-089",
+        "pair-t35-090",
+        "pair-t35-091",
+        "pair-t35-093",
+        "pair-t35-094",
+        "pair-t35-096"
+      ],
+      "worksheet": "batch-08.csv"
+    },
+    {
+      "batch": 9,
+      "markdown": "batch-09.md",
+      "pair_ids": [
+        "pair-t35-098",
+        "pair-t35-099",
+        "pair-t35-100",
+        "pair-t35-101",
+        "pair-t35-102",
+        "pair-t35-103",
+        "pair-t35-105",
+        "pair-t35-106",
+        "pair-t35-107",
+        "pair-t35-108"
+      ],
+      "worksheet": "batch-09.csv"
+    },
+    {
+      "batch": 10,
+      "markdown": "batch-10.md",
+      "pair_ids": [
+        "pair-t35-109",
+        "pair-t35-110",
+        "pair-t35-112",
+        "pair-t35-113",
+        "pair-t35-114",
+        "pair-t35-115",
+        "pair-t35-116",
+        "pair-t35-117",
+        "pair-t35-119",
+        "pair-t35-120"
+      ],
+      "worksheet": "batch-10.csv"
+    }
+  ],
+  "candidate_count": 100,
+  "candidate_file_sha256": "ffc3875802e954ed724b5500a19cefaa4c05cf9bf498e304076c693483154a96",
+  "candidate_semantic_sha256": "4a74e2d7f79ef17ef2909d20636e6b94fb60966585d26dcb3498ad1f535c24b0",
+  "english_semantic_sha256": "129dac05e56248a91fad48f9b2011fdaa13daf3d4f43f2de2290a6a3eb6b91c7",
+  "files": {
+    "batch-01.csv": "ddecaa24b9a35d4f27a34cd3d89680c7eedf346820d5f25a3d8c24f592397fc1",
+    "batch-01.md": "63217394b2cb250f160661cee528529c298c0dc939a88ba74b03bb1868448a8f",
+    "batch-02.csv": "b3a85fbef681dfbaa0972ce5e319545f9aeafce8319ff9c3932489cab814f02a",
+    "batch-02.md": "5ba412632ef45711f88962791021f4f13e00eb9f582fd278bc0bdb76af8a9332",
+    "batch-03.csv": "cd282286bac4e60862eaf7e211cb9e9c364d3e3967e48212d775f7ccf0e1c741",
+    "batch-03.md": "551dd7037893bd209baeda6a27eaa6e14f2dffbdd1acd24d9b4ca3ac56a814ed",
+    "batch-04.csv": "dd0f0e8283c1da59aa8793337ee402d33ecf41866e6692ee457576c04e0d8acc",
+    "batch-04.md": "db5bc350754b3af9eea84e11a0387d8a349b07b0b83a1e799493a6c189575550",
+    "batch-05.csv": "00fe7d09d90f056e11a4e0cd7becd18dbcc982ba3079bc1fbcac87e99769f2ea",
+    "batch-05.md": "2f58dda70ccd6feee7c23358ed46a217f29e15135e35e897728116502ffd3b4f",
+    "batch-06.csv": "e8461b500c0697a493ccdadf628f8923d6a27af982128055cd83c4702f2e1eaf",
+    "batch-06.md": "1667a7dcadb179f33330b4b604b77c2bc93c8a18969d5ea7030e5e674a0e1d80",
+    "batch-07.csv": "a6e8193b78c114d1495442fa2a7ea83fee5f87dd2a868cbea2e1314ce005ef10",
+    "batch-07.md": "0a5116f2088fa68daa48a48f07c0628cf0d8fe89a25854f1e88f81cada91bbf8",
+    "batch-08.csv": "d2b942afe41d74a5254ca33c74a32edc46a18f9eba2d8b0dd563d2149e406905",
+    "batch-08.md": "219ed376dfc12ff9e4506c28f02d4b87128af24845d921594ce72ade2cdefc31",
+    "batch-09.csv": "a1e37f2a88789ec70d75641ca353e40dd02349fb29840a0d83cae000b7966a66",
+    "batch-09.md": "773f2d2a1d7ea660cc809a5bbf3a4d6fd701c5552071915c9b171291ed4dd4f6",
+    "batch-10.csv": "0f879c81020e067122c7f23b84f06d09c73a0f0db1e18f714de7a0e499e9d541",
+    "batch-10.md": "ba4fda00c549467484416d2136a274d55e28b866e85a30761f32f84f8f9034a8"
+  },
+  "review_event_count_at_build": 0,
+  "source": "data/review_drafts/t3_5_vi_candidate_set_2026-10-07",
+  "source_files": {
+    "PREFLIGHT.md": "b14a450f9679b47c9f935ba63b92e3216037918e2495ca47f802676bec6d036d",
+    "REVIEW_GUIDE.md": "1b4476d0af80bba38d387c13bee0d9f9c2a6e00465114106c9d2e80c0bbe37c9",
+    "candidates.jsonl": "ffc3875802e954ed724b5500a19cefaa4c05cf9bf498e304076c693483154a96",
+    "manifest.json": "deda2628af86b5869e367e249eeb5ce82d30de964c11a6ce6e3692408d86dd8b",
+    "review_events.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "validation-report.json": "98939a2e79eba0e13a053a19d3fac2f94e37b2825b1ba37d2093deee24edcfb9"
+  },
+  "status": "awaiting-human-review",
+  "training_lock_commit": "9adf02c"
+}

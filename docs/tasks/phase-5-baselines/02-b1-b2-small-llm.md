@@ -48,9 +48,10 @@ backend provenance.
   projections và managed relations.
 - Model/encoder revision phải là pinned lowercase 40-hex revision.
 
-Final T3.5 và accepted training artifact chưa có trong repository. Tooling local
-không tự tạo cộng tác viên, gold query, model completion hoặc benchmark giả để
-đóng các gate này.
+English T3.5 đã finalized với human review/live evidence. Stage A v2 accepted và
+T3.3 canonical published tại `2b652a3`; offline data integration T3.3 → B2 đã
+hoàn tất tại `9adf02c`. Vietnamese 100 candidates vẫn chờ human review (0 events),
+chưa finalized. Chưa có genuine B1/B2 Kaggle runs; không dùng fixture để đóng gate.
 
 ## Module và output
 
@@ -83,8 +84,25 @@ B1/B2 dùng model `meta-llama/Meta-Llama-3-8B-Instruct`, seed 42, greedy decodin
 truyền trong greedy mode. Production load 4-bit bằng `BitsAndBytesConfig` và chỉ
 sau explicit `--real-inference`.
 
-B2 đọc exact UTF-8 JSONL training bytes, yêu cầu unique ID/câu hỏi, `split=train`,
-`synthetic_fixture=false` và safe GoogleSQL. Embedding được L2-normalize; ranking
+B2 đọc exact UTF-8 JSONL training bytes, yêu cầu unique ID/câu hỏi, `split=train`
+và safe GoogleSQL. Legacy schema vẫn yêu cầu `synthetic_fixture=false` và đầy đủ
+`text_variant` metadata. Với canonical T3.3, adapter kiểm tra exact accepted
+publication/source hashes và byte equality với train-only projection; giữ `style`,
+không rename semantics hoặc thêm fixture flag. Export chứa nguyên dòng canonical,
+7.208 records / 901 families (3.604 EN + 3.604 VI); không có 792 development records.
+
+Artifact tiêu thụ là `data/dataset/processed/b2-training.jsonl`, kèm recipe/hash
+manifest `b2-training.manifest.json`; accepted-training fingerprint phải là
+`b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835`, **không phải**
+hash corpus canonical 8.000 rows. Khi bundle cho Kaggle phải kèm bảy pinned
+source files được liệt kê trong manifest; adapter từ chối source đã đổi.
+CLI17 cần explicit `--training data/dataset/processed/b2-training.jsonl` và
+`--accepted-training-sha256` trên; default legacy path không được hiểu là export.
+
+[Integration report](../../research/b2-training-integration-2026-10-16.md).
+Training adapter/test được khóa trước khi đọc benchmark VI để chuẩn bị review pack.
+
+Embedding được L2-normalize; ranking
 dùng descending cosine score rồi stable record ID. Target ID và NFKC/casefold
 question trùng test case bị loại trước khi chọn đúng năm examples. Cache bind
 training SHA-256, encoder/revision, ordered IDs, shape/dtype và matrix digest.
@@ -144,11 +162,25 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
   Critical/Important finding và kết luận `ready to merge`.
 - Các kết quả local này không phải Kaggle/scientific acceptance.
 
+### Data integration checkpoint — 2026-10-16
+
+- [x] Accepted Stage A v2 + canonical T3.3 đã hoàn tất; failed audit lịch sử giữ nguyên.
+- [x] Task T3.3 → B2: lossless train export, exact consumed hash, deterministic
+  rebuild và strict provenance/fixture/SQL/leakage gates.
+- [x] Fresh 42 focused tests pass, bao gồm regression fail-before-fix và actual
+  B2 cache/data path offline không model/encoder. Cache trong test là synthetic,
+  không publish hoặc dùng làm scientific evidence.
+- [x] Guarded export/data preflight và current canonical CLI21 validate-artifact pass.
+- [x] English benchmark finalized; không review lại 120 candidates.
+- [x] Fresh full suite sau integration: 1.505 passed, 342 warnings, 563,75s;
+  không dùng lại historical 1.485-test evidence. Log và handoff tại
+  `docs/research/offline-data-handoff-2026-10-16.md`.
+
 ### Pending external/scientific acceptance
 
-- [ ] Finalized independently reviewed T3.5 test set 100 câu có valid live
-  GoogleSQL evidence.
-- [ ] Accepted non-test training artifact và pinned MiniLM snapshot/revision.
+- [ ] Vietnamese review/finalization 100 pairs và exact live-evidence binding;
+  [review pack](../../../data/review_packs/t3_5_vi_2026-10-16/README.md) chỉ là hỗ trợ.
+- [ ] Pinned genuine encoder snapshot/revision và cache, cùng accepted train export.
 - [ ] Pinned Llama 3 8B snapshot chạy đủ B1/B2 trên Kaggle T4, không OOM.
 - [ ] B1 latency `<5 s/query` trên Kaggle T4.
 - [ ] B2 latency `<8 s/query` trên Kaggle T4.
@@ -156,7 +188,12 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
 
 ## Trạng thái
 
-`implementation and local review complete — Kaggle and reviewed-data gates pending`
+`implementation + offline data integration complete — Vietnamese human review/finalization
+and genuine model/encoder/Kaggle gates pending`
+
+Thứ tự: data integration + Vietnamese review → B1/B2 genuine → T5.4 comparison
+(B0 genuine 0/100 đã có) → T5.5 quyết định B3. Không hosted LLM baselines,
+Stage D noise generation hoặc thay model/acceptance thresholds.
 
 Linked:
 
