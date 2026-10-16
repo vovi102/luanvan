@@ -1,0 +1,2 @@
+{"manifest_sha256": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28", "mode": "validate-artifact", "output_sha256": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55", "record_count": 8000, "semantic_family_count": 1000, "status": "valid"}
+{"mode": "validate-artifact", "offline_guard": {"credential_reads": 0, "network_attempts": 0, "provider_imports": 0, "subprocess_attempts": 0}, "script": "scripts/21_validate_bilingual_training.py"}

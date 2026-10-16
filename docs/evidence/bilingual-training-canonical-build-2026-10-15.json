@@ -1,0 +1,313 @@
+{
+  "artifacts": {
+    "data/dataset/processed/bilingual-training-audit.jsonl": {
+      "bytes": 89741,
+      "sha256": "3d10f0d0e1f3db9e46367e7b924cc8e1232ef33f29361bf26d463dad2a76df62"
+    },
+    "data/dataset/processed/bilingual-training-manifest.json": {
+      "bytes": 3098,
+      "sha256": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28"
+    },
+    "data/dataset/processed/bilingual-training.jsonl": {
+      "bytes": 16754825,
+      "sha256": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55"
+    }
+  },
+  "commands": {
+    "build-one": ".venv/bin/python docs/evidence/bilingual-training-canonical-offline-runner-2026-10-15.txt scripts/20_build_bilingual_training.py --mode build --stage-a data/dataset/raw/synthetic-stage-a-v2.jsonl --stage-a-manifest data/dataset/raw/generation-config-v2.json --catalog src/nl2sparql/dataset/bilingual/templates.json --exclusion-index data/dataset/processed/bilingual-training-exclusion-index.json --audit .superpowers/sdd/2026-10-15-bilingual-build/build-one/bilingual-training-audit.jsonl --output .superpowers/sdd/2026-10-15-bilingual-build/build-one/bilingual-training.jsonl --manifest .superpowers/sdd/2026-10-15-bilingual-build/build-one/bilingual-training-manifest.json",
+    "build-two": ".venv/bin/python docs/evidence/bilingual-training-canonical-offline-runner-2026-10-15.txt scripts/20_build_bilingual_training.py --mode build --stage-a data/dataset/raw/synthetic-stage-a-v2.jsonl --stage-a-manifest data/dataset/raw/generation-config-v2.json --catalog src/nl2sparql/dataset/bilingual/templates.json --exclusion-index data/dataset/processed/bilingual-training-exclusion-index.json --audit .superpowers/sdd/2026-10-15-bilingual-build/build-two/bilingual-training-audit.jsonl --output .superpowers/sdd/2026-10-15-bilingual-build/build-two/bilingual-training.jsonl --manifest .superpowers/sdd/2026-10-15-bilingual-build/build-two/bilingual-training-manifest.json",
+    "validate-canonical": ".venv/bin/python docs/evidence/bilingual-training-canonical-offline-runner-2026-10-15.txt scripts/21_validate_bilingual_training.py --mode validate-artifact --stage-a data/dataset/raw/synthetic-stage-a-v2.jsonl --stage-a-manifest data/dataset/raw/generation-config-v2.json --catalog src/nl2sparql/dataset/bilingual/templates.json --exclusion-index data/dataset/processed/bilingual-training-exclusion-index.json --audit data/dataset/processed/bilingual-training-audit.jsonl --output data/dataset/processed/bilingual-training.jsonl --manifest data/dataset/processed/bilingual-training-manifest.json",
+    "validate-one": ".venv/bin/python docs/evidence/bilingual-training-canonical-offline-runner-2026-10-15.txt scripts/21_validate_bilingual_training.py --mode validate-artifact --stage-a data/dataset/raw/synthetic-stage-a-v2.jsonl --stage-a-manifest data/dataset/raw/generation-config-v2.json --catalog src/nl2sparql/dataset/bilingual/templates.json --exclusion-index data/dataset/processed/bilingual-training-exclusion-index.json --audit .superpowers/sdd/2026-10-15-bilingual-build/build-one/bilingual-training-audit.jsonl --output .superpowers/sdd/2026-10-15-bilingual-build/build-one/bilingual-training.jsonl --manifest .superpowers/sdd/2026-10-15-bilingual-build/build-one/bilingual-training-manifest.json",
+    "validate-two": ".venv/bin/python docs/evidence/bilingual-training-canonical-offline-runner-2026-10-15.txt scripts/21_validate_bilingual_training.py --mode validate-artifact --stage-a data/dataset/raw/synthetic-stage-a-v2.jsonl --stage-a-manifest data/dataset/raw/generation-config-v2.json --catalog src/nl2sparql/dataset/bilingual/templates.json --exclusion-index data/dataset/processed/bilingual-training-exclusion-index.json --audit .superpowers/sdd/2026-10-15-bilingual-build/build-two/bilingual-training-audit.jsonl --output .superpowers/sdd/2026-10-15-bilingual-build/build-two/bilingual-training.jsonl --manifest .superpowers/sdd/2026-10-15-bilingual-build/build-two/bilingual-training-manifest.json"
+  },
+  "counts": {
+    "intent": {
+      "T_ACCOUNTS_BY_CATEGORY": 328,
+      "T_BLOCKS_BY_VALIDATOR": 320,
+      "T_BLOCK_BY_NUMBER": 360,
+      "T_CATEGORY_OWNER_DISTRIBUTION": 272,
+      "T_COUNT_TX_IN_RANGE": 360,
+      "T_FAILED_HIGH_GAS_TX": 328,
+      "T_FILTER_TX_BY_VALUE": 360,
+      "T_LARGE_TX_TO_CLASS": 328,
+      "T_LIST_FAILED_TX": 360,
+      "T_LIST_KNOWN_EXCHANGES": 360,
+      "T_LIST_TX_FROM_ACCOUNT": 320,
+      "T_LIST_TX_TO_ACCOUNT": 320,
+      "T_OWNER_NET_NATIVE_FLOW": 272,
+      "T_REPEATED_PAIR_FLOW": 264,
+      "T_TOKEN_AFTER_NATIVE_FUNDING": 264,
+      "T_TOKEN_TRANSFERS_OF_TOKEN": 328,
+      "T_TOKEN_VOLUME_BY_SYMBOL": 328,
+      "T_TOP_RECIPIENTS_BY_COUNT": 328,
+      "T_TOP_SENDERS_BY_VALUE": 336,
+      "T_TREASURY_NATIVE_COUNTERPARTY_CONCENTRATION": 264,
+      "T_TREASURY_TOKEN_COUNTERPARTY_DIVERSITY": 264,
+      "T_TX_BETWEEN_ACCOUNTS": 320,
+      "T_TX_BY_HASH": 360,
+      "T_TX_BY_HOUR": 328,
+      "T_TX_GROUPED_BY_OWNER": 328
+    },
+    "language": {
+      "en": 4000,
+      "vi": 4000
+    },
+    "semantic_families": 1000,
+    "split": {
+      "development": 792,
+      "train": 7208
+    },
+    "style": {
+      "abbreviated": 2000,
+      "alternative": 2000,
+      "conversational": 2000,
+      "formal": 2000
+    }
+  },
+  "family_split_counts": {
+    "development": 99,
+    "train": 901
+  },
+  "handoff_date": "2026-10-16",
+  "input_revision": "a62c076",
+  "limitations": [
+    "Same agent authored templates and reviewed the 200-row audit; no human or independent review claimed.",
+    "Audit scores do not establish population naturalness or generalization.",
+    "Digest-only exclusion is not proof of semantic benchmark independence.",
+    "No model training, evaluation, noisy-corpus build, BigQuery, merge, push or PR in this operation."
+  ],
+  "logical_run_date": "2026-10-15",
+  "manifest_body_sha256": "c56ed82aff8419e606157a8700802182a85e1f4ddb50f1d115bb28da5cc7888a",
+  "native_no_subagents": true,
+  "offline_runner": {
+    "path": "docs/evidence/bilingual-training-canonical-offline-runner-2026-10-15.txt",
+    "scope": "Python-level instrumentation; not an OS sandbox",
+    "sha256": "0d8af3d4e747065ac0097e6c7a3456cb51b7a20ffb9315d6c8d68e68bf17e85d"
+  },
+  "operation": "canonical-bilingual-clean-build",
+  "producer": {
+    "api_request_count": 0,
+    "author_type": "agent",
+    "cost_note": "Recorded cost is operational evidence, not a provider billing statement.",
+    "generation_model": null,
+    "producer_type": "deterministic_template_renderer",
+    "provider": null,
+    "recorded_cost_usd": 0,
+    "review_type": "agent-reviewed"
+  },
+  "protected_input_file_sha256": {
+    "data/dataset/processed/bilingual-training-exclusion-index.json": "83d76676a00588703d7136772f956770254a656ad1b4c1fab1dfbcc61e1b91b7",
+    "data/dataset/raw/generation-config-v2.json": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695",
+    "data/dataset/raw/synthetic-stage-a-v2.jsonl": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203",
+    "docs/evidence/bilingual-training-audit-r1-decisions-2026-10-15.jsonl": "3d10f0d0e1f3db9e46367e7b924cc8e1232ef33f29361bf26d463dad2a76df62",
+    "docs/evidence/bilingual-training-audit-r1-sample-2026-10-15.jsonl": "a767a2ea9a3e7cb5d556a482352a90223fb41fc331660b0e1d2abda872f3d55d",
+    "docs/evidence/bilingual-training-audit-r1-summary-2026-10-15.json": "ad2418b58cde4b35072a531fac41adbcbd21abca6c5ab38b29ebcd0d6a69dbe7",
+    "src/nl2sparql/dataset/bilingual/templates.json": "9a62ebb166b6e46da7d6970aeddf675ae05a58284242eea7f5625c8fcf88dbd7"
+  },
+  "publication": {
+    "canonical_targets_absent_before": true,
+    "journal_backup_temporary_residue": 0,
+    "lock_gitignore_rule": "data/dataset/processed/.bilingual-publish-*.lock",
+    "method": "nl2sparql.dataset.bilingual.assembly.publish_artifacts",
+    "persistent_lock_retained": true,
+    "status": "published_and_revalidated"
+  },
+  "quality": {
+    "audits": [
+      {
+        "accepted_count": 100,
+        "faithful_count": 100,
+        "language": "en",
+        "natural_count": 100,
+        "passed": true,
+        "sample_size": 100
+      },
+      {
+        "accepted_count": 100,
+        "faithful_count": 100,
+        "language": "vi",
+        "natural_count": 100,
+        "passed": true,
+        "sample_size": 100
+      }
+    ],
+    "diversity": {
+      "failing_family_ids": [],
+      "family_language_count": 2000,
+      "maximum": 0.713718820861678,
+      "mean": 0.5635130373087366,
+      "median": 0.5770922008217974,
+      "minimum": 0.319724227332923,
+      "p25": 0.519187235211795,
+      "p75": 0.6201719427525879
+    },
+    "leakage": {
+      "checked_records": 8000,
+      "exclusion_index_sha256": "ef5bec4c0d949d657ca6c0c321ae5e62e06f77e7bc5bdf2c6d94cc550a6239fa",
+      "full_text_matches": [],
+      "ngram_matches": [],
+      "passed": true
+    }
+  },
+  "timezone": "Asia/Saigon",
+  "verification": {
+    "cli_runs": {
+      "build-one": {
+        "archive": "docs/evidence/bilingual-training-canonical-build-one-2026-10-15.txt",
+        "exit_code": 0,
+        "output": [
+          {
+            "mode": "build",
+            "records": 8000,
+            "status": "published"
+          },
+          {
+            "mode": "build",
+            "offline_guard": {
+              "credential_reads": 0,
+              "network_attempts": 0,
+              "provider_imports": 0,
+              "subprocess_attempts": 0
+            },
+            "script": "scripts/20_build_bilingual_training.py"
+          }
+        ]
+      },
+      "build-two": {
+        "archive": "docs/evidence/bilingual-training-canonical-build-two-2026-10-15.txt",
+        "exit_code": 0,
+        "output": [
+          {
+            "mode": "build",
+            "records": 8000,
+            "status": "published"
+          },
+          {
+            "mode": "build",
+            "offline_guard": {
+              "credential_reads": 0,
+              "network_attempts": 0,
+              "provider_imports": 0,
+              "subprocess_attempts": 0
+            },
+            "script": "scripts/20_build_bilingual_training.py"
+          }
+        ]
+      },
+      "validate-canonical": {
+        "archive": "docs/evidence/bilingual-training-canonical-validate-canonical-2026-10-15.txt",
+        "exit_code": 0,
+        "output": [
+          {
+            "manifest_sha256": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28",
+            "mode": "validate-artifact",
+            "output_sha256": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55",
+            "record_count": 8000,
+            "semantic_family_count": 1000,
+            "status": "valid"
+          },
+          {
+            "mode": "validate-artifact",
+            "offline_guard": {
+              "credential_reads": 0,
+              "network_attempts": 0,
+              "provider_imports": 0,
+              "subprocess_attempts": 0
+            },
+            "script": "scripts/21_validate_bilingual_training.py"
+          }
+        ]
+      },
+      "validate-one": {
+        "archive": "docs/evidence/bilingual-training-canonical-validate-one-2026-10-15.txt",
+        "exit_code": 0,
+        "output": [
+          {
+            "manifest_sha256": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28",
+            "mode": "validate-artifact",
+            "output_sha256": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55",
+            "record_count": 8000,
+            "semantic_family_count": 1000,
+            "status": "valid"
+          },
+          {
+            "mode": "validate-artifact",
+            "offline_guard": {
+              "credential_reads": 0,
+              "network_attempts": 0,
+              "provider_imports": 0,
+              "subprocess_attempts": 0
+            },
+            "script": "scripts/21_validate_bilingual_training.py"
+          }
+        ]
+      },
+      "validate-two": {
+        "archive": "docs/evidence/bilingual-training-canonical-validate-two-2026-10-15.txt",
+        "exit_code": 0,
+        "output": [
+          {
+            "manifest_sha256": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28",
+            "mode": "validate-artifact",
+            "output_sha256": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55",
+            "record_count": 8000,
+            "semantic_family_count": 1000,
+            "status": "valid"
+          },
+          {
+            "mode": "validate-artifact",
+            "offline_guard": {
+              "credential_reads": 0,
+              "network_attempts": 0,
+              "provider_imports": 0,
+              "subprocess_attempts": 0
+            },
+            "script": "scripts/21_validate_bilingual_training.py"
+          }
+        ]
+      }
+    },
+    "every_family_eight_distinct_language_style_combinations": true,
+    "every_row_slots_exact_sorted_source_pairs": true,
+    "every_row_source_and_template_digests_equal": true,
+    "every_row_sql_exact_source": true,
+    "interrupted_extra_focused_run": {
+      "counted_as_pass": false,
+      "status": "incomplete_after_session_transition"
+    },
+    "no_family_crosses_split": true,
+    "two_staged_triples_and_canonical_byte_identical": true,
+    "workflow_tests": {
+      "exit_code": 0,
+      "log": "docs/evidence/bilingual-training-canonical-workflow-tests-2026-10-15.txt",
+      "passed": 8,
+      "seconds": 214.56,
+      "command": ".venv/bin/pytest tests/unit/test_bilingual_training_workflows.py -q"
+    },
+    "assembly_tests": {
+      "passed": 34,
+      "seconds": 32.4,
+      "exit_code": 0,
+      "command": ".venv/bin/pytest tests/unit/test_bilingual_assembly.py -q",
+      "log": "docs/evidence/bilingual-training-canonical-assembly-tests-2026-10-16.txt"
+    },
+    "other_bilingual_tests": {
+      "passed": 52,
+      "seconds": 204.35,
+      "exit_code": 0,
+      "command": ".venv/bin/pytest tests/unit/test_bilingual_contracts.py tests/unit/test_bilingual_rendering.py tests/unit/test_bilingual_audit_correction.py tests/unit/test_bilingual_workflows.py -q",
+      "log": "docs/evidence/bilingual-training-canonical-other-tests-2026-10-16.txt"
+    },
+    "total_fresh_bilingual_tests_passed": 94,
+    "lint": {
+      "exit_code": 0,
+      "command": ".venv/bin/ruff check src/nl2sparql/dataset/bilingual scripts/20_build_bilingual_training.py scripts/21_validate_bilingual_training.py tests/unit/test_bilingual_*.py"
+    },
+    "format": {
+      "exit_code": 0,
+      "files": 12,
+      "command": ".venv/bin/ruff format --check src/nl2sparql/dataset/bilingual scripts/20_build_bilingual_training.py scripts/21_validate_bilingual_training.py tests/unit/test_bilingual_*.py"
+    },
+    "evidence_bindings": "passed"
+  }
+}

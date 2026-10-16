@@ -122,3 +122,10 @@ The approved correction/re-audit does not itself authorize canonical corpus
 publication. Next is an explicitly scoped offline build/validate/reproducibility
 step using the r1 event log and the accepted Stage A source. The separate human
 benchmark-review requirement remains unchanged.
+
+## Subsequent approved step
+
+After this handoff, the user approved the separate offline canonical build.
+Its publication and fresh validation evidence are recorded in
+[canonical build report](bilingual-training-canonical-build-2026-10-15.md).
+The non-publication statements above describe this r1 audit's historical boundary.

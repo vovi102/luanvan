@@ -28,9 +28,13 @@ uv run python scripts/21_validate_bilingual_training.py --help
 
 ## Trạng thái
 
-Implementation offline hoàn tất. Stage A v2 đã được accept bằng genuine BigQuery
-evidence ngày 2026-10-15; canonical publication còn chờ audit 100 EN + 100 VI và
-các build/validation gates. Chưa tạo corpus 8.000 records trong lượt final-live.
+Implementation và canonical clean publication hoàn tất trong lượt build
+2026-10-15; kiểm tra cuối và bàn giao tiếp tục ngày 2026-10-16.
+Stage A v2 đã được accept bằng genuine BigQuery evidence; sau correction/audit
+r1, user duyệt build offline. Corpus canonical có 8.000 records (4.000 EN +
+4.000 VI), 1.000 families, 25 intents; train/development = 7.208/792.
+Hai build byte-identical; cả hai staging triples và canonical đều pass CLI 21.
+Các mục audit bên dưới ghi lịch sử từng thời điểm, không phải trạng thái chờ hiện tại.
 
 Evidence: `docs/research/stage-a-v2-final-live-acceptance-2026-10-15.md`.
 
@@ -64,6 +68,21 @@ Ruff/format/diff pass. Chưa publish corpus canonical 8.000 hoặc manifest,
 không gọi provider.
 
 Report: `docs/research/bilingual-training-audit-correction-r1-2026-10-15.md`.
+
+### Canonical clean build — 2026-10-15
+
+Đã publish ba artifacts corpus/manifest/audit bằng publisher giao dịch sẵn có,
+giữ nguyên accepted source, SQL/slots, catalog và audit r1. Không family nào
+cross train/dev; diversity và digest-only leakage gates pass. Hai build và ba
+lượt validate-artifact chạy offline, zero observed credential/network/provider/
+subprocess attempts. Không đọc benchmark wording, không train/evaluate model.
+Audit vẫn là same-agent review, không phải human/independent review.
+
+Fresh verification: 94 bilingual tests pass (8 workflow + 34 assembly + 52
+remaining); Ruff/format/diff pass. Không coi lượt test bị ngắt trước đó là pass;
+không claim đã chạy lại full repository suite trong lượt build này.
+
+Report: `docs/research/bilingual-training-canonical-build-2026-10-15.md`.
 
 ## Tài liệu
 
