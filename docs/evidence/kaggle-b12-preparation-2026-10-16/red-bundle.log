@@ -1,0 +1,32 @@
+FE
+==================================== ERRORS ====================================
+_ ERROR at setup of test_bundle_is_deterministic_and_contains_only_explicit_inputs _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x7117b4364910>, _basetemp=None, _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def shipped(tmp_path_factory):
+>       from nl2sparql.kaggle.bundle import build_bundle, extract_bundle
+E       ModuleNotFoundError: No module named 'nl2sparql.kaggle'
+
+tests/unit/test_kaggle_b12.py:29: ModuleNotFoundError
+=================================== FAILURES ===================================
+_________________ test_cli_has_data_only_preparation_commands __________________
+
+    def test_cli_has_data_only_preparation_commands():
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts/25_kaggle_b12.py"), "--help"],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: /home/khoavd/WORKSPACE/LuanVan/.venv/bin/python: can't open file '/home/khoavd/WORKSPACE/LuanVan/.worktrees/kaggle-b12-bundle/scripts/25_kaggle_b12.py': [Errno 2] No such file or directory
+E
+E       assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['/home/khoavd/WORKSPACE/LuanVan/.venv/bin/python', '/home/khoavd/WORKSPACE/LuanVan/.worktrees/k...hoavd/WORKSPACE/LuanVan/.worktrees/kaggle-b12-bundle/scripts/25_kaggle_b12.py': [Errno 2] No such file or directory\n").returncode
+
+tests/unit/test_kaggle_b12.py:14: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_kaggle_b12.py::test_cli_has_data_only_preparation_commands
+ERROR tests/unit/test_kaggle_b12.py::test_bundle_is_deterministic_and_contains_only_explicit_inputs
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 2 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 error in 0.10s

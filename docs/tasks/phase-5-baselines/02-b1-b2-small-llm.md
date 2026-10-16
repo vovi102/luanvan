@@ -50,8 +50,8 @@ backend provenance.
 
 English T3.5 đã finalized với human review/live evidence. Stage A v2 accepted và
 T3.3 canonical published tại `2b652a3`; offline data integration T3.3 → B2 đã
-hoàn tất tại `9adf02c`. Vietnamese 100 candidates vẫn chờ human review (0 events),
-chưa finalized. Chưa có genuine B1/B2 Kaggle runs; không dùng fixture để đóng gate.
+hoàn tất tại `9adf02c`. Vietnamese đã finalized với 100 user ACCEPT events (5/5/5/1) và exact
+reused English live evidence; không có new BigQuery jobs. Chưa có genuine B1/B2 Kaggle runs; không dùng fixture để đóng gate.
 
 ## Module và output
 
@@ -176,10 +176,31 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
   không dùng lại historical 1.485-test evidence. Log và handoff tại
   `docs/research/offline-data-handoff-2026-10-16.md`.
 
+### Kaggle runner/bundle preparation — 2026-10-16
+
+CLI25: `scripts/25_kaggle_b12.py`; notebook:
+`notebooks/14_kaggle_b12.ipynb`; [runbook](../../planning/kaggle-b12-runbook-2026-10-16.md).
+Bundle whitelist/hash bảo vệ accepted data, code và provenance; canonical 8.000 rows
+chỉ đi kèm làm source verification, retrieval input vẫn là export 7.208 train rows.
+Data-only preflight gọi actual validators mà không load model/encoder. Runtime
+preflight kiểm tra revisions, exact core package versions và cache files, không
+đánh đồng với model/GPU compatibility. Template để unknown fields `null`, blocked.
+Execution cần explicit real opt-in + T4; giữ native CLI17, ba process runs/baseline,
+config/hardware/packages/output hashes, timeout/interrupt/error evidence, không
+overwrite và không tự upgrade scientific readiness.
+
+**Consumer gap:** CLI17 `load_evaluation_cases` hiện yêu cầu English schema `nl`
+và reviewed T3.5 profile. Final VI dùng paired schema `question`/pair lineage.
+Runner hiện chỉ execute English, bundle/validate VI nhưng từ chối language=vi.
+Cần task typed VI consumer/evaluator riêng trước bilingual inference; không
+rename trường, tự set trusted flags hoặc tune prompt/retrieval để vượt gap này.
+Baseline code/contract và existing accuracy tests không đổi trong task packaging.
+
 ### Pending external/scientific acceptance
 
-- [ ] Vietnamese review/finalization 100 pairs và exact live-evidence binding;
-  [review pack](../../../data/review_packs/t3_5_vi_2026-10-16/README.md) chỉ là hỗ trợ.
+- [x] Vietnamese review/finalization 100 pairs và exact live-evidence binding hoàn
+  tất offline sau user confirmation; [finalization report](../../research/t35-vi-finalization-2026-10-16.md).
+  Review pack/historical 0-event evidence giữ nguyên ở trạng thái lúc tạo.
 - [ ] Pinned genuine encoder snapshot/revision và cache, cùng accepted train export.
 - [ ] Pinned Llama 3 8B snapshot chạy đủ B1/B2 trên Kaggle T4, không OOM.
 - [ ] B1 latency `<5 s/query` trên Kaggle T4.
@@ -188,10 +209,9 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
 
 ## Trạng thái
 
-`implementation + offline data integration complete — Vietnamese human review/finalization
-and genuine model/encoder/Kaggle gates pending`
+`implementation + offline data integration + English/Vietnamese benchmark finalization complete — genuine model/encoder/Kaggle gates pending`
 
-Thứ tự: data integration + Vietnamese review → B1/B2 genuine → T5.4 comparison
+Thứ tự: data integration + Vietnamese review/finalization (đã xong) → B1/B2 genuine → T5.4 comparison
 (B0 genuine 0/100 đã có) → T5.5 quyết định B3. Không hosted LLM baselines,
 Stage D noise generation hoặc thay model/acceptance thresholds.
 

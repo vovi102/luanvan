@@ -1,0 +1,2 @@
+{"command": "bundle", "offline_guard": {"credential_reads": 0, "model_provider_imports": 0, "network_attempts": 0, "subprocess_attempts": 0}}
+{"archive": ".local/kaggle-b12/release/input-bundle.tar.gz", "content_sha256": "90b627f88da4db723f79c5fdde3fc4b0c88e90e4234e1d1bb5c24d285f69ef09", "files": 180, "scientific_ready": false, "sha256": "4a49b57835e031986e3abcd274955df504ccf3b1811640fa8ef72ca854c70e4f", "status": "bundle_prepared"}

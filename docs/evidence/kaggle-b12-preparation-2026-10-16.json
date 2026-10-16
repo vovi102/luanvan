@@ -1,0 +1,302 @@
+{
+  "artifacts": {
+    "configs/kaggle-b12-inputs.json": {
+      "bytes": 12415,
+      "sha256": "30d959f2ee8256fe4498827859860340d6e455aee769bc962c7c2c29ee95cf78"
+    },
+    "configs/kaggle-b12-run.template.json": {
+      "bytes": 407,
+      "sha256": "54ac3ab38a8aedc71707701eadd6fe897fec3741e9eb240b476895625b75eb55"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/build-initial.log": {
+      "bytes": 429,
+      "sha256": "bc785e2d7f0c7601881f92778bf26e6e82eba1702decb6897a73dd8134561370"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/build-one.log": {
+      "bytes": 437,
+      "sha256": "5cdfc5bc997eaf74007417cf48fd6fce400f0d532f67a1169cc424f9ba4048e4"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/build-two.log": {
+      "bytes": 437,
+      "sha256": "5151e6d1a785a071d70fc256658ee9df99d84f32d8e1f43fc931badd7f33fa92"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/bundle-manifest.json": {
+      "bytes": 34137,
+      "sha256": "64c6cdcdde0be429fa333193a2e4baf422cab8fc23412d842aca567a896c53fa"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/data-preflight.log": {
+      "bytes": 628,
+      "sha256": "c719078eb2f7b58f7da1e024a03b47dada3c6514572bcf94394a62ff7a9101ee"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/focused-and-b12.log": {
+      "bytes": 100,
+      "sha256": "8ad3193ddcf6caa2a880e55fbdd2570d924f1fba9df52c0a3ee08bf7d53da2e6"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/focused-final.log": {
+      "bytes": 100,
+      "sha256": "fe6f6766f76d73d00484fc2ca8362d14ce3a47315080f6d12c0d86864573727e"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/focused-tests-first.log": {
+      "bytes": 100,
+      "sha256": "2b3cb7e7fce454dd3eec61e0c74ebd36e1c7ed9a23d177230ea02ae32abbf3ba"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/focused-tests.log": {
+      "bytes": 100,
+      "sha256": "2b8788f21947e7252d9432fa0941e27489b0e8f904f855a1753a3a784566d1cd"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/full-suite.log": {
+      "bytes": 3506,
+      "sha256": "1ede6dadc479d97731e622bdb470045e239a708f97a97b91e2e3520be54d0fd2"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-aliases.log": {
+      "bytes": 7486,
+      "sha256": "34628b59d7397ebb3b4772df7d2653da5f67ef16c9f6fbe8db8d081e60eb7f4b"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-aliases.log.gz": {
+      "bytes": 1970,
+      "sha256": "8e8384a6e24640b1d8db495a0125b6903564e555afe8712d8531f27277343523"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-bundle.log": {
+      "bytes": 1996,
+      "sha256": "1d90159946a201a1654328f6889b240e63e59d1160c05a4553ea568c7ae12b05"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-bundle.log.gz": {
+      "bytes": 793,
+      "sha256": "b93877a45593c3be5aee2ba32561d5e00b3ded17aca915b41f9035eb592a9470"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-cli.log": {
+      "bytes": 1270,
+      "sha256": "2af923777ebf91711148e473784a85ee53cabcf8768f1f5c5c4e1b9de7ec364d"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-cli.log.gz": {
+      "bytes": 492,
+      "sha256": "018f5db1502795b2161ff21bc70522fcb26d96005b98b31e136c500fd329f17c"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-interrupt.log": {
+      "bytes": 1942,
+      "sha256": "e575b25acc29e46521843f1a6323b00de80027c291002df7de58059668d87780"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-interrupt.log.gz": {
+      "bytes": 807,
+      "sha256": "451ecbbda4c376f12bbd064aac6fe7f088692aec711051e5af21d70a0c6f8e97"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-timeout.log": {
+      "bytes": 4267,
+      "sha256": "fecf8dd9b6cb0b88979d0303305edb3d70c9b37fbc6e8283aeda04669462440e"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-timeout.log.gz": {
+      "bytes": 1180,
+      "sha256": "f534fa445a2a8cdfca6317c752f0fd11e64ec9394d9f9ccf75f9b55f3d2b1d6c"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/runtime-blocked.log": {
+      "bytes": 1072,
+      "sha256": "1569f4bd775659f02305155b0b531875ff58c16ee5a46bc367bd64a7c117bdb3"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/unpack.log": {
+      "bytes": 204,
+      "sha256": "ebd29f1d4e07f2db4ffb76770e15ba8a385c4a15dc6a21d9b3d839a107467e65"
+    },
+    "docs/evidence/kaggle-b12-preparation-offline-runner-2026-10-16.txt": {
+      "bytes": 3094,
+      "sha256": "11815f7bfe856769df71d5bd2514d02dbf4002ca3c15db42ee3eda735ccd25b5"
+    },
+    "docs/planning/kaggle-b12-runbook-2026-10-16.md": {
+      "bytes": 6781,
+      "sha256": "3a76078f0a226b106c5c787a347533293efb37a4dbfe43feb04afe61bb71409f"
+    },
+    "docs/research/kaggle-b12-preparation-2026-10-16.md": {
+      "bytes": 7927,
+      "sha256": "0ba61546f018c122330459ac7aba1320a1509f8e3f514ce61f91b0317e460a61"
+    },
+    "docs/superpowers/plans/2026-10-16-kaggle-b12-preparation.md": {
+      "bytes": 4733,
+      "sha256": "9f12682f7d29595b623733c25ca0cb8bcaad0868f5eabf9739836ae4cf47b01a"
+    },
+    "docs/superpowers/specs/2026-10-16-kaggle-b12-preparation-design.md": {
+      "bytes": 2472,
+      "sha256": "4ba4a42b28bb6a8ece86eaf8b7b9f0056ba9e5324936b09c8a6c0f61a8e94065"
+    },
+    "notebooks/14_kaggle_b12.ipynb": {
+      "bytes": 6714,
+      "sha256": "31bd54a3018853184c65d7a6200f792701f4a0b2f28ea1a4df36015f58d9da6b"
+    },
+    "scripts/25_kaggle_b12.py": {
+      "bytes": 266,
+      "sha256": "ddaa4f670bbeb08aad2513d84b798741ded2b1ef772743ced701788239009028"
+    },
+    "src/nl2sparql/kaggle/__init__.py": {
+      "bytes": 76,
+      "sha256": "37f4f614837380f4fe6c7bed2e099ce95ddc749ccfdb685a96df8dd7331f006f"
+    },
+    "src/nl2sparql/kaggle/bundle.py": {
+      "bytes": 10610,
+      "sha256": "24f9ed7364028ad12cbcc654ba828932352845c68c64d3c15641bda0eb5b2554"
+    },
+    "src/nl2sparql/kaggle/runner.py": {
+      "bytes": 14282,
+      "sha256": "705fdcab6ed78eb98b4f4dbe29076f15395841f5de82bb77ebf79da532d31845"
+    },
+    "src/nl2sparql/kaggle/workflow.py": {
+      "bytes": 3631,
+      "sha256": "ff0013eb8675420c6c47c9f2e3c3ed3156ab1da6a726d293548f3dbcbbd6169e"
+    },
+    "tests/unit/test_kaggle_b12.py": {
+      "bytes": 14918,
+      "sha256": "883bba53224c41a9450d62b0b0f66d7f948b7fc07160a420cdaa5dc55f530f10"
+    }
+  },
+  "base_revision": "ededf48",
+  "branch": "feat/kaggle-b12-bundle",
+  "bundle": {
+    "allowlist": "configs/kaggle-b12-inputs.json",
+    "byte_identical_rebuild": true,
+    "bytes": 2673145,
+    "canonical_full_corpus_role": "provenance verification only",
+    "committed_archive": false,
+    "content_sha256": "90b627f88da4db723f79c5fdde3fc4b0c88e90e4234e1d1bb5c24d285f69ef09",
+    "development_records_in_retrieval": 0,
+    "file_manifest": "docs/evidence/kaggle-b12-preparation-2026-10-16/bundle-manifest.json",
+    "files": 180,
+    "path": ".local/kaggle-b12/release/input-bundle.tar.gz",
+    "retrieval_records": 7208,
+    "sha256": "4a49b57835e031986e3abcd274955df504ccf3b1811640fa8ef72ca854c70e4f",
+    "training_sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835"
+  },
+  "date": "2026-10-16",
+  "native_no_subagents": true,
+  "not_performed": [
+    "network/BigQuery calls",
+    "credential access",
+    "model/encoder downloads",
+    "model/GPU inference or training",
+    "Kaggle upload",
+    "merge/push/PR"
+  ],
+  "pending": [
+    "genuine model/tokenizer and encoder revision pins and local cache snapshots",
+    "Kaggle account/quota/private upload and exact Python/dependency provisioning",
+    "explicit campaign identity/wall-time cap and non-test T4 hardware/model smoke",
+    "genuine English B1/B2 runs and all native artifacts",
+    "dedicated typed Vietnamese inference/evaluation consumer before bilingual runs",
+    "T5.4 execution/comparison/privacy/reproducibility evidence",
+    "T5.5 B3 scope decision"
+  ],
+  "protected_training_sha256": {
+    "data/dataset/processed/b2-training.jsonl": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835",
+    "data/dataset/processed/b2-training.manifest.json": "532a6417c1a8ad4c949390cbee1b9f3eeecb4aabaee5247ea47663cd69c36d9d",
+    "data/dataset/processed/bilingual-training-audit.jsonl": "3d10f0d0e1f3db9e46367e7b924cc8e1232ef33f29361bf26d463dad2a76df62",
+    "data/dataset/processed/bilingual-training-exclusion-index.json": "83d76676a00588703d7136772f956770254a656ad1b4c1fab1dfbcc61e1b91b7",
+    "data/dataset/processed/bilingual-training-manifest.json": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28",
+    "data/dataset/processed/bilingual-training.jsonl": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55",
+    "data/dataset/raw/generation-config-v2.json": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695",
+    "data/dataset/raw/synthetic-stage-a-v2.jsonl": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203",
+    "scripts/22_b2_training.py": "1396abdd0a649803fe503dace49307fdeabbfcba713cb45f2a0dae962e916cde",
+    "src/nl2sparql/dataset/bilingual/templates.json": "9a62ebb166b6e46da7d6970aeddf675ae05a58284242eea7f5625c8fcf88dbd7",
+    "src/nl2sparql/models/b12/canonical_training.py": "fa507f1fb44803c1af53a316463c4e3f9df66bb5174844ba95d86280f2a16455",
+    "src/nl2sparql/models/b12/retrieval.py": "212b62d29b751fe6adbf53ffd6a6af18b6b3693eb4bd251a08a048a8ce516d2a",
+    "tests/unit/test_b12_canonical_training.py": "64080e9f3311b25437a5afd70d60dd6c4e57ecf13ab7b6cbcbb2b327634d4f42"
+  },
+  "protected_vi_finalization_sha256": {
+    "data/dataset/test/live-evidence-vi.json": "b0e506b04dd61ab15258d4d85b17f74889bbcfb2e56150c73b0f8e64be9e347c",
+    "data/dataset/test/manifest-vi.json": "3331cb18cd175ce80addef793514f683414917b17640e80e9451d1258cb88672",
+    "data/dataset/test/test-100-vi.jsonl": "0abf44dca4b9111f4fe10930fca5d7c56961b7ef79a0ac0fe50f8b16cb1ba5eb",
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/review_events.jsonl": "9adec603f6313c6b31e214d0330f940d8cc25c1529824fbebab598d8e9f511da",
+    "docs/evidence/t35-vi-finalization-2026-10-16/apply.log": "3241441ab77f639bd32e180f28b67041b2cd56d396a9f4cd10b319cdbc4eb24a",
+    "docs/evidence/t35-vi-finalization-2026-10-16/focused-tests.log": "f4ecc9a83e0a2b80f419656623994859912bba2afa5558758b7823c7abd097de",
+    "docs/evidence/t35-vi-finalization-2026-10-16/verify.log": "453609925c8d78bcbcb61b23747f7a8d661f2c8e5a8f4e18c7d726e26c616620",
+    "docs/evidence/t35-vi-finalization-offline-runner-2026-10-16.txt": "21d9c80bfa8660c28e5175153b426dab99bf8f7a160f5dc1541e1e9fb4b4c599",
+    "docs/research/t35-vi-finalization-2026-10-16.md": "da97bf821b57806310e17737afa8258b584a97d27b20abcf9bd75f31f53f07e5"
+  },
+  "raw_red_log_bindings": {
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-aliases.log": {
+      "raw_gzip": "docs/evidence/kaggle-b12-preparation-2026-10-16/red-aliases.log.gz",
+      "raw_uncompressed_sha256": "f7ef244166ecd0a59e5c5cdfa4c71df548689186592c3914246bf40958606769",
+      "text_normalization": "trailing whitespace only; outcomes and all content retained"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-bundle.log": {
+      "raw_gzip": "docs/evidence/kaggle-b12-preparation-2026-10-16/red-bundle.log.gz",
+      "raw_uncompressed_sha256": "1d689232a6452c92b07d1a59841f51cac8e3cf5aa1bf9dc5f3c800bb2edcffb4",
+      "text_normalization": "trailing whitespace only; outcomes and all content retained"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-cli.log": {
+      "raw_gzip": "docs/evidence/kaggle-b12-preparation-2026-10-16/red-cli.log.gz",
+      "raw_uncompressed_sha256": "82b659a42758fc56b73304ea7291351fdcff241e18b422ac90aa2098142a41b3",
+      "text_normalization": "trailing whitespace only; outcomes and all content retained"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-interrupt.log": {
+      "raw_gzip": "docs/evidence/kaggle-b12-preparation-2026-10-16/red-interrupt.log.gz",
+      "raw_uncompressed_sha256": "de06ff21e4785a6f5cb31784a0bffa36671bfd59f4937a2de04ed2a183d34278",
+      "text_normalization": "trailing whitespace only; outcomes and all content retained"
+    },
+    "docs/evidence/kaggle-b12-preparation-2026-10-16/red-timeout.log": {
+      "raw_gzip": "docs/evidence/kaggle-b12-preparation-2026-10-16/red-timeout.log.gz",
+      "raw_uncompressed_sha256": "c00cf53e01d6f268255b7684be5a291f4b344584a20d78d5db41b513cf73d940",
+      "text_normalization": "trailing whitespace only; outcomes and all content retained"
+    }
+  },
+  "scope": {
+    "encoder_id": "sentence-transformers/all-MiniLM-L6-v2",
+    "encoder_revision": null,
+    "execution_languages": [
+      "en"
+    ],
+    "genuine_inference_performed": false,
+    "model_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "model_revision": null,
+    "research_contract_changed": false,
+    "tokenizer_revision": "same as model, inherited CLI17 contract",
+    "vietnamese": "packaged_and_paired_validated; execution blocked until dedicated typed CLI17 consumer"
+  },
+  "status": "offline_preparation_complete_external_execution_blocked",
+  "verification": {
+    "data_preflight": {
+      "english_records": 100,
+      "execution_languages": [
+        "en"
+      ],
+      "ran_from_extracted_bundle": true,
+      "scientific_ready": false,
+      "status": "data_ready",
+      "training_records": 7208,
+      "vietnamese_records": 100
+    },
+    "focused": {
+      "duration_seconds": 25.5,
+      "log": "docs/evidence/kaggle-b12-preparation-2026-10-16/focused-final.log",
+      "passed": 68
+    },
+    "full_suite": {
+      "command": "PYTHONPATH=src /home/khoavd/WORKSPACE/LuanVan/.venv/bin/python -m pytest -q",
+      "duration_seconds": 619.26,
+      "exit_code": 0,
+      "log": "docs/evidence/kaggle-b12-preparation-2026-10-16/full-suite.log",
+      "passed": 1534,
+      "warnings": 342
+    },
+    "lint": "Ruff check and format --check all 6 new Python code/test files passed",
+    "native_self_review": "completed; no independent/subagent review claimed",
+    "notebook": "valid nbformat4 JSON; all code cells compile; execution defaults disabled; no Kaggle/GPU execution",
+    "python_offline_guard": {
+      "credential_reads": 0,
+      "model_provider_imports": 0,
+      "network_attempts": 0,
+      "scope": "preparation commands; SDK definitions allowed, not OS sandbox",
+      "subprocess_attempts": 0
+    },
+    "red_evidence": [
+      "red-cli.log",
+      "red-bundle.log",
+      "red-aliases.log",
+      "red-timeout.log",
+      "red-interrupt.log"
+    ],
+    "runtime_preflight": {
+      "core_packages_match_lock": 15,
+      "exit_code": 2,
+      "first_blocker": "run_timeout_seconds must be an explicit positive wall-time cap",
+      "hardware_checked": false,
+      "scientific_ready": false,
+      "status": "blocked"
+    }
+  }
+}

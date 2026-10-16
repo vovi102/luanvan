@@ -1,0 +1,31 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______________ test_interrupted_process_is_not_left_as_started ________________
+
+shipped = (PosixPath('/tmp/pytest-of-khoavd/pytest-15/kaggle-shipped0/input'), {'content_sha256': '6f3fd9ccbe027bbb6caf6cdc44fb7...63e0dd4835'}, ...}, 'schema_version': 1, ...}, PosixPath('/tmp/pytest-of-khoavd/pytest-15/kaggle-shipped0/one.tar.gz'))
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-15/test_interrupted_process_is_no0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x724fc24c7810>
+
+    def test_interrupted_process_is_not_left_as_started(shipped, tmp_path, monkeypatch):
+        from nl2sparql.kaggle import runner
+        monkeypatch.setattr(runner, "preflight_runtime", lambda *a, **k: {"status": "ready"})
+        monkeypatch.setattr(runner, "preflight_data", lambda *a: {"status": "data_ready"})
+        monkeypatch.setattr(runner, "probe_hardware", lambda: {"gpu_names": ["TEST-ONLY T4"]})
+        def interrupt(argv, **kwargs):
+            kwargs["stderr"].write("test-only interrupt\n")
+            raise KeyboardInterrupt
+        monkeypatch.setattr(runner.subprocess, "run", interrupt)
+        output = tmp_path / "output"
+        with pytest.raises(KeyboardInterrupt):
+            runner.run_campaign(shipped[0], config_for(shipped[0]), output, real_inference=True)
+        record = json.loads((output / "test-campaign-b1-en-r01/run.json").read_bytes())
+>       assert record["status"] == "interrupted"
+E       AssertionError: assert 'started' == 'interrupted'
+E
+E         - interrupted
+E         + started
+
+tests/unit/test_kaggle_b12.py:362: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_kaggle_b12.py::test_interrupted_process_is_not_left_as_started
+1 failed, 28 deselected in 1.86s

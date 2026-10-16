@@ -1,5 +1,15 @@
 # Checklist thực hiện T4 và Kaggle — 2026-09-22
 
+## Current Kaggle preparation — 2026-10-16
+
+Stage A/T3.3, English/Vietnamese finalization và B2 train-only integration đã xong.
+English runner/bundle/notebook được chuẩn bị tại
+[runbook hiện tại](kaggle-b12-runbook-2026-10-16.md). User vẫn cần cung cấp genuine
+model/encoder revisions, local cache, environment, Kaggle account/quota và hardware
+smoke. Chưa download/upload/run model trong task offline này. CLI17 chưa hỗ trợ
+schema paired VI: không dùng bundle VI như bằng chứng bilingual inference-ready.
+Các bước T3.5/T4 bên dưới là checklist lịch sử, không mở lại English review/T4.
+
 ## Phân vai và nguyên tắc bằng chứng
 
 | Hạng mục | Người thực hiện | Kết quả được phép kết luận |
@@ -150,17 +160,17 @@ print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "NO_GPU")
 ```
 
 - [ ] Dùng `Save Version` / `Save & Run All` cho mỗi run chính thức; ghi URL/version
-  của notebook vào experiment log. Kaggle hiện công bố session CPU/GPU tối đa 12h và
-  `/kaggle/working` auto-saved 20 GB, nên checkpoint phải nằm ở đó rồi export ra.
+  của notebook vào experiment log. Kiểm tra giới hạn session/storage hiện hành trong tài khoản; giữ outputs
+  ở `/kaggle/working` rồi export, không dựa vào quota lịch sử trong tài liệu cũ.
 - [ ] Chủ động stop interactive session không dùng để tiết kiệm quota; không dùng
   batch commit như checkpoint giữa chừng.
 
 ### C2. Model và data input (chỉ khi artifact đã ready)
 
-- [ ] Chỉ bắt đầu B1/B2 scientific run khi có: Stage D training artifact đã accept,
+- [ ] Chỉ bắt đầu B1/B2 scientific run khi có: T3.3 canonical đã publish và B2 train-only export 7.208 rows đã hash-bind,
   T3.5 test-100 đã human-review + live-verified, và split/hash manifest đã chốt.
-- [ ] Tạo Kaggle Dataset **private** cho input immutable: train/validation/test,
-  catalog, dictionary/synonym và manifest SHA-256. Không upload `.env`, service
+- [ ] Tạo Kaggle Dataset **private** cho input immutable: bundle allowlisted trong runbook hiện tại và manifest SHA-256.
+  Canonical development rows chỉ là adapter provenance source, không vào retrieval. Không upload `.env`, service
   account JSON, raw collaborator metadata hoặc report có secret.
 - [ ] Chấp nhận license của model gốc trên Hugging Face/Kaggle nếu model yêu cầu;
   chuẩn bị token đọc-only riêng trong Kaggle Secrets, không viết token vào cell,
@@ -200,8 +210,8 @@ print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "NO_GPU")
    hoặc Kaggle handle (không gửi secret).
 3. Codex bắt đầu soạn T3.5 120 ứng viên và tạo nháp input T4.3; bạn review theo
    checklist B1–B3.
-4. Khi T3.5/T4 artifact đã accepted, bạn upload data Kaggle C2; Codex chuẩn bị/run
-   B1/B2 notebook theo C3.
+4. T3.5/T4 và bundle preparation đã accepted/hoàn tất local; chuẩn bị environment,
+   private inputs và genuine model snapshots rồi thực hiện B1/B2 theo runbook hiện tại.
 
 ## E. Bắt đầu trong 30 phút — không cần tự viết JSONL
 
@@ -254,7 +264,7 @@ print(subprocess.run(["nvidia-smi"], text=True, capture_output=True).stdout)
 
 4. Chọn **Save Version → Quick Save** để giữ setup; gửi Codex URL/version. Chưa
    cần upload dataset, model hay token ở bước này.
-5. Khi Codex báo input T3.5/Stage D đã chốt, tạo Kaggle Dataset ở chế độ **private**,
+5. Khi Codex bàn giao bundle T3.3/B2 và finalized T3.5 đã hash-bind, tạo Kaggle Dataset ở chế độ **private**,
    upload đúng bundle do Codex chuẩn bị, rồi Add Data dataset đó vào notebook.
 6. Chỉ khi model download bị gated, thêm token đọc-only vào **Add-ons → Secrets**;
    trong code chỉ đọc tên secret, ví dụ `UserSecretsClient().get_secret("HF_TOKEN")`.

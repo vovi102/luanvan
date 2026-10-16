@@ -1,0 +1,70 @@
+"""Run only Kaggle preparation commands with network/secret/ML/subprocess guards."""
+import builtins
+import importlib
+import json
+import os
+from pathlib import Path
+import runpy
+import socket
+import subprocess
+import sys
+
+observed={"network_attempts":0,"model_provider_imports":0,"credential_reads":0,"subprocess_attempts":0}
+original_import=builtins.__import__
+provider_modules={"openai","anthropic","transformers","torch","vllm","llama_cpp","huggingface_hub","sentence_transformers"}
+def guarded_import(name,*args,**kwargs):
+    if name.split(".")[0] in provider_modules:
+        observed["model_provider_imports"]+=1
+        raise RuntimeError("Provider/model import blocked during offline build")
+    return original_import(name,*args,**kwargs)
+def blocked_network(*args,**kwargs):
+    observed["network_attempts"]+=1
+    raise RuntimeError("Network access blocked during offline build")
+def blocked_subprocess(*args,**kwargs):
+    observed["subprocess_attempts"]+=1
+    raise RuntimeError("Subprocess access blocked during offline build")
+secret_names={"OPENAI_API_KEY","ANTHROPIC_API_KEY","GOOGLE_APPLICATION_CREDENTIALS",
+    "GOOGLE_API_KEY","GEMINI_API_KEY","HF_TOKEN","HUGGING_FACE_HUB_TOKEN",
+    "AZURE_OPENAI_API_KEY","COHERE_API_KEY"}
+environment_type=type(os.environ)
+original_getitem=environment_type.__getitem__
+def guarded_getitem(self,key):
+    if isinstance(key,str) and key.upper() in secret_names:
+        observed["credential_reads"]+=1
+        raise RuntimeError("Credential access blocked during offline build")
+    return original_getitem(self,key)
+def audit_open(event,args):
+    if event != "open" or not isinstance(args[0], (str,bytes)):
+        return
+    name=os.fsdecode(args[0])
+    if Path(name).name == ".env" or "application_default_credentials" in name or "service-account" in name:
+        observed["credential_reads"]+=1
+        raise RuntimeError("Credential file read blocked")
+sys.addaudithook(audit_open)
+builtins.__import__=guarded_import
+socket.socket.connect=blocked_network
+socket.socket.connect_ex=blocked_network
+socket.create_connection=blocked_network
+class GuardedPopen(subprocess.Popen):
+    def __init__(self,*args,**kwargs):
+        blocked_subprocess(*args,**kwargs)
+subprocess.Popen=GuardedPopen
+environment_type.__getitem__=guarded_getitem
+
+script = sys.argv[1]
+arguments = sys.argv[2:]
+assert Path(script).name == "25_kaggle_b12.py"
+assert arguments and arguments[0] in {"bundle", "unpack", "preflight", "plan"}
+assert "--real-inference" not in arguments
+original_import_module = importlib.import_module
+def guarded_import_module(name, *args, **kwargs):
+    if name.split(".")[0] in provider_modules:
+        observed["model_provider_imports"] += 1
+        raise RuntimeError("ML/provider import forbidden during preparation")
+    return original_import_module(name, *args, **kwargs)
+importlib.import_module = guarded_import_module
+sys.argv = [script, *arguments]
+try:
+    runpy.run_path(script, run_name="__main__")
+finally:
+    print(json.dumps({"offline_guard": observed, "command": arguments[0]}, sort_keys=True), file=sys.stderr)

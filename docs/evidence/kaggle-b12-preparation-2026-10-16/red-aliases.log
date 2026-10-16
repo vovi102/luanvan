@@ -1,0 +1,128 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+____________________ test_extra_directory_symlink_rejected _____________________
+
+shipped = (PosixPath('/tmp/pytest-of-khoavd/pytest-11/kaggle-shipped0/input'), {'content_sha256': '3b3679282e64ba92c7c814be12b73...63e0dd4835'}, ...}, 'schema_version': 1, ...}, PosixPath('/tmp/pytest-of-khoavd/pytest-11/kaggle-shipped0/one.tar.gz'))
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-11/test_extra_directory_symlink_r0')
+
+    def test_extra_directory_symlink_rejected(shipped, tmp_path):
+        from nl2sparql.kaggle.bundle import PreparationError, verify_bundle
+        root = tmp_path / "input"
+        shutil.copytree(shipped[0], root)
+        (root / "unlisted-link").symlink_to(tmp_path, target_is_directory=True)
+>       with pytest.raises(PreparationError):
+E       Failed: DID NOT RAISE <class 'nl2sparql.kaggle.bundle.PreparationError'>
+
+tests/unit/test_kaggle_b12.py:247: Failed
+_______________ test_cache_symlink_rejected_before_model_loading _______________
+
+shipped = (PosixPath('/tmp/pytest-of-khoavd/pytest-11/kaggle-shipped0/input'), {'content_sha256': '3b3679282e64ba92c7c814be12b73...63e0dd4835'}, ...}, 'schema_version': 1, ...}, PosixPath('/tmp/pytest-of-khoavd/pytest-11/kaggle-shipped0/one.tar.gz'))
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-11/test_cache_symlink_rejected_be0')
+
+    def test_cache_symlink_rejected_before_model_loading(shipped, tmp_path):
+        from nl2sparql.kaggle.bundle import PreparationError
+        from nl2sparql.kaggle.runner import preflight_runtime
+        output = tmp_path / "outputs"
+        output.mkdir()
+        (output / "cache").symlink_to(shipped[0] / "data", target_is_directory=True)
+>       with pytest.raises(PreparationError, match="cache|output"):
+E       Failed: DID NOT RAISE <class 'nl2sparql.kaggle.bundle.PreparationError'>
+
+tests/unit/test_kaggle_b12.py:257: Failed
+_________________ test_malformed_archive_preserves_destination _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-11/test_malformed_archive_preserv0')
+
+    def test_malformed_archive_preserves_destination(tmp_path):
+        from nl2sparql.kaggle.bundle import PreparationError, extract_bundle
+        archive = tmp_path / "invalid.tar.gz"
+        archive.write_bytes(b"not an archive")
+        with pytest.raises(PreparationError):
+>           extract_bundle(archive, tmp_path / "input", hashlib.sha256(archive.read_bytes()).hexdigest())
+
+tests/unit/test_kaggle_b12.py:266:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/nl2sparql/kaggle/bundle.py:169: in extract_bundle
+    with tarfile.open(archive) as handle:
+         ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'tarfile.TarFile'>
+name = PosixPath('/tmp/pytest-of-khoavd/pytest-11/test_malformed_archive_preserv0/invalid.tar.gz')
+mode = 'r', fileobj = None, bufsize = 10240, kwargs = {}
+not_compressed = <function TarFile.open.<locals>.not_compressed at 0x73d0ec270fe0>
+error_msgs = ["- method gz: ReadError('not a gzip file')", "- method bz2: ReadError('not a bzip2 file')", "- method xz: ReadError('not an lzma file')", "- method tar: ReadError('truncated header')"]
+comptype = 'tar'
+func = <bound method TarFile.taropen of <class 'tarfile.TarFile'>>
+error_msgs_summary = "- method gz: ReadError('not a gzip file')\n- method bz2: ReadError('not a bzip2 file')\n- method xz: ReadError('not an lzma file')\n- method tar: ReadError('truncated header')"
+
+    @classmethod
+    def open(cls, name=None, mode="r", fileobj=None, bufsize=RECORDSIZE, **kwargs):
+        """Open a tar archive for reading, writing or appending. Return
+           an appropriate TarFile class.
+
+           mode:
+           'r' or 'r:*' open for reading with transparent compression
+           'r:'         open for reading exclusively uncompressed
+           'r:gz'       open for reading with gzip compression
+           'r:bz2'      open for reading with bzip2 compression
+           'r:xz'       open for reading with lzma compression
+           'a' or 'a:'  open for appending, creating the file if necessary
+           'w' or 'w:'  open for writing without compression
+           'w:gz'       open for writing with gzip compression
+           'w:bz2'      open for writing with bzip2 compression
+           'w:xz'       open for writing with lzma compression
+
+           'x' or 'x:'  create a tarfile exclusively without compression, raise
+                        an exception if the file is already created
+           'x:gz'       create a gzip compressed tarfile, raise an exception
+                        if the file is already created
+           'x:bz2'      create a bzip2 compressed tarfile, raise an exception
+                        if the file is already created
+           'x:xz'       create an lzma compressed tarfile, raise an exception
+                        if the file is already created
+
+           'r|*'        open a stream of tar blocks with transparent compression
+           'r|'         open an uncompressed stream of tar blocks for reading
+           'r|gz'       open a gzip compressed stream of tar blocks
+           'r|bz2'      open a bzip2 compressed stream of tar blocks
+           'r|xz'       open an lzma compressed stream of tar blocks
+           'w|'         open an uncompressed stream for writing
+           'w|gz'       open a gzip compressed stream for writing
+           'w|bz2'      open a bzip2 compressed stream for writing
+           'w|xz'       open an lzma compressed stream for writing
+        """
+
+        if not name and not fileobj:
+            raise ValueError("nothing to open")
+
+        if mode in ("r", "r:*"):
+            # Find out which *open() is appropriate for opening the file.
+            def not_compressed(comptype):
+                return cls.OPEN_METH[comptype] == 'taropen'
+            error_msgs = []
+            for comptype in sorted(cls.OPEN_METH, key=not_compressed):
+                func = getattr(cls, cls.OPEN_METH[comptype])
+                if fileobj is not None:
+                    saved_pos = fileobj.tell()
+                try:
+                    return func(name, "r", fileobj, **kwargs)
+                except (ReadError, CompressionError) as e:
+                    error_msgs.append(f'- method {comptype}: {e!r}')
+                    if fileobj is not None:
+                        fileobj.seek(saved_pos)
+                    continue
+            error_msgs_summary = '\n'.join(error_msgs)
+>           raise ReadError(f"file could not be opened successfully:\n{error_msgs_summary}")
+E           tarfile.ReadError: file could not be opened successfully:
+E           - method gz: ReadError('not a gzip file')
+E           - method bz2: ReadError('not a bzip2 file')
+E           - method xz: ReadError('not an lzma file')
+E           - method tar: ReadError('truncated header')
+
+../../.uv-python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/tarfile.py:1861: ReadError
+=========================== short test summary info ============================
+FAILED tests/unit/test_kaggle_b12.py::test_extra_directory_symlink_rejected
+FAILED tests/unit/test_kaggle_b12.py::test_cache_symlink_rejected_before_model_loading
+FAILED tests/unit/test_kaggle_b12.py::test_malformed_archive_preserves_destination
+3 failed, 22 deselected in 1.98s

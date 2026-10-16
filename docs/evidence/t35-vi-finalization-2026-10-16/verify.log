@@ -1,0 +1,1 @@
+{"evidence_origin": "reused_exact_English_SQL_and_result_contracts", "final_records": 100, "mode": "verify", "new_bigquery_jobs": 0, "offline_guard": {"bigquery_client_attempts": 0, "credential_reads": 0, "model_provider_imports": 0, "network_attempts": 0, "subprocess_attempts": 0}, "protected_files_unchanged": 23, "review_events": 100, "scores": [5, 5, 5, 1], "status": "valid"}
