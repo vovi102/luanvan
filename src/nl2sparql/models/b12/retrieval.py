@@ -85,6 +85,7 @@ def _load_records(snapshot: bytes) -> tuple[_TrainingRecord, ...]:
     ids: set[str] = set()
     questions: set[str] = set()
     snapshot_format: str | None = None
+    canonical_validated = False
     for line_number, line in enumerate(text.splitlines(), start=1):
         if not line.strip():
             raise SmallLLMError(f"training snapshot line {line_number} must not be blank")
@@ -98,11 +99,18 @@ def _load_records(snapshot: bytes) -> tuple[_TrainingRecord, ...]:
             raise SmallLLMError(f"training snapshot line {line_number} must be an object")
         if raw.get("split") != "train":
             raise SmallLLMError(f"training snapshot line {line_number} must declare split=train")
-        if raw.get("synthetic_fixture") is not False:
+        is_canonical = "producer_type" in raw or "style" in raw
+        if is_canonical and not canonical_validated:
+            from nl2sparql.models.b12.canonical_training import validate_training_projection
+
+            validate_training_projection(snapshot)
+            canonical_validated = True
+        if not is_canonical and raw.get("synthetic_fixture") is not False:
             raise SmallLLMError(
                 f"training snapshot line {line_number} must not be a synthetic fixture"
             )
-        bilingual_fields = {"language", "text_variant", "semantic_family_id", "question"}
+        variant_field = "style" if is_canonical else "text_variant"
+        bilingual_fields = {"language", variant_field, "semantic_family_id", "question"}
         is_bilingual = bool(bilingual_fields & set(raw))
         current_format = "bilingual-v1" if is_bilingual else "english-v1"
         if snapshot_format is not None and current_format != snapshot_format:
@@ -363,6 +371,28 @@ def _publish_cache(
     _atomic_write(metadata_path, _canonical_json(metadata), prefix=".few-shot-metadata.")
 
 
+def validate_training_snapshot(
+    snapshot: bytes,
+    *,
+    accepted_training_sha256: str | None = None,
+) -> tuple[tuple[_TrainingRecord, ...], str]:
+    """Run the actual B2 data boundary without an encoder, cache or backend."""
+    records = _load_records(snapshot)
+    training_sha256 = _sha256(snapshot)
+    if training_sha256 in _HELD_OUT_SHA256S:
+        raise SmallLLMError("training snapshot is a held-out benchmark hash")
+    if accepted_training_sha256 is not None:
+        if not re.fullmatch(r"[0-9a-f]{64}", accepted_training_sha256):
+            raise SmallLLMError("accepted training fingerprint must be lowercase SHA-256")
+        if accepted_training_sha256 in _HELD_OUT_SHA256S:
+            raise SmallLLMError("accepted training fingerprint is a held-out benchmark hash")
+        if not hmac.compare_digest(accepted_training_sha256, training_sha256):
+            raise SmallLLMError("accepted training fingerprint does not match snapshot")
+    if records[0].language is not None and accepted_training_sha256 is None:
+        raise SmallLLMError("bilingual retrieval requires an accepted bilingual training hash")
+    return records, training_sha256
+
+
 class FewShotRetriever:
     """Select five nearest safe training examples with deterministic ties."""
 
@@ -404,19 +434,10 @@ class FewShotRetriever:
             snapshot = path.read_bytes()
         except OSError as exc:
             raise SmallLLMError(f"unable to read training snapshot {path}: {exc}") from exc
-        records = _load_records(snapshot)
-        training_sha256 = _sha256(snapshot)
-        if training_sha256 in _HELD_OUT_SHA256S:
-            raise SmallLLMError("training snapshot is a held-out benchmark hash")
-        if accepted_training_sha256 is not None:
-            if not re.fullmatch(r"[0-9a-f]{64}", accepted_training_sha256):
-                raise SmallLLMError("accepted training fingerprint must be lowercase SHA-256")
-            if accepted_training_sha256 in _HELD_OUT_SHA256S:
-                raise SmallLLMError("accepted training fingerprint is a held-out benchmark hash")
-            if not hmac.compare_digest(accepted_training_sha256, training_sha256):
-                raise SmallLLMError("accepted training fingerprint does not match snapshot")
-        if records[0].language is not None and accepted_training_sha256 is None:
-            raise SmallLLMError("bilingual retrieval requires an accepted bilingual training hash")
+        records, training_sha256 = validate_training_snapshot(
+            snapshot,
+            accepted_training_sha256=accepted_training_sha256,
+        )
         training_accepted = accepted_training_sha256 is not None
 
         if cache_path is None:

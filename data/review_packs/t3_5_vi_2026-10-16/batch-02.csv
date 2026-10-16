@@ -1,0 +1,11 @@
+pair_id,candidate_line_sha256,decision,naturalness,sql_faithfulness,terminology,ambiguity,revised_question,notes
+pair-t35-012,fed45d244dcdd66f5b512292a923c0eb45bd1beccaf83824467fafed78d94671,,,,,,,
+pair-t35-013,595cbaafb1fde421951f2f80f0aca91b40b7ffed38d9419809d950d735e61d3d,,,,,,,
+pair-t35-014,a0f786a29e500c64c222141ff48228155c0534f23e0fe6bcdf03a7ffe2cf9fb8,,,,,,,
+pair-t35-015,5853c87c15f25d968d679502899070bfa59ae5bf659546eaee46d1e54c7222ba,,,,,,,
+pair-t35-016,6f49baa18aca5603a7c5c59817a4dc4a0dce9168a62807ab5f2d2ce7b0fbe5a0,,,,,,,
+pair-t35-019,0fc1529831ced280523a990b5800bade7ef9ab2ae1cccf511c515237d2a2878d,,,,,,,
+pair-t35-020,20b7e8be1c161c5f345f5e08588b21e0bd32477d7b8b53cce8f5ebd5aca117de,,,,,,,
+pair-t35-021,81aa612995e9677f39d21c7ffc97eca3dbc9f3c9e4bbfc54847b178f99c965b2,,,,,,,
+pair-t35-022,899b8ad6542eb76fa46c8291af49f56da2b9b981e12fc539569be3cf525a0786,,,,,,,
+pair-t35-023,bd3503a70b61579e1db62340958f73005cdd405d6898518406bddc5a3b6077de,,,,,,,

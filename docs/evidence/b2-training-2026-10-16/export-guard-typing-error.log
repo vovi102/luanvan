@@ -1,0 +1,123 @@
+{"mode": "export", "offline_guard": {"credential_reads": 0, "model_provider_imports": 0, "network_attempts": 0, "subprocess_attempts": 0}, "script": "scripts/22_b2_training.py"}
+Traceback (most recent call last):
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 74, in <module>
+    runpy.run_path(script,run_name="__main__")
+  File "<frozen runpy>", line 291, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "scripts/22_b2_training.py", line 11, in <module>
+    from nl2sparql.models.b12.canonical_training import EXPORT, ROOT, build_training_export
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/models/b12/__init__.py", line 4, in <module>
+    from nl2sparql.models.b12.baseline import BaselineB1, BaselineB2
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/models/b12/baseline.py", line 19, in <module>
+    from nl2sparql.models.b12.extraction import extract_google_sql
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/models/b12/extraction.py", line 7, in <module>
+    from nl2sparql.dataset.testset.contracts import TestSetError
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/dataset/testset/__init__.py", line 14, in <module>
+    from nl2sparql.dataset.testset.live import LiveEvidence, LiveEvidenceRecord, SqlPolicy, verify_sql
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/src/nl2sparql/dataset/testset/live.py", line 14, in <module>
+    from google.cloud import bigquery
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/cloud/bigquery/__init__.py", line 36, in <module>
+    from google.cloud.bigquery.client import Client
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/cloud/bigquery/client.py", line 74, in <module>
+    from google.cloud.bigquery import _job_helpers
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/cloud/bigquery/_job_helpers.py", line 53, in <module>
+    from google.cloud.bigquery import job
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/cloud/bigquery/job/__init__.py", line 27, in <module>
+    from google.cloud.bigquery.job.copy_ import CopyJob
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/cloud/bigquery/job/copy_.py", line 22, in <module>
+    from google.cloud.bigquery.table import TableReference
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/cloud/bigquery/table.py", line 66, in <module>
+    from google.cloud.bigquery._tqdm_helpers import get_progress_bar
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/cloud/bigquery/_tqdm_helpers.py", line 30, in <module>
+    import tqdm.notebook as tqdm_notebook  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/tqdm/notebook.py", line 23, in <module>
+    import ipywidgets  # noqa: F401, pylint: disable=unused-import
+    ^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/ipywidgets/__init__.py", line 27, in <module>
+    from IPython import get_ipython
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/IPython/__init__.py", line 55, in <module>
+    from .core.application import Application
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/IPython/core/application.py", line 26, in <module>
+    from IPython.core import release, crashhandler
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/IPython/core/crashhandler.py", line 28, in <module>
+    from IPython.core import ultratb
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/IPython/core/ultratb.py", line 87, in <module>
+    from IPython.utils import path as util_path
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/IPython/utils/path.py", line 17, in <module>
+    from IPython.utils.process import system
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/IPython/utils/process.py", line 21, in <module>
+    from ._process_posix import system, getoutput, arg_split, check_pid
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/IPython/utils/_process_posix.py", line 17, in <module>
+    from ._process_common import getoutput as getoutput, arg_split
+  File "/home/khoavd/WORKSPACE/LuanVan/.worktrees/t33-b2-offline/docs/evidence/b2-training-offline-runner-2026-10-16.txt", line 39, in guarded_import
+    return original_import(name,*args,**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/IPython/utils/_process_common.py", line 50, in <module>
+    callback: Callable[[subprocess.Popen[bytes]], _T],
+                        ~~~~~~~~~~~~~~~~^^^^^^^
+TypeError: 'function' object is not subscriptable

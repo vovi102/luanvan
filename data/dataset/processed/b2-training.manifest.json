@@ -1,0 +1,18 @@
+{
+  "acceptance_note": "Derived from accepted T3.3; same-agent audit, not human review.",
+  "canonical_publication_commit": "2b652a3",
+  "excluded_development_records": 792,
+  "recipe": "select original split=train lines in original order; preserve bytes",
+  "records": 7208,
+  "schema_version": "b2-canonical-train-export-v1",
+  "sources": {
+    "data/dataset/processed/bilingual-training-audit.jsonl": "3d10f0d0e1f3db9e46367e7b924cc8e1232ef33f29361bf26d463dad2a76df62",
+    "data/dataset/processed/bilingual-training-exclusion-index.json": "83d76676a00588703d7136772f956770254a656ad1b4c1fab1dfbcc61e1b91b7",
+    "data/dataset/processed/bilingual-training-manifest.json": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28",
+    "data/dataset/processed/bilingual-training.jsonl": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55",
+    "data/dataset/raw/generation-config-v2.json": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695",
+    "data/dataset/raw/synthetic-stage-a-v2.jsonl": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203",
+    "src/nl2sparql/dataset/bilingual/templates.json": "9a62ebb166b6e46da7d6970aeddf675ae05a58284242eea7f5625c8fcf88dbd7"
+  },
+  "training_sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835"
+}

@@ -1,0 +1,87 @@
+{
+  "artifacts": {
+    "data/dataset/processed/b2-training.jsonl": {
+      "bytes": 15140061,
+      "sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835"
+    },
+    "data/dataset/processed/b2-training.manifest.json": {
+      "bytes": 1317,
+      "sha256": "532a6417c1a8ad4c949390cbee1b9f3eeecb4aabaee5247ea47663cd69c36d9d"
+    },
+    "data/dataset/processed/bilingual-training-audit.jsonl": {
+      "bytes": 89741,
+      "sha256": "3d10f0d0e1f3db9e46367e7b924cc8e1232ef33f29361bf26d463dad2a76df62"
+    },
+    "data/dataset/processed/bilingual-training-exclusion-index.json": {
+      "bytes": 99383,
+      "sha256": "83d76676a00588703d7136772f956770254a656ad1b4c1fab1dfbcc61e1b91b7"
+    },
+    "data/dataset/processed/bilingual-training-manifest.json": {
+      "bytes": 3098,
+      "sha256": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28"
+    },
+    "data/dataset/processed/bilingual-training.jsonl": {
+      "bytes": 16754825,
+      "sha256": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55"
+    },
+    "data/dataset/raw/generation-config-v2.json": {
+      "bytes": 242620,
+      "sha256": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695"
+    },
+    "data/dataset/raw/synthetic-stage-a-v2.jsonl": {
+      "bytes": 1884880,
+      "sha256": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203"
+    },
+    "scripts/22_b2_training.py": {
+      "bytes": 2280,
+      "sha256": "1396abdd0a649803fe503dace49307fdeabbfcba713cb45f2a0dae962e916cde"
+    },
+    "src/nl2sparql/dataset/bilingual/templates.json": {
+      "bytes": 129028,
+      "sha256": "9a62ebb166b6e46da7d6970aeddf675ae05a58284242eea7f5625c8fcf88dbd7"
+    },
+    "src/nl2sparql/models/b12/canonical_training.py": {
+      "bytes": 3279,
+      "sha256": "fa507f1fb44803c1af53a316463c4e3f9df66bb5174844ba95d86280f2a16455"
+    },
+    "src/nl2sparql/models/b12/retrieval.py": {
+      "bytes": 22578,
+      "sha256": "212b62d29b751fe6adbf53ffd6a6af18b6b3693eb4bd251a08a048a8ce516d2a"
+    },
+    "tests/unit/test_b12_canonical_training.py": {
+      "bytes": 7868,
+      "sha256": "64080e9f3311b25437a5afd70d60dd6c4e57ecf13ab7b6cbcbb2b327634d4f42"
+    }
+  },
+  "base_commit": "544fa82",
+  "canonical_publication_commit": "2b652a3",
+  "checks": {
+    "canonical_validator": "CLI21 validate-artifact exit 0, status=valid; log canonical-validation.log",
+    "exports": "two guarded exports exit 0; corpus and manifests cmp byte-identical",
+    "focused_tests": "42 passed in 99.42s; tests/unit/test_b12_canonical_training.py tests/unit/test_b12_retrieval.py",
+    "guard": "zero observed network/credential/model-provider/subprocess attempts in successful CLI22 runs; Python instrumentation only; SDK imports allowed",
+    "lint": "ruff check and format --check, four changed Python files; git diff --check",
+    "preflight": "guarded CLI22 validate exit 0; 7208 records",
+    "red": "real 7208-row projection failed original loader at synthetic_fixture requirement before fix"
+  },
+  "counts": {
+    "development_excluded": 792,
+    "development_families_excluded": 99,
+    "en": 3604,
+    "train": 7208,
+    "train_families": 901,
+    "vi": 3604
+  },
+  "date": "2026-10-16",
+  "failed_runner_attempts": [
+    "export-initial-guard-rejection.log",
+    "export-guard-typing-error.log"
+  ],
+  "pending": [
+    "Vietnamese human review and later authorized live finalization",
+    "genuine pinned model/encoder snapshots and Kaggle B1/B2 runs",
+    "T5.4 comparison then T5.5 B3 scope decision"
+  ],
+  "scope": "offline-native-no-subagents",
+  "training_locked_before_benchmark_content": true
+}

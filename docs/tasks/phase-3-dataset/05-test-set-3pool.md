@@ -1,99 +1,94 @@
 # T3.5 — Benchmark agent-authored, human-reviewed (GoogleSQL)
 
+## Trạng thái hiện tại — 2026-10-16
+
+**English đã finalized**: 100 câu tại `data/dataset/test/test-100.jsonl`,
+manifest và genuine live evidence cùng thư mục. 120 English candidates đã có
+120 human ACCEPT events; final selection là 30 easy / 50 medium / 20 hard.
+Không mở lại vòng review 120 English candidates. B0 genuine evaluation đã hoàn
+tất, 0/100; giữ negative finding, không tune trên benchmark.
+
+**Vietnamese còn pending**: 100 paired candidates tại
+`data/review_drafts/t3_5_vi_candidate_set_2026-10-07/`, hiện **0 human review
+events**. `validate-draft` hiện xác nhận `paired_draft_valid`, không phải human
+acceptance. [Review pack 10 × 10](../../../data/review_packs/t3_5_vi_2026-10-16/README.md)
+giữ nguyên IDs, SQL, candidate file/row hashes và source snapshot. Phiếu hoàn
+toàn trống decision/score/reviewer; chỉ hỗ trợ user review, không finalized.
+
 ## Mục tiêu và provenance
 
-Tạo benchmark cuối gồm 100 cặp NL–GoogleSQL để đánh giá generalization trên
-BigQuery analytical catalog. Profile active là
-`agent_authored_human_reviewed_v1`: Codex soạn 120 ứng viên, user review toàn bộ
-và chọn 100 câu. Vì cùng một agent soạn NL và SQL và chỉ có một human reviewer,
-artifact không được claim independent authorship, independent review,
-inter-rater agreement hoặc Cohen's kappa.
+English profile `agent_authored_human_reviewed_v1`: agent soạn NL/SQL, một human
+reviewer quyết định. Vietnamese được agent soạn từ gold SQL, semantic metadata
+và catalog context, không dịch English surface text; cần cùng quy trình review
+Vietnamese thật. Không claim independent authorship/review, inter-rater agreement
+hoặc Cohen's kappa. Thiết kế `three_pool_v1` là đường lịch sử/optional, không phải
+acceptance active.
 
-Thiết kế three-pool tháng 8 (`three_pool_v1`) vẫn được giữ trong code, spec và
-test như một đường lịch sử/optional. Nó không còn là acceptance path active và
-không được dùng để mô tả provenance của benchmark mới.
+## Artifacts
 
-## Artifact active
+| Phần | Đường dẫn | Trạng thái |
+| --- | --- | --- |
+| English original draft | `data/review_drafts/t3_5_candidate_set_2026-09-27/` | 120 reviewed; selection 100, giữ audit |
+| English final | `data/dataset/test/test-100.jsonl` + `manifest.json` + `live-evidence.json` | Finalized, exact output SHA-256 `5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d` |
+| Vietnamese draft | `data/review_drafts/t3_5_vi_candidate_set_2026-10-07/` | 100 immutable candidates, empty `review_events.jsonl` |
+| Vietnamese review aids | `data/review_packs/t3_5_vi_2026-10-16/` | 10 batches of 10, bound to candidate file SHA-256 `ffc3875802e954ed724b5500a19cefaa4c05cf9bf498e304076c693483154a96` |
 
-Draft review nằm tại
-`data/review_drafts/t3_5_candidate_set_2026-09-27/`:
+## Workflow Vietnamese
 
-- `candidates.jsonl`: 120 dòng immutable, ID `t35-001..t35-120`, quota đề xuất
-  36 easy / 60 medium / 24 hard;
-- `review_events.csv`: append-only human decisions; hiện chỉ có header;
-- `final_selection.csv`: lựa chọn 100 câu; hiện chỉ có header;
-- `REVIEW_GUIDE.md`: quy tắc score, revise/accept và handoff;
-- `manifest.json`, `validation-report.json`: evidence `draft_ready`, hash-bound
-  với candidate source, catalog và leakage corpora.
-
-Final output chỉ được publish tại `data/dataset/test/test-100.jsonl` sau khi đủ
-review, selection và live evidence. File final này chưa tồn tại ở trạng thái
-`draft_ready`.
-
-## Workflow
+1. User đọc batch, cung cấp decision `ACCEPT`/`REVISE`/`REJECT` và bốn điểm thật
+   theo REVIEW_GUIDE. Naturalness, SQL faithfulness, terminology ≥4; ambiguity ≤2
+   cho ACCEPT. REVISE cần `revised_question` rồi round kế tiếp; tất cả 100 pair
+   cần final ACCEPT, không có event sau ACCEPT. Không tự tạo human decisions.
+2. Đối chiếu pack/candidate binding; append đúng event user vào log gốc. Không
+   sửa candidate nguồn, SQL hoặc tự chọn replacement cho REJECT.
+3. Chạy offline draft validation; kiểm tra schema/round/score khi nhận events.
+   CLI hiện chưa có lệnh validation từng batch riêng; `apply-review` là finalizer,
+   không dùng nó để giả vờ đã accept một batch.
+4. Sau đủ 100 ACCEPT, áp dụng review và kiểm tra/publish exact paired evidence
+   theo existing workflow. SQL/metadata khớp English có thể reuse evidence theo
+   policy; chỉ gọi bounded BigQuery nếu cần và có authorization riêng.
 
 ```bash
-# Offline; không khởi tạo credential hoặc BigQuery client
-.venv/bin/python scripts/12_test_set_workflow.py reviewed validate-candidates \
-  --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
-
-.venv/bin/python scripts/12_test_set_workflow.py reviewed validate-review \
-  --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
-
-# Chỉ chạy sau khi user duyệt và cho phép live access rõ ràng
-.venv/bin/python scripts/12_test_set_workflow.py reviewed verify-live \
-  --allow-bigquery --project <gcp-project> \
-  --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
-
-.venv/bin/python scripts/12_test_set_workflow.py reviewed finalize \
-  --draft-root data/review_drafts/t3_5_candidate_set_2026-09-27
+PYTHONPATH=src python scripts/22_vietnamese_testset_workflow.py validate-draft \
+  --candidates data/review_drafts/t3_5_vi_candidate_set_2026-10-07/candidates.jsonl
 ```
 
-Live policy của profile active là 24 GiB/query, 600 GiB aggregate, location `US`,
-query cache tắt, dry-run toàn batch trước execution. Các mức này được duyệt lại
-ngày 2026-10-02 sau khi preflight thật chứng minh selection cân bằng cần khoảng
-557.5 GiB và policy 20/64 GiB cũ không khả thi. Finalizer yêu cầu evidence hiện
-hành cho đúng 100 selected rows và publish JSONL/manifest immutable.
+Tên lệnh finalization hiện là `apply-review`, không phải `finalize` như guide
+ngày 2026-10-07 ghi. Khi đã đủ human events, phải truyền explicit
+`--candidates` và `--review-events` tới đúng draft 2026-10-07 vì default CLI
+vẫn là draft 2026-10-04. Không chạy author-draft/review lại English.
 
-## Acceptance status
+## Acceptance
 
-### Hoàn tất
+- [x] English review/selection/live evidence/finalization hoàn tất.
+- [x] Strict contracts, SQL/catalog/CQ/leakage gates, downstream support.
+- [x] Vietnamese 100 candidates hợp lệ, snapshot/English binding.
+- [x] Vietnamese review pack offline, training adapter khóa tại `9adf02c` trước
+  khi mở nội dung benchmark để chuẩn bị pack.
+- [ ] User review đủ 100 Vietnamese pairs; resolve REVISE/REJECT theo policy.
+- [ ] Apply review, validate exact final paired/live-evidence binding và khóa
+  immutable Vietnamese snapshot. Pack không đóng gate này.
 
-- [x] Contract/profile strict, review state machine và exact final schemas.
-- [x] Offline SQL/catalog/CQ/leakage validation và guarded CLI.
-- [x] Immutable live-evidence/finalization contract và downstream B0–B3 support.
-- [x] 120 candidate rows đạt `draft_ready`, đúng quota 36/60/24 và coverage.
-- [x] Draft manifest/report pin candidate, catalog, leakage và repository commit.
-- [x] Review/selection source tách riêng; tooling không tự tạo human decision.
+## Chống leakage và thứ tự thực hiện
 
-### Còn pending — human/live gates
+Candidate/final questions và gold SQL không được dùng cho training, fine-tuning,
+few-shot retrieval corpus, prompt/linker tuning, hyperparameter search hoặc sửa
+hệ thống dựa trên lỗi trước khi primary evaluation được khóa. B2 chỉ consume
+7.208 train records từ T3.3 qua export đã hash-bind; 792 development records
+không vào retrieval. Giữ canonical, accepted Stage A/catalogue/exclusion index.
 
-- [ ] User review đủ 120 candidates với một reviewer ID ổn định; mọi `REVISE`
-  phải có event `ACCEPT` sau đó và score acceptance tối thiểu 4/5.
-- [ ] User chọn đúng 100 accepted rows với quota 30 easy / 50 medium / 20 hard,
-  ít nhất sáu categories và đủ ba entity kinds.
-- [ ] Codex chạy lại offline `validate-review` và xử lý lỗi deterministic cùng user.
-- [ ] User cho phép explicit live BigQuery run; 100 SQL có current bounded evidence.
-- [ ] `finalize` publish immutable `test-100.jsonl` và manifest. Chỉ lúc đó mới
-  mở genuine B0–B3 accuracy evaluation.
+Data integration (hoàn tất) + Vietnamese review/finalization → B1/B2 genuine →
+T5.4 comparison → T5.5 quyết định B3. Không thay model hoặc thresholds, không
+mở lại Stage D noise hoặc hosted LLM baselines.
 
-## Chống leakage
+## Lịch sử và tài liệu
 
-Candidate/final questions và mọi biến thể bị cấm dùng cho training, fine-tuning,
-few-shot retrieval corpus, prompt/linker tuning, hyperparameter search hoặc sửa hệ
-thống dựa trên lỗi trước khi primary evaluation được khóa. Downstream chỉ consume
-final snapshot theo hash manifest.
+English live policy tại finalization là 24 GiB/query, 600 GiB aggregate, US,
+cache off, dry-run batch trước execution; evidence pin exact selected SQL.
+Không rerun live để cập nhật trạng thái docs. Failed training audit ban đầu,
+audit r1 và các historical benchmark paths giữ nguyên.
 
-## Historical three-pool path
-
-Spec/plan tháng 8 và các top-level CLI `scaffold`, `validate`, `verify-live`,
-`finalize` tiếp tục tái lập `three_pool_v1`; không bị rewrite. Chúng yêu cầu ba
-vai độc lập và có thể tính kappa khi có cộng tác viên thật. Profile active dùng
-subgroup `reviewed` và tuyệt đối không thừa kế các claim đó.
-
-Linked:
-
-- Active spec: `docs/superpowers/specs/2026-09-27-t3-5-agent-reviewed-benchmark-design.md`
-- Active plan: `docs/superpowers/plans/2026-09-27-t3-5-agent-reviewed-benchmark.md`
+- Active English spec: `docs/superpowers/specs/2026-09-27-t3-5-agent-reviewed-benchmark-design.md`
 - Historical spec: `docs/superpowers/specs/2026-08-15-t3-5-google-sql-test-set-design.md`
-- Code: `src/nl2sparql/dataset/testset/`, `scripts/12_test_set_workflow.py`
+- Code: `src/nl2sparql/dataset/testset/`, `scripts/12_test_set_workflow.py`,
+  `scripts/22_vietnamese_testset_workflow.py`

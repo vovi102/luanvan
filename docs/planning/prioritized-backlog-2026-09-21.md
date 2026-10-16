@@ -25,12 +25,14 @@ schema/entity/class linking.
 |---|---|---|
 | Phase 0–2 và T2-SQL-1/2/3 | Hoàn tất; T2.5 superseded | Đóng, không đầu tư thêm Plan A |
 | T3.1–T3.2 | Hoàn tất | Giữ immutable làm nguồn Stage A |
-| T3.3 | Audit 31 ngày hoàn tất: ba flow intents thiếu coverage; positive native funding → token transfer có witness; Stage A v2 chưa accepted | Duyệt đề xuất thay ba intents + funding/CQ correction, rồi spec/plan và regenerate |
+| Stage A v2 | Accepted: 1.000 records, 25 intents, genuine live evidence | Giữ source/manifest immutable |
+| T3.3 | Canonical published tại `2b652a3`: 8.000 records, 4.000 EN + 4.000 VI, 1.000 families; 7.208 train / 792 development | Hoàn tất; hai build byte-identical, validators pass; giữ failed audit + r1 |
 | T3.4 | Superseded | Không sinh noise dataset riêng |
-| T3.5 | English finalized; Vietnamese draft chờ user review | Finalize paired benchmark, giữ ngoài training/tuning |
+| T3.5 | English finalized; Vietnamese 100 candidates, 0 human events | Review pack 10 × 10 đã sẵn sàng; chỉ review VI, không mở lại 120 English candidates |
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine negative result hoàn tất (`0/100`) | Giữ làm lower bound, không tune trên test set |
-| T5.2/B1–B2 | Implementation local hoàn tất | Chạy genuine trên Kaggle sau khi training artifact được accept |
+| T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
+| T5.2/B1–B2 | Implementation local + data integration hoàn tất; chưa có genuine Kaggle runs | Sau Vietnamese review/finalization, pin model/encoder và chạy genuine |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
 | Phase 6–7 | Ticket cũ còn SPARQL | Redesign sang NL2SQL trước khi implement |
@@ -39,17 +41,20 @@ schema/entity/class linking.
 
 ### P0 — Mở gate dữ liệu
 
-1. **Accept Stage A v2.** Duyệt
-   [coverage proposal](../research/stage-a-v2-hard-intent-coverage-audit-2026-10-14.md):
-   giữ positive/successful native funding → token transfer, thay ba flow intents
-   bằng net native flow, native recipient concentration và token diversity theo
-   treasury owner; sửa CQ mappings rõ nghĩa. Sau spec/plan, regenerate và
-   diagnostic thành công mới fresh preflight và approval live; giữ gate
-   1.000/1.000 records non-empty, zero cache hits.
-2. **Build T3.3 canonical.** Audit 100 English + 100 Vietnamese, build/validate
-   artifact 8.000 records hai lần và xác nhận byte reproducibility.
-3. **Finalize Vietnamese T3.5.** User review 100 candidates; live verify và khóa
-   immutable. Không dùng wording hoặc gold SQL của benchmark để tune.
+1. **Stage A v2 + T3.3 — hoàn tất.** Stage A accepted với genuine live
+   evidence; corpus canonical 8.000 records đã publish tại `2b652a3`, 7.208 train /
+   792 development, không family cross split. Hai build byte-identical, staged
+   và canonical validators pass. Không chạy lại historical absent-canonical gates.
+2. **T3.3 → B2 data integration — hoàn tất offline (2026-10-16).** Export
+   `data/dataset/processed/b2-training.jsonl` giữ nguyên 7.208 train lines, có
+   manifest/hash riêng, bind canonical và accepted Stage A/catalogue/exclusion.
+   B2 consume export bằng exact accepted-training fingerprint; không đổi semantics
+   `style`, không thêm fixture acceptance flag. [Evidence](../research/b2-training-integration-2026-10-16.md).
+3. **Finalize Vietnamese T3.5 — pending human.** User review đủ 100 candidates
+   qua [pack 10 × 10](../../data/review_packs/t3_5_vi_2026-10-16/README.md).
+   Hiện 0 human events; pack không phải finalized benchmark. Sau review, kiểm tra
+   exact binding/live evidence theo policy rồi khóa snapshot. English đã finalized,
+   không review lại 120 candidates. Không dùng wording/gold SQL để tune.
 
 ### P1 — Baseline small LLM và quyết định scope
 
@@ -87,7 +92,8 @@ schema/entity/class linking.
 
 ## Luồng song song
 
-- **Lane A — Evidence:** accept Stage A v2, audit/build T3.3, finalize Vietnamese T3.5.
+- **Lane A — Evidence:** Stage A/T3.3/data integration đã xong; human review và
+  finalization Vietnamese T3.5 còn pending.
 - **Lane B — Model:** chuẩn bị Kaggle B1/B2 và pin model/encoder; chỉ chạy genuine
   khi artifact đầu vào hợp lệ.
 - **Lane C — Writing:** cập nhật RQ/contributions sang small-LLM-only, viết Plan A
@@ -113,7 +119,7 @@ WIP limit: một task implementation lớn và một external-evidence task đan
 
 ## Công việc kế tiếp
 
-Duyệt coverage proposal đã có bounded probe evidence, rồi chốt spec/plan cho
-ba replacements và funding/CQ correction. Sau regenerate, diagnostic và fresh
-preflight được duyệt mới promote Stage A v2 và audit/build T3.3 deterministic.
-Tiếp đó chạy B1/B2 trên Kaggle và dùng kết quả để quyết định scope B3.
+User review Vietnamese theo pack; giữ training adapter/tests đã khóa tại `9adf02c`.
+Thứ tự gate: data integration (đã xong) + Vietnamese review/finalization → B1/B2
+genuine Kaggle → T5.4 comparison B0/B1/B2 → T5.5 quyết định B3. B0 genuine 0/100
+được giữ nguyên; không có genuine B1/B2 evidence ở lượt offline này.

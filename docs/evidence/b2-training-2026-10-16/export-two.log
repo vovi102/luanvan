@@ -1,0 +1,2 @@
+{"mode": "export", "records": 7208, "status": "valid", "training_sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835"}
+{"mode": "export", "offline_guard": {"credential_reads": 0, "model_provider_imports": 0, "network_attempts": 0, "subprocess_attempts": 0}, "script": "scripts/22_b2_training.py"}

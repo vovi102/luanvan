@@ -1,0 +1,79 @@
+"""Render static review aids; no decisions, scores or reviewer identity generated."""
+import csv
+import hashlib
+import io
+import json
+from pathlib import Path
+
+root = Path.cwd()
+source = root / "data/review_drafts/t3_5_vi_candidate_set_2026-10-07"
+output = root / "data/review_packs/t3_5_vi_2026-10-16"
+sha = lambda value: hashlib.sha256(value).hexdigest()
+lock = json.loads((root / "docs/evidence/b2-training-integration-2026-10-16.json").read_bytes())
+for name, evidence in lock["artifacts"].items():
+    assert sha((root / name).read_bytes()) == evidence["sha256"], name
+source_files = {name: (source / name).read_bytes() for name in (
+    "candidates.jsonl", "manifest.json", "validation-report.json", "REVIEW_GUIDE.md",
+    "PREFLIGHT.md", "review_events.jsonl")}
+manifest = json.loads(source_files["manifest.json"])
+assert sha(source_files["candidates.jsonl"]) == manifest["candidate_file_sha256"]
+assert source_files["review_events.jsonl"] == b""
+rows = [json.loads(line) for line in source_files["candidates.jsonl"].splitlines()]
+raw_lines = source_files["candidates.jsonl"].splitlines(keepends=True)
+assert len(rows) == 100 and len({row["pair_id"] for row in rows}) == 100
+source_hash = sha(source_files["candidates.jsonl"])
+files = {}
+batches = []
+fields = ["pair_id", "candidate_line_sha256", "decision", "naturalness", "sql_faithfulness",
+          "terminology", "ambiguity", "revised_question", "notes"]
+for offset in range(0, 100, 10):
+    number = offset // 10 + 1
+    stem = f"batch-{number:02d}"
+    text = [f"# Vietnamese review — batch {number:02d} ({offset+1}–{offset+10})\n",
+            f"Candidate file SHA-256: `{source_hash}`. Training lock: `9adf02c`.\n",
+            "Đọc từng câu với SQL và metadata gốc. Điền phiếu CSV cùng batch hoặc trả lời trong chat. "
+            "Mọi điểm/decision đang trống; chưa có human review.\n"]
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(fields)
+    ids = []
+    for row, raw in zip(rows[offset:offset+10], raw_lines[offset:offset+10], strict=True):
+        pair_id = row["pair_id"]
+        ids.append(pair_id)
+        line_hash = sha(raw)
+        text += [f"## {pair_id}\n", f"**Câu Vietnamese:** {row['question']}\n",
+                 f"English ID: `{row['english_id']}`; difficulty: `{row['difficulty']}`; "
+                 f"CQ: {', '.join(row['cq_ids'])}.\n",
+                 f"Categories: {', '.join(row['categories'])}; entity kinds: {', '.join(row['entity_kinds'])}.\n",
+                 f"Expected columns: `{json.dumps(row['expected_columns'])}`; "
+                 f"expected result size: `{row['expected_result_size']}`.\n",
+                 f"Schema elements: `{json.dumps(row['schema_elements'])}`.\n",
+                 f"```sql\n{row['sql']}\n```\n",
+                 f"Candidate line SHA-256 (including newline): `{line_hash}`.\n",
+                 f"English case binding: `{row['english_case_sha256']}`.\n",
+                 "Decision: ______; naturalness: ___; SQL faithfulness: ___; terminology: ___; ambiguity: ___.\n",
+                 "Revised question / notes: ______________________________________\n"]
+        writer.writerow([pair_id, line_hash, *([""] * (len(fields)-2))])
+    files[f"{stem}.md"] = ("\n".join(text).rstrip()+"\n").encode()
+    files[f"{stem}.csv"] = buffer.getvalue().encode()
+    batches.append({"batch": number, "pair_ids": ids, "markdown": f"{stem}.md", "worksheet": f"{stem}.csv"})
+pack = {"status": "awaiting-human-review", "training_lock_commit": "9adf02c",
+        "source": str(source.relative_to(root)), "candidate_file_sha256": source_hash,
+        "candidate_semantic_sha256": manifest["candidate_sha256"],
+        "english_semantic_sha256": manifest["english_sha256"],
+        "source_files": {name: sha(value) for name, value in source_files.items()},
+        "review_event_count_at_build": 0, "candidate_count": 100, "batch_size": 10,
+        "batches": batches, "files": {name: sha(value) for name, value in files.items()}}
+files["manifest.json"] = (json.dumps(pack, sort_keys=True, indent=2)+"\n").encode()
+for name, payload in files.items():
+    path = output / name
+    if path.exists():
+        assert path.read_bytes() == payload, f"refusing to overwrite modified review aid: {name}"
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+for name, payload in source_files.items():
+    assert (source / name).read_bytes() == payload, name
+print(json.dumps({"status": "review_pack_prepared_not_finalized", "batches": 10,
+                  "candidate_count": 100, "human_events": 0,
+                  "candidate_file_sha256": source_hash}, sort_keys=True))

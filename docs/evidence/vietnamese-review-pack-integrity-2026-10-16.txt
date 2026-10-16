@@ -1,0 +1,41 @@
+"""Check rendered review aids against their immutable source and training lock."""
+import csv
+import hashlib
+import json
+from pathlib import Path
+
+pack = Path('data/review_packs/t3_5_vi_2026-10-16')
+manifest = json.loads((pack / 'manifest.json').read_bytes())
+source = Path(manifest['source'])
+lines = (source / 'candidates.jsonl').read_bytes().splitlines(keepends=True)
+rows = [json.loads(line) for line in lines]
+lookup = {row['pair_id']: (row, line) for row, line in zip(rows, lines, strict=True)}
+seen = []
+for name, digest in manifest['files'].items():
+    assert hashlib.sha256((pack / name).read_bytes()).hexdigest() == digest, name
+for batch in manifest['batches']:
+    with (pack / batch['worksheet']).open(newline='') as handle:
+        sheet = list(csv.DictReader(handle))
+    display = (pack / batch['markdown']).read_text()
+    assert len(sheet) == 10
+    assert [row['pair_id'] for row in sheet] == batch['pair_ids']
+    for row in sheet:
+        assert all(value == '' for key, value in row.items()
+                   if key not in {'pair_id', 'candidate_line_sha256'})
+        original, line = lookup[row['pair_id']]
+        assert row['candidate_line_sha256'] == hashlib.sha256(line).hexdigest()
+        assert original['question'] in display
+        assert f"```sql\n{original['sql']}\n```" in display
+        seen.append(row['pair_id'])
+assert seen == [row['pair_id'] for row in rows]
+assert len(set(seen)) == 100
+for name, digest in manifest['source_files'].items():
+    assert hashlib.sha256((source / name).read_bytes()).hexdigest() == digest, name
+assert (source / 'review_events.jsonl').read_bytes() == b''
+lock = json.loads(Path('docs/evidence/b2-training-integration-2026-10-16.json').read_bytes())
+for name, value in lock['artifacts'].items():
+    assert hashlib.sha256(Path(name).read_bytes()).hexdigest() == value['sha256'], name
+print(json.dumps({'status': 'valid_review_aids_not_finalized', 'batches': 10,
+                  'candidate_count': 100, 'human_event_count': 0,
+                  'exact_question_sql': True, 'blank_decisions_scores': True,
+                  'source_and_training_lock_unchanged': True}, sort_keys=True))
