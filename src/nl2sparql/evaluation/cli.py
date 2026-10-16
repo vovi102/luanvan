@@ -127,6 +127,8 @@ def create_cli(*, bigquery_executor_factory: BigQueryExecutorFactory | None = No
             raise click.ClickException(str(exc)) from exc
 
     @adapt_group.command("b12")
+    @click.option("--language", type=click.Choice(["en", "vi"]), default="en")
+    @click.option("--benchmark-root", type=click.Path(path_type=Path), default=None)
     @click.option("--test-set", type=click.Path(path_type=Path), required=True)
     @click.option("--predictions", type=click.Path(path_type=Path), required=True)
     @click.option("--log", "log_path", type=click.Path(path_type=Path), required=True)
@@ -135,6 +137,8 @@ def create_cli(*, bigquery_executor_factory: BigQueryExecutorFactory | None = No
     @click.option("--synthetic", is_flag=True)
     @click.option("--output", type=click.Path(path_type=Path), required=True)
     def adapt_b12_command(
+        language: str,
+        benchmark_root: Path | None,
         test_set: Path,
         predictions: Path,
         log_path: Path,
@@ -153,6 +157,8 @@ def create_cli(*, bigquery_executor_factory: BigQueryExecutorFactory | None = No
                     report_path,
                     privacy_review,
                     synthetic,
+                    language=language,
+                    **({"source_root": benchmark_root} if benchmark_root is not None else {}),
                 )
             )
             protected = tuple(

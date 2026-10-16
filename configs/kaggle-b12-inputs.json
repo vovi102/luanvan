@@ -142,6 +142,7 @@
     "src/nl2sparql/models/b12/contracts.py",
     "src/nl2sparql/models/b12/evaluate.py",
     "src/nl2sparql/models/b12/extraction.py",
+    "src/nl2sparql/models/b12/paired_snapshot.py",
     "src/nl2sparql/models/b12/prompts.py",
     "src/nl2sparql/models/b12/retrieval.py",
     "src/nl2sparql/models/b12/transformers_backend.py",

@@ -7,7 +7,6 @@ import hashlib
 import io
 import json
 import os
-import runpy
 import shutil
 import stat
 import tarfile
@@ -110,8 +109,8 @@ def build_bundle(root: Path, output: Path) -> dict:
         }
     manifest = {
         "schema_version": 1,
-        "execution_languages": ["en"],
-        "vietnamese_execution": "blocked_pending_typed_cli17_consumer",
+        "execution_languages": ["en", "vi"],
+        "vietnamese_execution": "typed_paired_finalized_consumer",
         "training_sha256": TRAINING_SHA256,
         "files": files,
         "content_sha256": sha256(canonical(files)),
@@ -140,7 +139,7 @@ def verify_bundle(root: Path) -> dict:
         ):
             raise PreparationError("bundle manifest identity mismatch")
         if (
-            manifest["execution_languages"] != ["en"]
+            manifest["execution_languages"] != ["en", "vi"]
             or manifest["training_sha256"] != TRAINING_SHA256
         ):
             raise PreparationError("bundle research contract mismatch")
@@ -203,10 +202,6 @@ def preflight_data(root: Path) -> dict:
     """Validate the actual consumer boundaries, without model/encoder/cache loading."""
     root = root.resolve()
     verify_bundle(root)
-    from dataclasses import asdict
-
-    from nl2sparql.dataset.testset.live import reuse_paired_live_evidence
-    from nl2sparql.dataset.testset.paired import finalize_paired_cases
     from nl2sparql.models.b12.catalog_summary import compile_catalog_summary
     from nl2sparql.models.b12.evaluate import load_evaluation_cases
     from nl2sparql.models.b12.retrieval import validate_training_snapshot
@@ -216,32 +211,7 @@ def preflight_data(root: Path) -> dict:
     )
     english = load_evaluation_cases(root / ENGLISH)
     summary = compile_catalog_summary(root / "src/nl2sparql/sql/catalog/ethereum_analytics.json")
-    previous = Path.cwd()
-    try:
-        os.chdir(root)
-        cli = runpy.run_path("scripts/22_vietnamese_testset_workflow.py")
-        source, reviewed = cli["_load_english"](
-            Path(ENGLISH), Path("data/dataset/test/live-evidence.json")
-        )
-        draft = Path("data/review_drafts/t3_5_vi_candidate_set_2026-10-07")
-        expected = finalize_paired_cases(
-            source,
-            cli["_load_candidates"](draft / "candidates.jsonl"),
-            cli["_load_decisions"](draft / "review_events.jsonl"),
-        )
-        vi = cli["_load_final"](Path(VIETNAMESE))
-        if vi != expected:
-            raise PreparationError("Vietnamese rows differ from user-reviewed source")
-        cli["validate_paired_manifest"](
-            vi, cli["_manifest"](Path("data/dataset/test/manifest-vi.json"))
-        )
-        reused = reuse_paired_live_evidence(source, vi, reviewed.execution, policy=reviewed.policy)
-        if json.loads(Path("data/dataset/test/live-evidence-vi.json").read_bytes()) != json.loads(
-            json.dumps(asdict(reused))
-        ):
-            raise PreparationError("Vietnamese live-evidence binding mismatch")
-    finally:
-        os.chdir(previous)
+    vi = load_evaluation_cases(root / VIETNAMESE, language="vi", source_root=root)
     return {
         "status": "data_ready",
         "training_records": len(records),
@@ -250,7 +220,7 @@ def preflight_data(root: Path) -> dict:
         "vietnamese_records": len(vi),
         "catalog_sha256": summary.catalog_sha256,
         "summary_sha256": summary.summary_sha256,
-        "execution_languages": ["en"],
-        "vietnamese_execution": "blocked_pending_typed_cli17_consumer",
+        "execution_languages": ["en", "vi"],
+        "vietnamese_execution": "typed_paired_finalized_consumer",
         "scientific_ready": False,
     }

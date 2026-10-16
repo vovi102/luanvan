@@ -5,12 +5,15 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-from dataclasses import dataclass
+import re
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from nl2sparql.evaluation.adapters.common import (
+    AuthoritativeCase,
+    AuthoritativeCaseSet,
     load_authoritative_test_set,
     read_jsonl_objects,
     require_distinct_files,
@@ -27,6 +30,8 @@ from nl2sparql.evaluation.contracts import (
     PrivacyEvidence,
     RunProvenance,
 )
+from nl2sparql.models.b12.evaluate import load_evaluation_cases
+from nl2sparql.models.b12.paired_snapshot import ROOT, SOURCE_SHA256S
 
 
 @dataclass(frozen=True)
@@ -39,6 +44,8 @@ class B12AdaptRequest:
     report_path: Path
     privacy_review_path: Path | None = None
     synthetic: bool = False
+    language: str = "en"
+    source_root: Path = ROOT
 
 
 def _load_report(path: Path) -> dict[str, Any]:
@@ -99,10 +106,42 @@ def adapt_b12(request: B12AdaptRequest) -> CanonicalPredictionRun:
     if request.privacy_review_path is not None:
         paths.append(request.privacy_review_path)
     require_distinct_files(*paths)
-    authoritative = load_authoritative_test_set(request.test_set_path, synthetic=request.synthetic)
+    paired_cases = None
+    if request.language == "vi":
+        if request.synthetic:
+            raise EvaluationError("Vietnamese authority requires finalized paired evidence")
+        try:
+            paired_cases = load_evaluation_cases(
+                request.test_set_path, language="vi", source_root=request.source_root
+            )
+        except ValueError as exc:
+            raise EvaluationError(f"invalid paired source: {exc}") from exc
+        authoritative = AuthoritativeCaseSet(
+            cases=tuple(
+                AuthoritativeCase(c.case_id, c.question, c.gold_sql, c.difficulty, c.categories)
+                for c in paired_cases
+            ),
+            sha256=paired_cases[0].input_sha256,
+            reviewed=True,
+            live_verified=True,
+            synthetic=False,
+            provenance_profile="paired_vietnamese_finalized",
+            manifest_sha256=SOURCE_SHA256S["data/dataset/test/manifest-vi.json"],
+        )
+    elif request.language == "en":
+        authoritative = load_authoritative_test_set(
+            request.test_set_path, synthetic=request.synthetic
+        )
+    else:
+        raise EvaluationError("B1/B2 language must be en or vi")
     prediction_rows = read_jsonl_objects(request.predictions_path)
     log_rows = read_jsonl_objects(request.log_path)
     report = _load_report(request.report_path)
+    if report.get("language", "en") != request.language:
+        raise EvaluationError("B1/B2 report language mismatch")
+    for rows in (prediction_rows, log_rows):
+        if any(row.get("language", "en") != request.language for row in rows):
+            raise EvaluationError("B1/B2 native language mismatch")
     if not prediction_rows or len(prediction_rows) != len(log_rows):
         raise EvaluationError("B1/B2 artifacts require complete equal-length rows")
 
@@ -147,13 +186,27 @@ def adapt_b12(request: B12AdaptRequest) -> CanonicalPredictionRun:
         ("config_sha256", "config fingerprint"),
         ("catalog_sha256", "catalog fingerprint"),
         ("summary_sha256", "summary fingerprint"),
-        ("prompt_sha256", "prompt fingerprint"),
         ("training_sha256", "training fingerprint"),
         ("encoder_id", "encoder ID"),
         ("encoder_revision", "encoder revision"),
     ):
         _stable_single([row["prediction"].get(field) for row in prediction_rows], label)
+    prompt_hashes = [row["prediction"].get("prompt_sha256") for row in prediction_rows]
+    if any(
+        not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)
+        for digest in prompt_hashes
+    ):
+        raise EvaluationError("B1/B2 invalid per-case prompt fingerprint")
+    if "prompt_sha256s" in report:
+        if report["prompt_sha256s"] != prompt_hashes:
+            raise EvaluationError("B1/B2 ordered prompt report binding mismatch")
+    elif request.language == "vi":
+        raise EvaluationError("Vietnamese report requires ordered prompt binding")
     for row, log in zip(prediction_rows, log_rows, strict=True):
+        if ("prompt_sha256" in log or request.language == "vi") and (
+            log.get("prompt_sha256") != row["prediction"].get("prompt_sha256")
+        ):
+            raise EvaluationError("B1/B2 prompt cross-file identity mismatch")
         prediction = row["prediction"]
         if log.get("selected_examples_sha256") != prediction.get("selected_examples_sha256"):
             raise EvaluationError("B1/B2 selected-example cross-file identity mismatch")
@@ -222,13 +275,32 @@ def adapt_b12(request: B12AdaptRequest) -> CanonicalPredictionRun:
             )
         )
 
+    if paired_cases is not None:
+        expected_sources = json.loads(json.dumps(paired_cases[0].paired_source.source_sha256s))
+        if (
+            report.get("paired_source_sha256s") != expected_sources
+            or report.get("gold_evidence_mode") != "exact_reused_english_live_evidence"
+        ):
+            raise EvaluationError("B1/B2 paired report source/evidence binding mismatch")
+        for gold, prediction_row, log_row in zip(
+            paired_cases, prediction_rows, log_rows, strict=True
+        ):
+            expected = json.loads(json.dumps(asdict(gold.paired_source)))
+            if (
+                prediction_row.get("paired_source") != expected
+                or log_row.get("paired_source") != expected
+            ):
+                raise EvaluationError("B1/B2 paired source lineage mismatch")
+    elif any(row.get("paired_source") is not None for row in (*prediction_rows, *log_rows)):
+        raise EvaluationError("English run cannot claim Vietnamese paired source")
+
     first_prediction = prediction_rows[0]["prediction"]
     fingerprint_values: dict[str, str] = {
         "catalog": first_prediction["catalog_sha256"],
         "config": first_prediction["config_sha256"],
         "model_id": hashlib.sha256(str(model_id).encode()).hexdigest(),
         "model_revision": str(model_revision),
-        "prompt": first_prediction["prompt_sha256"],
+        "prompt": hashlib.sha256(canonical_json(prompt_hashes)).hexdigest(),
         "selected_examples": hashlib.sha256(canonical_json(selected)).hexdigest(),
         "summary": first_prediction["summary_sha256"],
     }
@@ -245,6 +317,15 @@ def adapt_b12(request: B12AdaptRequest) -> CanonicalPredictionRun:
     if authoritative.manifest_sha256 is not None:
         refs.append(
             ArtifactRef("test_set_manifest", "application/json", authoritative.manifest_sha256, 1)
+        )
+    if paired_cases is not None:
+        fingerprint_values["language"] = hashlib.sha256(b"vi").hexdigest()
+        fingerprint_values["paired_sources"] = hashlib.sha256(
+            canonical_json(paired_cases[0].paired_source.source_sha256s)
+        ).hexdigest()
+        refs.extend(
+            ArtifactRef(f"paired_source_{index:02d}", "application/octet-stream", digest, 1)
+            for index, (_, digest) in enumerate(paired_cases[0].paired_source.source_sha256s)
         )
     if privacy_ref is not None:
         refs.append(privacy_ref)

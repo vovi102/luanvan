@@ -50,7 +50,7 @@ def test_bundle_is_deterministic_and_contains_only_explicit_inputs(shipped):
         ".env" in name or "/fixtures/" in name or "__pycache__" in name for name in names
     )
     assert not any(name.startswith((".git/", "tests/", "artifacts/")) for name in names)
-    assert manifest["execution_languages"] == ["en"]
+    assert manifest["execution_languages"] == ["en", "vi"]
     assert (root / "kaggle-bundle.json").is_file()
     with tarfile.open(archive) as handle:
         assert all(member.isfile() and member.mtime == 0 for member in handle.getmembers())
@@ -104,7 +104,7 @@ def test_actual_data_preflight_preserves_train_and_paired_provenance(shipped):
     assert result["training_records"] == 7208
     assert result["english_records"] == 100
     assert result["vietnamese_records"] == 100
-    assert result["execution_languages"] == ["en"]
+    assert result["execution_languages"] == ["en", "vi"]
     assert result["scientific_ready"] is False
 
 
@@ -143,7 +143,7 @@ def test_plan_delegates_six_runs_to_unchanged_cli17(shipped, tmp_path):
 @pytest.mark.parametrize(
     "field,value",
     [
-        ("language", "vi"),
+        ("language", "fr"),
         ("model_revision", None),
         ("model_revision", "main"),
         ("encoder_revision", None),

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -162,9 +163,11 @@ def test_report_failure_restores_all_previous_outputs(tmp_path: Path, monkeypatc
     predictions = tmp_path / "predictions.jsonl"
     logs = tmp_path / "run.jsonl"
     report = tmp_path / "report.json"
-    previous = {predictions: b"old predictions\n", logs: b"old logs\n", report: b"old report\n"}
-    for path, payload in previous.items():
-        path.write_bytes(payload)
+    older_run = replace(run, generated_at_utc="2026-01-01T00:00:00Z")
+    workflow.publish_evaluation_run(
+        older_run, predictions_path=predictions, log_path=logs, report_path=report
+    )
+    previous = {path: path.read_bytes() for path in (predictions, logs, report)}
     original_write = workflow._atomic_write
 
     def fail_report(path: Path, payload: bytes) -> None:

@@ -54,3 +54,10 @@ Todo; chưa quyết định B3. Data integration và Vietnamese human review/fin
 B0 genuine 0/100 đã hoàn tất; B1/B2 local implementation không thay genuine
 Kaggle evidence. Review pack hoặc offline tests không đóng scientific gate.
 Không mở lại Stage D noise hoặc hosted LLM baselines.
+
+Typed EN/VI consumer và runner đã implemented offline tại
+[handoff 2026-10-16](../../research/b12-bilingual-consumer-2026-10-16.md).
+Bằng chứng genuine phải giữ riêng language/snapshot và ba process replicates
+mỗi (baseline, language). Fixture plumbing không phải đầu vào quyết định B3.
+Thứ tự: environment/model-cache preparation → non-test GPU smoke → genuine
+B1/B2 → T5.4 comparison → T5.5 decision; chưa có quyết định B3.

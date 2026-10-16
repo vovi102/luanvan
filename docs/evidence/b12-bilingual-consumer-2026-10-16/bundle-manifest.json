@@ -1,0 +1,917 @@
+{
+  "content_sha256": "4c10b260b7e1b119b9b6a13b43b9c00c3a4ec84402648b03eac92253840682bc",
+  "execution_languages": [
+    "en",
+    "vi"
+  ],
+  "files": {
+    "README.md": {
+      "bytes": 6292,
+      "role": "source",
+      "sha256": "b28101cd357d1c56d3c01cee877ee0d885eb9ca8fa6b4800b706f414ef0a1878"
+    },
+    "configs/kaggle-b12-inputs.json": {
+      "bytes": 12466,
+      "role": "source",
+      "sha256": "2977f2cdb347b2ed8cf688facfc545bacf376440c845508f0bbab55ca0221987"
+    },
+    "configs/kaggle-b12-run.template.json": {
+      "bytes": 407,
+      "role": "source",
+      "sha256": "54ac3ab38a8aedc71707701eadd6fe897fec3741e9eb240b476895625b75eb55"
+    },
+    "data/dataset/processed/b2-training.jsonl": {
+      "bytes": 15140061,
+      "role": "retrieval_train_only",
+      "sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835"
+    },
+    "data/dataset/processed/b2-training.manifest.json": {
+      "bytes": 1317,
+      "role": "provenance_or_benchmark",
+      "sha256": "532a6417c1a8ad4c949390cbee1b9f3eeecb4aabaee5247ea47663cd69c36d9d"
+    },
+    "data/dataset/processed/bilingual-training-audit.jsonl": {
+      "bytes": 89741,
+      "role": "provenance_or_benchmark",
+      "sha256": "3d10f0d0e1f3db9e46367e7b924cc8e1232ef33f29361bf26d463dad2a76df62"
+    },
+    "data/dataset/processed/bilingual-training-exclusion-index.json": {
+      "bytes": 99383,
+      "role": "provenance_or_benchmark",
+      "sha256": "83d76676a00588703d7136772f956770254a656ad1b4c1fab1dfbcc61e1b91b7"
+    },
+    "data/dataset/processed/bilingual-training-manifest.json": {
+      "bytes": 3098,
+      "role": "provenance_or_benchmark",
+      "sha256": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28"
+    },
+    "data/dataset/processed/bilingual-training.jsonl": {
+      "bytes": 16754825,
+      "role": "provenance_or_benchmark",
+      "sha256": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55"
+    },
+    "data/dataset/raw/generation-config-v2.json": {
+      "bytes": 242620,
+      "role": "provenance_or_benchmark",
+      "sha256": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695"
+    },
+    "data/dataset/raw/synthetic-stage-a-v2.jsonl": {
+      "bytes": 1884880,
+      "role": "provenance_or_benchmark",
+      "sha256": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203"
+    },
+    "data/dataset/test/live-evidence-vi.json": {
+      "bytes": 53474,
+      "role": "provenance_or_benchmark",
+      "sha256": "b0e506b04dd61ab15258d4d85b17f74889bbcfb2e56150c73b0f8e64be9e347c"
+    },
+    "data/dataset/test/live-evidence.json": {
+      "bytes": 50845,
+      "role": "provenance_or_benchmark",
+      "sha256": "21cfee8601c7670f23581bb0c6755f306ca41aab2029dd6b50a6d65fab25f969"
+    },
+    "data/dataset/test/manifest-vi.json": {
+      "bytes": 461,
+      "role": "provenance_or_benchmark",
+      "sha256": "3331cb18cd175ce80addef793514f683414917b17640e80e9451d1258cb88672"
+    },
+    "data/dataset/test/manifest.json": {
+      "bytes": 795,
+      "role": "provenance_or_benchmark",
+      "sha256": "719d41ff065a5b720c64b18de5c2f6ae2988d054000158e5a43d045ddf461f17"
+    },
+    "data/dataset/test/test-100-vi.jsonl": {
+      "bytes": 224406,
+      "role": "provenance_or_benchmark",
+      "sha256": "0abf44dca4b9111f4fe10930fca5d7c56961b7ef79a0ac0fe50f8b16cb1ba5eb"
+    },
+    "data/dataset/test/test-100.jsonl": {
+      "bytes": 161162,
+      "role": "provenance_or_benchmark",
+      "sha256": "5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d"
+    },
+    "data/review_drafts/t3_5_candidate_set_2026-09-27/candidates.jsonl": {
+      "bytes": 146588,
+      "role": "provenance_or_benchmark",
+      "sha256": "39b69d3dbfc49edfe33314c272bbefc8fab1f63ab3eba546a8c3fa9536212b50"
+    },
+    "data/review_drafts/t3_5_candidate_set_2026-09-27/final_selection.csv": {
+      "bytes": 22443,
+      "role": "provenance_or_benchmark",
+      "sha256": "adaeab8bbedaebf8f027c493e829a21d6aec27c29a0fa30afb74bc7029c29a00"
+    },
+    "data/review_drafts/t3_5_candidate_set_2026-09-27/review_events.csv": {
+      "bytes": 15424,
+      "role": "provenance_or_benchmark",
+      "sha256": "5e065c404cb50c4524c11e45a2eb3cf60ead5d5b64846e85d5518084f5b7fb77"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/REVIEW_GUIDE.md": {
+      "bytes": 1521,
+      "role": "provenance_or_benchmark",
+      "sha256": "1b4476d0af80bba38d387c13bee0d9f9c2a6e00465114106c9d2e80c0bbe37c9"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/candidates.jsonl": {
+      "bytes": 105339,
+      "role": "provenance_or_benchmark",
+      "sha256": "ffc3875802e954ed724b5500a19cefaa4c05cf9bf498e304076c693483154a96"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/manifest.json": {
+      "bytes": 438,
+      "role": "provenance_or_benchmark",
+      "sha256": "deda2628af86b5869e367e249eeb5ce82d30de964c11a6ce6e3692408d86dd8b"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/review_events.jsonl": {
+      "bytes": 33400,
+      "role": "provenance_or_benchmark",
+      "sha256": "9adec603f6313c6b31e214d0330f940d8cc25c1529824fbebab598d8e9f511da"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/validation-report.json": {
+      "bytes": 309,
+      "role": "provenance_or_benchmark",
+      "sha256": "98939a2e79eba0e13a053a19d3fac2f94e37b2825b1ba37d2093deee24edcfb9"
+    },
+    "docs/planning/kaggle-b12-runbook-2026-10-16.md": {
+      "bytes": 9739,
+      "role": "source",
+      "sha256": "eefcdba8b3764d8143c6d2273bcc23bcef7b05fc8e61828b43304caf2bb6d2b5"
+    },
+    "notebooks/14_kaggle_b12.ipynb": {
+      "bytes": 6892,
+      "role": "source",
+      "sha256": "0447a7f3e0ce2400111ff7942f08ac995cdca398c88c7a59f9a5dd7e9d1f9c45"
+    },
+    "pyproject.toml": {
+      "bytes": 1304,
+      "role": "source",
+      "sha256": "2e68ce9b8b30b1cd92c52907370938f20fecc64280d6dfa360cd44493147825f"
+    },
+    "scripts/17_small_llm_baselines.py": {
+      "bytes": 192,
+      "role": "source",
+      "sha256": "85cd5f3814672739f5475d994dcebd47386e8f21f249957f1adf682f376591b2"
+    },
+    "scripts/22_vietnamese_testset_workflow.py": {
+      "bytes": 17056,
+      "role": "source",
+      "sha256": "3e28ece003fafd280d78d3c5b0c24b5ce603dc8a62aed46ffc4167fbbf018dd3"
+    },
+    "scripts/25_kaggle_b12.py": {
+      "bytes": 266,
+      "role": "source",
+      "sha256": "ddaa4f670bbeb08aad2513d84b798741ded2b1ef772743ced701788239009028"
+    },
+    "scripts/small_llm_baselines_workflow.py": {
+      "bytes": 20034,
+      "role": "source",
+      "sha256": "dff64beb01af911a0730726b9ca27d101567b0efaeedd4b2b0ed57164cbed4e9"
+    },
+    "src/nl2sparql/__init__.py": {
+      "bytes": 0,
+      "role": "source",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "src/nl2sparql/baselines/__init__.py": {
+      "bytes": 455,
+      "role": "source",
+      "sha256": "d19806f0192832574c2f232672bca7fde4bbba03d7182e9741198ec9fc84fb78"
+    },
+    "src/nl2sparql/baselines/translation.py": {
+      "bytes": 12998,
+      "role": "source",
+      "sha256": "eab8a1df7d8e1e78cb84efd6d9fc04ee067f61e5eb0eaafd40c024a14c53cb61"
+    },
+    "src/nl2sparql/dataset/__init__.py": {
+      "bytes": 0,
+      "role": "source",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "src/nl2sparql/dataset/bilingual/__init__.py": {
+      "bytes": 394,
+      "role": "source",
+      "sha256": "cc2f9d52c57896b89a4d7669e9d1a1684ac7084c1ac3fae142157a899243a03a"
+    },
+    "src/nl2sparql/dataset/bilingual/assembly.py": {
+      "bytes": 39903,
+      "role": "source",
+      "sha256": "fa1fedc60eaad417477d0279bdbf3b7777d8af12cd0b9b908ccb2e948a670451"
+    },
+    "src/nl2sparql/dataset/bilingual/contracts.py": {
+      "bytes": 10794,
+      "role": "source",
+      "sha256": "b5f3d08f447532f7b5c8c0b07aa1a6c419826c26c08730ce5c80a2dca12bc69a"
+    },
+    "src/nl2sparql/dataset/bilingual/rendering.py": {
+      "bytes": 19731,
+      "role": "source",
+      "sha256": "ae4282d4b2b6a6993e518ed8145d2d0c05e1439640af0c2f89580b3a09d8b7a5"
+    },
+    "src/nl2sparql/dataset/bilingual/templates.json": {
+      "bytes": 129028,
+      "role": "provenance_or_benchmark",
+      "sha256": "9a62ebb166b6e46da7d6970aeddf675ae05a58284242eea7f5625c8fcf88dbd7"
+    },
+    "src/nl2sparql/dataset/generate.py": {
+      "bytes": 13233,
+      "role": "source",
+      "sha256": "6fe7f37f4da567d15678c1bfb126b4ab7bca2d91e1f767811024dea23dfb9da7"
+    },
+    "src/nl2sparql/dataset/noise/__init__.py": {
+      "bytes": 1031,
+      "role": "source",
+      "sha256": "f614a581bbbdd7706dfee898609de26d8414592432b78981d9fae178bb1e1356"
+    },
+    "src/nl2sparql/dataset/noise/abbreviations.json": {
+      "bytes": 472,
+      "role": "source",
+      "sha256": "34bb2e023ba993cc04ae67484a389add3f4c0c01fd26952b37d44786d716f742"
+    },
+    "src/nl2sparql/dataset/noise/artifacts.py": {
+      "bytes": 14822,
+      "role": "source",
+      "sha256": "3adb2c0e28f0f736ce4d1c7174cca27b6286d3480e7303803ab9072bbc9a4e78"
+    },
+    "src/nl2sparql/dataset/noise/contracts.py": {
+      "bytes": 1289,
+      "role": "source",
+      "sha256": "cb724cef658f597af9e6b91ae09274e8bbf1d61d8696610ef9387aa72f5b70dc"
+    },
+    "src/nl2sparql/dataset/noise/pipeline.py": {
+      "bytes": 12946,
+      "role": "source",
+      "sha256": "b7bf6a3b569b2a6f3ba11faecdd7850bdd14bb8db979576fc25beb6964be5344"
+    },
+    "src/nl2sparql/dataset/noise/transforms.py": {
+      "bytes": 7235,
+      "role": "source",
+      "sha256": "b40067ee69f3fbabd0d428d21ad8aeaa4d65e5114d896dca934413af501846f6"
+    },
+    "src/nl2sparql/dataset/paraphrase/__init__.py": {
+      "bytes": 492,
+      "role": "source",
+      "sha256": "abb540c93400cc46e3d3025dbea3c69e5f6ed58f3995b01918d9ace9c23f26c9"
+    },
+    "src/nl2sparql/dataset/paraphrase/quality.py": {
+      "bytes": 4703,
+      "role": "source",
+      "sha256": "c09dca254e8a4ce2856510197d302e22c9f70692ca98873de56a8feb3123ac6d"
+    },
+    "src/nl2sparql/dataset/stage_a/__init__.py": {
+      "bytes": 1772,
+      "role": "source",
+      "sha256": "5b4566cd6329238252958b60cef500a7f3daef7c51337c15c5535d777f92317d"
+    },
+    "src/nl2sparql/dataset/stage_a/account_pairs.py": {
+      "bytes": 11722,
+      "role": "source",
+      "sha256": "d0006113ba89f45a365fde45f727e0288d11c00ebb1208616dd7cc22964111c0"
+    },
+    "src/nl2sparql/dataset/stage_a/artifacts.py": {
+      "bytes": 8043,
+      "role": "source",
+      "sha256": "34d3d255809419acd3685976d94ca2b3f1eca6aefb50ec91c0f72e65b9cc0604"
+    },
+    "src/nl2sparql/dataset/stage_a/beneficiaries.py": {
+      "bytes": 5060,
+      "role": "source",
+      "sha256": "b07fbcf68ceb76ad2e7438eec18c6d31f0f93c6301f52f336af6602532fae62d"
+    },
+    "src/nl2sparql/dataset/stage_a/diagnostics.py": {
+      "bytes": 19801,
+      "role": "source",
+      "sha256": "e96706e3e2f9a092e0640d09175c14dab39645a87c424d43fe48316eb45f44b3"
+    },
+    "src/nl2sparql/dataset/stage_a/evidence.py": {
+      "bytes": 4502,
+      "role": "source",
+      "sha256": "f0212a0cdf1135cd771e79f8b5c03d88509196c5d18e3f82db51e673dcd4baff"
+    },
+    "src/nl2sparql/dataset/stage_a/planning.py": {
+      "bytes": 10687,
+      "role": "source",
+      "sha256": "160b278ec6613f1421290871488c44ae93711774797f07fc329f86c7c0fe69cb"
+    },
+    "src/nl2sparql/dataset/stage_a/v2_artifacts.py": {
+      "bytes": 38214,
+      "role": "source",
+      "sha256": "e985f09d97c4d8a1ef4c2b5be487377c19c895ac1b89d71cf973d6cc51ba3f24"
+    },
+    "src/nl2sparql/dataset/stage_a/value_pools.json": {
+      "bytes": 1446,
+      "role": "source",
+      "sha256": "697d1618bbdd813b0ae0a8615dabb306e65d32c479dd0611ad5b6b5997cae1dc"
+    },
+    "src/nl2sparql/dataset/stage_a/verify.py": {
+      "bytes": 18393,
+      "role": "source",
+      "sha256": "a2ad1553c59266dca647a5cef71fdb09a35043f483efd60115159749b078a889"
+    },
+    "src/nl2sparql/dataset/stage_a_v2.py": {
+      "bytes": 13761,
+      "role": "source",
+      "sha256": "cf48a6a8d03d6a55850940636587cfc867e4d28f8d099c321e03fe773757bcc4"
+    },
+    "src/nl2sparql/dataset/templates/__init__.py": {
+      "bytes": 849,
+      "role": "source",
+      "sha256": "7ddf9cc400da170636f9108d859f3a910c9208760f4bceda3e4c6c66659f1027"
+    },
+    "src/nl2sparql/dataset/templates/templates.json": {
+      "bytes": 39621,
+      "role": "source",
+      "sha256": "6f4393d9a118942a82c976f04c37ec1c51a3056a662ffd915d6db637c41ae8f9"
+    },
+    "src/nl2sparql/dataset/templates/validate.py": {
+      "bytes": 19348,
+      "role": "source",
+      "sha256": "79997f8d7b287ae381859ae42bfc3b9a134dbe5f36eea0e74fa25fa62f3a67e6"
+    },
+    "src/nl2sparql/dataset/testset/__init__.py": {
+      "bytes": 1383,
+      "role": "source",
+      "sha256": "ce1e90a4941c09f1fca164d690bad6d1d8d72f61838998f0807428b7000ad86c"
+    },
+    "src/nl2sparql/dataset/testset/artifacts.py": {
+      "bytes": 13896,
+      "role": "source",
+      "sha256": "c877aee3f45e65320e526a35280ff45ef25944cc5615a67c664031779f812a16"
+    },
+    "src/nl2sparql/dataset/testset/contracts.py": {
+      "bytes": 9718,
+      "role": "source",
+      "sha256": "69b1305750db0b8ef2c76b112957e7d88747420ff33b1bbb0990113c3b03ce4c"
+    },
+    "src/nl2sparql/dataset/testset/live.py": {
+      "bytes": 10602,
+      "role": "source",
+      "sha256": "0f462a16ba02bd146cf72d7b0113949698c29be551271f2d6610531b0aeab314"
+    },
+    "src/nl2sparql/dataset/testset/paired.py": {
+      "bytes": 26620,
+      "role": "source",
+      "sha256": "c1ebb3d16ea6880d3d8fe3aab39f2f16a38a6186c319a0e5e27884988bfe572f"
+    },
+    "src/nl2sparql/dataset/testset/reviewed_artifacts.py": {
+      "bytes": 19246,
+      "role": "source",
+      "sha256": "e57606302f7d03a73b8c1db7950116cf7ad14be718bb3d7cbcf1bd9bafa3d405"
+    },
+    "src/nl2sparql/dataset/testset/reviewed_contracts.py": {
+      "bytes": 12882,
+      "role": "source",
+      "sha256": "766caf26839883f0a95ff8201b07633debc8bb071265b73d6ac2f1e08ead72eb"
+    },
+    "src/nl2sparql/dataset/testset/reviewed_validate.py": {
+      "bytes": 26032,
+      "role": "source",
+      "sha256": "6fed1a3f1de0782d97b8461b6845d2b3582369c4d9e4ba22d8da399242aa92a5"
+    },
+    "src/nl2sparql/dataset/testset/sql_safety.py": {
+      "bytes": 4473,
+      "role": "source",
+      "sha256": "69a6d45fb9641d476c26b75f75cd62e038dbe704101a95b90d59d20b25205ae9"
+    },
+    "src/nl2sparql/dataset/testset/validate.py": {
+      "bytes": 13687,
+      "role": "source",
+      "sha256": "8a98a7a1b18e1683255c3b4288720906572dcb11bd69e922e56af2e8e9ce7842"
+    },
+    "src/nl2sparql/decoding/__init__.py": {
+      "bytes": 0,
+      "role": "source",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "src/nl2sparql/demo/__init__.py": {
+      "bytes": 0,
+      "role": "source",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "src/nl2sparql/evaluation/__init__.py": {
+      "bytes": 1157,
+      "role": "source",
+      "sha256": "926c93efcfb2ebaf57c8b76dc6f0bfb75880cee4582610537b5387dbb0ac1ff9"
+    },
+    "src/nl2sparql/evaluation/adapters/__init__.py": {
+      "bytes": 310,
+      "role": "source",
+      "sha256": "ac599e3239e7f24dd40a36b83488af321b0c37f4edf718b0e37aa3779035aa79"
+    },
+    "src/nl2sparql/evaluation/adapters/b0.py": {
+      "bytes": 8246,
+      "role": "source",
+      "sha256": "bc450a661db42bb411d13122298c79bb69e9150b1bc3921af4fcc59187fda1c0"
+    },
+    "src/nl2sparql/evaluation/adapters/b12.py": {
+      "bytes": 15656,
+      "role": "source",
+      "sha256": "02a485b52e2941283f5c992ae06ee3aa652835b64ba08f2a123d46e3ce13a8c8"
+    },
+    "src/nl2sparql/evaluation/adapters/common.py": {
+      "bytes": 3823,
+      "role": "source",
+      "sha256": "e8b9c8f41f4ead12f29a9e2b76ab332b61b8ce0d19f763fe5d6a94c31427bd9e"
+    },
+    "src/nl2sparql/evaluation/artifacts.py": {
+      "bytes": 31788,
+      "role": "source",
+      "sha256": "483306230e9b5cc9326de7512ee0f7cf0d7bf7e6014906d0cf8c6662d8f5ac40"
+    },
+    "src/nl2sparql/evaluation/bigquery.py": {
+      "bytes": 11733,
+      "role": "source",
+      "sha256": "626ab856962bf22319ba264d5a42b6f317a137c68eb4163f3bf64320daf82fca"
+    },
+    "src/nl2sparql/evaluation/bilingual.py": {
+      "bytes": 12580,
+      "role": "source",
+      "sha256": "5e4f14983c50f82a9d841048dcf132f7ad970d93275d2b0a3ea5e8d18610108f"
+    },
+    "src/nl2sparql/evaluation/cli.py": {
+      "bytes": 16919,
+      "role": "source",
+      "sha256": "c74a0a8deeed75778321927a0b5ebabf3d2491b70e1fb6b4ab2028279d943007"
+    },
+    "src/nl2sparql/evaluation/contracts.py": {
+      "bytes": 48323,
+      "role": "source",
+      "sha256": "25f052ded4fccb87b7095d37feb3ea844a306bd0b903b188665c46225d3c342d"
+    },
+    "src/nl2sparql/evaluation/execution.py": {
+      "bytes": 15194,
+      "role": "source",
+      "sha256": "e1f5f710320c14f317b9513dee985ddecd785753b870a2054cb191e08b603c17"
+    },
+    "src/nl2sparql/evaluation/executor.py": {
+      "bytes": 5554,
+      "role": "source",
+      "sha256": "51e2b556f7c824b7430ff13f88a7a5645375a72d1493a947baa4289ffde70552"
+    },
+    "src/nl2sparql/evaluation/failures.py": {
+      "bytes": 5877,
+      "role": "source",
+      "sha256": "15163ca70b706510ba11446721dfe977f04c1486b5cb9f9b4358940b4202c59c"
+    },
+    "src/nl2sparql/evaluation/metrics.py": {
+      "bytes": 8096,
+      "role": "source",
+      "sha256": "1b80e174ca127923e56817fcb6a1c1017096bb6dd1c9ca4f794b7c36d990b108"
+    },
+    "src/nl2sparql/evaluation/reporting.py": {
+      "bytes": 24287,
+      "role": "source",
+      "sha256": "7bef60ecc6629539dd489f95ab5fd79a67921de336de9dcac0c9a7c0797c15c3"
+    },
+    "src/nl2sparql/evaluation/result_semantics.py": {
+      "bytes": 8982,
+      "role": "source",
+      "sha256": "d5beca46730d13a854eca1a87eab3badfefe382bac259da9d742e8bfe15e17d8"
+    },
+    "src/nl2sparql/evaluation/sql_semantics.py": {
+      "bytes": 6376,
+      "role": "source",
+      "sha256": "25e40160e1bcbbd0bd3f192e998557bb250a8ee06b17050ba2d4b080097f83d9"
+    },
+    "src/nl2sparql/kaggle/__init__.py": {
+      "bytes": 76,
+      "role": "source",
+      "sha256": "37f4f614837380f4fe6c7bed2e099ce95ddc749ccfdb685a96df8dd7331f006f"
+    },
+    "src/nl2sparql/kaggle/bundle.py": {
+      "bytes": 9303,
+      "role": "source",
+      "sha256": "077985eee75a25cdf687e4fad074a33bfc81b7ee2692ad4a58958062c381d00a"
+    },
+    "src/nl2sparql/kaggle/runner.py": {
+      "bytes": 15458,
+      "role": "source",
+      "sha256": "56e2e25b9dc93d2f67a65e03908ffeddf03ee44c73df03b3aac00afc81ddb34b"
+    },
+    "src/nl2sparql/kaggle/workflow.py": {
+      "bytes": 3631,
+      "role": "source",
+      "sha256": "ff0013eb8675420c6c47c9f2e3c3ed3156ab1da6a726d293548f3dbcbbd6169e"
+    },
+    "src/nl2sparql/kg/__init__.py": {
+      "bytes": 0,
+      "role": "source",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "src/nl2sparql/kg/extraction/__init__.py": {
+      "bytes": 67,
+      "role": "source",
+      "sha256": "c09c4ae8c59499f55232f3d468de3c7c0e577c4d21723911272c943b48f24543"
+    },
+    "src/nl2sparql/kg/extraction/bigquery_smoke.py": {
+      "bytes": 1591,
+      "role": "source",
+      "sha256": "258d9b095a019fb4f7d58ce4d268fefd0650ce7fd8236dae79ded1f587d8e47d"
+    },
+    "src/nl2sparql/kg/extraction/full_extract.py": {
+      "bytes": 13233,
+      "role": "source",
+      "sha256": "ed99281dfe8b55926157076a3bf120440409440e9413460f3be7d509fdab16f8"
+    },
+    "src/nl2sparql/kg/extraction/full_extract.sql": {
+      "bytes": 1443,
+      "role": "source",
+      "sha256": "54520718310425f16c5e578cb1ce6e2bf18862b6a4ffb587b3d7fc52f88f0da7"
+    },
+    "src/nl2sparql/kg/extraction/pilot_extract.py": {
+      "bytes": 7824,
+      "role": "source",
+      "sha256": "5087c59ad8bef35384e5e46f7eac5d7d8769ac301b9782122d1075fc57870f44"
+    },
+    "src/nl2sparql/kg/extraction/pilot_extract.sql": {
+      "bytes": 952,
+      "role": "source",
+      "sha256": "4918eb63b103213bb42526350bfdd729b2b6a2cc98a1621091e13d284d1a7031"
+    },
+    "src/nl2sparql/kg/ontology/__init__.py": {
+      "bytes": 53,
+      "role": "source",
+      "sha256": "7379fea58ec008cdb9e44cb83440ae3a455c2eebceeecb87562c2f55419c8682"
+    },
+    "src/nl2sparql/kg/ontology/ethon_pilot.py": {
+      "bytes": 6349,
+      "role": "source",
+      "sha256": "3ebd71ae43e830a3181ea4946dbfec2768965ad3810f743fe286e19c72fe3416"
+    },
+    "src/nl2sparql/kg/ontology/fuseki_pilot.py": {
+      "bytes": 8863,
+      "role": "source",
+      "sha256": "1a65e417408561fed4f765e050e90b17ea125b6ab319cf5f26804d2f38279673"
+    },
+    "src/nl2sparql/kg/rml/__init__.py": {
+      "bytes": 47,
+      "role": "source",
+      "sha256": "0c590ce8103d82805f531bdde2d39d7986bac4c28149ff6ca1bfb5bdcbddef86"
+    },
+    "src/nl2sparql/kg/rml/run_morph_full.py": {
+      "bytes": 14458,
+      "role": "source",
+      "sha256": "4b566791b069427ee0a86b2d37b7f06817651037e84464e7f5506962ad39b756"
+    },
+    "src/nl2sparql/kg/rml/run_morph_pilot.py": {
+      "bytes": 3160,
+      "role": "source",
+      "sha256": "176aa035b316b875ae90dc460e796c91bbaf6b06837c9b9dd282a9ddecaeb433"
+    },
+    "src/nl2sparql/kg/validation/run_shacl.py": {
+      "bytes": 6321,
+      "role": "source",
+      "sha256": "6402b9d0b3411aa96ec0e45e00bd48e3b80462f2dbfae18e1193827101c6ffc9"
+    },
+    "src/nl2sparql/language/__init__.py": {
+      "bytes": 362,
+      "role": "source",
+      "sha256": "44357aa2394f4cec813da012ed183f95b58a7a0a576588f1ae11e78b23c19220"
+    },
+    "src/nl2sparql/language/contracts.py": {
+      "bytes": 544,
+      "role": "source",
+      "sha256": "04224c9086e4f51e934634c52ca9ed98460d45ad0c78f4bc93f46ff997e51445"
+    },
+    "src/nl2sparql/language/normalization.py": {
+      "bytes": 1704,
+      "role": "source",
+      "sha256": "a35239f5ed91a7f110ba6a3e279f6b91515c621bdf746d8f2c767a5aff49128b"
+    },
+    "src/nl2sparql/linking/__init__.py": {
+      "bytes": 498,
+      "role": "source",
+      "sha256": "c6df92b8222402e1bab1d00d54a3cd93afd439eae1ed0beb0a1d57dd634e66a7"
+    },
+    "src/nl2sparql/linking/bilingual.py": {
+      "bytes": 4240,
+      "role": "source",
+      "sha256": "0174a418bf06e22f1a889b4d29c44fb5f59fb1a51c1c6dd4094fa64ba9619d40"
+    },
+    "src/nl2sparql/linking/bilingual_aliases.json": {
+      "bytes": 436,
+      "role": "source",
+      "sha256": "b8a55050e3c80675fe830d9619b93e3eaf3ccdfc1f04547e120a12835733afd6"
+    },
+    "src/nl2sparql/linking/cache/entity-index.json": {
+      "bytes": 482312,
+      "role": "source",
+      "sha256": "0575e2222b0d1aebff0bee80cdd338c6dc8a80be38f6094f19cf9bbc05979a31"
+    },
+    "src/nl2sparql/linking/cache/schema-index.json": {
+      "bytes": 31122,
+      "role": "source",
+      "sha256": "7105c53158c8cd553ace796d5c84d7cdb93d2618a60fb5ca08291943de402c3b"
+    },
+    "src/nl2sparql/linking/class_resolver.py": {
+      "bytes": 150,
+      "role": "source",
+      "sha256": "ab66d6a73f2b564f32af6fd2badacd8cf1f85ebe7d5fc987e278fbb84f030994"
+    },
+    "src/nl2sparql/linking/dictionary/__init__.py": {
+      "bytes": 449,
+      "role": "source",
+      "sha256": "82f2d2728f93cd9b1946e55b67fcf73f8eba12745c26d03aaf202bdedbfaeede"
+    },
+    "src/nl2sparql/linking/dictionary/aliases.json": {
+      "bytes": 317049,
+      "role": "source",
+      "sha256": "9a79ba50a29d449903c623729902fdf6461c9a21b02959e8505db710973e4fb6"
+    },
+    "src/nl2sparql/linking/dictionary/build.py": {
+      "bytes": 4785,
+      "role": "source",
+      "sha256": "9e724795fe4390b6b102f9f09ee96b16c888f301ea34915ce943b8dfebc86cc8"
+    },
+    "src/nl2sparql/linking/dictionary/concepts.json": {
+      "bytes": 130246,
+      "role": "source",
+      "sha256": "3f707fa1507d6fa902057f5c6e6172656cc631f0f464c5f768ce7a921b2b4608"
+    },
+    "src/nl2sparql/linking/dictionary/entities.json": {
+      "bytes": 4316828,
+      "role": "source",
+      "sha256": "cdc7856df81f2cce61290ef27a8872477f1b77da998a6aa88ca0ed75cc19617e"
+    },
+    "src/nl2sparql/linking/dictionary/schema.py": {
+      "bytes": 1891,
+      "role": "source",
+      "sha256": "fb729256444b939978490d98fae257fbd2641f0632f0d1416216b8ec8b2a70c6"
+    },
+    "src/nl2sparql/linking/dictionary/validate.py": {
+      "bytes": 9081,
+      "role": "source",
+      "sha256": "71d4058c6edd91f4a998f875d294542ca318eb8785356afe5ad5abc72d18a60d"
+    },
+    "src/nl2sparql/linking/encoder_selection.py": {
+      "bytes": 9472,
+      "role": "source",
+      "sha256": "2d070e7445136772fdbb6d7f4ab0b59a345cb808976c01dbc5f6cb5c8e7ff0bb"
+    },
+    "src/nl2sparql/linking/entity/__init__.py": {
+      "bytes": 1761,
+      "role": "source",
+      "sha256": "1ebfc80c00ffe0f79eda1872205a83e926e765d3f4baaa3b81526d1fe433ddcb"
+    },
+    "src/nl2sparql/linking/entity/contracts.py": {
+      "bytes": 16683,
+      "role": "source",
+      "sha256": "e63a93ee8f220e2a575efe75e3f599d7a0a698517111b991a49d2db17714dcce"
+    },
+    "src/nl2sparql/linking/entity/documents.py": {
+      "bytes": 11012,
+      "role": "source",
+      "sha256": "047a9e5b8d1782ddc3d828dab17dd5d7f3565589405f86bf295f661ef5734882"
+    },
+    "src/nl2sparql/linking/entity/evaluate.py": {
+      "bytes": 23967,
+      "role": "source",
+      "sha256": "201847ebd0663b82c09293c9c34d27856e96081f3980dd2b0e340c47da25441d"
+    },
+    "src/nl2sparql/linking/entity/index.py": {
+      "bytes": 23876,
+      "role": "source",
+      "sha256": "c4a45432d7b3cacfbf25b5e5bb7199c3707b7db76567671391f1897068fd1367"
+    },
+    "src/nl2sparql/linking/entity/linker.py": {
+      "bytes": 22344,
+      "role": "source",
+      "sha256": "8cb7cde1ae3739d08b3c6ec152d950f2fbd2f388972bddae1bc0257ea8380f11"
+    },
+    "src/nl2sparql/linking/entity/stopwords.py": {
+      "bytes": 2930,
+      "role": "source",
+      "sha256": "3ad9713b130fe591131896764ad6b7c836cf2ec7804a8073612919b8dadd921c"
+    },
+    "src/nl2sparql/linking/entity_linker.py": {
+      "bytes": 143,
+      "role": "source",
+      "sha256": "441cc8e72aa2b3e2202635723ab8f74c9f5e07bbbe5d6c5ce44ac6f94d102683"
+    },
+    "src/nl2sparql/linking/resolver/__init__.py": {
+      "bytes": 969,
+      "role": "source",
+      "sha256": "1ee8abfaa0e5f3921e46ef2135cf8a3baa04476502d03e1ea628d35efba9fa68"
+    },
+    "src/nl2sparql/linking/resolver/catalog.py": {
+      "bytes": 8550,
+      "role": "source",
+      "sha256": "c74517487595d6786310e575ee5dc5df2c15226193a7fb2d89f6e309b55c46ba"
+    },
+    "src/nl2sparql/linking/resolver/contracts.py": {
+      "bytes": 9052,
+      "role": "source",
+      "sha256": "ce63025575ac66c260f8c7371cbca92588a3d46b259c767eb8bf1dc2ba02aca4"
+    },
+    "src/nl2sparql/linking/resolver/evaluate.py": {
+      "bytes": 20278,
+      "role": "source",
+      "sha256": "42a4f64fa70835b2fa9ff3557ba4f56fc4eae1f8ef6da15c22fc7bca509b1c6b"
+    },
+    "src/nl2sparql/linking/resolver/resolver.py": {
+      "bytes": 17797,
+      "role": "source",
+      "sha256": "4f68168c42a04d80cb4c21cbc4db2167337923f1bd95e49ad1c2c966f11643f2"
+    },
+    "src/nl2sparql/linking/schema/__init__.py": {
+      "bytes": 1475,
+      "role": "source",
+      "sha256": "f9ec77629fdb4fcf65e514bd6edc1d28f5e8f376f200c5b5dc8fdb88c87da319"
+    },
+    "src/nl2sparql/linking/schema/contracts.py": {
+      "bytes": 3800,
+      "role": "source",
+      "sha256": "4c1ebda62a2973853e57a2c4d2fbda19bd596e00c1dcac5c4ce552bf4ac27322"
+    },
+    "src/nl2sparql/linking/schema/documents.py": {
+      "bytes": 11471,
+      "role": "source",
+      "sha256": "796bba47a7cd37841486067f12c168aab3f570e117e1c200cee36e36224d12d1"
+    },
+    "src/nl2sparql/linking/schema/evaluate.py": {
+      "bytes": 11213,
+      "role": "source",
+      "sha256": "4d4ffcc254824c2396db5108b26c7f101416f4817883dad2df7c226d16f24811"
+    },
+    "src/nl2sparql/linking/schema/index.py": {
+      "bytes": 21886,
+      "role": "source",
+      "sha256": "53e6fcf463aae9d841504db562454cac8814d345e9bae7366131a85ef2ec0eb3"
+    },
+    "src/nl2sparql/linking/schema/linker.py": {
+      "bytes": 9756,
+      "role": "source",
+      "sha256": "3dbbda37bac4b7544633b171642eab3b4ccfaa2283c70790af99b8b58e98fd77"
+    },
+    "src/nl2sparql/linking/schema/synonyms.json": {
+      "bytes": 940,
+      "role": "source",
+      "sha256": "24bf716e536cf8ec155019e1554a7ea5447102aa565967e4f6d142d38561a718"
+    },
+    "src/nl2sparql/linking/schema_linker.py": {
+      "bytes": 208,
+      "role": "source",
+      "sha256": "f4635737f96314e837a913495e966d3cce7bcf005e7746a024fa6ced2fa0d09d"
+    },
+    "src/nl2sparql/models/__init__.py": {
+      "bytes": 0,
+      "role": "source",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "src/nl2sparql/models/b0/__init__.py": {
+      "bytes": 891,
+      "role": "source",
+      "sha256": "9dc4d9d90d85ad44cb9d17fdd4aa923df23b233809e76bb95a5a3ef32426fa9a"
+    },
+    "src/nl2sparql/models/b0/baseline.py": {
+      "bytes": 14376,
+      "role": "source",
+      "sha256": "47cfd9aa6ec8281a62179d1a21f39a18348c58146a1accd9e708ddc4eea357e9"
+    },
+    "src/nl2sparql/models/b0/contracts.py": {
+      "bytes": 6353,
+      "role": "source",
+      "sha256": "88d550a1583cdf469f8009c27d80435b158acd1d10ddbdb9b2e0b328af33f7a6"
+    },
+    "src/nl2sparql/models/b0/evaluate.py": {
+      "bytes": 23714,
+      "role": "source",
+      "sha256": "af9c0a1f91db7f85e217a8d3798ed8666b371d725afd7671e0e485f22f8e8a7c"
+    },
+    "src/nl2sparql/models/b0/slots.py": {
+      "bytes": 13247,
+      "role": "source",
+      "sha256": "2c7ec05c4a889b33a6dd6d14cc6fae52f7cf3ec985a09def9110a7712c47d32d"
+    },
+    "src/nl2sparql/models/b0/templates.py": {
+      "bytes": 5010,
+      "role": "source",
+      "sha256": "450d88a1a1f9fea20be5c6e61cc7b1e4f1355d849151089fd4aa8fb47cdac7cc"
+    },
+    "src/nl2sparql/models/b0_rule_based.py": {
+      "bytes": 371,
+      "role": "source",
+      "sha256": "c9136fd7158dce69eedcb3e6fd38589f2bef0ca7b097dcb393542b0052260d92"
+    },
+    "src/nl2sparql/models/b12/__init__.py": {
+      "bytes": 1493,
+      "role": "source",
+      "sha256": "ac0e259538ab56aa8c78a272388224440273208b2d792b7c7858a734b375b0fb"
+    },
+    "src/nl2sparql/models/b12/backend.py": {
+      "bytes": 544,
+      "role": "source",
+      "sha256": "b74c0b84107510899960a9ae8eaaa597bfaae28c91de0e78bf1374dd2db1495d"
+    },
+    "src/nl2sparql/models/b12/baseline.py": {
+      "bytes": 6511,
+      "role": "source",
+      "sha256": "2c8a220937b10d1fcc785816fc29511033e85766ecad8aa9a8cfd33762b91f4d"
+    },
+    "src/nl2sparql/models/b12/canonical_training.py": {
+      "bytes": 3279,
+      "role": "source",
+      "sha256": "fa507f1fb44803c1af53a316463c4e3f9df66bb5174844ba95d86280f2a16455"
+    },
+    "src/nl2sparql/models/b12/catalog_summary.py": {
+      "bytes": 5543,
+      "role": "source",
+      "sha256": "3422b4e8bbd694d639cb1df075fbd2a80dc4fbf2655084de17dd6911b97dbe65"
+    },
+    "src/nl2sparql/models/b12/contracts.py": {
+      "bytes": 12387,
+      "role": "source",
+      "sha256": "5b8e00025895051ed909cc8ef14ea318531df2c33e37dc5e3297057ac86ca262"
+    },
+    "src/nl2sparql/models/b12/evaluate.py": {
+      "bytes": 16953,
+      "role": "source",
+      "sha256": "e34ad429879f220f1cd0161890c786289607605ca2f5e8d19e9a1cdcc2dc3cbe"
+    },
+    "src/nl2sparql/models/b12/extraction.py": {
+      "bytes": 1885,
+      "role": "source",
+      "sha256": "831a168dc32eb0c9b764b08cfe724e99ef334b1d4a266d2c1d9b7590f2bd605c"
+    },
+    "src/nl2sparql/models/b12/paired_snapshot.py": {
+      "bytes": 6931,
+      "role": "source",
+      "sha256": "18a6edebffbf047a95d4ae5e5c3e8d9396b7a6fb50626ec1593145a604a26353"
+    },
+    "src/nl2sparql/models/b12/prompts.py": {
+      "bytes": 4114,
+      "role": "source",
+      "sha256": "d1b6211d9603e2a773114282a6f4369f72f01e0a2f9be4f1950ab4fd545e4c81"
+    },
+    "src/nl2sparql/models/b12/retrieval.py": {
+      "bytes": 22578,
+      "role": "source",
+      "sha256": "212b62d29b751fe6adbf53ffd6a6af18b6b3693eb4bd251a08a048a8ce516d2a"
+    },
+    "src/nl2sparql/models/b12/transformers_backend.py": {
+      "bytes": 6296,
+      "role": "source",
+      "sha256": "1f0a5c77708b160592b246e3a0a9a8793fddf267e9b0f33b4e42a1eaf54a1e3b"
+    },
+    "src/nl2sparql/models/b1_zero_shot.py": {
+      "bytes": 175,
+      "role": "source",
+      "sha256": "97a05ce9c54f35802ca95dceff265297354e1a956a7c8def3ecf2ef0a9c240c4"
+    },
+    "src/nl2sparql/models/b2_few_shot.py": {
+      "bytes": 174,
+      "role": "source",
+      "sha256": "bcc1b799148f1af63662cd4f9f58b54fe8b506ebfa5f25c2b593bc54a921e582"
+    },
+    "src/nl2sparql/sql/__init__.py": {
+      "bytes": 1845,
+      "role": "source",
+      "sha256": "255f88786d8024a975f6e66ba38bc2b47714e1a1b9a9a4d664a3342bab8f7a8d"
+    },
+    "src/nl2sparql/sql/benchmark.py": {
+      "bytes": 12312,
+      "role": "source",
+      "sha256": "081e3fb7566cde9871908b0ba1516dcf1400df940faa39ad8473e6876fc4fd70"
+    },
+    "src/nl2sparql/sql/catalog/ethereum_analytics.json": {
+      "bytes": 37411,
+      "role": "provenance_or_benchmark",
+      "sha256": "db8393aa7258d1331387eff9825e22ca729daf93234419f00d7dd538196cb3dd"
+    },
+    "src/nl2sparql/sql/catalog/ethereum_analytics_stage_a_v2.json": {
+      "bytes": 57867,
+      "role": "source",
+      "sha256": "2c800d4c1af74f24aed73bcb7881f1cd514ab068fecdb301d6c478fd3ce34fa0"
+    },
+    "src/nl2sparql/sql/catalog/ethereum_analytics_stage_a_v2_1_2.json": {
+      "bytes": 58991,
+      "role": "source",
+      "sha256": "37101b56dbb7fb0ad135b73f2aafdf66e44a9a2c00ab0963ad45569969f057f5"
+    },
+    "src/nl2sparql/sql/constants.py": {
+      "bytes": 69,
+      "role": "source",
+      "sha256": "85c0985c5a501026dc0ed986700e3429d8e91408d34909dc2319b8bda2df384c"
+    },
+    "src/nl2sparql/sql/label_layer.py": {
+      "bytes": 29668,
+      "role": "source",
+      "sha256": "b2bf6cb7281a4d914aadd849ac39fa592c7566658b4bfeeb9d371b7d65a839b9"
+    },
+    "src/nl2sparql/sql/schema.py": {
+      "bytes": 32952,
+      "role": "source",
+      "sha256": "50a6929d26665dc1a27308564e041bacb5b0de7a3a3ab96696eaab4890d4c937"
+    },
+    "src/nl2sparql/validation/__init__.py": {
+      "bytes": 0,
+      "role": "source",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "uv.lock": {
+      "bytes": 365086,
+      "role": "source",
+      "sha256": "a7137c347e16fb158cf6f445da396d9d824fda3eee611086d8a992ca6f9303a0"
+    }
+  },
+  "schema_version": 1,
+  "training_sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835",
+  "vietnamese_execution": "typed_paired_finalized_consumer"
+}

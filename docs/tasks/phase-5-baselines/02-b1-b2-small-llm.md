@@ -189,12 +189,19 @@ Execution cần explicit real opt-in + T4; giữ native CLI17, ba process runs/b
 config/hardware/packages/output hashes, timeout/interrupt/error evidence, không
 overwrite và không tự upgrade scientific readiness.
 
-**Consumer gap:** CLI17 `load_evaluation_cases` hiện yêu cầu English schema `nl`
-và reviewed T3.5 profile. Final VI dùng paired schema `question`/pair lineage.
-Runner hiện chỉ execute English, bundle/validate VI nhưng từ chối language=vi.
-Cần task typed VI consumer/evaluator riêng trước bilingual inference; không
-rename trường, tự set trusted flags hoặc tune prompt/retrieval để vượt gap này.
-Baseline code/contract và existing accuracy tests không đổi trong task packaging.
+**Typed Vietnamese consumer — implemented offline (2026-10-16):**
+`models/b12/paired_snapshot.py` pins finalized source files, rebuilds the 100
+human-reviewed cases, compares the complete final manifest and exact reused
+English live evidence, then supplies typed `PairedCaseSource` to EvaluationCase.
+CLI17 `--language vi --benchmark-root <root>` preserves the complete original
+paired row and source hashes in predictions/logs. EN retains its trusted loader.
+CLI25 selects one language per config, with three process runs per baseline per
+language (12 total for EN+VI), isolated run IDs/cache/output paths and N=100 per
+language. Notebook `LANGUAGE` is explicit; inference remains disabled by default.
+No baseline/model/prompt/retrieval/training change or new BigQuery execution.
+Native T5.4 adaptation revalidates VI authority and lineage, and binds ordered
+per-case prompt hashes (complete prompts legitimately differ across questions).
+[Implementation and fresh evidence](../../research/b12-bilingual-consumer-2026-10-16.md).
 
 ### Pending external/scientific acceptance
 

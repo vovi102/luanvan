@@ -26,6 +26,8 @@ from nl2sparql.models.b12 import (
     load_evaluation_cases,
     validate_question,
 )
+from nl2sparql.models.b12.evaluate import validate_run_id
+from nl2sparql.models.b12.paired_snapshot import ROOT, source_paths
 from nl2sparql.sql.schema import CATALOG_PATH
 
 DEFAULT_TEST_SET = Path("data/eval/test-100.jsonl")
@@ -142,6 +144,27 @@ def _validate_publication_paths(
                 )
 
 
+def _validate_existing_run(
+    outputs: tuple[Path, ...], run_id: str, language: str, baseline: str
+) -> None:
+    for path in outputs:
+        payload = _existing_bytes(path)
+        if payload is None:
+            continue
+        try:
+            row = json.loads(payload.splitlines()[0])
+        except (ValueError, IndexError):
+            raise SmallLLMError("unable to publish over unknown existing output") from None
+        if not isinstance(row, dict) or (row.get("run_id"), row.get("language", "en")) != (
+            run_id,
+            language,
+        ):
+            raise SmallLLMError("unable to publish over different run/language output")
+        observed_baseline = row.get("baseline") or row.get("prediction", {}).get("baseline")
+        if observed_baseline != baseline:
+            raise SmallLLMError("unable to publish over different baseline output")
+
+
 def _prediction_rows(run: EvaluationRun) -> list[dict[str, Any]]:
     return [
         {
@@ -160,6 +183,8 @@ def _log_rows(run: EvaluationRun) -> list[dict[str, Any]]:
         {
             "run_id": run.run_id,
             "baseline": run.baseline,
+            "language": run.language,
+            "paired_source": asdict(row.paired_source) if row.paired_source else None,
             "seed": run.seed,
             "generated_at_utc": run.generated_at_utc,
             "input_sha256": run.input_sha256,
@@ -170,6 +195,7 @@ def _log_rows(run: EvaluationRun) -> list[dict[str, Any]]:
             "extraction_status": row.prediction.extraction_status,
             "synthetic_backend": row.prediction.completion.synthetic_backend,
             "selected_examples_sha256": row.prediction.selected_examples_sha256,
+            "prompt_sha256": row.prediction.prompt_sha256,
         }
         for row in run.predictions
     ]
@@ -190,15 +216,28 @@ def publish_evaluation_run(
     if any(not isinstance(path, Path) for path in (*outputs, *protected_paths)):
         raise SmallLLMError("artifact paths must be pathlib.Path values")
     _validate_publication_paths(outputs, protected_paths)
+    _validate_existing_run(outputs, run.run_id, run.language, run.baseline)
     previous = {path: _existing_bytes(path) for path in outputs}
     prediction_payload = b"".join(_canonical_json(row) for row in _prediction_rows(run))
     log_payload = b"".join(_canonical_json(row) for row in _log_rows(run))
     report_body = {
         "run_id": run.run_id,
         "baseline": run.baseline,
+        "language": run.language,
         "seed": run.seed,
         "generated_at_utc": run.generated_at_utc,
         "input_sha256": run.input_sha256,
+        "paired_source_sha256s": (
+            run.predictions[0].paired_source.source_sha256s
+            if run.predictions[0].paired_source
+            else None
+        ),
+        "gold_evidence_mode": (
+            run.predictions[0].paired_source.evidence_mode
+            if run.predictions[0].paired_source
+            else None
+        ),
+        "prompt_sha256s": [row.prediction.prompt_sha256 for row in run.predictions],
         "selected_examples_sha256": [
             row.prediction.selected_examples_sha256 for row in run.predictions
         ],
@@ -370,6 +409,8 @@ def predict_command(
 @cli.command("evaluate")
 @click.option("--baseline", "baseline_name", type=click.Choice(["b1", "b2"]), required=True)
 @click.option("--test-set", type=click.Path(path_type=Path), default=DEFAULT_TEST_SET)
+@click.option("--language", type=click.Choice(["en", "vi"]), default="en", show_default=True)
+@click.option("--benchmark-root", type=click.Path(path_type=Path), default=ROOT)
 @click.option("--model-revision", required=True)
 @click.option("--run-id", required=True)
 @click.option("--catalog", "catalog_path", type=click.Path(path_type=Path), default=CATALOG_PATH)
@@ -389,6 +430,8 @@ def predict_command(
 def evaluate_command(
     baseline_name: str,
     test_set: Path,
+    language: str,
+    benchmark_root: Path,
     model_revision: str,
     run_id: str,
     catalog_path: Path,
@@ -405,12 +448,21 @@ def evaluate_command(
     real_inference: bool,
 ) -> None:
     """Run an explicitly authorized evaluation and publish atomic evidence."""
+    try:
+        validate_run_id(run_id)
+    except SmallLLMError as exc:
+        _stop("failed", str(exc))
+    if language == "vi":
+        folder = Path("data/eval/b12") / language / baseline_name / run_id
+        predictions_path = predictions_path or folder / "predictions.jsonl"
+        log_path = log_path or folder / "native-log.jsonl"
+        report_path = report_path or folder / "native-report.json"
     predictions_path = predictions_path or (
         DEFAULT_B1_PREDICTIONS if baseline_name == "b1" else DEFAULT_B2_PREDICTIONS
     )
     log_path = log_path or (DEFAULT_B1_LOG if baseline_name == "b1" else DEFAULT_B2_LOG)
     report_path = report_path or (DEFAULT_B1_REPORT if baseline_name == "b1" else DEFAULT_B2_REPORT)
-    protected = [test_set, catalog_path]
+    protected = [test_set, catalog_path, *source_paths(benchmark_root)]
     if baseline_name == "b2":
         protected.extend(
             [
@@ -423,7 +475,10 @@ def evaluate_command(
     try:
         _validate_publication_paths((predictions_path, log_path, report_path), tuple(protected))
         config = GenerationConfig(model_revision)
-        cases = load_evaluation_cases(test_set)
+        _validate_existing_run(
+            (predictions_path, log_path, report_path), run_id, language, baseline_name
+        )
+        cases = load_evaluation_cases(test_set, language=language, source_root=benchmark_root)
     except SmallLLMError as exc:
         _stop("failed", str(exc))
     if not real_inference:

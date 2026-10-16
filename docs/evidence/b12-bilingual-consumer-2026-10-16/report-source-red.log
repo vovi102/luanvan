@@ -1,0 +1,25 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_vi_report_carries_reused_evidence_source_binding _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-25/test_vi_report_carries_reused_0')
+
+    def test_vi_report_carries_reused_evidence_source_binding(tmp_path):
+        from scripts.small_llm_baselines_workflow import publish_evaluation_run
+
+        cases = load_evaluation_cases(VI, language="vi")
+        run = evaluate_baseline(cases, baseline(), run_id="report-vi")
+        report = tmp_path / "report.json"
+        publish_evaluation_run(run, predictions_path=tmp_path / "p", log_path=tmp_path / "l",
+                               report_path=report)
+        value = json.loads(report.read_bytes())
+>       assert value["paired_source_sha256s"] == json.loads(json.dumps(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            cases[0].paired_source.source_sha256s
+        ))
+E       KeyError: 'paired_source_sha256s'
+
+tests/unit/test_b12_vietnamese.py:241: KeyError
+=========================== short test summary info ============================
+FAILED tests/unit/test_b12_vietnamese.py::test_vi_report_carries_reused_evidence_source_binding
+1 failed in 2.41s

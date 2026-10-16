@@ -1,0 +1,24 @@
+Usage: 17_small_llm_baselines.py evaluate [OPTIONS]
+
+  Run an explicitly authorized evaluation and publish atomic evidence.
+
+Options:
+  --baseline [b1|b2]              [required]
+  --test-set PATH
+  --language [en|vi]              [default: en]
+  --benchmark-root PATH
+  --model-revision TEXT           [required]
+  --run-id TEXT                   [required]
+  --catalog PATH
+  --training PATH
+  --cache PATH
+  --encoder-id TEXT
+  --encoder-revision TEXT
+  --accepted-training-sha256 TEXT
+  --predictions PATH
+  --log PATH
+  --report PATH
+  --reviewed
+  --live-verified
+  --real-inference
+  --help                          Show this message and exit.
