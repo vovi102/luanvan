@@ -8,12 +8,18 @@ manifest và genuine live evidence cùng thư mục. 120 English candidates đã
 Không mở lại vòng review 120 English candidates. B0 genuine evaluation đã hoàn
 tất, 0/100; giữ negative finding, không tune trên benchmark.
 
-**Vietnamese còn pending**: 100 paired candidates tại
-`data/review_drafts/t3_5_vi_candidate_set_2026-10-07/`, hiện **0 human review
-events**. `validate-draft` hiện xác nhận `paired_draft_valid`, không phải human
-acceptance. [Review pack 10 × 10](../../../data/review_packs/t3_5_vi_2026-10-16/README.md)
-giữ nguyên IDs, SQL, candidate file/row hashes và source snapshot. Phiếu hoàn
-toàn trống decision/score/reviewer; chỉ hỗ trợ user review, không finalized.
+**Vietnamese đã finalized**: user xác nhận ACCEPT toàn bộ 100 paired candidates
+và điểm chung **5/5/5/1** (naturalness/SQL faithfulness/terminology/ambiguity).
+Đã append 100 events, round 1, `reviewer_role=user`; không sửa candidate gốc.
+`test-100-vi.jsonl`, `manifest-vi.json`, `live-evidence-vi.json` đã publish bằng
+CLI hiện có. `validate-final` pass; live evidence reuse exact English SQL/result
+contracts, giữ original job IDs/timestamp, zero new BigQuery jobs. Đây là user
+bulk confirmation trong chat, không phải 100 nhận xét riêng được agent chấm.
+
+[Finalization evidence](../../research/t35-vi-finalization-2026-10-16.md).
+[Review pack 10 × 10](../../../data/review_packs/t3_5_vi_2026-10-16/README.md) giữ
+nguyên như snapshot chuẩn bị trước review, lúc đó có 0 human events; không dùng
+các số liệu lịch sử đó làm trạng thái pending hiện tại.
 
 ## Mục tiêu và provenance
 
@@ -30,7 +36,8 @@ acceptance active.
 | --- | --- | --- |
 | English original draft | `data/review_drafts/t3_5_candidate_set_2026-09-27/` | 120 reviewed; selection 100, giữ audit |
 | English final | `data/dataset/test/test-100.jsonl` + `manifest.json` + `live-evidence.json` | Finalized, exact output SHA-256 `5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d` |
-| Vietnamese draft | `data/review_drafts/t3_5_vi_candidate_set_2026-10-07/` | 100 immutable candidates, empty `review_events.jsonl` |
+| Vietnamese source/review | `data/review_drafts/t3_5_vi_candidate_set_2026-10-07/` | 100 immutable candidates; 100 user ACCEPT events |
+| Vietnamese final | `data/dataset/test/test-100-vi.jsonl` + `manifest-vi.json` + `live-evidence-vi.json` | Finalized; exact reused English live evidence, no new jobs |
 | Vietnamese review aids | `data/review_packs/t3_5_vi_2026-10-16/` | 10 batches of 10, bound to candidate file SHA-256 `ffc3875802e954ed724b5500a19cefaa4c05cf9bf498e304076c693483154a96` |
 
 ## Workflow Vietnamese
@@ -65,9 +72,9 @@ vẫn là draft 2026-10-04. Không chạy author-draft/review lại English.
 - [x] Vietnamese 100 candidates hợp lệ, snapshot/English binding.
 - [x] Vietnamese review pack offline, training adapter khóa tại `9adf02c` trước
   khi mở nội dung benchmark để chuẩn bị pack.
-- [ ] User review đủ 100 Vietnamese pairs; resolve REVISE/REJECT theo policy.
-- [ ] Apply review, validate exact final paired/live-evidence binding và khóa
-  immutable Vietnamese snapshot. Pack không đóng gate này.
+- [x] User ACCEPT đủ 100 Vietnamese pairs, điểm chung 5/5/5/1 được xác nhận rõ; không REVISE/REJECT.
+- [x] Apply review, validate exact final paired/live-evidence binding và khóa
+  immutable Vietnamese snapshot. Gate đóng bằng user events + final artifacts, không bằng pack.
 
 ## Chống leakage và thứ tự thực hiện
 
@@ -77,7 +84,7 @@ hệ thống dựa trên lỗi trước khi primary evaluation được khóa. B
 7.208 train records từ T3.3 qua export đã hash-bind; 792 development records
 không vào retrieval. Giữ canonical, accepted Stage A/catalogue/exclusion index.
 
-Data integration (hoàn tất) + Vietnamese review/finalization → B1/B2 genuine →
+Data integration + Vietnamese review/finalization (đều hoàn tất) → B1/B2 genuine →
 T5.4 comparison → T5.5 quyết định B3. Không thay model hoặc thresholds, không
 mở lại Stage D noise hoặc hosted LLM baselines.
 

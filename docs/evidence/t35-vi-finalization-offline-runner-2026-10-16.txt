@@ -1,0 +1,157 @@
+"""Record explicit user scores and finalize VI offline using unchanged CLI22.
+
+Modes: apply (idempotent recording + CLI publication), verify (read-only bindings).
+Python instrumentation is not an OS sandbox. SDK definitions may import; model,
+connection, subprocess, credential access and BigQuery client creation are blocked.
+"""
+import builtins
+import contextlib
+from dataclasses import asdict
+import fcntl
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import runpy
+import socket
+import subprocess
+import sys
+
+observed={"network_attempts":0,"model_provider_imports":0,"credential_reads":0,"subprocess_attempts":0}
+original_import=builtins.__import__
+provider_modules={"openai","anthropic","transformers","torch","vllm","llama_cpp","huggingface_hub","sentence_transformers"}
+def guarded_import(name,*args,**kwargs):
+    if name.split(".")[0] in provider_modules:
+        observed["model_provider_imports"]+=1
+        raise RuntimeError("Provider/model import blocked during offline build")
+    return original_import(name,*args,**kwargs)
+def blocked_network(*args,**kwargs):
+    observed["network_attempts"]+=1
+    raise RuntimeError("Network access blocked during offline build")
+def blocked_subprocess(*args,**kwargs):
+    observed["subprocess_attempts"]+=1
+    raise RuntimeError("Subprocess access blocked during offline build")
+secret_names={"OPENAI_API_KEY","ANTHROPIC_API_KEY","GOOGLE_APPLICATION_CREDENTIALS",
+    "GOOGLE_API_KEY","GEMINI_API_KEY","HF_TOKEN","HUGGING_FACE_HUB_TOKEN",
+    "AZURE_OPENAI_API_KEY","COHERE_API_KEY"}
+environment_type=type(os.environ)
+original_getitem=environment_type.__getitem__
+def guarded_getitem(self,key):
+    if isinstance(key,str) and key.upper() in secret_names:
+        observed["credential_reads"]+=1
+        raise RuntimeError("Credential access blocked during offline build")
+    return original_getitem(self,key)
+def audit_open(event,args):
+    if event != "open" or not isinstance(args[0], (str,bytes)):
+        return
+    name=os.fsdecode(args[0])
+    if Path(name).name == ".env" or "application_default_credentials" in name or "service-account" in name:
+        observed["credential_reads"]+=1
+        raise RuntimeError("Credential file read blocked")
+sys.addaudithook(audit_open)
+builtins.__import__=guarded_import
+socket.socket.connect=blocked_network
+socket.socket.connect_ex=blocked_network
+socket.create_connection=blocked_network
+class GuardedPopen(subprocess.Popen):
+    def __init__(self,*args,**kwargs):
+        blocked_subprocess(*args,**kwargs)
+subprocess.Popen=GuardedPopen
+environment_type.__getitem__=guarded_getitem
+
+mode = sys.argv[1]
+assert mode in {"apply", "verify"}
+evidence_root = Path("docs/evidence/t35-vi-finalization-2026-10-16")
+draft = Path("data/review_drafts/t3_5_vi_candidate_set_2026-10-07")
+final_root = Path("data/dataset/test")
+sha = lambda blob: hashlib.sha256(blob).hexdigest()
+# Training code/tests/data locked before benchmark exposure remain immutable.
+lock = json.loads(Path("docs/evidence/b2-training-integration-2026-10-16.json").read_bytes())
+protected = {name: value["sha256"] for name, value in lock["artifacts"].items()}
+pack = json.loads(Path("data/review_packs/t3_5_vi_2026-10-16/manifest.json").read_bytes())
+protected.update({str(draft / name): digest for name, digest in pack["source_files"].items()
+                  if name != "review_events.jsonl"})
+previous = json.loads(Path("docs/evidence/offline-data-handoff-2026-10-16.json").read_bytes())
+protected.update(previous["existing_evidence_snapshots"])
+for name, digest in protected.items():
+    assert sha(Path(name).read_bytes()) == digest, name
+assert sha((draft / "candidates.jsonl").read_bytes()) == "ffc3875802e954ed724b5500a19cefaa4c05cf9bf498e304076c693483154a96"
+workflow = runpy.run_path("scripts/22_vietnamese_testset_workflow.py")
+from nl2sparql.dataset.testset.paired import finalize_paired_cases
+from nl2sparql.dataset.testset.contracts import TestSetError
+from nl2sparql.dataset.testset.live import reuse_paired_live_evidence
+
+source, reviewed = workflow["_load_english"](final_root / "test-100.jsonl", final_root / "live-evidence.json")
+candidates = workflow["_load_candidates"](draft / "candidates.jsonl")
+assert len(candidates) == 100
+# Forbid constructing a client even if a future CLI edit tries to do so.
+def blocked_client(*args, **kwargs):
+    observed["bigquery_client_attempts"] += 1
+    raise RuntimeError("BigQuery client creation forbidden during evidence reuse")
+observed["bigquery_client_attempts"] = 0
+workflow["verify_live"].callback.__globals__["create_bigquery_client"] = blocked_client
+
+def cli(arguments):
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        workflow["main"].main(args=arguments, standalone_mode=False)
+    result = output.getvalue().strip()
+    print(json.dumps({"cli": arguments, "result": json.loads(result)}, sort_keys=True))
+
+notes = "User explicitly accepted all 100 Vietnamese candidates in chat and confirmed shared scores 5/5/5/1; events transcribed by Codex."
+events = [{"pair_id": candidate.pair_id, "review_round": 1, "reviewer_role": "user",
+           "decision": "ACCEPT", "naturalness": 5, "sql_faithfulness": 5,
+           "terminology": 5, "ambiguity": 1, "revised_question": "", "notes": notes}
+          for candidate in candidates]
+payload = b"".join((json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n").encode()
+                   for event in events)
+common = ["--candidates", str(draft / "candidates.jsonl")]
+if mode == "apply":
+    cli(["validate-draft", *common])
+    with (draft / "review_events.jsonl").open("a+b") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        handle.seek(0)
+        before = handle.read()
+        if before == b"":
+            try:
+                finalize_paired_cases(source, candidates, ())
+            except TestSetError as exc:
+                assert "100 explicit ACCEPT" in str(exc)
+                print(json.dumps({"negative_before_recording": str(exc)}))
+            else:
+                raise AssertionError("finalizer accepted missing human review")
+            handle.seek(0, 2)
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        else:
+            assert before == payload, "existing review log differs; never replace or invent rounds"
+    cli(["apply-review", *common, "--review-events", str(draft / "review_events.jsonl"),
+         "--output", str(final_root / "test-100-vi.jsonl"),
+         "--manifest", str(final_root / "manifest-vi.json")])
+    cli(["verify-live", "--input", str(final_root / "test-100-vi.jsonl"),
+         "--output", str(final_root / "live-evidence-vi.json")])
+    cli(["validate-final", "--input", str(final_root / "test-100-vi.jsonl"),
+         "--manifest", str(final_root / "manifest-vi.json")])
+assert (draft / "review_events.jsonl").read_bytes() == payload
+loaded = workflow["_load_decisions"](draft / "review_events.jsonl")
+expected = finalize_paired_cases(source, candidates, loaded)
+actual = workflow["_load_final"](final_root / "test-100-vi.jsonl")
+assert actual == expected
+workflow["validate_paired_manifest"](actual, workflow["_manifest"](final_root / "manifest-vi.json"))
+assert all(case.question == candidate.question and case.sql == candidate.sql
+           and case.candidate_sha256 == candidate.sha256
+           for case, candidate in zip(actual, candidates, strict=True))
+reused = reuse_paired_live_evidence(source, actual, reviewed.execution, policy=reviewed.policy)
+assert json.loads((final_root / "live-evidence-vi.json").read_bytes()) == json.loads(json.dumps(asdict(reused)))
+assert reused.generated_at == reviewed.execution.generated_at
+assert [record.job_id for record in reused.records] == [record.job_id for record in reviewed.execution.records]
+for name, digest in protected.items():
+    assert sha(Path(name).read_bytes()) == digest, name
+assert not any(observed.values()), observed
+print(json.dumps({"mode": mode, "status": "valid", "review_events": len(loaded),
+                  "final_records": len(actual), "scores": [5,5,5,1],
+                  "evidence_origin": "reused_exact_English_SQL_and_result_contracts",
+                  "new_bigquery_jobs": 0, "protected_files_unchanged": len(protected),
+                  "offline_guard": observed}, sort_keys=True))

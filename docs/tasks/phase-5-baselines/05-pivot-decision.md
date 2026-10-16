@@ -11,8 +11,8 @@ là NL2SQL; quyết định này không mở lại Plan A.
 - Stage A v2 accepted và T3.3 canonical published `2b652a3` (hoàn tất).
 - T3.3 → B2 train-only integration `9adf02c` (hoàn tất offline): exact accepted
   fingerprint bind 7.208 consumed train records, không 792 development records.
-- English T3.5 finalized (hoàn tất); Vietnamese 100 candidates còn chờ human
-  review/finalization, 0 human events tại checkpoint 2026-10-16.
+- English và Vietnamese T3.5 finalized (hoàn tất); VI có 100 user ACCEPT events
+  điểm 5/5/5/1 và exact reused English live evidence, zero new BigQuery jobs.
 - B1/B2 chạy genuine với model/encoder revision đã pin.
 - T5.4 tạo report canonical trên cùng test snapshot.
 - Linker evaluation và calendar snapshot có bằng chứng.
@@ -49,8 +49,8 @@ là NL2SQL; quyết định này không mở lại Plan A.
 
 ## Trạng thái
 
-Todo; chưa quyết định B3. Thứ tự gate: data integration (đã xong) + Vietnamese
-human review/finalization → genuine B1/B2 → T5.4 comparison → T5.5 decision.
+Todo; chưa quyết định B3. Data integration và Vietnamese human review/finalization
+đã xong. Gate tiếp theo: genuine B1/B2 → T5.4 comparison → T5.5 decision.
 B0 genuine 0/100 đã hoàn tất; B1/B2 local implementation không thay genuine
 Kaggle evidence. Review pack hoặc offline tests không đóng scientific gate.
 Không mở lại Stage D noise hoặc hosted LLM baselines.

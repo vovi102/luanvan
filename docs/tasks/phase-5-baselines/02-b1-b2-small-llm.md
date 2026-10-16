@@ -50,8 +50,8 @@ backend provenance.
 
 English T3.5 đã finalized với human review/live evidence. Stage A v2 accepted và
 T3.3 canonical published tại `2b652a3`; offline data integration T3.3 → B2 đã
-hoàn tất tại `9adf02c`. Vietnamese 100 candidates vẫn chờ human review (0 events),
-chưa finalized. Chưa có genuine B1/B2 Kaggle runs; không dùng fixture để đóng gate.
+hoàn tất tại `9adf02c`. Vietnamese đã finalized với 100 user ACCEPT events (5/5/5/1) và exact
+reused English live evidence; không có new BigQuery jobs. Chưa có genuine B1/B2 Kaggle runs; không dùng fixture để đóng gate.
 
 ## Module và output
 
@@ -178,8 +178,9 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
 
 ### Pending external/scientific acceptance
 
-- [ ] Vietnamese review/finalization 100 pairs và exact live-evidence binding;
-  [review pack](../../../data/review_packs/t3_5_vi_2026-10-16/README.md) chỉ là hỗ trợ.
+- [x] Vietnamese review/finalization 100 pairs và exact live-evidence binding hoàn
+  tất offline sau user confirmation; [finalization report](../../research/t35-vi-finalization-2026-10-16.md).
+  Review pack/historical 0-event evidence giữ nguyên ở trạng thái lúc tạo.
 - [ ] Pinned genuine encoder snapshot/revision và cache, cùng accepted train export.
 - [ ] Pinned Llama 3 8B snapshot chạy đủ B1/B2 trên Kaggle T4, không OOM.
 - [ ] B1 latency `<5 s/query` trên Kaggle T4.
@@ -188,10 +189,9 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
 
 ## Trạng thái
 
-`implementation + offline data integration complete — Vietnamese human review/finalization
-and genuine model/encoder/Kaggle gates pending`
+`implementation + offline data integration + English/Vietnamese benchmark finalization complete — genuine model/encoder/Kaggle gates pending`
 
-Thứ tự: data integration + Vietnamese review → B1/B2 genuine → T5.4 comparison
+Thứ tự: data integration + Vietnamese review/finalization (đã xong) → B1/B2 genuine → T5.4 comparison
 (B0 genuine 0/100 đã có) → T5.5 quyết định B3. Không hosted LLM baselines,
 Stage D noise generation hoặc thay model/acceptance thresholds.
 

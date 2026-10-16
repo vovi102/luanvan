@@ -28,11 +28,11 @@ schema/entity/class linking.
 | Stage A v2 | Accepted: 1.000 records, 25 intents, genuine live evidence | Giữ source/manifest immutable |
 | T3.3 | Canonical published tại `2b652a3`: 8.000 records, 4.000 EN + 4.000 VI, 1.000 families; 7.208 train / 792 development | Hoàn tất; hai build byte-identical, validators pass; giữ failed audit + r1 |
 | T3.4 | Superseded | Không sinh noise dataset riêng |
-| T3.5 | English finalized; Vietnamese 100 candidates, 0 human events | Review pack 10 × 10 đã sẵn sàng; chỉ review VI, không mở lại 120 English candidates |
+| T3.5 | English và Vietnamese finalized; VI có 100 user ACCEPT events, điểm 5/5/5/1 | Giữ snapshots immutable; VI reuse exact English live evidence, zero new BigQuery jobs |
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine negative result hoàn tất (`0/100`) | Giữ làm lower bound, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | Implementation local + data integration hoàn tất; chưa có genuine Kaggle runs | Sau Vietnamese review/finalization, pin model/encoder và chạy genuine |
+| T5.2/B1–B2 | Implementation local + data/benchmark gates hoàn tất; chưa có genuine Kaggle runs | Chuẩn bị runner/bundle Kaggle, pin model/encoder và chạy genuine |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
 | Phase 6–7 | Ticket cũ còn SPARQL | Redesign sang NL2SQL trước khi implement |
@@ -50,11 +50,13 @@ schema/entity/class linking.
    manifest/hash riêng, bind canonical và accepted Stage A/catalogue/exclusion.
    B2 consume export bằng exact accepted-training fingerprint; không đổi semantics
    `style`, không thêm fixture acceptance flag. [Evidence](../research/b2-training-integration-2026-10-16.md).
-3. **Finalize Vietnamese T3.5 — pending human.** User review đủ 100 candidates
-   qua [pack 10 × 10](../../data/review_packs/t3_5_vi_2026-10-16/README.md).
-   Hiện 0 human events; pack không phải finalized benchmark. Sau review, kiểm tra
-   exact binding/live evidence theo policy rồi khóa snapshot. English đã finalized,
-   không review lại 120 candidates. Không dùng wording/gold SQL để tune.
+3. **Vietnamese T3.5 — finalized (2026-10-16).** User xác nhận ACCEPT cả 100
+   candidates với naturalness/SQL faithfulness/terminology/ambiguity = 5/5/5/1.
+   Đã append 100 events vào log gốc; giữ candidate bytes/IDs/SQL. Final JSONL,
+   manifest và exact reused English live evidence đã publish offline, validate pass,
+   zero new BigQuery jobs. [Evidence](../research/t35-vi-finalization-2026-10-16.md).
+   Review pack là snapshot chuẩn bị trước review; các ghi nhận 0 events trong
+   evidence lịch sử giữ nguyên. Không review lại English hoặc tune trên benchmark.
 
 ### P1 — Baseline small LLM và quyết định scope
 
@@ -92,8 +94,8 @@ schema/entity/class linking.
 
 ## Luồng song song
 
-- **Lane A — Evidence:** Stage A/T3.3/data integration đã xong; human review và
-  finalization Vietnamese T3.5 còn pending.
+- **Lane A — Evidence:** Stage A/T3.3/data integration và Vietnamese review/
+  finalization đã xong; giữ các snapshots/hash immutable.
 - **Lane B — Model:** chuẩn bị Kaggle B1/B2 và pin model/encoder; chỉ chạy genuine
   khi artifact đầu vào hợp lệ.
 - **Lane C — Writing:** cập nhật RQ/contributions sang small-LLM-only, viết Plan A
@@ -119,7 +121,8 @@ WIP limit: một task implementation lớn và một external-evidence task đan
 
 ## Công việc kế tiếp
 
-User review Vietnamese theo pack; giữ training adapter/tests đã khóa tại `9adf02c`.
-Thứ tự gate: data integration (đã xong) + Vietnamese review/finalization → B1/B2
-genuine Kaggle → T5.4 comparison B0/B1/B2 → T5.5 quyết định B3. B0 genuine 0/100
-được giữ nguyên; không có genuine B1/B2 evidence ở lượt offline này.
+Chuẩn bị runner/input bundle Kaggle B1/B2, pin model/encoder và môi trường
+thực nghiệm. Stage A/T3.3, train-only B2 integration và English/Vietnamese
+benchmark finalization đã hoàn tất. Genuine B1/B2 Kaggle → T5.4 comparison
+B0/B1/B2 → T5.5 quyết định B3. B0 genuine 0/100 giữ nguyên; chưa có genuine
+B1/B2 inference trong lượt Vietnamese review/finalization offline này.
