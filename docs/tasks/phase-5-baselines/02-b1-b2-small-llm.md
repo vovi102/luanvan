@@ -176,6 +176,26 @@ logs được publish trước, report cuối; failure rollback toàn bộ prior
   không dùng lại historical 1.485-test evidence. Log và handoff tại
   `docs/research/offline-data-handoff-2026-10-16.md`.
 
+### Kaggle runner/bundle preparation — 2026-10-16
+
+CLI25: `scripts/25_kaggle_b12.py`; notebook:
+`notebooks/14_kaggle_b12.ipynb`; [runbook](../../planning/kaggle-b12-runbook-2026-10-16.md).
+Bundle whitelist/hash bảo vệ accepted data, code và provenance; canonical 8.000 rows
+chỉ đi kèm làm source verification, retrieval input vẫn là export 7.208 train rows.
+Data-only preflight gọi actual validators mà không load model/encoder. Runtime
+preflight kiểm tra revisions, exact core package versions và cache files, không
+đánh đồng với model/GPU compatibility. Template để unknown fields `null`, blocked.
+Execution cần explicit real opt-in + T4; giữ native CLI17, ba process runs/baseline,
+config/hardware/packages/output hashes, timeout/interrupt/error evidence, không
+overwrite và không tự upgrade scientific readiness.
+
+**Consumer gap:** CLI17 `load_evaluation_cases` hiện yêu cầu English schema `nl`
+và reviewed T3.5 profile. Final VI dùng paired schema `question`/pair lineage.
+Runner hiện chỉ execute English, bundle/validate VI nhưng từ chối language=vi.
+Cần task typed VI consumer/evaluator riêng trước bilingual inference; không
+rename trường, tự set trusted flags hoặc tune prompt/retrieval để vượt gap này.
+Baseline code/contract và existing accuracy tests không đổi trong task packaging.
+
 ### Pending external/scientific acceptance
 
 - [x] Vietnamese review/finalization 100 pairs và exact live-evidence binding hoàn

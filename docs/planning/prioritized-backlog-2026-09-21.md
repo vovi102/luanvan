@@ -32,7 +32,8 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine negative result hoàn tất (`0/100`) | Giữ làm lower bound, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | Implementation local + data/benchmark gates hoàn tất; chưa có genuine Kaggle runs | Chuẩn bị runner/bundle Kaggle, pin model/encoder và chạy genuine |
+| T5.2/B1–B2 | Local baseline + data/benchmark publication hoàn tất; runner/bundle English chuẩn bị offline | Pin genuine model/encoder/env, GPU smoke và chạy Kaggle; chưa có genuine runs |
+| B1/B2 Vietnamese consumer | CLI17 hiện chỉ load English `nl`, chưa load schema paired VI | Task adapter typed riêng trước bilingual inference; không rename trường/bypass provenance |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
 | Phase 6–7 | Ticket cũ còn SPARQL | Redesign sang NL2SQL trước khi implement |
@@ -60,8 +61,13 @@ schema/entity/class linking.
 
 ### P1 — Baseline small LLM và quyết định scope
 
-4. **B1/B2 genuine run.** Pin exact small-model và encoder revisions, chạy trên
-   Kaggle T4 với cùng catalog, prompt và test snapshot; publish prediction/log/report.
+4. **B1/B2 genuine run.** [Runner/bundle English](kaggle-b12-runbook-2026-10-16.md)
+   đã chuẩn bị offline: input allowlist/hash, deterministic archive, data/runtime
+   preflight, notebook với execution mặc định tắt. Pin model/encoder/env và wall-time
+   cap thật, làm non-test GPU smoke rồi chạy Kaggle T4; publish native artifacts.
+   Ba compatible process runs mỗi baseline cho reproducibility evidence. VI snapshot
+   được bundle/validate nhưng CLI17 chưa consume paired schema; cần adapter typed
+   riêng trước bilingual runs, không ép `question` thành `nl` hoặc bypass trust gate.
 5. **T5.4 comparison vòng 1.** So sánh B0/B1/B2, báo execution accuracy,
    exact/structural match, answer metrics, latency, cost, reproducibility và
    failure modes với CI/bootstrap đã chốt.
@@ -121,8 +127,9 @@ WIP limit: một task implementation lớn và một external-evidence task đan
 
 ## Công việc kế tiếp
 
-Chuẩn bị runner/input bundle Kaggle B1/B2, pin model/encoder và môi trường
-thực nghiệm. Stage A/T3.3, train-only B2 integration và English/Vietnamese
+Runner/input bundle Kaggle English B1/B2 đã chuẩn bị offline. Tiếp theo pin
+model/encoder/env thật, non-test GPU smoke và genuine runs; nếu chạy Vietnamese
+thì hoàn tất typed paired consumer riêng trước. Stage A/T3.3, train-only B2 integration và English/Vietnamese
 benchmark finalization đã hoàn tất. Genuine B1/B2 Kaggle → T5.4 comparison
 B0/B1/B2 → T5.5 quyết định B3. B0 genuine 0/100 giữ nguyên; chưa có genuine
 B1/B2 inference trong lượt Vietnamese review/finalization offline này.

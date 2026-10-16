@@ -1,0 +1,272 @@
+{
+  "code_paths": [
+    "README.md",
+    "configs/kaggle-b12-run.template.json",
+    "docs/planning/kaggle-b12-runbook-2026-10-16.md",
+    "notebooks/14_kaggle_b12.ipynb",
+    "pyproject.toml",
+    "scripts/17_small_llm_baselines.py",
+    "scripts/22_vietnamese_testset_workflow.py",
+    "scripts/25_kaggle_b12.py",
+    "scripts/small_llm_baselines_workflow.py",
+    "src/nl2sparql/__init__.py",
+    "src/nl2sparql/baselines/__init__.py",
+    "src/nl2sparql/baselines/translation.py",
+    "src/nl2sparql/dataset/__init__.py",
+    "src/nl2sparql/dataset/bilingual/__init__.py",
+    "src/nl2sparql/dataset/bilingual/assembly.py",
+    "src/nl2sparql/dataset/bilingual/contracts.py",
+    "src/nl2sparql/dataset/bilingual/rendering.py",
+    "src/nl2sparql/dataset/bilingual/templates.json",
+    "src/nl2sparql/dataset/generate.py",
+    "src/nl2sparql/dataset/noise/__init__.py",
+    "src/nl2sparql/dataset/noise/abbreviations.json",
+    "src/nl2sparql/dataset/noise/artifacts.py",
+    "src/nl2sparql/dataset/noise/contracts.py",
+    "src/nl2sparql/dataset/noise/pipeline.py",
+    "src/nl2sparql/dataset/noise/transforms.py",
+    "src/nl2sparql/dataset/paraphrase/__init__.py",
+    "src/nl2sparql/dataset/paraphrase/quality.py",
+    "src/nl2sparql/dataset/stage_a/__init__.py",
+    "src/nl2sparql/dataset/stage_a/account_pairs.py",
+    "src/nl2sparql/dataset/stage_a/artifacts.py",
+    "src/nl2sparql/dataset/stage_a/beneficiaries.py",
+    "src/nl2sparql/dataset/stage_a/diagnostics.py",
+    "src/nl2sparql/dataset/stage_a/evidence.py",
+    "src/nl2sparql/dataset/stage_a/planning.py",
+    "src/nl2sparql/dataset/stage_a/v2_artifacts.py",
+    "src/nl2sparql/dataset/stage_a/value_pools.json",
+    "src/nl2sparql/dataset/stage_a/verify.py",
+    "src/nl2sparql/dataset/stage_a_v2.py",
+    "src/nl2sparql/dataset/templates/__init__.py",
+    "src/nl2sparql/dataset/templates/templates.json",
+    "src/nl2sparql/dataset/templates/validate.py",
+    "src/nl2sparql/dataset/testset/__init__.py",
+    "src/nl2sparql/dataset/testset/artifacts.py",
+    "src/nl2sparql/dataset/testset/contracts.py",
+    "src/nl2sparql/dataset/testset/live.py",
+    "src/nl2sparql/dataset/testset/paired.py",
+    "src/nl2sparql/dataset/testset/reviewed_artifacts.py",
+    "src/nl2sparql/dataset/testset/reviewed_contracts.py",
+    "src/nl2sparql/dataset/testset/reviewed_validate.py",
+    "src/nl2sparql/dataset/testset/sql_safety.py",
+    "src/nl2sparql/dataset/testset/validate.py",
+    "src/nl2sparql/decoding/__init__.py",
+    "src/nl2sparql/demo/__init__.py",
+    "src/nl2sparql/evaluation/__init__.py",
+    "src/nl2sparql/evaluation/adapters/__init__.py",
+    "src/nl2sparql/evaluation/adapters/b0.py",
+    "src/nl2sparql/evaluation/adapters/b12.py",
+    "src/nl2sparql/evaluation/adapters/common.py",
+    "src/nl2sparql/evaluation/artifacts.py",
+    "src/nl2sparql/evaluation/bigquery.py",
+    "src/nl2sparql/evaluation/bilingual.py",
+    "src/nl2sparql/evaluation/cli.py",
+    "src/nl2sparql/evaluation/contracts.py",
+    "src/nl2sparql/evaluation/execution.py",
+    "src/nl2sparql/evaluation/executor.py",
+    "src/nl2sparql/evaluation/failures.py",
+    "src/nl2sparql/evaluation/metrics.py",
+    "src/nl2sparql/evaluation/reporting.py",
+    "src/nl2sparql/evaluation/result_semantics.py",
+    "src/nl2sparql/evaluation/sql_semantics.py",
+    "src/nl2sparql/kaggle/__init__.py",
+    "src/nl2sparql/kaggle/bundle.py",
+    "src/nl2sparql/kaggle/runner.py",
+    "src/nl2sparql/kaggle/workflow.py",
+    "src/nl2sparql/kg/__init__.py",
+    "src/nl2sparql/kg/extraction/__init__.py",
+    "src/nl2sparql/kg/extraction/bigquery_smoke.py",
+    "src/nl2sparql/kg/extraction/full_extract.py",
+    "src/nl2sparql/kg/extraction/full_extract.sql",
+    "src/nl2sparql/kg/extraction/pilot_extract.py",
+    "src/nl2sparql/kg/extraction/pilot_extract.sql",
+    "src/nl2sparql/kg/ontology/__init__.py",
+    "src/nl2sparql/kg/ontology/ethon_pilot.py",
+    "src/nl2sparql/kg/ontology/fuseki_pilot.py",
+    "src/nl2sparql/kg/rml/__init__.py",
+    "src/nl2sparql/kg/rml/run_morph_full.py",
+    "src/nl2sparql/kg/rml/run_morph_pilot.py",
+    "src/nl2sparql/kg/validation/run_shacl.py",
+    "src/nl2sparql/language/__init__.py",
+    "src/nl2sparql/language/contracts.py",
+    "src/nl2sparql/language/normalization.py",
+    "src/nl2sparql/linking/__init__.py",
+    "src/nl2sparql/linking/bilingual.py",
+    "src/nl2sparql/linking/bilingual_aliases.json",
+    "src/nl2sparql/linking/cache/entity-index.json",
+    "src/nl2sparql/linking/cache/schema-index.json",
+    "src/nl2sparql/linking/class_resolver.py",
+    "src/nl2sparql/linking/dictionary/__init__.py",
+    "src/nl2sparql/linking/dictionary/aliases.json",
+    "src/nl2sparql/linking/dictionary/build.py",
+    "src/nl2sparql/linking/dictionary/concepts.json",
+    "src/nl2sparql/linking/dictionary/entities.json",
+    "src/nl2sparql/linking/dictionary/schema.py",
+    "src/nl2sparql/linking/dictionary/validate.py",
+    "src/nl2sparql/linking/encoder_selection.py",
+    "src/nl2sparql/linking/entity/__init__.py",
+    "src/nl2sparql/linking/entity/contracts.py",
+    "src/nl2sparql/linking/entity/documents.py",
+    "src/nl2sparql/linking/entity/evaluate.py",
+    "src/nl2sparql/linking/entity/index.py",
+    "src/nl2sparql/linking/entity/linker.py",
+    "src/nl2sparql/linking/entity/stopwords.py",
+    "src/nl2sparql/linking/entity_linker.py",
+    "src/nl2sparql/linking/resolver/__init__.py",
+    "src/nl2sparql/linking/resolver/catalog.py",
+    "src/nl2sparql/linking/resolver/contracts.py",
+    "src/nl2sparql/linking/resolver/evaluate.py",
+    "src/nl2sparql/linking/resolver/resolver.py",
+    "src/nl2sparql/linking/schema/__init__.py",
+    "src/nl2sparql/linking/schema/contracts.py",
+    "src/nl2sparql/linking/schema/documents.py",
+    "src/nl2sparql/linking/schema/evaluate.py",
+    "src/nl2sparql/linking/schema/index.py",
+    "src/nl2sparql/linking/schema/linker.py",
+    "src/nl2sparql/linking/schema/synonyms.json",
+    "src/nl2sparql/linking/schema_linker.py",
+    "src/nl2sparql/models/__init__.py",
+    "src/nl2sparql/models/b0/__init__.py",
+    "src/nl2sparql/models/b0/baseline.py",
+    "src/nl2sparql/models/b0/contracts.py",
+    "src/nl2sparql/models/b0/evaluate.py",
+    "src/nl2sparql/models/b0/slots.py",
+    "src/nl2sparql/models/b0/templates.py",
+    "src/nl2sparql/models/b0_rule_based.py",
+    "src/nl2sparql/models/b12/__init__.py",
+    "src/nl2sparql/models/b12/backend.py",
+    "src/nl2sparql/models/b12/baseline.py",
+    "src/nl2sparql/models/b12/canonical_training.py",
+    "src/nl2sparql/models/b12/catalog_summary.py",
+    "src/nl2sparql/models/b12/contracts.py",
+    "src/nl2sparql/models/b12/evaluate.py",
+    "src/nl2sparql/models/b12/extraction.py",
+    "src/nl2sparql/models/b12/prompts.py",
+    "src/nl2sparql/models/b12/retrieval.py",
+    "src/nl2sparql/models/b12/transformers_backend.py",
+    "src/nl2sparql/models/b1_zero_shot.py",
+    "src/nl2sparql/models/b2_few_shot.py",
+    "src/nl2sparql/sql/__init__.py",
+    "src/nl2sparql/sql/benchmark.py",
+    "src/nl2sparql/sql/catalog/ethereum_analytics.json",
+    "src/nl2sparql/sql/catalog/ethereum_analytics_stage_a_v2.json",
+    "src/nl2sparql/sql/catalog/ethereum_analytics_stage_a_v2_1_2.json",
+    "src/nl2sparql/sql/constants.py",
+    "src/nl2sparql/sql/label_layer.py",
+    "src/nl2sparql/sql/schema.py",
+    "src/nl2sparql/validation/__init__.py",
+    "uv.lock"
+  ],
+  "inputs": {
+    "data/dataset/processed/b2-training.jsonl": {
+      "role": "retrieval_train_only",
+      "sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835"
+    },
+    "data/dataset/processed/b2-training.manifest.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "532a6417c1a8ad4c949390cbee1b9f3eeecb4aabaee5247ea47663cd69c36d9d"
+    },
+    "data/dataset/processed/bilingual-training-audit.jsonl": {
+      "role": "provenance_or_benchmark",
+      "sha256": "3d10f0d0e1f3db9e46367e7b924cc8e1232ef33f29361bf26d463dad2a76df62"
+    },
+    "data/dataset/processed/bilingual-training-exclusion-index.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "83d76676a00588703d7136772f956770254a656ad1b4c1fab1dfbcc61e1b91b7"
+    },
+    "data/dataset/processed/bilingual-training-manifest.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "a4db0c4afde877ac93ac1420c68434774ca73c2f3cc1b9b90697491c56547e28"
+    },
+    "data/dataset/processed/bilingual-training.jsonl": {
+      "role": "provenance_or_benchmark",
+      "sha256": "72285871518a14c0a30e09ee31e58bbb06bfb25089465555625ad9fd929f7f55"
+    },
+    "data/dataset/raw/generation-config-v2.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "0dd2234f0c9f16b77288b0deb0e65fc838b210d18f956d728ae39327aa5ad695"
+    },
+    "data/dataset/raw/synthetic-stage-a-v2.jsonl": {
+      "role": "provenance_or_benchmark",
+      "sha256": "15b7cd6144301f040ecef54028929131afab76c45ccf3282011fd68f9ce62203"
+    },
+    "data/dataset/test/live-evidence-vi.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "b0e506b04dd61ab15258d4d85b17f74889bbcfb2e56150c73b0f8e64be9e347c"
+    },
+    "data/dataset/test/live-evidence.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "21cfee8601c7670f23581bb0c6755f306ca41aab2029dd6b50a6d65fab25f969"
+    },
+    "data/dataset/test/manifest-vi.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "3331cb18cd175ce80addef793514f683414917b17640e80e9451d1258cb88672"
+    },
+    "data/dataset/test/manifest.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "719d41ff065a5b720c64b18de5c2f6ae2988d054000158e5a43d045ddf461f17"
+    },
+    "data/dataset/test/test-100-vi.jsonl": {
+      "role": "provenance_or_benchmark",
+      "sha256": "0abf44dca4b9111f4fe10930fca5d7c56961b7ef79a0ac0fe50f8b16cb1ba5eb"
+    },
+    "data/dataset/test/test-100.jsonl": {
+      "role": "provenance_or_benchmark",
+      "sha256": "5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d"
+    },
+    "data/review_drafts/t3_5_candidate_set_2026-09-27/candidates.jsonl": {
+      "role": "provenance_or_benchmark",
+      "sha256": "39b69d3dbfc49edfe33314c272bbefc8fab1f63ab3eba546a8c3fa9536212b50"
+    },
+    "data/review_drafts/t3_5_candidate_set_2026-09-27/final_selection.csv": {
+      "role": "provenance_or_benchmark",
+      "sha256": "adaeab8bbedaebf8f027c493e829a21d6aec27c29a0fa30afb74bc7029c29a00"
+    },
+    "data/review_drafts/t3_5_candidate_set_2026-09-27/review_events.csv": {
+      "role": "provenance_or_benchmark",
+      "sha256": "5e065c404cb50c4524c11e45a2eb3cf60ead5d5b64846e85d5518084f5b7fb77"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/REVIEW_GUIDE.md": {
+      "role": "provenance_or_benchmark",
+      "sha256": "1b4476d0af80bba38d387c13bee0d9f9c2a6e00465114106c9d2e80c0bbe37c9"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/candidates.jsonl": {
+      "role": "provenance_or_benchmark",
+      "sha256": "ffc3875802e954ed724b5500a19cefaa4c05cf9bf498e304076c693483154a96"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/manifest.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "deda2628af86b5869e367e249eeb5ce82d30de964c11a6ce6e3692408d86dd8b"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/review_events.jsonl": {
+      "role": "provenance_or_benchmark",
+      "sha256": "9adec603f6313c6b31e214d0330f940d8cc25c1529824fbebab598d8e9f511da"
+    },
+    "data/review_drafts/t3_5_vi_candidate_set_2026-10-07/validation-report.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "98939a2e79eba0e13a053a19d3fac2f94e37b2825b1ba37d2093deee24edcfb9"
+    },
+    "src/nl2sparql/dataset/bilingual/templates.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "9a62ebb166b6e46da7d6970aeddf675ae05a58284242eea7f5625c8fcf88dbd7"
+    },
+    "src/nl2sparql/sql/catalog/ethereum_analytics.json": {
+      "role": "provenance_or_benchmark",
+      "sha256": "db8393aa7258d1331387eff9825e22ca729daf93234419f00d7dd538196cb3dd"
+    }
+  },
+  "schema_version": 1,
+  "support_paths": [
+    "README.md",
+    "configs/kaggle-b12-run.template.json",
+    "docs/planning/kaggle-b12-runbook-2026-10-16.md",
+    "notebooks/14_kaggle_b12.ipynb",
+    "pyproject.toml",
+    "scripts/17_small_llm_baselines.py",
+    "scripts/22_vietnamese_testset_workflow.py",
+    "scripts/25_kaggle_b12.py",
+    "scripts/small_llm_baselines_workflow.py",
+    "uv.lock"
+  ]
+}

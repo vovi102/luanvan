@@ -1,0 +1,17 @@
+{
+  "batch_size": 1,
+  "campaign_id": null,
+  "do_sample": false,
+  "encoder_id": "sentence-transformers/all-MiniLM-L6-v2",
+  "encoder_revision": null,
+  "hf_home": null,
+  "language": "en",
+  "load_in_4bit": true,
+  "max_new_tokens": 512,
+  "model_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+  "model_revision": null,
+  "replicates": 3,
+  "run_timeout_seconds": null,
+  "schema_version": 1,
+  "seed": 42
+}

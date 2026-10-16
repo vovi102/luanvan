@@ -1,0 +1,69 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________________ test_timeout_retains_partial_native_output __________________
+
+shipped = (PosixPath('/tmp/pytest-of-khoavd/pytest-12/kaggle-shipped0/input'), {'content_sha256': '3b3679282e64ba92c7c814be12b73...63e0dd4835'}, ...}, 'schema_version': 1, ...}, PosixPath('/tmp/pytest-of-khoavd/pytest-12/kaggle-shipped0/one.tar.gz'))
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-12/test_timeout_retains_partial_n0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x74cced520990>
+
+    def test_timeout_retains_partial_native_output(shipped, tmp_path, monkeypatch):
+        from nl2sparql.kaggle import runner
+        from nl2sparql.kaggle.bundle import PreparationError
+        monkeypatch.setattr(runner, "preflight_runtime", lambda *a, **k: {"status":"ready"})
+        monkeypatch.setattr(runner, "preflight_data", lambda *a: {"status":"data_ready"})
+        monkeypatch.setattr(runner, "probe_hardware", lambda: {"gpu_names":["TEST-ONLY T4"]})
+        def timeout(argv, **kwargs):
+            assert kwargs["timeout"] == 60
+            kwargs["stdout"].write("test-only partial output\n")
+            raise subprocess.TimeoutExpired(argv, 60)
+        monkeypatch.setattr(runner.subprocess, "run", timeout)
+        output = tmp_path / "output"
+        with pytest.raises(PreparationError, match="native"):
+>           runner.run_campaign(shipped[0], config_for(shipped[0]), output, real_inference=True)
+
+tests/unit/test_kaggle_b12.py:284:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/nl2sparql/kaggle/runner.py:277: in run_campaign
+    planned = plan_runs(root, config, output)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/nl2sparql/kaggle/runner.py:95: in plan_runs
+    validate_config(config)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+config = {'batch_size': 1, 'campaign_id': 'test-campaign', 'do_sample': False, 'encoder_id': 'sentence-transformers/all-MiniLM-L6-v2', ...}
+
+    def validate_config(config: dict, *, require_pins: bool = True) -> None:
+        expected = set(FIXED) | {"campaign_id", "model_revision", "encoder_revision", "hf_home"}
+        if not isinstance(config, dict) or set(config) != expected:
+>           raise PreparationError("run config field set mismatch")
+E           nl2sparql.kaggle.bundle.PreparationError: run config field set mismatch
+
+src/nl2sparql/kaggle/runner.py:63: PreparationError
+
+During handling of the above exception, another exception occurred:
+
+shipped = (PosixPath('/tmp/pytest-of-khoavd/pytest-12/kaggle-shipped0/input'), {'content_sha256': '3b3679282e64ba92c7c814be12b73...63e0dd4835'}, ...}, 'schema_version': 1, ...}, PosixPath('/tmp/pytest-of-khoavd/pytest-12/kaggle-shipped0/one.tar.gz'))
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-12/test_timeout_retains_partial_n0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x74cced520990>
+
+    def test_timeout_retains_partial_native_output(shipped, tmp_path, monkeypatch):
+        from nl2sparql.kaggle import runner
+        from nl2sparql.kaggle.bundle import PreparationError
+        monkeypatch.setattr(runner, "preflight_runtime", lambda *a, **k: {"status":"ready"})
+        monkeypatch.setattr(runner, "preflight_data", lambda *a: {"status":"data_ready"})
+        monkeypatch.setattr(runner, "probe_hardware", lambda: {"gpu_names":["TEST-ONLY T4"]})
+        def timeout(argv, **kwargs):
+            assert kwargs["timeout"] == 60
+            kwargs["stdout"].write("test-only partial output\n")
+            raise subprocess.TimeoutExpired(argv, 60)
+        monkeypatch.setattr(runner.subprocess, "run", timeout)
+        output = tmp_path / "output"
+>       with pytest.raises(PreparationError, match="native"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'native'
+E        Input: 'run config field set mismatch'
+
+tests/unit/test_kaggle_b12.py:283: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_kaggle_b12.py::test_timeout_retains_partial_native_output
+1 failed, 25 deselected in 1.81s
