@@ -1,0 +1,189 @@
+{
+  "archives": {
+    "encoder_cache": {
+      "bytes": 83467922,
+      "path": ".local/kaggle-environment-2026-10-17/release/encoder-cache.tar.gz",
+      "sha256": "7b8173bbb7fa1af17fe07b42fb42c8d843559c349b773af14c7ae5ba719a0a0e",
+      "two_builds_byte_identical": true
+    },
+    "setup_kit": {
+      "bytes": 51289,
+      "path": ".local/kaggle-environment-2026-10-17/release/setup-kit.tar.gz",
+      "sha256": "95fd031a840e1dbe61d347ea09976d8fd0b42576dadbbc9f2a371cd1c06aeea5",
+      "two_builds_byte_identical": true
+    }
+  },
+  "artifacts": {
+    "docs/evidence/kaggle-environment-cache-2026-10-17/encoder-download.log": {
+      "bytes": 610,
+      "sha256": "51fdaad7c2f93aec70a00899444358129e1bfadd6120ac1f878ccf979ce26277"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/extracted-encoder-verify.log": {
+      "bytes": 427,
+      "sha256": "2d21fad3059abf6a27c5f4f902e31584f54b5051a78277199d7a877512f62fcb"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/focused-final.log": {
+      "bytes": 100,
+      "sha256": "7966a5ab154c1e88f80e6f4078115a68e661818d043508757f647f8191ed134a"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/focused-first.log": {
+      "bytes": 98,
+      "sha256": "fac8aaadc73a18f429accef33900b10cfd78bd95c7687ad6e7c91bc437aa1b8d"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/format.log": {
+      "bytes": 26,
+      "sha256": "3bc53bf3e981a98a34a852e175bf9b77af841edea74fca595d9aedcbaf9a4938"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/full-suite.log": {
+      "bytes": 3506,
+      "sha256": "5d7d1dd125feb64d5e8ac671a8b3994185f257afc69ee241e0c157ef2f90f2a4"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/lint.log": {
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/meta-llama--Meta-Llama-3-8B-Instruct.json": {
+      "bytes": 3530,
+      "sha256": "6989fc1e1f4175600eb4b04c71c4efc691a18188dbc0a50708269604cbb99daa"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/model-cache-blocked.log": {
+      "bytes": 132,
+      "sha256": "c3a4f80d0556c859602d919b4e9c181d9cb53dc36485e9bf1b8696e9f1a450d6"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/packages.json": {
+      "bytes": 492,
+      "sha256": "c0408c6efe6d345e5fc90412c746ace595b77ab57ddeda67151de484bb0dcb2c"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/payload-pin-red.log": {
+      "bytes": 1288,
+      "sha256": "f372e0450e7f9fbba0da63cb50c9bd824bd2810687377f6dc8c7d552dce2b7f7"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/payload-pin-red.log.gz": {
+      "bytes": 489,
+      "sha256": "8bf925df89586b7f2c4a660eba96629be109a6b6ceae632a205879e75af39fad"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/regression-red.log": {
+      "bytes": 5113,
+      "sha256": "3941144b7db50264f3c20b4b37810dc8d62f4b2ecf0e65bf739f7a2c5706ed8c"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/regression-red.log.gz": {
+      "bytes": 807,
+      "sha256": "f2f6f2bca0a3cb52b7761ccf349bbe8ebcd8ef3ddb7bc21de64a467f3afda8fd"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/sentence-transformers--all-MiniLM-L6-v2.json": {
+      "bytes": 6771,
+      "sha256": "1f82ec70343cc2a82480bc5e28615ba4403f180ccf2eadcbfb7829deb135dbda"
+    },
+    "docs/evidence/kaggle-environment-cache-2026-10-17/setup-kit-manifest.json": {
+      "bytes": 1122,
+      "sha256": "0afcdc7bbb02fa0b14b302dca86c2a9119fd22097c9404580b2ccdfc9a53f9c5"
+    }
+  },
+  "base_revision": "d7f7465",
+  "bigquery_jobs": 0,
+  "branch": "feat/kaggle-environment-cache",
+  "date": "2026-10-17",
+  "encoder": "11 genuine public files downloaded and byte-verified; no encoding or model load",
+  "encoder_loaded": false,
+  "genuine_inference_performed": false,
+  "guarded_encoder_download": {
+    "credential_reads": 0,
+    "model_imports": 0,
+    "network": "public HTTP file acquisition permitted; requests trust_env=False and token=False"
+  },
+  "human_model_access_status": "user confirmed access has not been requested",
+  "inference_bundle_sha256_unchanged": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+  "integrity": {
+    "accepted_input_hashes_unchanged": 24,
+    "protected_sources_unchanged": [
+      "uv.lock",
+      "pyproject.toml",
+      "notebooks/14_kaggle_b12.ipynb",
+      "src/nl2sparql/models/b12/baseline.py",
+      "src/nl2sparql/models/b12/prompts.py",
+      "src/nl2sparql/models/b12/retrieval.py",
+      "src/nl2sparql/models/b12/contracts.py",
+      "src/nl2sparql/models/b12/canonical_training.py"
+    ]
+  },
+  "llama": "metadata pinned only; gated weights not downloaded; access request is user-only",
+  "model_loaded": false,
+  "models": {
+    "encoder": {
+      "gated": false,
+      "repo_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "total_bytes": 91578415
+    },
+    "model": {
+      "gated": "manual",
+      "repo_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2",
+      "total_bytes": 16069769266
+    }
+  },
+  "not_performed": [
+    "Hugging Face access request or acceptance",
+    "credential access",
+    "authenticated Kaggle/HF account access",
+    "Kaggle upload/notebook execution",
+    "8B model download",
+    "GPU smoke",
+    "model/encoder load",
+    "inference/evaluation/training",
+    "BigQuery",
+    "merge/push/PR",
+    "subagents"
+  ],
+  "pending": [
+    "user submits HF request and obtains model approval",
+    "user prepares private CPU setup copy/inputs",
+    "actual Kaggle dependency installation",
+    "full Llama cache acquisition/verification",
+    "non-test T4 smoke",
+    "genuine bilingual runs",
+    "T5.4",
+    "T5.5"
+  ],
+  "red_logs": {
+    "payload-pin-red.log": {
+      "normalization": "readable log trailing whitespace only; raw gzip preserved",
+      "raw_sha256": "899fb705d0375cba6990a39fb6bc9f23ebda9fc336cf6d39e3869aa24ccc80e2"
+    },
+    "regression-red.log": {
+      "normalization": "readable log trailing whitespace only; raw gzip preserved",
+      "raw_sha256": "3941144b7db50264f3c20b4b37810dc8d62f4b2ecf0e65bf739f7a2c5706ed8c"
+    }
+  },
+  "review": "author self-review; no subagents or independent review claimed",
+  "runtime": "locked requirements + disabled CPU setup notebook prepared; actual Kaggle Python/dependency installation pending",
+  "schema_version": 1,
+  "scientific_ready": false,
+  "status": "local_setup_prepared_encoder_verified_kaggle_and_llama_pending",
+  "target_inspection": "unauthenticated web inspection unavailable; contents, current runtime, privacy and quota unverified",
+  "target_notebook": "https://www.kaggle.com/code/aohkvd/nl2sql-b1-b2-2026-09-22-r01",
+  "verification": {
+    "focused": "39 passed in 27.33s",
+    "full_suite": {
+      "command": "PYTHONPATH=src /home/khoavd/WORKSPACE/LuanVan/.venv/bin/python -m pytest -q",
+      "duration_seconds": 761.95,
+      "exit_code": 0,
+      "log": "docs/evidence/kaggle-environment-cache-2026-10-17/full-suite.log",
+      "passed": 1574,
+      "warnings": 342
+    },
+    "missing_model": "verify all exits 2 blocked, model/LICENSE missing",
+    "notebook": "all code cells compile; default-disabled execution forbids external operations",
+    "portable_encoder": "safely extracted and verified with actual shipped helper; scientific_ready=False",
+    "requirements": "two frozen offline uv exports byte-identical",
+    "ruff": "two new Python files pass lint and format",
+    "wizard": "bash -n passes; shellcheck unavailable; not executed end to end"
+  },
+  "wizard": {
+    "captures": "non-secret access status and setup notebook URL only; no secret entry",
+    "committed": false,
+    "executed": false,
+    "path": ".local/kaggle-environment-2026-10-17/setup-kaggle-access.sh",
+    "sha256": "d5c72f47ebafd969b73802d8aaa2c85c2130ea9f7c8ca8900dca507936513a83"
+  }
+}

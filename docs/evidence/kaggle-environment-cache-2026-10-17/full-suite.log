@@ -1,0 +1,48 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 22%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 41%]
+........................................................................ [ 45%]
+........................................................................ [ 50%]
+........................................................................ [ 54%]
+........................................................................ [ 59%]
+........................................................................ [ 64%]
+........................................................................ [ 68%]
+........................................................................ [ 73%]
+........................................................................ [ 77%]
+........................................................................ [ 82%]
+........................................................................ [ 86%]
+........................................................................ [ 91%]
+........................................................................ [ 96%]
+..............................................................           [100%]
+=============================== warnings summary ===============================
+../../.venv/lib/python3.11/site-packages/falcon/media/__init__.py:4
+  /home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/falcon/media/__init__.py:4: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
+    from .handlers import Handlers
+
+tests/unit/test_rml_full.py: 10 warnings
+tests/unit/test_rml_pilot.py: 2 warnings
+  /home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/rdflib/plugins/parsers/nquads.py:80: DeprecationWarning: Dataset.default_context is deprecated, use Dataset.default_graph instead.
+    ds_default = ds.default_context  # the DEFAULT_DATASET_GRAPH_ID
+
+tests/unit/test_rml_full.py: 10 warnings
+tests/unit/test_rml_pilot.py: 2 warnings
+  /home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/rdflib/plugins/parsers/nquads.py:91: DeprecationWarning: Dataset.default_context is deprecated, use Dataset.default_graph instead.
+    ds.default_context = new_default_context
+
+tests/unit/test_rml_full.py: 267 warnings
+tests/unit/test_rml_pilot.py: 40 warnings
+  /home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/rdflib/plugins/parsers/nquads.py:142: DeprecationWarning: Dataset.default_context is deprecated, use Dataset.default_graph instead.
+    self.sink.default_context.add((subject, predicate, obj))
+
+tests/unit/test_rml_full.py: 10 warnings
+  /home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/rdflib/plugins/serializers/nt.py:39: UserWarning: NTSerializer always uses UTF-8 encoding. Given encoding was: None
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1574 passed, 342 warnings in 761.95s (0:12:41)
