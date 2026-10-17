@@ -208,7 +208,11 @@ per-case prompt hashes (complete prompts legitimately differ across questions).
 - [x] Vietnamese review/finalization 100 pairs và exact live-evidence binding hoàn
   tất offline sau user confirmation; [finalization report](../../research/t35-vi-finalization-2026-10-16.md).
   Review pack/historical 0-event evidence giữ nguyên ở trạng thái lúc tạo.
-- [ ] Pinned genuine encoder snapshot/revision và cache, cùng accepted train export.
+- [x] Pinned genuine encoder snapshot/revision và cache, cùng accepted train export.
+  Kaggle version 5 COMPLETE; 11 MiniLM files đúng hash, accepted train export
+  vẫn giữ nguyên 7.208 rows và fingerprint.
+- [x] Pinned Llama snapshot/cache: 13 files đúng hash, đã lưu private Kaggle output.
+  Đây là gate availability/integrity; không phải GPU/model-load acceptance.
 - [ ] Pinned Llama 3 8B snapshot chạy đủ B1/B2 trên Kaggle T4, không OOM.
 - [ ] B1 latency `<5 s/query` trên Kaggle T4.
 - [ ] B2 latency `<8 s/query` trên Kaggle T4.
@@ -216,7 +220,7 @@ per-case prompt hashes (complete prompts legitimately differ across questions).
 
 ## Trạng thái
 
-`implementation + offline data integration + English/Vietnamese benchmark finalization complete — genuine model/encoder/Kaggle gates pending`
+`implementation + data/benchmark finalization + verified Kaggle cache complete — GPU smoke and genuine B1/B2 pending`
 
 Thứ tự: data integration + Vietnamese review/finalization (đã xong) → B1/B2 genuine → T5.4 comparison
 (B0 genuine 0/100 đã có) → T5.5 quyết định B3. Không hosted LLM baselines,
@@ -228,7 +232,10 @@ Linked:
 - Plan: `docs/superpowers/plans/2026-09-01-t5-2-google-sql-small-llm.md`.
 - Code: `src/nl2sparql/models/b12/`, `scripts/17_small_llm_baselines.py`.
 
-### Environment/cache checkpoint — 2026-10-17
+### Historical local-preparation checkpoint — 2026-10-17
+
+> Trạng thái tại thời điểm chuẩn bị local; checkpoint này được giữ làm lịch sử,
+> đã được supersede bởi genuine cache checkpoint bên dưới.
 
 [CPU setup handoff](../../planning/kaggle-environment-cache-2026-10-17.md):
 model/encoder revisions pinned from public metadata. Genuine MiniLM cache bytes
@@ -237,3 +244,19 @@ default-disabled CPU setup notebook are prepared. Llama access has not yet been
 requested according to the user's confirmation. Actual Kaggle environment and
 full model-cache verification remain pending; no checkbox for genuine runtime,
 latency, inference or scientific completion is closed by these files.
+
+### Genuine Kaggle cache checkpoint — 2026-10-17
+
+Private `aohkvd/nl2sql-environment-cache` version 5 COMPLETE; toàn bộ 24 files
+Llama/MiniLM (16.161.347.681 bytes) qua hai lượt content-hash verification và
+saved-output size/access checks. Python 3.11.15 + full 218-package environment
+đã cài thành công ở phiên riêng; version 5 chỉ giữ cache, không giữ full runtime.
+Gắn output version 5 read-only và cài runtime riêng để tránh lặp lỗi disk 20 GB.
+
+Gate kế tiếp: non-test T4 smoke với cùng model/quantization/prompt, năm câu ngoài
+test set, ghi model load, OOM/latency và output provenance. Chỉ sau smoke đạt
+mới thực hiện genuine B1/B2: ba process runs mỗi (baseline, language), tổng 12.
+T4 compatibility, latency thresholds, inference và scientific completion vẫn
+chưa được xác minh.
+[Handoff](../../research/kaggle-cache-acquisition-2026-10-17.md);
+[machine evidence](../../evidence/kaggle-cache-acquisition-2026-10-17.json).
