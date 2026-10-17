@@ -1,0 +1,14 @@
+{
+  "encoder_cache": {
+    "bytes": 83467922,
+    "path": ".local/kaggle-environment-2026-10-17/release/encoder-cache.tar.gz",
+    "sha256": "7b8173bbb7fa1af17fe07b42fb42c8d843559c349b773af14c7ae5ba719a0a0e",
+    "two_builds_byte_identical": true
+  },
+  "setup_kit": {
+    "bytes": 51289,
+    "path": ".local/kaggle-environment-2026-10-17/release/setup-kit.tar.gz",
+    "sha256": "95fd031a840e1dbe61d347ea09976d8fd0b42576dadbbc9f2a371cd1c06aeea5",
+    "two_builds_byte_identical": true
+  }
+}

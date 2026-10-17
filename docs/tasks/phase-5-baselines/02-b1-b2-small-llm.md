@@ -227,3 +227,13 @@ Linked:
 - Spec: `docs/superpowers/specs/2026-09-01-t5-2-google-sql-small-llm-design.md`.
 - Plan: `docs/superpowers/plans/2026-09-01-t5-2-google-sql-small-llm.md`.
 - Code: `src/nl2sparql/models/b12/`, `scripts/17_small_llm_baselines.py`.
+
+### Environment/cache checkpoint — 2026-10-17
+
+[CPU setup handoff](../../planning/kaggle-environment-cache-2026-10-17.md):
+model/encoder revisions pinned from public metadata. Genuine MiniLM cache bytes
+verified locally (11 files, no encoder load); portable cache and a separate,
+default-disabled CPU setup notebook are prepared. Llama access has not yet been
+requested according to the user's confirmation. Actual Kaggle environment and
+full model-cache verification remain pending; no checkbox for genuine runtime,
+latency, inference or scientific completion is closed by these files.

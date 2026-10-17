@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "status": "cache_saved_and_byte_verified",
+  "kernel": "aohkvd/nl2sql-environment-cache",
+  "version": 5,
+  "worker_status": "COMPLETE",
+  "private": true,
+  "gpu_requested": false,
+  "source_commit": "e5f2e64",
+  "executed_source_sha256": "9a1a6b7e46c62f767de0ebedf1c65500af06cd9fc11fb92b3410481c6dcf07b2",
+  "input_dataset": "aohkvd/nl2sql-setup-inputs",
+  "accepted_input_archive_sha256": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+  "models": {
+    "encoder": {
+      "repo_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "files_verified": 11,
+      "bytes": 91578415
+    },
+    "model": {
+      "repo_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2",
+      "files_verified": 13,
+      "bytes": 16069769266
+    }
+  },
+  "files_verified": 24,
+  "cache_payload_bytes": 16161347681,
+  "hash_passes_on_kaggle": 2,
+  "saved_file_header_sizes_verified": 24,
+  "weights_saved_or_read_locally": false,
+  "full_research_environment": {
+    "python": "3.11.15",
+    "packages_installed": 218,
+    "installation_verified_in_versions": [
+      1,
+      3
+    ],
+    "model_or_gpu_compatibility_verified": false,
+    "retained_in_final_cache_output": false
+  },
+  "cache_acquisition_environment": {
+    "python": "3.11.15",
+    "applicable_linux_packages": 14,
+    "lock_subset_sha256": "9e619d93825589352748ab8379be6b5e28476b08392eccc8fd4ecf46a6018aa0",
+    "retained_in_final_cache_output": false
+  },
+  "model_loaded": false,
+  "encoder_loaded": false,
+  "inference_run": false,
+  "training_run": false,
+  "bigquery_jobs": 0,
+  "scientific_ready": false,
+  "local_materialization_checks": {
+    "materialization_preserves_hashes_and_shared_blobs_without_copy": true,
+    "same_size_corruption_rejected": true,
+    "escaping_snapshot_link_rejected": true
+  },
+  "credential_handling": "Existing CLI login used internally; no credentials manually inspected. HF_TOKEN read only inside user-launched Kaggle run and passed to downloader stdin. No token values or signed URLs persisted in evidence.",
+  "history": {
+    "v1": "Genuine full environment + public encoder verified",
+    "v2": "API-launched secret preflight failed before install/download",
+    "v3": "UI secret and full install passed; disk preflight blocked model download",
+    "v4": "Quick-save of space-safe source; no execution",
+    "v5": "User-launched CPU run; all cache digests and saved output verified"
+  },
+  "artifact_manifest": "kaggle-cache-acquisition-2026-10-17/artifacts-manifest.json",
+  "next_step": "Attach private version 5 output as read-only input, provision full pinned runtime separately, check actual GPU quota and prepare separately authorized non-test T4 smoke. Do not copy 16 GB cache back into 20 GB working disk beside full runtime."
+}

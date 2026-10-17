@@ -1,0 +1,215 @@
+{
+  "kernel": "aohkvd/nl2sql-environment-cache",
+  "version": 5,
+  "worker_status": "COMPLETE",
+  "listed_cache_files": 24,
+  "expected_payload_bytes": 16161347681,
+  "listed_payload_bytes": 16161347681,
+  "all_download_headers_verified": true,
+  "missing_cache_files": [],
+  "checks": [
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/LICENSE",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/7801",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/README.md",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/38854",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/USE_POLICY.md",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/4696",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/config.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/654",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/generation_config.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/187",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model-00001-of-00004.safetensors",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/4976698672",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model-00002-of-00004.safetensors",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/4999802720",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model-00003-of-00004.safetensors",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/4915916176",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model-00004-of-00004.safetensors",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/1168138808",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model.safetensors.index.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/23950",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/special_tokens_map.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/73",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/tokenizer.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/9085698",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/tokenizer_config.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/50977",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/1_Pooling/config.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/190",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/README.md",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/10502",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/config.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/612",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/config_sentence_transformers.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/116",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/model.safetensors",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/90868376",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/modules.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/349",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/sentence_bert_config.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/53",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/special_tokens_map.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/112",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/tokenizer.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/466247",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/tokenizer_config.json",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/350",
+      "matches_expected_bytes": true
+    },
+    {
+      "name": "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/vocab.txt",
+      "http_status": 206,
+      "content_length": "1",
+      "content_range": "bytes 0-0/231508",
+      "matches_expected_bytes": true
+    }
+  ],
+  "file_names": [
+    "b12-acquisition.lock.txt",
+    "b12-cache-byte-verification.json",
+    "b12-cache-inventory.json",
+    "b12-en-environment-config.json",
+    "b12-installed-acquisition-environment.json",
+    "b12-vi-environment-config.json",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/LICENSE",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/README.md",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/USE_POLICY.md",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/config.json",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/generation_config.json",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model-00001-of-00004.safetensors",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model-00002-of-00004.safetensors",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model-00003-of-00004.safetensors",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model-00004-of-00004.safetensors",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/model.safetensors.index.json",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/special_tokens_map.json",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/tokenizer.json",
+    "hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2/tokenizer_config.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/1_Pooling/config.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/README.md",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/config.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/config_sentence_transformers.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/model.safetensors",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/modules.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/sentence_bert_config.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/special_tokens_map.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/tokenizer.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/tokenizer_config.json",
+    "hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/vocab.txt"
+  ],
+  "model_payload_saved_or_read_locally": false,
+  "verification_method": "GET Range response headers only; streamed response closed without reading any body",
+  "signed_urls_persisted": false
+}

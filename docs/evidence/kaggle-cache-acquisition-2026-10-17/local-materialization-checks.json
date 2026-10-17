@@ -1,0 +1,5 @@
+{
+  "materialization_preserves_hashes_and_shared_blobs_without_copy": true,
+  "same_size_corruption_rejected": true,
+  "escaping_snapshot_link_rejected": true
+}

@@ -1,0 +1,52 @@
+{
+  "kernel": "aohkvd/nl2sql-environment-cache",
+  "version": 5,
+  "execution_finished": true,
+  "saved_output_confirmed": true,
+  "log_sha256": "e5e0965e29d9438e5a592c3bc30798afe062fd6ceaa0995abe02814025c539de",
+  "log_has_end_sentinel": true,
+  "attestations": {
+    "cache_bytes_verified": {
+      "execution_seconds": 1132.606360052,
+      "result": {
+        "model_loaded": false,
+        "models": {
+          "encoder": {
+            "files_verified": 11,
+            "repo_id": "sentence-transformers/all-MiniLM-L6-v2",
+            "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+            "snapshot": "/kaggle/working/hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+          },
+          "model": {
+            "files_verified": 13,
+            "repo_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+            "revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2",
+            "snapshot": "/kaggle/working/hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
+          }
+        },
+        "scientific_ready": false,
+        "status": "cache_bytes_verified"
+      }
+    },
+    "cache_snapshot_files_verified": {
+      "execution_seconds": 1214.650282296,
+      "result": {
+        "status": "cache_snapshot_files_verified",
+        "hf_home": "/kaggle/working/hf-home",
+        "files_verified": 24,
+        "payload_bytes": 16161347681,
+        "revisions": {
+          "encoder": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+          "model": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
+        },
+        "model_loaded": false,
+        "scientific_ready": false,
+        "full_research_runtime_retained": false,
+        "separate_full_runtime_install_required": true,
+        "storage": "regular snapshot files, one copy per pinned payload, no archive"
+      }
+    }
+  },
+  "worker_status": "COMPLETE",
+  "output_header_sizes_verified": true
+}

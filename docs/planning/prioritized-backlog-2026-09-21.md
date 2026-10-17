@@ -132,3 +132,25 @@ model/encoder/env thật, non-test GPU smoke và genuine runs; giữ riêng outp
 benchmark finalization đã hoàn tất. Genuine B1/B2 Kaggle → T5.4 comparison
 B0/B1/B2 → T5.5 quyết định B3. B0 genuine 0/100 giữ nguyên; chưa có genuine
 B1/B2 inference trong lượt Vietnamese review/finalization offline này.
+
+
+## Kaggle environment/cache checkpoint — 2026-10-17
+
+[Setup handoff](kaggle-environment-cache-2026-10-17.md): exact model/encoder
+revisions pinned from anonymous public metadata; genuine MiniLM cache bytes
+verified locally, no encoder/model load. Separate CPU setup notebook, locked
+runtime requirements and portable cache/setup artifacts prepared. User has not
+yet requested Llama access. Existing Kaggle notebook supplied by user; its actual
+contents/runtime/quota remain unverified. No upload/session execution or genuine
+inference occurred. Environment/cache on Kaggle is still pending, followed by
+non-test GPU smoke, genuine B1/B2, T5.4 and T5.5. No baseline or benchmark change.
+
+### 2026-10-17 — genuine Kaggle cache checkpoint
+
+Private `aohkvd/nl2sql-environment-cache` version 5 completed on CPU. All 24
+pinned Llama/MiniLM files (16.16 GB) passed content hashes twice and are saved in
+private output. The full Python 3.11.15 environment installed successfully in
+separate runs; provision it separately from the mounted read-only cache for
+smoke. GPU smoke and genuine B1/B2 inference have not run.
+[Handoff and preserved failures](../research/kaggle-cache-acquisition-2026-10-17.md);
+[machine evidence](../evidence/kaggle-cache-acquisition-2026-10-17.json).
