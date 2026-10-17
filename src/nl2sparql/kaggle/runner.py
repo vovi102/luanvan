@@ -1,4 +1,4 @@
-"""Fail-closed orchestration of the unchanged English CLI17 baseline contract."""
+"""Fail-closed orchestration of the language-explicit CLI17 baseline contract."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from nl2sparql.kaggle.bundle import (
     ENGLISH,
     TRAINING,
     TRAINING_SHA256,
+    VIETNAMESE,
     PreparationError,
     canonical,
     preflight_data,
@@ -47,7 +48,6 @@ FIXED = {
     "schema_version": 1,
     "model_id": MODEL_ID,
     "encoder_id": ENCODER_ID,
-    "language": "en",
     "replicates": 3,
     "seed": 42,
     "max_new_tokens": 512,
@@ -60,6 +60,7 @@ FIXED = {
 def validate_config(config: dict, *, require_pins: bool = True) -> None:
     expected = set(FIXED) | {
         "campaign_id",
+        "language",
         "model_revision",
         "encoder_revision",
         "hf_home",
@@ -70,6 +71,8 @@ def validate_config(config: dict, *, require_pins: bool = True) -> None:
     for name, value in FIXED.items():
         if config[name] != value or type(config[name]) is not type(value):
             raise PreparationError(f"research config cannot change {name}")
+    if config["language"] not in ("en", "vi"):
+        raise PreparationError("language must be explicitly en or vi")
     if require_pins:
         if type(config["run_timeout_seconds"]) is not int or config["run_timeout_seconds"] <= 0:
             raise PreparationError("run_timeout_seconds must be an explicit positive wall-time cap")
@@ -95,6 +98,22 @@ def output_boundary(root: Path, output: Path) -> None:
     for path in (output, *output.parents):
         if path.is_symlink():
             raise PreparationError("output must not traverse symlinks")
+    for language in ("en", "vi"):
+        for path in (output / language, output / language / "cache"):
+            if path.is_symlink():
+                raise PreparationError("language output cache must not traverse symlinks")
+            if path.exists() and not path.is_dir():
+                raise PreparationError("language output cache must be a directory")
+        cache_file = output / language / "cache/b2-few-shot.npz"
+        for path in (
+            cache_file,
+            cache_file.with_suffix(".npz.json"),
+            cache_file.with_suffix(".npz.lock"),
+        ):
+            if path.is_symlink() or (
+                path.exists() and (not path.is_file() or path.stat().st_nlink != 1)
+            ):
+                raise PreparationError("unsafe language cache alias")
     cache = output / "cache"
     for path in (
         cache,
@@ -116,10 +135,11 @@ def plan_runs(root: Path, config: dict, output: Path) -> list[dict]:
     validate_config(config)
     root, output = root.resolve(), output.absolute()
     output_boundary(root, output)
+    language = config["language"]
     runs = []
     for baseline in ("b1", "b2"):
         for replicate in range(1, 4):
-            run_id = f"{config['campaign_id']}-{baseline}-en-r{replicate:02d}"
+            run_id = f"{config['campaign_id']}-{baseline}-{language}-r{replicate:02d}"
             folder = output / run_id
             argv = [
                 sys.executable,
@@ -128,7 +148,11 @@ def plan_runs(root: Path, config: dict, output: Path) -> list[dict]:
                 "--baseline",
                 baseline,
                 "--test-set",
-                str(root / ENGLISH),
+                str(root / (ENGLISH if language == "en" else VIETNAMESE)),
+                "--language",
+                language,
+                "--benchmark-root",
+                str(root),
                 "--model-revision",
                 config["model_revision"],
                 "--run-id",
@@ -138,7 +162,7 @@ def plan_runs(root: Path, config: dict, output: Path) -> list[dict]:
                 "--training",
                 str(root / TRAINING),
                 "--cache",
-                str(output / "cache/b2-few-shot.npz"),
+                str(output / language / "cache/b2-few-shot.npz"),
                 "--encoder-id",
                 ENCODER_ID,
                 "--encoder-revision",
@@ -157,6 +181,7 @@ def plan_runs(root: Path, config: dict, output: Path) -> list[dict]:
                 {
                     "run_id": run_id,
                     "baseline": baseline,
+                    "language": language,
                     "replicate": replicate,
                     "folder": str(folder),
                     "argv": argv,

@@ -1,0 +1,43 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____________ test_native_output_cannot_be_reused_by_other_baseline _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-28/test_native_output_cannot_be_r0')
+
+    def test_native_output_cannot_be_reused_by_other_baseline(tmp_path):
+        from scripts.small_llm_baselines_workflow import publish_evaluation_run
+
+        run = evaluate_baseline(load_evaluation_cases(VI, language="vi"), baseline(), run_id="same")
+        report = tmp_path / "report"
+        report.write_text('{"run_id":"same","language":"vi","baseline":"b2"}\n')
+>       with pytest.raises(SmallLLMError, match="baseline"):
+E       Failed: DID NOT RAISE <class 'nl2sparql.models.b12.contracts.SmallLLMError'>
+
+tests/unit/test_b12_vietnamese.py:254: Failed
+______________ test_invalid_cli17_run_id_fails_before_model_load _______________
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-28/test_invalid_cli17_run_id_fail0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d4d20ceb690>
+
+    def test_invalid_cli17_run_id_fails_before_model_load(tmp_path, monkeypatch):
+        from click.testing import CliRunner
+        import scripts.small_llm_baselines_workflow as workflow
+
+        def forbidden(*a, **k):
+            raise AssertionError("model loader reached before run identity validation")
+        monkeypatch.setattr(workflow, "load_real_backend", forbidden)
+        result = CliRunner().invoke(workflow.cli, [
+            "evaluate", "--baseline", "b1", "--language", "vi", "--test-set", str(VI),
+            "--model-revision", "a"*40, "--run-id", "../escape", "--real-inference",
+            "--predictions", str(tmp_path/"p"), "--log", str(tmp_path/"l"),
+            "--report", str(tmp_path/"r"),
+        ])
+>       assert result.exit_code == 2 and "run ID" in result.output
+E       AssertionError: assert (1 == 2)
+E        +  where 1 = <Result AssertionError('model loader reached before run identity validation')>.exit_code
+
+tests/unit/test_b12_vietnamese.py:272: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_b12_vietnamese.py::test_native_output_cannot_be_reused_by_other_baseline
+FAILED tests/unit/test_b12_vietnamese.py::test_invalid_cli17_run_id_fails_before_model_load
+2 failed, 27 deselected in 3.50s

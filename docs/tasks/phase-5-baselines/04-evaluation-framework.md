@@ -151,3 +151,18 @@ Synthetic fixtures và scripted executor được phép chứng minh pipeline v�
 
 Implementation T5.4-A: complete khi toàn bộ test/lint/format gates của branch pass.
 Scientific completion: no; chờ T5.4-B và external evidence thật.
+
+## B1/B2 paired Vietnamese boundary — 2026-10-16
+
+Native B12 adaptation accepts explicit `--language en|vi`; VI reuses the strict
+typed finalized snapshot authority, not the English `nl` schema. It checks native
+language, original case/pair/source identities, exact reused gold evidence and
+cross-file paired lineage. Source refs and fingerprints retain the paired-source
+binding and language; test snapshot hashes remain distinct. Prompt fingerprints
+are bound as an ordered list because each complete prompt contains a different
+question. EN's legacy native artifacts remain readable; current artifacts carry
+per-case log and report prompt bindings. No metrics/threshold or prompt changes.
+Three compatible genuine runs are required for each baseline **within each
+language**; EN and VI never share the same denominator. This offline plumbing
+change does not provide genuine inference, predicted-query execution, privacy,
+cost or comparison evidence. See [handoff](../../research/b12-bilingual-consumer-2026-10-16.md).

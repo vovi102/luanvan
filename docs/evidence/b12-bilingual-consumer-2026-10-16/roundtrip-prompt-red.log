@@ -1,0 +1,45 @@
+.....F..................................................                 [100%]
+=================================== FAILURES ===================================
+_____________ test_vi_native_and_canonical_roundtrip_is_synthetic ______________
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-21/test_vi_native_and_canonical_r0')
+
+    def test_vi_native_and_canonical_roundtrip_is_synthetic(tmp_path):
+        from scripts.small_llm_baselines_workflow import publish_evaluation_run
+        from nl2sparql.evaluation.adapters.b12 import B12AdaptRequest, adapt_b12
+
+        cases = load_evaluation_cases(VI, language='vi')
+        run = evaluate_baseline(cases, baseline(), run_id='plumbing-vi',
+                                reviewed=True, live_verified=True)
+        assert run.language == 'vi'
+        assert run.metrics.total == 100
+        assert not run.scientific_ready and 'synthetic_backend' in run.blockers
+        paths = [tmp_path / name for name in ('pred.jsonl', 'log.jsonl', 'report.json')]
+        publish_evaluation_run(run, predictions_path=paths[0], log_path=paths[1], report_path=paths[2])
+        prediction = json.loads(paths[0].read_text().splitlines()[0])
+        log = json.loads(paths[1].read_text().splitlines()[0])
+        report = json.loads(paths[2].read_text())
+        assert prediction['language'] == log['language'] == report['language'] == 'vi'
+        assert prediction['paired_source'] == log['paired_source']
+>       canonical = adapt_b12(B12AdaptRequest(VI, *paths, language='vi'))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/unit/test_b12_vietnamese.py:86:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/nl2sparql/evaluation/adapters/b12.py:187: in adapt_b12
+    _stable_single([row["prediction"].get(field) for row in prediction_rows], label)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = ['3b7bfd7eebc6a9d0e2df0dde28104bad7c32a9463202f7d935aa8316111ffded', 'c64c157a588c864571a78e30d8aaea97d8d7f36156cbefda...1fce55353ba00a796091d19d7bbafc91df57741e654d', '5dac325df8e33ce48574016c02f13ed6b584f8fb0416526595b82e7a9750be9b', ...]
+label = 'prompt fingerprint'
+
+    def _stable_single(values: list[object], label: str) -> object:
+        first = values[0]
+        if any(value != first for value in values[1:]):
+>           raise EvaluationError(f"B1/B2 predictions contain inconsistent {label}")
+E           nl2sparql.evaluation.contracts.EvaluationError: B1/B2 predictions contain inconsistent prompt fingerprint
+
+src/nl2sparql/evaluation/adapters/b12.py:94: EvaluationError
+=========================== short test summary info ============================
+FAILED tests/unit/test_b12_vietnamese.py::test_vi_native_and_canonical_roundtrip_is_synthetic
+1 failed, 55 passed in 30.15s

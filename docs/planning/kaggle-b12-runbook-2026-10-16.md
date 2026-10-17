@@ -1,10 +1,17 @@
 # Kaggle B1/B2 runner and bundle
 
-This is preparation for the unchanged **English CLI17** research baseline.
-The finalized Vietnamese snapshot is included and validated as paired evidence;
-CLI17 currently cannot load that schema. A typed Vietnamese inference/evaluation
-consumer is still pending. Do not rename `question` to `nl`, bypass provenance,
-or claim this runner executes the bilingual experiment.
+The runner supports the unchanged B1/B2 research definitions for **one explicit
+language per config**, `en` or `vi`. English retains its finalized `nl` trusted
+loader. Vietnamese goes through a typed paired-snapshot authority that checks
+accepted source hashes, reconstructs all human acceptance events, validates the
+complete final manifest and exact reused English live evidence, and retains the
+original `PairedFinalCase` and source digests in native artifacts. No new BigQuery
+execution is implied. The user bulk ACCEPT provenance (5/5/5/1) is preserved.
+
+This bilingual bundle supersedes the English-only preparation bundle operationally;
+its archive hash is recorded in
+[the bilingual handoff](../research/b12-bilingual-consumer-2026-10-16.md).
+The old archive/evidence and unsuccessful audits remain historical records.
 
 ## Build and validate locally without models
 
@@ -12,9 +19,9 @@ From the repository worktree, use Python 3.11 with the project's dependencies:
 
 ```bash
 PYTHONPATH=src python scripts/25_kaggle_b12.py bundle \
-  --output .local/kaggle-b12/input-bundle.tar.gz
+  --output .local/kaggle-b12-bilingual/release/input-bundle.tar.gz
 PYTHONPATH=src python scripts/25_kaggle_b12.py unpack \
-  --archive .local/kaggle-b12/input-bundle.tar.gz \
+  --archive .local/kaggle-b12-bilingual/release/input-bundle.tar.gz \
   --sha256 <exact-archive-sha256-from-build> \
   --output /tmp/b12-input
 PYTHONPATH=/tmp/b12-input/src python /tmp/b12-input/scripts/25_kaggle_b12.py preflight \
@@ -67,8 +74,8 @@ The existing backend's 4-bit/BF16 behavior is unchanged and untested on T4 here.
 ## Preflight, plan and authorized execution
 
 Copy `configs/kaggle-b12-run.template.json` **outside** the input tree and fill
-only its unresolved operational fields. Research fields are fixed: English,
-three runs per baseline, seed 42, greedy, batch one, max_new_tokens 512, 4-bit.
+its unresolved operational fields and explicitly select `language=en` or
+`language=vi`. Other research fields are fixed: three runs per baseline per language, seed 42, greedy, batch one, max_new_tokens 512, 4-bit.
 
 ```bash
 PYTHONPATH=/tmp/b12-input/src python /tmp/b12-input/scripts/25_kaggle_b12.py preflight \
@@ -99,9 +106,18 @@ PYTHONPATH=/tmp/b12-input/src python /tmp/b12-input/scripts/25_kaggle_b12.py run
 
 On Kaggle use the notebook's `/kaggle/working` paths rather than the local examples
 above. The runner checks data, software/cache prerequisites and T4 before invoking
-unchanged CLI17 in a separate process for each run. All HF loaders are forced
+CLI17 with explicit `--language` and `--benchmark-root` in a separate process for each run. All HF loaders are forced
 offline; no BigQuery execution is part of this runner. It plans
-`<campaign>-b1-en-r01..03` and `<campaign>-b2-en-r01..03`. Use
+`<campaign>-b1-<language>-r01..03` and `<campaign>-b2-<language>-r01..03`.
+Each config schedules six processes. A complete EN+VI protocol has twelve
+processes: three compatible runs for each (baseline, language), never three total
+shared across languages. Metrics keep N=100 separately for each snapshot; do not
+pool the two snapshots into a 200-case result. B2 uses the same approved bilingual
+train export in both languages; no language filtering or retrieval-policy change.
+Caches are isolated at `<output>/<language>/cache/b2-few-shot.npz`; run folders
+also include language. Native predictions/logs carry full paired source lineage
+and per-case prompt hashes; reports bind the ordered prompt hash list. Choose
+separate language configs (notebook `LANGUAGE`) and preserve each config. Use
 `--baseline b1|b2 --replicate 1|2|3` to run an unstarted selection. Campaign outputs
 are not overwritten: retain failed attempts, choose a new campaign for a genuine
 retry and record its relationship to the old attempt in experiment notes.
@@ -116,4 +132,29 @@ or fabricate SQL execution accuracy, privacy/cost evidence or B3 decisions.
 
 Keep the Kaggle notebook URL/version and full output directories for handoff.
 Next evidence work is genuine B1/B2, then T5.4 comparison and T5.5 B3 decision;
-VI execution requires its own typed adapter task before bilingual runs.
+typed VI execution plumbing is implemented; genuine bilingual scientific evidence remains pending.
+
+## Native and T5.4 handoff
+
+CLI17 defaults to English for compatibility; Vietnamese requires `--language vi`
+and an explicit finalized VI `--test-set`. It retains the original IDs/question,
+language/pair/English identity, gold SQL, review/candidate digests and source
+fingerprints. The typed adapter rejects altered or missing source files, mismatched
+language/snapshot/manifest/lineage/evidence. Outputs cannot alias any protected
+benchmark source. VI default native outputs live under `data/eval/b12/vi/<baseline>/<run-id>/`;
+explicit runner outputs remain per process as above. Existing outputs from another
+run or language fail before model loading. Real inference still requires opt-in.
+
+After genuine inference, CLI19 `adapt b12 --language vi --benchmark-root <input-root>`
+consumes each native predictions/log/report triple with the matching VI test set.
+It revalidates paired authority and exact per-case source lineage across files.
+Canonical source references/fingerprints bind language and paired sources; exact
+snapshot identity keeps EN/VI denominators and reproducibility separate. For EN,
+use `--language en` (default). Prompt fingerprints hash complete messages including
+each question: T5.4 binds their ordered list rather than requiring equal hashes
+across different questions. No prompt text or research policy changed.
+
+Inference alone does not measure predicted SQL execution accuracy. T5.4 genuine
+execution, cost/privacy evidence, three compatible replicates per language, and
+comparison remain external stages. Never infer new BigQuery results from VI's
+reused historical gold evidence.

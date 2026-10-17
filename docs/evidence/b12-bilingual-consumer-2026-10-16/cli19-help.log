@@ -1,0 +1,15 @@
+Usage: 19_nl2sql_evaluation.py adapt b12 [OPTIONS]
+
+  Adapt B1/B2 artifacts.
+
+Options:
+  --language [en|vi]
+  --benchmark-root PATH
+  --test-set PATH        [required]
+  --predictions PATH     [required]
+  --log PATH             [required]
+  --report PATH          [required]
+  --privacy-review PATH
+  --synthetic
+  --output PATH          [required]
+  --help                 Show this message and exit.

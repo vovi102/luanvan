@@ -1,0 +1,201 @@
+{
+  "artifacts": {
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/build-one.log": {
+      "bytes": 447,
+      "sha256": "455df94c7bbbc4e23f35f9b2bc99b5d1646b4217154caefe777a930d3d6204fd"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/build-two.log": {
+      "bytes": 447,
+      "sha256": "1dc77126b7568da5423d5a411c6cd2707bfe08f12e52eef542ce87002e6626fe"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/bundle-manifest.json": {
+      "bytes": 34329,
+      "sha256": "e77a71597f3cd4f2d8eda421b58874b680995eae1fc8b6095699521df029c39e"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/cli17-help.log": {
+      "bytes": 651,
+      "sha256": "0decffdd910058794066183d4aa7589a7b381825fbb2827671c194f336d9de7c"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/cli19-help.log": {
+      "bytes": 403,
+      "sha256": "4c424299ee39a99b98163635b0891a7de7a45b49e667c1b8768f67c887be0c3a"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/environment-help-failure.log.gz": {
+      "bytes": 2160,
+      "sha256": "151316e4e1b5d88e22eb70033a4d92333eeccce59afd62ad51ec4cc4774ba5dd"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/environment-suite-interrupted.log.gz": {
+      "bytes": 47,
+      "sha256": "c041ef83b30e0448dbec93b952019c9116405f9adedc2d219ca0375069aa2bd9"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/extracted-data-preflight.log": {
+      "bytes": 629,
+      "sha256": "77a1af5b14657b415d345e786325472b5a87ef89711982f0c26bb3f7ab2dcf17"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/format.log": {
+      "bytes": 27,
+      "sha256": "04eb0d6e6734823dcd2b2b704729e976f683df7a8f334da7216520ef1cb319bf"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/full-suite.log": {
+      "bytes": 3506,
+      "sha256": "2a6ab5920a97572facb0d1a7a8c3e80bb154429a785937dded02fb03448e22d1"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/input-integrity.json": {
+      "bytes": 3177,
+      "sha256": "41a4fdf49d534961cdcdfed12607eb348c45fbedb98e5a844a4d259b183db152"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/lint.log": {
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/output-isolation-red.log": {
+      "bytes": 2452,
+      "sha256": "3d4cdc53b0a6800510e0047c24950befa01632e87ff7c0b3b7299c1eb7bf38f6"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/output-isolation-red.log.gz": {
+      "bytes": 940,
+      "sha256": "87c1b5e3bbc4a191202e5e7ae0dbb69045c1d590fe24b2baa8a32d51e27e75b8"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/regression-initial-red.log": {
+      "bytes": 6112,
+      "sha256": "edccc7b63ed1313c193289d88e3971cb5acb8488c859d4f04d6a41829e23dcb0"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/regression-initial-red.log.gz": {
+      "bytes": 1430,
+      "sha256": "2721a1548b5311bcbfaf154312a67d0bb226ffe00ce6dd7091fac9a101ed27b6"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/regressions-final.log": {
+      "bytes": 100,
+      "sha256": "e1017065759f89ea174414c6e18c7a99333e560858ce52455a24e440724e7dcb"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/report-source-red.log": {
+      "bytes": 1314,
+      "sha256": "7bda13243e34a08e53a087d2db5185a6c4d1ecf60a7ec40d33409b34d42369f3"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/report-source-red.log.gz": {
+      "bytes": 512,
+      "sha256": "2807e46f183f596cfc0acbddd055d6d90907df917931534a61f94e00983807db"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/rollback-strengthening.log": {
+      "bytes": 98,
+      "sha256": "b632ba3b5d75d336650a26fbf5403abf707ec37cfb411ae61bc5620f7427d6ca"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/roundtrip-prompt-red.log": {
+      "bytes": 2840,
+      "sha256": "68375e6c9685690a65678afcd89aa4c08a112fe4879ebe5db3cfa1b7faf9d06d"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/roundtrip-prompt-red.log.gz": {
+      "bytes": 1121,
+      "sha256": "f34f7c976022c7f3d30b0a80602964e608769cd64bbfaf83205c3d2466ae2a5b"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/runtime-template-blocked.log": {
+      "bytes": 1072,
+      "sha256": "1569f4bd775659f02305155b0b531875ff58c16ee5a46bc367bd64a7c117bdb3"
+    },
+    "docs/evidence/b12-bilingual-consumer-2026-10-16/unpack.log": {
+      "bytes": 214,
+      "sha256": "058891f57adb4224f4fe2c87c66cc5a5dd00a0bbc8f5cfddd87f698741e0b032"
+    }
+  },
+  "base_main": "95f623eea60bf08ee40987085993a6943d3a4a19",
+  "bilingual_process_total": 12,
+  "branch": "feat/b12-bilingual-consumer",
+  "bundle": {
+    "bytes": 2678997,
+    "content_sha256": "4c10b260b7e1b119b9b6a13b43b9c00c3a4ec84402648b03eac92253840682bc",
+    "files": 181,
+    "old_evidence_preserved": true,
+    "path": ".local/kaggle-b12-bilingual/release/input-bundle.tar.gz",
+    "sha256": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+    "supersedes_archive_sha256": "4a49b57835e031986e3abcd274955df504ccf3b1811640fa8ef72ca854c70e4f",
+    "two_builds_byte_identical": true
+  },
+  "date": "2026-10-16",
+  "excluded_development_records": 792,
+  "execution_languages": [
+    "en",
+    "vi"
+  ],
+  "guarded_commands": {
+    "credential_reads": 0,
+    "model_provider_imports": 0,
+    "network_attempts": 0,
+    "scope": "build x2, unpack, extracted data preflight, blocked runtime template; Python instrumentation, not OS sandbox",
+    "subprocess_attempts": 0
+  },
+  "new_bigquery_jobs": 0,
+  "not_performed": [
+    "model/encoder download or load",
+    "GPU inference or training",
+    "genuine evaluation",
+    "BigQuery/live execution",
+    "Kaggle upload",
+    "notebook execution",
+    "push",
+    "merge",
+    "PR",
+    "subagents"
+  ],
+  "raw_development_logs": {
+    "environment-help-failure": {
+      "bytes": 6397,
+      "sha256": "d31417a08ba0ce7fabba47afe03f29218aac71b3cbb9674f0a0062b05a8b8b4e"
+    },
+    "environment-suite-interrupted": {
+      "bytes": 300,
+      "sha256": "842402009dff4ce1662fceff75ad98562be619630a1a00b7c374f4ca4610e2c9"
+    },
+    "output-isolation-red": {
+      "bytes": 2460,
+      "sha256": "6a62a9bbca466547c338efed88b27e9a27fc78b459040092fe243d0b61f3e86f"
+    },
+    "regression-initial-red": {
+      "bytes": 6119,
+      "sha256": "4d41f0b4a0261e95dc22283f6f8563434eb7696d973dac783c274fc54d27c4cf"
+    },
+    "report-source-red": {
+      "bytes": 1318,
+      "sha256": "fb5435c9afcb8bea31db30e10d20ac00616dce7650bdbb9959b06060d2b79ee5"
+    },
+    "roundtrip-prompt-red": {
+      "bytes": 2847,
+      "sha256": "86609dc6878861f131f8e276d82f4ba765de68deeb15ddaaf0c11a78d001a854"
+    }
+  },
+  "remaining_sequence": [
+    "Kaggle environment/model-cache preparation",
+    "non-test GPU smoke",
+    "genuine B1/B2 runs per language",
+    "T5.4 comparison",
+    "T5.5 B3 decision"
+  ],
+  "replicates_per_baseline_per_language": 3,
+  "review": "Author self-review; independent review pending before future integration.",
+  "schema_version": 1,
+  "scientific_status": "blocked_pending_genuine_runs_and_external_evidence",
+  "status": "offline_implementation_complete_external_scientific_evidence_pending",
+  "test_cases_per_language": 100,
+  "training_records": 7208,
+  "training_sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835",
+  "verification": {
+    "accepted_inputs": "24 exact accepted hashes unchanged; no data diff from main",
+    "baseline_focused": "44 passed in 28.43s",
+    "environment_checkpoint": "Missing PYTHONPATH caused child to resolve main editable source. Isolated test passes with PYTHONPATH=src; interrupted full checkpoint retained, never counted as passing.",
+    "final_regressions": "42 passed in 12.96s",
+    "full_suite": {
+      "command": "PYTHONPATH=src /home/khoavd/WORKSPACE/LuanVan/.venv/bin/python -m pytest -q",
+      "duration_seconds": 721.14,
+      "exit_code": 0,
+      "log": "docs/evidence/b12-bilingual-consumer-2026-10-16/full-suite.log",
+      "passed": 1564,
+      "warnings": 342
+    },
+    "guarded_extracted_preflight": "data_ready: 7208 train, 100 en, 100 vi",
+    "guarded_runtime_template": "blocked as intended, exit 2, unresolved operational fields",
+    "ruff": "lint and format pass on 13 Python files in touched modules/tests, including two unchanged Kaggle module files",
+    "strengthened_rollback": "1 passed in 1.31s"
+  },
+  "vi_evidence_mode": "exact_reused_english_live_evidence",
+  "vi_human_review": "Original 100 user bulk ACCEPT events, scores 5/5/5/1; no new review.",
+  "worktree": ".worktrees/b12-bilingual-consumer"
+}

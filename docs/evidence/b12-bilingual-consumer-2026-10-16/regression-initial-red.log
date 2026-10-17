@@ -1,0 +1,114 @@
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+________ test_finalized_vi_retains_typed_pair_and_exact_source_binding _________
+
+    def test_finalized_vi_retains_typed_pair_and_exact_source_binding():
+>       cases = load_evaluation_cases(VI, language='vi')
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: load_evaluation_cases() got an unexpected keyword argument 'language'
+
+tests/unit/test_b12_vietnamese.py:20: TypeError
+__________________ test_wrong_language_fails_closed[path0-vi] __________________
+
+path = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/data/dataset/test/test-100.jsonl')
+language = 'vi'
+
+    @pytest.mark.parametrize('path,language', [(EN, 'vi'), (VI, 'en'), (VI, 'fr')])
+    def test_wrong_language_fails_closed(path, language):
+        with pytest.raises(SmallLLMError):
+>           load_evaluation_cases(path, language=language)
+E           TypeError: load_evaluation_cases() got an unexpected keyword argument 'language'
+
+tests/unit/test_b12_vietnamese.py:40: TypeError
+__________________ test_wrong_language_fails_closed[path1-en] __________________
+
+path = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/data/dataset/test/test-100-vi.jsonl')
+language = 'en'
+
+    @pytest.mark.parametrize('path,language', [(EN, 'vi'), (VI, 'en'), (VI, 'fr')])
+    def test_wrong_language_fails_closed(path, language):
+        with pytest.raises(SmallLLMError):
+>           load_evaluation_cases(path, language=language)
+E           TypeError: load_evaluation_cases() got an unexpected keyword argument 'language'
+
+tests/unit/test_b12_vietnamese.py:40: TypeError
+__________________ test_wrong_language_fails_closed[path2-fr] __________________
+
+path = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/data/dataset/test/test-100-vi.jsonl')
+language = 'fr'
+
+    @pytest.mark.parametrize('path,language', [(EN, 'vi'), (VI, 'en'), (VI, 'fr')])
+    def test_wrong_language_fails_closed(path, language):
+        with pytest.raises(SmallLLMError):
+>           load_evaluation_cases(path, language=language)
+E           TypeError: load_evaluation_cases() got an unexpected keyword argument 'language'
+
+tests/unit/test_b12_vietnamese.py:40: TypeError
+_________ test_mixed_language_and_snapshot_rejected_before_generation __________
+
+    def test_mixed_language_and_snapshot_rejected_before_generation():
+>       vi = load_evaluation_cases(VI, language='vi')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: load_evaluation_cases() got an unexpected keyword argument 'language'
+
+tests/unit/test_b12_vietnamese.py:60: TypeError
+_____________ test_vi_native_and_canonical_roundtrip_is_synthetic ______________
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-20/test_vi_native_and_canonical_r0')
+
+    def test_vi_native_and_canonical_roundtrip_is_synthetic(tmp_path):
+        from scripts.small_llm_baselines_workflow import publish_evaluation_run
+        from nl2sparql.evaluation.adapters.b12 import B12AdaptRequest, adapt_b12
+
+>       cases = load_evaluation_cases(VI, language='vi')
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: load_evaluation_cases() got an unexpected keyword argument 'language'
+
+tests/unit/test_b12_vietnamese.py:73: TypeError
+______ test_language_plans_are_isolated_and_three_processes_per_baseline _______
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-20/test_language_plans_are_isolat0')
+
+    def test_language_plans_are_isolated_and_three_processes_per_baseline(tmp_path):
+        from nl2sparql.kaggle.runner import plan_runs
+        config = json.loads((ROOT / 'configs/kaggle-b12-run.template.json').read_bytes())
+        config.update(campaign_id='plumbing', model_revision='a' * 40,
+                      encoder_revision='b' * 40, hf_home='/nonexistent', run_timeout_seconds=60)
+        en = plan_runs(ROOT, config, tmp_path)
+        config['language'] = 'vi'
+>       vi = plan_runs(ROOT, config, tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/unit/test_b12_vietnamese.py:105:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/nl2sparql/kaggle/runner.py:116: in plan_runs
+    validate_config(config)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+config = {'batch_size': 1, 'campaign_id': 'plumbing', 'do_sample': False, 'encoder_id': 'sentence-transformers/all-MiniLM-L6-v2', ...}
+
+    def validate_config(config: dict, *, require_pins: bool = True) -> None:
+        expected = set(FIXED) | {
+            "campaign_id",
+            "model_revision",
+            "encoder_revision",
+            "hf_home",
+            "run_timeout_seconds",
+        }
+        if not isinstance(config, dict) or set(config) != expected:
+            raise PreparationError("run config field set mismatch")
+        for name, value in FIXED.items():
+            if config[name] != value or type(config[name]) is not type(value):
+>               raise PreparationError(f"research config cannot change {name}")
+E               nl2sparql.kaggle.bundle.PreparationError: research config cannot change language
+
+src/nl2sparql/kaggle/runner.py:72: PreparationError
+=========================== short test summary info ============================
+FAILED tests/unit/test_b12_vietnamese.py::test_finalized_vi_retains_typed_pair_and_exact_source_binding
+FAILED tests/unit/test_b12_vietnamese.py::test_wrong_language_fails_closed[path0-vi]
+FAILED tests/unit/test_b12_vietnamese.py::test_wrong_language_fails_closed[path1-en]
+FAILED tests/unit/test_b12_vietnamese.py::test_wrong_language_fails_closed[path2-fr]
+FAILED tests/unit/test_b12_vietnamese.py::test_mixed_language_and_snapshot_rejected_before_generation
+FAILED tests/unit/test_b12_vietnamese.py::test_vi_native_and_canonical_roundtrip_is_synthetic
+FAILED tests/unit/test_b12_vietnamese.py::test_language_plans_are_isolated_and_three_processes_per_baseline
+7 failed in 1.30s

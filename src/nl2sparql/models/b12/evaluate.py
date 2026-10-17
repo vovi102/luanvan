@@ -18,6 +18,13 @@ from nl2sparql.dataset.testset.sql_safety import validate_sql_text
 from nl2sparql.models.b0.evaluate import load_b0_cases
 from nl2sparql.models.b12.baseline import BaselineB1, BaselineB2
 from nl2sparql.models.b12.contracts import SmallLLMError, SmallLLMPrediction, validate_question
+from nl2sparql.models.b12.paired_snapshot import (
+    ROOT,
+    SOURCE_SHA256S,
+    VIETNAMESE,
+    PairedCaseSource,
+    load_paired_sources,
+)
 
 Difficulty = Literal["easy", "medium", "hard"]
 
@@ -39,9 +46,21 @@ class EvaluationCase:
     reviewed: bool = False
     live_verified: bool = False
     synthetic: bool = True
+    language: Literal["en", "vi"] = "en"
+    paired_source: PairedCaseSource | None = None
     _trusted_source: bool = field(init=False, default=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
+        if self.language not in {"en", "vi"}:
+            raise SmallLLMError("evaluation language must be en or vi")
+        if self.paired_source is not None:
+            source = self.paired_source.case
+            if self.language != "vi" or (self.case_id, self.question, self.gold_sql) != (
+                source.id,
+                source.question,
+                source.sql,
+            ):
+                raise SmallLLMError("evaluation paired source identity mismatch")
         if not isinstance(self.case_id, str) or not _CASE_ID_RE.fullmatch(self.case_id):
             raise SmallLLMError("evaluation case ID is invalid")
         validate_question(self.question)
@@ -89,6 +108,8 @@ class EvaluationPrediction:
     difficulty: Difficulty
     categories: tuple[str, ...]
     prediction: SmallLLMPrediction
+    language: Literal["en", "vi"] = "en"
+    paired_source: PairedCaseSource | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +142,7 @@ class EvaluationRun:
     seed: int
     generated_at_utc: str
     input_sha256: str | None
+    language: Literal["en", "vi"] = "en"
 
 
 def _quantile(values: Sequence[float], probability: float) -> float:
@@ -144,12 +166,40 @@ def load_evaluation_cases(
     path: Path,
     *,
     synthetic: bool = False,
+    language: str = "en",
+    source_root: Path = ROOT,
 ) -> tuple[EvaluationCase, ...]:
     """Load one exact UTF-8 JSONL snapshot into validated evaluation cases."""
     if not isinstance(path, Path):
         raise SmallLLMError("evaluation path must be a pathlib.Path")
     if not isinstance(synthetic, bool):
         raise SmallLLMError("synthetic marker must be boolean")
+    if language not in {"en", "vi"}:
+        raise SmallLLMError("evaluation language must be en or vi")
+    if language == "vi":
+        if synthetic:
+            raise SmallLLMError("Vietnamese requires finalized paired provenance")
+        sources = load_paired_sources(path, root=source_root)
+        digest = SOURCE_SHA256S[VIETNAMESE]
+        cases = tuple(
+            EvaluationCase(
+                case_id=source.case.id,
+                question=source.case.question,
+                gold_sql=source.case.sql,
+                difficulty=source.case.difficulty,
+                categories=tuple(sorted(source.case.categories)),
+                input_sha256=digest,
+                reviewed=True,
+                live_verified=True,
+                synthetic=False,
+                language="vi",
+                paired_source=source,
+            )
+            for source in sources
+        )
+        for case in cases:
+            object.__setattr__(case, "_trusted_source", True)
+        return cases
     try:
         snapshot = path.read_bytes()
         text = snapshot.decode("utf-8")
@@ -229,6 +279,12 @@ def load_evaluation_cases(
     return tuple(cases)
 
 
+def validate_run_id(run_id: str) -> None:
+    """Reject unsafe identities before workflow paths or model loading."""
+    if not isinstance(run_id, str) or not _RUN_ID_RE.fullmatch(run_id):
+        raise SmallLLMError("evaluation run ID is invalid")
+
+
 def evaluate_baseline(
     cases: Sequence[EvaluationCase],
     baseline: BaselineB1 | BaselineB2,
@@ -238,8 +294,7 @@ def evaluate_baseline(
     live_verified: bool = False,
 ) -> EvaluationRun:
     """Run ordered cases and report operational evidence without execution accuracy."""
-    if not isinstance(run_id, str) or not _RUN_ID_RE.fullmatch(run_id):
-        raise SmallLLMError("evaluation run ID is invalid")
+    validate_run_id(run_id)
     if not isinstance(reviewed, bool) or not isinstance(live_verified, bool):
         raise SmallLLMError("evaluation evidence flags must be boolean")
     if not isinstance(baseline, (BaselineB1, BaselineB2)):
@@ -250,6 +305,11 @@ def evaluate_baseline(
     ids = tuple(case.case_id for case in accepted)
     if len(ids) != len(set(ids)):
         raise SmallLLMError("evaluation case IDs must not contain duplicates")
+
+    if len({case.language for case in accepted}) != 1:
+        raise SmallLLMError("evaluation cannot mix language snapshots")
+    if len({case.input_sha256 for case in accepted}) != 1:
+        raise SmallLLMError("evaluation cannot mix snapshot fingerprints")
 
     rows: list[EvaluationPrediction] = []
     for case in accepted:
@@ -264,6 +324,8 @@ def evaluate_baseline(
                 difficulty=case.difficulty,
                 categories=case.categories,
                 prediction=prediction,
+                language=case.language,
+                paired_source=case.paired_source,
             )
         )
     predictions = tuple(rows)
@@ -311,6 +373,7 @@ def evaluate_baseline(
     return EvaluationRun(
         run_id=run_id,
         baseline=predictions[0].prediction.baseline,
+        language=accepted[0].language,
         predictions=predictions,
         metrics=metrics,
         scientific_ready=not blockers_tuple,
@@ -325,6 +388,8 @@ def compare_reproducibility(left: EvaluationRun, right: EvaluationRun) -> bool:
     """Compare ordered model-observable outputs while ignoring run timing and IDs."""
     if not isinstance(left, EvaluationRun) or not isinstance(right, EvaluationRun):
         raise SmallLLMError("reproducibility comparison requires EvaluationRun values")
+    if (left.language, left.input_sha256) != (right.language, right.input_sha256):
+        return False
     if left.baseline != right.baseline or len(left.predictions) != len(right.predictions):
         return False
 
