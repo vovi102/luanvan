@@ -1,0 +1,19 @@
+{
+  "model_loaded": false,
+  "models": {
+    "encoder": {
+      "files_verified": 11,
+      "repo_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "snapshot": "/kaggle/working/hf-home/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+    },
+    "model": {
+      "files_verified": 13,
+      "repo_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2",
+      "snapshot": "/kaggle/working/hf-home/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
+    }
+  },
+  "scientific_ready": false,
+  "status": "cache_bytes_verified"
+}

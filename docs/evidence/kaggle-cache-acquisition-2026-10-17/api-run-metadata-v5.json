@@ -1,0 +1,11 @@
+{
+  "ref": "aohkvd/nl2sql-environment-cache",
+  "current_version_number": 5,
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "docker_image": "gcr.io/kaggle-images/python@sha256:dafd4ce5668bbf1ad422e4c109e0f18c9623c3a7c7f48b0235f13142755c40b9",
+  "machine_shape": "None",
+  "last_run_time": "2026-10-14 15:30:40.356000",
+  "source": "full get_kernel metadata, not list projection"
+}

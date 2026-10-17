@@ -166,3 +166,14 @@ genuine processes per (baseline, language), twelve total → T5.4 → T5.5.
 Author self-review completed against setup scope, byte/source integrity, credential
 boundaries, default-disabled notebook behavior and unchanged baseline sources.
 No subagent/independent review is claimed.
+
+## Follow-up: genuine Kaggle acquisition completed
+
+The earlier local-preparation state above is historical. The user subsequently
+received HF access and launched private CPU notebook version 5 through the UI.
+Kaggle now reports COMPLETE; 24 pinned cache files (16,161,347,681 bytes) passed
+two content-hash checks and saved-output length/access checks. The full pinned
+Python environment installed successfully in separate versions; it is not kept
+beside the cache because of the 20 GB disk limit. No model load, GPU smoke or
+inference occurred. See the [actual acquisition handoff](../research/kaggle-cache-acquisition-2026-10-17.md)
+and [new evidence](../evidence/kaggle-cache-acquisition-2026-10-17.json).
