@@ -1,0 +1,26 @@
+{
+  "api-run-metadata.json": {
+    "bytes": 229,
+    "sha256": "24b37a3a1fc40395f772777a2df380b780d8854074c68cafd5972a66f65aa597"
+  },
+  "input-attachments.json": {
+    "bytes": 293,
+    "sha256": "9199be3ad05aae3c3b460d098a977e15ecfb0f7918f6ad76d2c19c4ecbb79f07"
+  },
+  "prepared-disabled.ipynb": {
+    "bytes": 18506,
+    "sha256": "a78c512dfdae87af3d60ce3f252483c7a27da3dbfdc229e8c73d8235e1b62d7d"
+  },
+  "smoke_worker.py": {
+    "bytes": 9003,
+    "sha256": "db94a4196d9169fa2fe9d0e0d7e47e0db45629c3392abba5537172b04db595d5"
+  },
+  "submitted-metadata.json": {
+    "bytes": 519,
+    "sha256": "973affea9cea09a76bb41f7a7b6c1ca1437fccd947c8eeb421df91960ffe6479"
+  },
+  "submitted-v1.ipynb": {
+    "bytes": 18505,
+    "sha256": "79bb3b3bb2b79ec0d34189394a6b83d917f4a7ce0eb86c0bc099ce3c370ae1c0"
+  }
+}

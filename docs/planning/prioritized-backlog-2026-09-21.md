@@ -163,3 +163,13 @@ separate runs; provision it separately from the mounted read-only cache for
 smoke. GPU smoke and genuine B1/B2 inference have not run.
 [Handoff and preserved failures](../research/kaggle-cache-acquisition-2026-10-17.md);
 [machine evidence](../evidence/kaggle-cache-acquisition-2026-10-17.json).
+
+### 2026-10-17 — T4 smoke submitted
+
+Private `aohkvd/nl2sql-b12-t4-smoke-20261017-r01` version 1 was submitted
+with the verified cache mounted read-only, unchanged pinned environment and
+research configuration. The latest saved checkpoint is `QUEUED`: actual T4,
+model loading, OOM/latency and inference are not yet verified. Five fixed
+train-only questions are planned for both B1/B2; 300s per process, 1,800s
+smoke and 2,700s session caps. Continue monitoring this run before launching
+any genuine benchmark campaign. [Smoke handoff](../research/kaggle-t4-smoke-2026-10-17.md).

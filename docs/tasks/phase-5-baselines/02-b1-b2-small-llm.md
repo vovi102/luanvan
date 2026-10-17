@@ -260,3 +260,11 @@ T4 compatibility, latency thresholds, inference và scientific completion vẫn
 chưa được xác minh.
 [Handoff](../../research/kaggle-cache-acquisition-2026-10-17.md);
 [machine evidence](../../evidence/kaggle-cache-acquisition-2026-10-17.json).
+
+### 2026-10-17 — smoke submission checkpoint
+
+The private T4 smoke notebook version 1 has been submitted and is `QUEUED`
+at the latest saved API checkpoint. It plans five accepted training questions
+for B1 and B2 through unchanged CLI17; no benchmark results are available.
+The GPU/model-load, OOM, latency and genuine-run acceptance boxes remain open.
+[Source, caps and continuation](../../research/kaggle-t4-smoke-2026-10-17.md).
