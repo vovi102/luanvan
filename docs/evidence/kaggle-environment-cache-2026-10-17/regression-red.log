@@ -1,0 +1,86 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+______ test_download_requires_opt_in_before_importing_hf_or_reading_stdin ______
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-0/test_download_requires_opt_in_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7217ec6f3450>
+
+    def test_download_requires_opt_in_before_importing_hf_or_reading_stdin(tmp_path, monkeypatch):
+>       assert SCRIPT.is_file(), 'missing cache preparation consumer'
+E       AssertionError: missing cache preparation consumer
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/scripts/26_kaggle_environment.py').is_file
+
+tests/unit/test_kaggle_environment.py:22: AssertionError
+_____ test_real_pins_inspection_does_not_claim_download_or_model_readiness _____
+
+    def test_real_pins_inspection_does_not_claim_download_or_model_readiness():
+>       assert SCRIPT.is_file(), 'missing cache preparation consumer'
+E       AssertionError: missing cache preparation consumer
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/scripts/26_kaggle_environment.py').is_file
+
+tests/unit/test_kaggle_environment.py:33: AssertionError
+________ test_missing_or_corrupt_cache_fails_before_readiness[missing] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-0/test_missing_or_corrupt_cache_0')
+mutation = 'missing'
+
+    @pytest.mark.parametrize('mutation', ['missing', 'content', 'escaping_link'])
+    def test_missing_or_corrupt_cache_fails_before_readiness(tmp_path, mutation):
+>       assert SCRIPT.is_file(), 'missing cache preparation consumer'
+E       AssertionError: missing cache preparation consumer
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/scripts/26_kaggle_environment.py').is_file
+
+tests/unit/test_kaggle_environment.py:46: AssertionError
+________ test_missing_or_corrupt_cache_fails_before_readiness[content] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-0/test_missing_or_corrupt_cache_1')
+mutation = 'content'
+
+    @pytest.mark.parametrize('mutation', ['missing', 'content', 'escaping_link'])
+    def test_missing_or_corrupt_cache_fails_before_readiness(tmp_path, mutation):
+>       assert SCRIPT.is_file(), 'missing cache preparation consumer'
+E       AssertionError: missing cache preparation consumer
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/scripts/26_kaggle_environment.py').is_file
+
+tests/unit/test_kaggle_environment.py:46: AssertionError
+_____ test_missing_or_corrupt_cache_fails_before_readiness[escaping_link] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-0/test_missing_or_corrupt_cache_2')
+mutation = 'escaping_link'
+
+    @pytest.mark.parametrize('mutation', ['missing', 'content', 'escaping_link'])
+    def test_missing_or_corrupt_cache_fails_before_readiness(tmp_path, mutation):
+>       assert SCRIPT.is_file(), 'missing cache preparation consumer'
+E       AssertionError: missing cache preparation consumer
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/scripts/26_kaggle_environment.py').is_file
+
+tests/unit/test_kaggle_environment.py:46: AssertionError
+____ test_setup_notebook_cannot_install_download_or_read_secrets_by_default ____
+
+    def test_setup_notebook_cannot_install_download_or_read_secrets_by_default():
+        notebook = ROOT/'notebooks/15_kaggle_environment_cache.ipynb'
+>       assert notebook.is_file(), 'missing environment-only notebook'
+E       AssertionError: missing environment-only notebook
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-bilingual-consumer/notebooks/15_kaggle_environment_cache.ipynb').is_file
+
+tests/unit/test_kaggle_environment.py:68: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_kaggle_environment.py::test_download_requires_opt_in_before_importing_hf_or_reading_stdin
+FAILED tests/unit/test_kaggle_environment.py::test_real_pins_inspection_does_not_claim_download_or_model_readiness
+FAILED tests/unit/test_kaggle_environment.py::test_missing_or_corrupt_cache_fails_before_readiness[missing]
+FAILED tests/unit/test_kaggle_environment.py::test_missing_or_corrupt_cache_fails_before_readiness[content]
+FAILED tests/unit/test_kaggle_environment.py::test_missing_or_corrupt_cache_fails_before_readiness[escaping_link]
+FAILED tests/unit/test_kaggle_environment.py::test_setup_notebook_cannot_install_download_or_read_secrets_by_default
+6 failed in 0.12s

@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine negative result hoàn tất (`0/100`) | Giữ làm lower bound, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | Local baseline + data/benchmark publication hoàn tất; runner/bundle EN/VI typed chuẩn bị offline | Pin genuine model/encoder/env, GPU smoke và chạy Kaggle; chưa có genuine runs |
+| T5.2/B1–B2 | Baseline/typed runner EN–VI hoàn tất; Kaggle cache version 5 COMPLETE, 24 files đã xác minh | Non-test T4 GPU smoke → 12 genuine process runs; chưa có genuine inference |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -63,8 +63,10 @@ schema/entity/class linking.
 
 4. **B1/B2 genuine run.** [Runner/bundle EN/VI](kaggle-b12-runbook-2026-10-16.md)
    đã chuẩn bị offline: input allowlist/hash, deterministic archive, data/runtime
-   preflight, notebook với execution mặc định tắt. Pin model/encoder/env và wall-time
-   cap thật, làm non-test GPU smoke rồi chạy Kaggle T4; publish native artifacts.
+   preflight, notebook với execution mặc định tắt. Model/encoder đã pin và cache
+   Kaggle version 5 đã xác minh; full Python 3.11.15 environment đã cài thành công
+   ở phiên riêng. Gắn cache read-only, chốt campaign/wall-time cap, làm non-test
+   GPU smoke rồi chạy Kaggle T4; publish native artifacts.
    Ba compatible process runs cho mỗi (baseline, language): EN+VI tổng 12 processes.
    VI đã có typed paired consumer và source-bound native/T5.4 artifacts; metric N=100
    riêng mỗi language, không pooling. [Offline handoff](../research/b12-bilingual-consumer-2026-10-16.md).
@@ -102,8 +104,8 @@ schema/entity/class linking.
 
 - **Lane A — Evidence:** Stage A/T3.3/data integration và Vietnamese review/
   finalization đã xong; giữ các snapshots/hash immutable.
-- **Lane B — Model:** chuẩn bị Kaggle B1/B2 và pin model/encoder; chỉ chạy genuine
-  khi artifact đầu vào hợp lệ.
+- **Lane B — Model:** cache đã xác minh; chuẩn bị runtime và non-test T4 smoke,
+  sau đó genuine B1/B2 với campaign/timeout và quota kiểm tra tại lúc chạy.
 - **Lane C — Writing:** cập nhật RQ/contributions sang small-LLM-only, viết Plan A
   negative finding và methodology; không điền metrics chưa chạy.
 
@@ -127,8 +129,37 @@ WIP limit: một task implementation lớn và một external-evidence task đan
 
 ## Công việc kế tiếp
 
-Runner/input bundle Kaggle EN/VI B1/B2 với typed paired consumer đã chuẩn bị offline. Tiếp theo pin
-model/encoder/env thật, non-test GPU smoke và genuine runs; giữ riêng outputs/config và ba runs cho mỗi (baseline, language). Stage A/T3.3, train-only B2 integration và English/Vietnamese
-benchmark finalization đã hoàn tất. Genuine B1/B2 Kaggle → T5.4 comparison
-B0/B1/B2 → T5.5 quyết định B3. B0 genuine 0/100 giữ nguyên; chưa có genuine
-B1/B2 inference trong lượt Vietnamese review/finalization offline này.
+Runner/input bundle EN/VI và cache Llama/MiniLM đã sẵn sàng. Private Kaggle
+notebook `aohkvd/nl2sql-environment-cache`, version 5, đã COMPLETE: 24 files,
+16.161.347.681 bytes, đúng hash qua hai lượt kiểm tra. Full environment đã cài
+thành công riêng; cache output không chứa runtime đầy đủ.
+
+Tiếp theo gắn cache dưới dạng input read-only, cài runtime vào working disk,
+kiểm tra quota/T4 và chạy smoke B1/B2 trên năm câu ngoài test set. Sau smoke
+đạt mới chạy ba processes cho mỗi (baseline, language), tổng 12 processes,
+N=100 riêng EN và VI. Sau đó T5.4 comparison → T5.5 quyết định B3.
+[Cache handoff](../research/kaggle-cache-acquisition-2026-10-17.md).
+
+## Historical local-preparation checkpoint — 2026-10-17
+
+> Checkpoint lịch sử trước khi user được cấp quyền; trạng thái hiện tại nằm ở
+> checkpoint genuine cache bên dưới. Không dùng đoạn này làm gate hiện tại.
+
+[Setup handoff](kaggle-environment-cache-2026-10-17.md): exact model/encoder
+revisions pinned from anonymous public metadata; genuine MiniLM cache bytes
+verified locally, no encoder/model load. Separate CPU setup notebook, locked
+runtime requirements and portable cache/setup artifacts prepared. User has not
+yet requested Llama access. Existing Kaggle notebook supplied by user; its actual
+contents/runtime/quota remain unverified. No upload/session execution or genuine
+inference occurred. Environment/cache on Kaggle is still pending, followed by
+non-test GPU smoke, genuine B1/B2, T5.4 and T5.5. No baseline or benchmark change.
+
+### 2026-10-17 — genuine Kaggle cache checkpoint
+
+Private `aohkvd/nl2sql-environment-cache` version 5 completed on CPU. All 24
+pinned Llama/MiniLM files (16.16 GB) passed content hashes twice and are saved in
+private output. The full Python 3.11.15 environment installed successfully in
+separate runs; provision it separately from the mounted read-only cache for
+smoke. GPU smoke and genuine B1/B2 inference have not run.
+[Handoff and preserved failures](../research/kaggle-cache-acquisition-2026-10-17.md);
+[machine evidence](../evidence/kaggle-cache-acquisition-2026-10-17.json).

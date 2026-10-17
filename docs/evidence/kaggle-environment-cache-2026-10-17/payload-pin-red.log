@@ -1,0 +1,27 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______________ test_setup_notebook_checks_current_payload_bytes _______________
+
+    def test_setup_notebook_checks_current_payload_bytes():
+        scope = {}
+        notebook = json.loads((ROOT/'notebooks/15_kaggle_environment_cache.ipynb').read_bytes())
+        for cell in notebook['cells']:
+            if cell.get('id')=='settings':
+                exec(''.join(cell['source']), scope)
+                scope['KIT_ROOT'] = str(ROOT)
+            elif cell.get('id')=='verify-unpack':
+                exec(''.join(cell['source']), scope)
+>       scope['check_setup_files']()
+
+tests/unit/test_kaggle_environment.py:174:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   ValueError: Setup source fingerprint mismatch: scripts/26_kaggle_environment.py
+
+<string>:22: ValueError
+----------------------------- Captured stdout call -----------------------------
+BLOCKED: input unpack disabled
+=========================== short test summary info ============================
+FAILED tests/unit/test_kaggle_environment.py::test_setup_notebook_checks_current_payload_bytes
+1 failed in 0.07s
