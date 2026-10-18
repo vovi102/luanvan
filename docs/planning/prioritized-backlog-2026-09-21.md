@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine negative result hoàn tất (`0/100`) | Giữ làm lower bound, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | Baseline/typed runner EN–VI hoàn tất; Kaggle cache version 5 COMPLETE, 24 files đã xác minh | Non-test T4 GPU smoke → 12 genuine process runs; chưa có genuine inference |
+| T5.2/B1–B2 | Typed runner/cache hoàn tất; T4 smoke v2 COMPLETE, 10 genuine non-test processes, không OOM | 12 genuine benchmark processes còn pending; smoke latency vượt target, B1 5 unsafe_sql |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -65,8 +65,10 @@ schema/entity/class linking.
    đã chuẩn bị offline: input allowlist/hash, deterministic archive, data/runtime
    preflight, notebook với execution mặc định tắt. Model/encoder đã pin và cache
    Kaggle version 5 đã xác minh; full Python 3.11.15 environment đã cài thành công
-   ở phiên riêng. Gắn cache read-only, chốt campaign/wall-time cap, làm non-test
-   GPU smoke rồi chạy Kaggle T4; publish native artifacts.
+   ở phiên riêng. Non-test T4 smoke v2 đã COMPLETE, 10/10 genuine processes,
+   không OOM. Giữ negative observations: median generation B1 20,95s/B2 20,01s
+   vượt target, B1 5 unsafe_sql; không tune theo output. Chốt campaign/wall-time
+   cap và quota mới trước 12 genuine benchmark processes; publish native artifacts.
    Ba compatible process runs cho mỗi (baseline, language): EN+VI tổng 12 processes.
    VI đã có typed paired consumer và source-bound native/T5.4 artifacts; metric N=100
    riêng mỗi language, không pooling. [Offline handoff](../research/b12-bilingual-consumer-2026-10-16.md).
@@ -104,8 +106,9 @@ schema/entity/class linking.
 
 - **Lane A — Evidence:** Stage A/T3.3/data integration và Vietnamese review/
   finalization đã xong; giữ các snapshots/hash immutable.
-- **Lane B — Model:** cache đã xác minh; chuẩn bị runtime và non-test T4 smoke,
-  sau đó genuine B1/B2 với campaign/timeout và quota kiểm tra tại lúc chạy.
+- **Lane B — Model:** cache/runtime và T4 compatibility smoke đã xác minh;
+  genuine benchmark B1/B2 còn pending. Giữ quan sát latency/unsafe_sql và
+  kiểm tra lại quota, campaign/timeout trước khi chạy.
 - **Lane C — Writing:** cập nhật RQ/contributions sang small-LLM-only, viết Plan A
   negative finding và methodology; không điền metrics chưa chạy.
 
@@ -134,11 +137,15 @@ notebook `aohkvd/nl2sql-environment-cache`, version 5, đã COMPLETE: 24 files,
 16.161.347.681 bytes, đúng hash qua hai lượt kiểm tra. Full environment đã cài
 thành công riêng; cache output không chứa runtime đầy đủ.
 
-Tiếp theo gắn cache dưới dạng input read-only, cài runtime vào working disk,
-kiểm tra quota/T4 và chạy smoke B1/B2 trên năm câu ngoài test set. Sau smoke
-đạt mới chạy ba processes cho mỗi (baseline, language), tổng 12 processes,
-N=100 riêng EN và VI. Sau đó T5.4 comparison → T5.5 quyết định B3.
-[Cache handoff](../research/kaggle-cache-acquisition-2026-10-17.md).
+T4 smoke version 2 đã COMPLETE ngày 2026-10-18: 10/10 genuine native
+processes trên Tesla T4 ×2, không OOM; original BF16/4-bit settings giữ nguyên.
+Median generation B1 20,95s/B2 20,01s vượt target hiện tại. B1 5 unsafe_sql;
+B2 5 extraction ok không phải accuracy. Smoke dùng năm câu train, không phải test.
+
+Tiếp theo chốt campaign, caps và quota hiện tại cho ba processes mỗi
+(baseline, language), tổng 12 genuine benchmark processes, N=100 riêng EN/VI.
+Chưa chạy benchmark hay BigQuery mới. Sau đó T5.4 comparison → T5.5 quyết định B3.
+[Smoke result và evidence](../research/kaggle-t4-smoke-2026-10-17.md).
 
 ## Historical local-preparation checkpoint — 2026-10-17
 
@@ -182,3 +189,11 @@ Version 2 changes only this count. Local regression reproduced the original erro
 then passed real extraction and native EN/VI data preflight with the unchanged
 accepted bundle. Version 2 is `RUNNING` at the latest checkpoint; model load,
 OOM/latency and genuine benchmark acceptance remain open.
+
+### 2026-10-18 — genuine non-test T4 smoke completed
+
+Version 2 COMPLETE; 10/10 genuine CLI17 processes, Tesla T4 ×2, original
+BF16/4-bit, no OOM. Generation medians: B1 20.95s, B2 20.01s. B1 extraction:
+5 unsafe_sql; B2: 5 ok, without correctness evaluation. Compatibility smoke
+passed; latency acceptance and 12 benchmark processes remain open. Post-run
+quota snapshot: 29.76h GPU remaining; recheck before use. No new BigQuery job.

@@ -2,10 +2,33 @@
 
 Private notebook: https://www.kaggle.com/code/aohkvd/nl2sql-b12-t4-smoke-20261017-r01
 
-Version 2 was submitted on 2026-10-18 with the same explicit 2,700-second
-session cap and T4 accelerator. Its latest saved API checkpoint is `RUNNING`;
-model load, inference and latency are not yet established. Actual hardware must
-be confirmed by the worker probe rather than the requested accelerator.
+**Result (2026-10-18): version 2 is `COMPLETE`; compatibility smoke passed.**
+All ten unchanged CLI17 processes completed with genuine production-backend
+markers, on **Tesla T4 ×2**, compute capability 7.5, Python 3.11.15,
+torch 2.5.1+cu124 and CUDA 12.4. Model and encoder loaded successfully with
+the original 4-bit/BF16 settings. No OOM was observed. The driver completed in
+818.93 seconds under its unchanged 2,700-second session cap.
+
+| Non-test observation | B1 | B2 |
+|---|---:|---:|
+| Genuine native processes completed | 5 | 5 |
+| Generation median, seconds | 20.95 | 20.01 |
+| Generation maximum, seconds | 28.47 | 20.49 |
+| Extraction status | 5 `unsafe_sql` | 5 `ok` |
+
+These are five fixed training questions, not a benchmark or an accuracy
+estimate. `ok` means native extraction/safety passed, not semantic correctness.
+Both smoke generation medians exceed the existing B1 <5s and B2 <8s targets;
+those acceptance gates remain open. Genuine EN/VI benchmark campaigns, execution
+accuracy and scientific completion remain unperformed. Prompts, retrieval,
+model settings and thresholds were not adjusted in response to these outputs.
+
+The post-run quota snapshot reports 0.24h GPU used and 29.76h remaining;
+recheck it before any further campaign. Only 47 small JSON/log/source files were
+downloaded. The embedding NPZ and its lock were omitted; no weights were
+downloaded locally. All 38 downloaded files named by the worker artifact
+manifest match its sizes/SHA-256; that manifest, driver evidence and submitted
+sources are covered by the repository artifact manifest.
 
 Version 1 failed at `input_discovery`, before installation or model loading.
 The notebook incorrectly expected 181 tar members; the immutable accepted
@@ -54,6 +77,9 @@ the preserved preparation source defaults to disabled.
 [artifact manifest](../evidence/kaggle-t4-smoke-2026-10-17/artifacts-manifest.json),
 [submitted version 2](../evidence/kaggle-t4-smoke-2026-10-17/submitted-v2.ipynb),
 [failed version 1](../evidence/kaggle-t4-smoke-2026-10-17/submitted-v1.ipynb).
-Continue by inspecting this same notebook's status and logs. Preserve genuine
-failures; do not change dtype, prompt, model or quantization silently. Genuine
-B1/B2 benchmark runs remain gated on the smoke outcome and current quota.
+[Saved smoke summary](../evidence/kaggle-t4-smoke-2026-10-17/saved-v2/b12-smoke-results/smoke-summary.json),
+[actual hardware](../evidence/kaggle-t4-smoke-2026-10-17/saved-v2/b12-smoke-results/hardware.json).
+Next, plan the genuine EN/VI campaign with explicit process/session caps and
+fresh quota. Preserve the negative observations and unchanged research settings;
+keep three processes per (baseline, language), N=100 per language, and no pooling.
+No new BigQuery execution is authorized or implied by this smoke.

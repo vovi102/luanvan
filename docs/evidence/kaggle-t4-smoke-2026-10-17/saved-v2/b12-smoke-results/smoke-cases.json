@@ -1,0 +1,41 @@
+{
+  "cases": [
+    {
+      "id": "syn-v2-000000__en__abbreviated",
+      "language": "en",
+      "question": "Tx count; [2026-06-01, 2026-06-02).",
+      "record_sha256": "8d06829605fa26545ca38a12565929260c92068cff606121e0bef37ec8b66aca",
+      "semantic_family_id": "syn-v2-000000"
+    },
+    {
+      "id": "syn-v2-000001__vi__abbreviated",
+      "language": "vi",
+      "question": "SL giao dịch; [2026-06-02, 2026-06-03).",
+      "record_sha256": "a90a82a02dd0f8e91dab80ccb6ee4f3daba060344639d8e525182e8322dcce13",
+      "semantic_family_id": "syn-v2-000001"
+    },
+    {
+      "id": "syn-v2-000002__en__abbreviated",
+      "language": "en",
+      "question": "Tx count; [2026-06-03, 2026-06-04).",
+      "record_sha256": "31b7c6526aae91f9543cbf5c627a9b1275bed412f7bcf7e336afeef7e15462c6",
+      "semantic_family_id": "syn-v2-000002"
+    },
+    {
+      "id": "syn-v2-000003__vi__abbreviated",
+      "language": "vi",
+      "question": "SL giao dịch; [2026-06-04, 2026-06-05).",
+      "record_sha256": "fe8b1f6ebf255a0748f0619a586825ab2ef06b1fef8333b97738661c7a570478",
+      "semantic_family_id": "syn-v2-000003"
+    },
+    {
+      "id": "syn-v2-000004__en__abbreviated",
+      "language": "en",
+      "question": "Tx count; [2026-06-05, 2026-06-06).",
+      "record_sha256": "7cd4693d57c7a7d6df22f30c58705cb88c10da3229f6b4f28373211686be1ca9",
+      "semantic_family_id": "syn-v2-000004"
+    }
+  ],
+  "selection": "First matching rows in accepted train order, alternating EN/VI, distinct families, fixed before generation",
+  "training_sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835"
+}
