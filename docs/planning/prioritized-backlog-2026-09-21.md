@@ -30,7 +30,7 @@ schema/entity/class linking.
 | T3.4 | Superseded | Không sinh noise dataset riêng |
 | T3.5 | English và Vietnamese finalized; VI có 100 user ACCEPT events, điểm 5/5/5/1 | Giữ snapshots immutable; VI reuse exact English live evidence, zero new BigQuery jobs |
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
-| T5.1/B0 | Genuine negative result hoàn tất (`0/100`) | Giữ làm lower bound, không tune trên test set |
+| T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
 | T5.2/B1–B2 | Typed runner/cache hoàn tất; T4 smoke v2 COMPLETE, 10 genuine non-test processes, không OOM | 12 genuine benchmark processes còn pending; smoke latency vượt target, B1 5 unsafe_sql |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
@@ -67,8 +67,10 @@ schema/entity/class linking.
    Kaggle version 5 đã xác minh; full Python 3.11.15 environment đã cài thành công
    ở phiên riêng. Non-test T4 smoke v2 đã COMPLETE, 10/10 genuine processes,
    không OOM. Giữ negative observations: median generation B1 20,95s/B2 20,01s
-   vượt target, B1 5 unsafe_sql; không tune theo output. Chốt campaign/wall-time
-   cap và quota mới trước 12 genuine benchmark processes; publish native artifacts.
+   vượt target, B1 5 unsafe_sql; không tune theo output. Notebook benchmark 16 và
+   [campaign offline](kaggle-b12-benchmark-campaign-2026-10-18.md) đã chuẩn bị;
+   chốt campaign/caps/budget và quota mới trước khi cho phép 12 genuine processes.
+   Chưa upload hoặc thực thi benchmark; publish native artifacts sau khi được phép.
    Ba compatible process runs cho mỗi (baseline, language): EN+VI tổng 12 processes.
    VI đã có typed paired consumer và source-bound native/T5.4 artifacts; metric N=100
    riêng mỗi language, không pooling. [Offline handoff](../research/b12-bilingual-consumer-2026-10-16.md).
@@ -197,3 +199,16 @@ BF16/4-bit, no OOM. Generation medians: B1 20.95s, B2 20.01s. B1 extraction:
 5 unsafe_sql; B2: 5 ok, without correctness evaluation. Compatibility smoke
 passed; latency acceptance and 12 benchmark processes remain open. Post-run
 quota snapshot: 29.76h GPU remaining; recheck before use. No new BigQuery job.
+
+### 2026-10-18 — benchmark campaign prepared offline
+
+[Campaign and operational controls](kaggle-b12-benchmark-campaign-2026-10-18.md):
+notebook 16 is disabled by default, reuses smoke-v2 setup and cache v5 read-only,
+and schedules one full 100-case native process per selected session. Full matrix:
+B1/B2 × EN/VI × 3 = 12 processes; N=100 per language. Proposed 90m/process,
+120m/session, 24 GPU-session-hours plus 3h contingency; fresh quota, charge unit,
+IDs and execution authorization remain unresolved. First genuine process remains
+full N=100; only runtime/artifact completeness guides continuation. No upload,
+GPU inference, new Kaggle session or BigQuery job in this preparation turn.
+T5.4 canonical adaptation/privacy/cost and separate BigQuery budget remain pending.
+B0 0/100 is English only; no Vietnamese control is inferred.

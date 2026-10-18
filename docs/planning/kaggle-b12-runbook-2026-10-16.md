@@ -1,5 +1,14 @@
 # Kaggle B1/B2 runner and bundle
 
+Current benchmark preparation (2026-10-18): use **notebook 16**,
+`notebooks/16_kaggle_b12_benchmark.ipynb`, and the
+[campaign plan](kaggle-b12-benchmark-campaign-2026-10-18.md). It reuses the accepted
+bundle and the exact successful smoke-v2 runtime procedure. Notebook 14 below is
+the legacy preparation template and remains immutable inside that bundle.
+Preparation is complete only after its offline checks; upload/execution still
+requires separate authorization, fresh quota and approved caps. No scientific
+completion is implied.
+
 The runner supports the unchanged B1/B2 research definitions for **one explicit
 language per config**, `en` or `vi`. English retains its finalized `nl` trusted
 loader. Vietnamese goes through a typed paired-snapshot authority that checks
@@ -11,9 +20,13 @@ execution is implied. The user bulk ACCEPT provenance (5/5/5/1) is preserved.
 This bilingual bundle supersedes the English-only preparation bundle operationally;
 its archive hash is recorded in
 [the bilingual handoff](../research/b12-bilingual-consumer-2026-10-16.md).
-The old archive/evidence and unsuccessful audits remain historical records.
+The accepted release archive remains immutable. This runbook is itself bundled;
+rebuilding after documentation changes yields a different archive SHA. For this
+campaign consume the existing private archive with accepted SHA, not a fresh
+build from current docs. Old archive/evidence and unsuccessful audits remain
+historical records.
 
-## Build and validate locally without models
+## Build and validate locally without models (development only)
 
 From the repository worktree, use Python 3.11 with the project's dependencies:
 
@@ -45,6 +58,10 @@ enter retrieval or embeddings. English/VI gold files remain outside retrieval.
 
 ## External setup you perform
 
+The numbered steps below describe the generic notebook-14 template. Current
+campaign preparation uses notebook 16 with the existing dataset/cache; follow
+its campaign plan rather than acquiring weights or uploading another bundle.
+
 1. Prepare a **private** Kaggle dataset containing the archive and a private
    notebook based on `notebooks/14_kaggle_b12.ipynb`. This task does not upload.
 2. Check your actual GPU quota/session limits and obtain the approved T4 hardware.
@@ -52,7 +69,8 @@ enter retrieval or embeddings. English/VI gold files remain outside retrieval.
 3. Provision Python 3.11 and the exact core dependency versions in `uv.lock`.
    Runtime preflight lists expected/installed versions without importing ML.
    The bundle includes the project lock, not wheels or an installed environment;
-   provisioning and dependency resolution have not been tested on Kaggle here.
+   the full hashed environment was genuinely installed with Python 3.11.15 in
+   the cache/smoke sessions. Notebook 16 reuses those exact setup hashes.
 4. Obtain genuine local Hugging Face snapshots for the fixed model
    `meta-llama/Meta-Llama-3-8B-Instruct` and encoder
    `sentence-transformers/all-MiniLM-L6-v2`, with their actual lowercase 40-hex
@@ -69,7 +87,8 @@ blocked. HF layout must be `HF_HOME/hub/models--<owner>--<name>/snapshots/<revis
 local symlinks may only resolve within that HF cache. Preflight checks required
 config/tokenizer/weight files and referenced weight shards, not model loading
 or weight authenticity. Genuine load/hardware/OOM/latency evidence is external.
-The existing backend's 4-bit/BF16 behavior is unchanged and untested on T4 here.
+The unchanged backend's original 4-bit/BF16 behavior passed genuine T4 smoke
+v2. Benchmark latency and complete 100-case processes remain unverified.
 
 ## Preflight, plan and authorized execution
 
@@ -90,11 +109,14 @@ read credentials, call BigQuery or execute inference. `data_ready` only covers
 inputs. Runtime `ready` covers structural prerequisites; it is not hardware,
 model compatibility or scientific acceptance.
 
-Before primary evaluation, perform the existing CLI17 `predict` smoke on five
+The historical prerequisite smoke used existing CLI17 `predict` on five
 non-test training questions for B1/B2, with the same pinned configuration and
 explicit real opt-in. For B2 pass the training record as target ID so its family
 is excluded. Keep smoke outputs separate; do not change prompts/configuration
-in response to held-out benchmark outcomes. This offline task does not run smoke.
+in response to held-out benchmark outcomes. Smoke v2 now satisfies compatibility
+only; see the
+[retained result](../research/kaggle-t4-smoke-2026-10-17.md). Do not repeat it
+automatically or use it as benchmark acceptance.
 
 Only in the separately authorized Kaggle execution, after successful smoke:
 
@@ -158,3 +180,23 @@ Inference alone does not measure predicted SQL execution accuracy. T5.4 genuine
 execution, cost/privacy evidence, three compatible replicates per language, and
 comparison remain external stages. Never infer new BigQuery results from VI's
 reused historical gold evidence.
+
+## Current benchmark controls — 2026-10-18
+
+Notebook 16 defaults preparation, installation and inference to false. It discovers
+actual mounts, authenticates setup/archive/cache inventory, retains mounted weights
+in place, installs exact Python 3.11.15/full hashed lock only with opt-in, and runs
+real bundle/data/cache/runtime gates. It selects one complete native process per
+session through CLI25, preserving CLI17 and existing trust gates. The full plan
+contains 12 processes: three for each B1/B2 × EN/VI, N=100 separately per language.
+
+Proposed caps: 5,400s/process, 1,200s setup/cache, 7,200s/session. Twelve separate
+sessions cap at 24 GPU-session-hours; propose 3h contingency (27h total). Charging
+units for T4 ×2 and fresh quota must be checked before approval. Historical 29.76h
+is not a current guarantee. See the campaign for the exact matrix, ledger/archival
+requirements, first-full-process completeness review and timeout/cleanup behavior.
+Failed attempts/unsafe SQL are retained; no accuracy tuning or partial-run merging.
+
+T5.4 requires separate canonical adaptation, privacy/cost evidence and BigQuery
+budget/authorization. B0's existing 0/100 is English evidence only. No B3,
+constrained decoding or Phase 6–7 implementation is included.

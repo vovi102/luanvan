@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "status": "prepared_not_authorized_to_execute",
+  "private": true,
+  "campaign_id": null,
+  "input_dataset": "aohkvd/nl2sql-setup-inputs",
+  "archive_name": "input-bundle.bundle",
+  "archive_sha256": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+  "cache_kernel": "aohkvd/nl2sql-environment-cache",
+  "cache_version": 5,
+  "model_revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2",
+  "encoder_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+  "process_cap_seconds": 5400,
+  "setup_and_cache_cap_seconds": 1200,
+  "session_cap_seconds": 7200,
+  "cleanup_reserve_seconds": 120,
+  "planned_session_hours_cap": 24,
+  "proposed_reserve_session_hours": 3,
+  "proposed_total_session_hours": 27,
+  "quota_charge_multiplier": null,
+  "fresh_gpu_quota_hours": null,
+  "execution_authorized": false,
+  "scientific_ready": false,
+  "sessions": [
+    {
+      "session": "s01",
+      "baseline": "b1",
+      "language": "en",
+      "replicate": 1,
+      "run_suffix": "b1-en-r01",
+      "cases": 100
+    },
+    {
+      "session": "s02",
+      "baseline": "b1",
+      "language": "vi",
+      "replicate": 1,
+      "run_suffix": "b1-vi-r01",
+      "cases": 100
+    },
+    {
+      "session": "s03",
+      "baseline": "b2",
+      "language": "en",
+      "replicate": 1,
+      "run_suffix": "b2-en-r01",
+      "cases": 100
+    },
+    {
+      "session": "s04",
+      "baseline": "b2",
+      "language": "vi",
+      "replicate": 1,
+      "run_suffix": "b2-vi-r01",
+      "cases": 100
+    },
+    {
+      "session": "s05",
+      "baseline": "b1",
+      "language": "en",
+      "replicate": 2,
+      "run_suffix": "b1-en-r02",
+      "cases": 100
+    },
+    {
+      "session": "s06",
+      "baseline": "b1",
+      "language": "vi",
+      "replicate": 2,
+      "run_suffix": "b1-vi-r02",
+      "cases": 100
+    },
+    {
+      "session": "s07",
+      "baseline": "b2",
+      "language": "en",
+      "replicate": 2,
+      "run_suffix": "b2-en-r02",
+      "cases": 100
+    },
+    {
+      "session": "s08",
+      "baseline": "b2",
+      "language": "vi",
+      "replicate": 2,
+      "run_suffix": "b2-vi-r02",
+      "cases": 100
+    },
+    {
+      "session": "s09",
+      "baseline": "b1",
+      "language": "en",
+      "replicate": 3,
+      "run_suffix": "b1-en-r03",
+      "cases": 100
+    },
+    {
+      "session": "s10",
+      "baseline": "b1",
+      "language": "vi",
+      "replicate": 3,
+      "run_suffix": "b1-vi-r03",
+      "cases": 100
+    },
+    {
+      "session": "s11",
+      "baseline": "b2",
+      "language": "en",
+      "replicate": 3,
+      "run_suffix": "b2-en-r03",
+      "cases": 100
+    },
+    {
+      "session": "s12",
+      "baseline": "b2",
+      "language": "vi",
+      "replicate": 3,
+      "run_suffix": "b2-vi-r03",
+      "cases": 100
+    }
+  ]
+}
