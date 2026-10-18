@@ -1,0 +1,20 @@
+{
+  "id": "aohkvd/nl2sql-b12-t4-smoke-20261017-r01",
+  "title": "nl2sql-b12-t4-smoke-20261017-r01",
+  "code_file": "nl2sql-b12-t4-smoke-20261017-r01.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [
+    "aohkvd/nl2sql-setup-inputs"
+  ],
+  "kernel_sources": [
+    "aohkvd/nl2sql-environment-cache"
+  ],
+  "competition_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}

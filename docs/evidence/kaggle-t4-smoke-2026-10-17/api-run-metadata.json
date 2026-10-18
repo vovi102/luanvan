@@ -1,0 +1,10 @@
+{
+  "ref": "aohkvd/nl2sql-b12-t4-smoke-20261017-r01",
+  "worker_status": "QUEUED",
+  "version": 1,
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_internet": true,
+  "docker_image": ""
+}

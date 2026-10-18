@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "stage": "native_cli17_smoke",
+  "campaign_id": "t4-smoke-20261017-r01",
+  "session_cap_seconds": 2700,
+  "smoke_cap_seconds": 1800,
+  "wall_seconds": 818.9286497180001
+}

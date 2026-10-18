@@ -213,14 +213,16 @@ per-case prompt hashes (complete prompts legitimately differ across questions).
   vẫn giữ nguyên 7.208 rows và fingerprint.
 - [x] Pinned Llama snapshot/cache: 13 files đúng hash, đã lưu private Kaggle output.
   Đây là gate availability/integrity; không phải GPU/model-load acceptance.
-- [ ] Pinned Llama 3 8B snapshot chạy đủ B1/B2 trên Kaggle T4, không OOM.
+- [x] Non-test T4 compatibility smoke: 10 genuine CLI17 processes hoàn tất,
+  model/encoder và original BF16/4-bit chạy trên Tesla T4 ×2, không OOM.
+- [ ] Pinned Llama 3 8B snapshot chạy đủ benchmark B1/B2 trên Kaggle T4, không OOM.
 - [ ] B1 latency `<5 s/query` trên Kaggle T4.
 - [ ] B2 latency `<8 s/query` trên Kaggle T4.
 - [ ] Genuine prediction/log/report artifacts được publish từ các input trên.
 
 ## Trạng thái
 
-`implementation + data/benchmark finalization + verified Kaggle cache complete — GPU smoke and genuine B1/B2 pending`
+`implementation + data/benchmark finalization + verified cache + T4 compatibility smoke complete — genuine benchmark and latency acceptance pending`
 
 Thứ tự: data integration + Vietnamese review/finalization (đã xong) → B1/B2 genuine → T5.4 comparison
 (B0 genuine 0/100 đã có) → T5.5 quyết định B3. Không hosted LLM baselines,
@@ -260,3 +262,32 @@ T4 compatibility, latency thresholds, inference và scientific completion vẫn
 chưa được xác minh.
 [Handoff](../../research/kaggle-cache-acquisition-2026-10-17.md);
 [machine evidence](../../evidence/kaggle-cache-acquisition-2026-10-17.json).
+
+### 2026-10-17 — smoke submission checkpoint
+
+The private T4 smoke notebook version 1 has been submitted and is `QUEUED`
+at the latest saved API checkpoint. It plans five accepted training questions
+for B1 and B2 through unchanged CLI17; no benchmark results are available.
+The GPU/model-load, OOM, latency and genuine-run acceptance boxes remain open.
+[Source, caps and continuation](../../research/kaggle-t4-smoke-2026-10-17.md).
+
+### 2026-10-18 — smoke archive guard corrected
+
+Version 1 genuinely failed before installation/model load: its notebook expected
+181 archive members instead of 181 payload files plus the bundle manifest (182).
+Version 2 changes only this count. Local regression reproduced the original error,
+then passed real extraction and native EN/VI data preflight with the unchanged
+accepted bundle. Version 2 is `RUNNING` at the latest checkpoint; model load,
+OOM/latency and genuine benchmark acceptance remain open.
+
+### 2026-10-18 — genuine smoke result
+
+Version 2 is COMPLETE: ten unchanged native CLI17 processes genuinely completed,
+five accepted train-only cases for each baseline, Tesla T4 ×2, Python 3.11.15,
+torch 2.5.1+cu124/CUDA 12.4, no OOM observed. Generation median/max: B1
+20.95/28.47s; B2 20.01/20.49s. B1 returned unsafe_sql for all five; B2 returned
+extraction ok for all five. These are safety/extraction observations, not test
+accuracy or semantic correctness. Both median latencies exceed existing targets;
+thresholds and research settings remain unchanged. The 12 genuine EN/VI benchmark
+processes and all scientific acceptance beyond compatibility remain open.
+[Full evidence and preserved v1 failure](../../research/kaggle-t4-smoke-2026-10-17.md).

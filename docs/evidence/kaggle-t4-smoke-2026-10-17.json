@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "checked_at_utc": "2026-10-18T05:50:37.254261+00:00",
+  "status": "smoke_compatibility_passed",
+  "kernel": "aohkvd/nl2sql-b12-t4-smoke-20261017-r01",
+  "version": 2,
+  "worker_status": "COMPLETE",
+  "private": true,
+  "gpu_requested": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "actual_hardware_verified": true,
+  "source_commit": "370e9ea",
+  "submitted_source_sha256": "cfd173f78fab9d721eb5b6bd08487da1e7528727e668b1b1078147c71b402fce",
+  "input_dataset": "aohkvd/nl2sql-setup-inputs",
+  "cache_kernel": "aohkvd/nl2sql-environment-cache",
+  "cache_version_checked_before_submission": 5,
+  "accepted_input_archive_sha256": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+  "session_timeout_seconds": 2700,
+  "smoke_timeout_seconds": 1800,
+  "native_timeout_seconds": 300,
+  "cases": 5,
+  "native_processes_planned": 10,
+  "case_source": "accepted 7208-row train-only export; fixed EN/VI/EN/VI/EN, distinct families, never benchmark",
+  "model_or_prompt_changed": false,
+  "model_downloaded_locally": false,
+  "bigquery_jobs": 0,
+  "genuine_benchmark_runs_started": false,
+  "scientific_ready": false,
+  "artifact_manifest": "kaggle-t4-smoke-2026-10-17/artifacts-manifest.json",
+  "archive_member_count": 182,
+  "manifest_payload_files": 181,
+  "history": {
+    "v1": {
+      "worker_status": "ERROR",
+      "stage": "input_discovery",
+      "error": "Bundle member count/size invalid",
+      "root_cause": "Notebook expected 181 archive members; accepted tar has 181 payload files plus kaggle-bundle.json = 182",
+      "model_loaded": false,
+      "inference_run": false,
+      "failure_evidence": "kaggle-t4-smoke-2026-10-17/driver-summary-v1.json"
+    },
+    "v2": {
+      "change": "Only expected archive member count 181 -> 182; immutable archive/model/worker unchanged",
+      "local_validation": "Original real extraction block fails; corrected real extraction block and native EN/VI data preflight pass",
+      "worker_status": "COMPLETE",
+      "latest_observed_stage": "completed_native_cli17_smoke",
+      "remote_archive_guard_passed": true,
+      "remote_cache_bytes_verified": true,
+      "smoke_status": "passed"
+    }
+  },
+  "hardware": {
+    "compute_capability": [
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        5
+      ]
+    ],
+    "cuda": "12.4",
+    "gpu_names": [
+      "Tesla T4",
+      "Tesla T4"
+    ],
+    "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+    "python": "3.11.15 (main, May 10 2026, 19:28:18) [Clang 22.1.3 ]",
+    "torch": "2.5.1+cu124"
+  },
+  "model_loaded": true,
+  "encoder_loaded": true,
+  "inference_run": true,
+  "native_processes_completed": 10,
+  "oom_observed": false,
+  "observations": {
+    "b1": {
+      "cases": 5,
+      "max_ms": 28468.722521,
+      "median_ms": 20954.797899,
+      "extraction_status_counts": {
+        "unsafe_sql": 5
+      }
+    },
+    "b2": {
+      "cases": 5,
+      "max_ms": 20492.282216,
+      "median_ms": 20006.849042,
+      "extraction_status_counts": {
+        "ok": 5
+      }
+    }
+  },
+  "benchmark_evaluation": false,
+  "scientific_blockers": [
+    "Genuine EN/VI benchmark campaigns have not run",
+    "Smoke generation medians exceed B1 <5s / B2 <8s targets; benchmark latency acceptance remains open",
+    "B1 smoke outputs all unsafe_sql; B2 extraction ok is not accuracy evidence"
+  ],
+  "quota_snapshot": {
+    "gpu_used_hours": 0.24,
+    "gpu_remaining_hours": 29.76,
+    "gpu_total_hours": 30,
+    "refresh_at": "2026-10-24T00:00:00"
+  },
+  "local_weight_download": false,
+  "local_embedding_payload_download": false,
+  "saved_evidence": {
+    "small_files_downloaded": 47,
+    "worker_manifest_entries_verified": 38,
+    "omitted_worker_files": [
+      "cache/b2-few-shot.npz",
+      "cache/b2-few-shot.npz.lock"
+    ],
+    "signed_urls_persisted": false,
+    "verification": "Every downloaded worker artifact is verified against the remote worker manifest except that manifest itself; driver files and submitted source are covered by the repository artifact manifest."
+  }
+}

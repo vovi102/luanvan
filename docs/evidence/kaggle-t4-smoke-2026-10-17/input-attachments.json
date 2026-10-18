@@ -1,0 +1,13 @@
+{
+  "ref": "aohkvd/nl2sql-b12-t4-smoke-20261017-r01",
+  "isPrivate": true,
+  "enableGpu": true,
+  "machineShape": "NvidiaTeslaT4",
+  "currentVersionNumber": 1,
+  "datasetDataSources": [
+    "aohkvd/nl2sql-setup-inputs"
+  ],
+  "kernelDataSources": [
+    "aohkvd/nl2sql-environment-cache"
+  ]
+}
