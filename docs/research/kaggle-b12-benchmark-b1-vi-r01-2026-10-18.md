@@ -47,3 +47,31 @@ pending. No B3, constrained decoding, demo or Phase 6–7 implementation is incl
 
 [Machine checkpoint](../evidence/kaggle-b12-benchmark-b1-vi-r01-2026-10-18.json)
 and [artifact manifest](../evidence/kaggle-b12-benchmark-b1-vi-r01-2026-10-18/artifacts-manifest.json).
+
+## Monitoring stopped at user request
+
+The user asked to stop checking and return later. **No Kaggle cancellation was
+requested**; the existing private v1 session continues under its native/session
+caps. No new remote check was made after that request. Last observed state was
+RUNNING at **22:06:56 Asia/Saigon** (15:06:56 UTC), with 28.57429h account GPU
+quota remaining. This is a last-known snapshot, not a current completion claim.
+
+On return, inspect the **existing** notebook v1 and its saved outputs; resuming
+monitoring does not require another upload or GPU session. Local monitoring and
+bounded export helpers remain in
+`.local/kaggle-b12-benchmark-20261018-b1-vi-r01/` in this worktree:
+
+```bash
+/home/khoavd/.local/share/uv/tools/kaggle/bin/python \
+  .local/kaggle-b12-benchmark-20261018-b1-vi-r01/poll.py --status-only
+```
+
+After terminal status and saved output availability, run `export_saved.py` from
+that same helper directory with the Kaggle tool Python, then run its
+`verify_saved.py` with `PYTHONPATH=src` and the project's shared `.venv/bin/python`.
+The verifier uses the accepted release extracted under
+`.local/benchmark-preparation/driver-accepted-input`. Check complete N=100 VI,
+genuine markers, original question/paired lineage, exact reused English evidence,
+all manifest/report hashes, runtime/hardware and the cumulative ledger. Preserve
+invalid/unsafe SQL and all scientific blockers. No additional inference,
+canonical adaptation, BigQuery or next process is part of resuming status checks.

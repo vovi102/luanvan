@@ -44,5 +44,13 @@
     "cache_version": 5,
     "cache_private_complete": true
   },
-  "artifact_manifest": "kaggle-b12-benchmark-b1-vi-r01-2026-10-18/artifacts-manifest.json"
+  "artifact_manifest": "kaggle-b12-benchmark-b1-vi-r01-2026-10-18/artifacts-manifest.json",
+  "monitoring_status": "stopped_at_user_request",
+  "monitoring_stop_reason": "User asked to stop checking and return later; Kaggle session is left running under existing caps.",
+  "last_checked_at_utc": "2026-10-18T15:06:56.249526+00:00",
+  "last_known_worker_status": "RUNNING",
+  "last_known_gpu_remaining_hours": 28.574292124166664,
+  "kaggle_cancellation_requested": false,
+  "additional_sessions_started": false,
+  "next_action": "Read status of existing private VI v1; if terminal, download and verify saved artifacts. Do not resubmit or start another process to resume monitoring."
 }

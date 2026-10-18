@@ -7,6 +7,10 @@
     "bytes": 413,
     "sha256": "9efe1a20c5f90ebcb90a1c625e2b7e23469e53d7125eec6afff79f8f790bad28"
   },
+  "last-known-status-before-monitoring-stop.json": {
+    "bytes": 413,
+    "sha256": "6e27c6c08c3ec7dc4be0bcb010cc625c820b95bbe59528c61c04da0bca959239"
+  },
   "quota-before.json": {
     "bytes": 470,
     "sha256": "0114f1ca4cea738acb4339796c40bd746ff6cda7a5f8cdb78979766912d4364e"
@@ -14,6 +18,10 @@
   "remote-source-verified.json": {
     "bytes": 82,
     "sha256": "af317a1ad75c053d20c5165601a7a265a360cdb76a86d68739a081872957de84"
+  },
+  "status-history-before-monitoring-stop.jsonl.gz": {
+    "bytes": 614,
+    "sha256": "21c01ee5440de33e991bfe3167fd6c035d6a8fc2e98f281ce8b9bbceea2ea81a"
   },
   "submission-plan.json": {
     "bytes": 992,
