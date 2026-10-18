@@ -200,3 +200,14 @@ Failed attempts/unsafe SQL are retained; no accuracy tuning or partial-run mergi
 T5.4 requires separate canonical adaptation, privacy/cost evidence and BigQuery
 budget/authorization. B0's existing 0/100 is English evidence only. No B3,
 constrained decoding or Phase 6–7 implementation is included.
+
+## First authorized genuine process — 2026-10-18
+
+B1 EN r01 v1 COMPLETE, N=100; native/runtime/artifact completeness independently
+verified. See [result/audit](../research/kaggle-b12-benchmark-first-run-2026-10-18.md).
+Exactly one process was authorized/executed; the other eleven remain unstarted.
+Carry the retained cumulative campaign ledger into any separately authorized
+next session. Keep source defaults disabled. All 100 extraction failures and
+original native scientific blockers are retained; no prompt/model/flag/threshold
+change or automatic retry was made. T5.4 adaptation/privacy/cost and separately
+budgeted BigQuery work remain pending.

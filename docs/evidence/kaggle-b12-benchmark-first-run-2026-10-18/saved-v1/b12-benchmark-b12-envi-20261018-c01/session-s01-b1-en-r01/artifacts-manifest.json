@@ -1,0 +1,86 @@
+{
+  "runs/b12-envi-20261018-c01-b1-en-r01/native-log.jsonl": {
+    "bytes": 56047,
+    "sha256": "cbe4967fb9781839dcc440aa3492b5a278acd6babf45a04a96d3b7cdc67d0265"
+  },
+  "runs/b12-envi-20261018-c01-b1-en-r01/native-report.json": {
+    "bytes": 14454,
+    "sha256": "d16234cc8de8229f2ed55382aefe6efb93f81833dbd9645de0dfca4341c11cb2"
+  },
+  "runs/b12-envi-20261018-c01-b1-en-r01/predictions.jsonl": {
+    "bytes": 285914,
+    "sha256": "f38a7c19fc3d2ec6115a5e10c592229fb28d0444f60f737b20132f44b5ea0ed1"
+  },
+  "runs/b12-envi-20261018-c01-b1-en-r01/run.json": {
+    "bytes": 11234,
+    "sha256": "0dbefa15cfa75759339786b20b113732b577d482a5fd33641439382db67e020f"
+  },
+  "runs/b12-envi-20261018-c01-b1-en-r01/stderr.log": {
+    "bytes": 1175,
+    "sha256": "6d2d7ad2ec15a139aa3948aae1cd3691520c18d8646d845dd15a31e854458be0"
+  },
+  "runs/b12-envi-20261018-c01-b1-en-r01/stdout.log": {
+    "bytes": 487,
+    "sha256": "821baf8eded6c6619de6af48164ed449a41cf8e3998488567982d5efa0e67eef"
+  },
+  "session-s01-b1-en-r01/benchmark-driver.py": {
+    "bytes": 19070,
+    "sha256": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7"
+  },
+  "session-s01-b1-en-r01/campaign-ledger.json": {
+    "bytes": 142,
+    "sha256": "f3fd2686d5f821fe37702dd5fe63271b24e5d8e49caec357ec6c5728cd4fd937"
+  },
+  "session-s01-b1-en-r01/campaign-plan.json": {
+    "bytes": 29661,
+    "sha256": "1e104aa8fee62b65d164c0021f117bdc982631042bcd95875306e8cea24a59ec"
+  },
+  "session-s01-b1-en-r01/completeness.json": {
+    "bytes": 145,
+    "sha256": "b7a87a6a9cd1330d2a47e9676174a42526efec9e7f4600fefbdfbba099962920"
+  },
+  "session-s01-b1-en-r01/create_python311.log": {
+    "bytes": 206,
+    "sha256": "793305afdf819a2c7601d882efe7feb7bf97ae9858a998cc9911eef3be7bc218"
+  },
+  "session-s01-b1-en-r01/data-preflight.json": {
+    "bytes": 518,
+    "sha256": "2380d19df60cae8c067aad5ebe16df524705f64b59d96548932a53a889dadbab"
+  },
+  "session-s01-b1-en-r01/driver-summary.json": {
+    "bytes": 549,
+    "sha256": "a15e26d0e87ad8e1e66901c2cb2e1ed1657d1e1b441889224fb4401b8d25174e"
+  },
+  "session-s01-b1-en-r01/input-provenance.json": {
+    "bytes": 832,
+    "sha256": "136d3faa3deda4429a114208588c5cf7964e8776ae18b46e8f4f142921663a73"
+  },
+  "session-s01-b1-en-r01/install_bootstrap.log": {
+    "bytes": 450,
+    "sha256": "1d32bfa11daa62454fcc2aebb67727b6b265f2982c848cb6513feef1ee51a09e"
+  },
+  "session-s01-b1-en-r01/install_locked_environment.log": {
+    "bytes": 7864,
+    "sha256": "18e52da7f58e7727f2ed735e020deb2eb72ae94e860b8a35146f964cb2eb1122"
+  },
+  "session-s01-b1-en-r01/run-config.json": {
+    "bytes": 563,
+    "sha256": "b2d3b23b26374754de97e3e1da1c21b907af77feab17096347af892f870defe1"
+  },
+  "session-s01-b1-en-r01/runtime-preflight.json": {
+    "bytes": 1003,
+    "sha256": "8aa2e201ef149f53a89780345e1b646dd7b81fadae92e3c991e82d67abd0f004"
+  },
+  "session-s01-b1-en-r01/settings.json": {
+    "bytes": 290,
+    "sha256": "858b2cd0668cdc9be36c2d0685698cfa781d54fdac72ce3377528f237fbc5120"
+  },
+  "session-s01-b1-en-r01/verify_mounted_cache.log": {
+    "bytes": 741,
+    "sha256": "6fcab3abf919a7f7b671511b4879aa9ad54e27f9ec6487fd3638f29e1e2c21fe"
+  },
+  "session-s01-b1-en-r01/worker.log": {
+    "bytes": 25,
+    "sha256": "423bc199fb67f93e859cbf9030ab8ab43d752806fe06e443f3596de63829605f"
+  }
+}

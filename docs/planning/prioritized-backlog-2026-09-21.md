@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | Typed runner/cache hoàn tất; T4 smoke v2 COMPLETE, 10 genuine non-test processes, không OOM | 12 genuine benchmark processes còn pending; smoke latency vượt target, B1 5 unsafe_sql |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN r01 COMPLETE, N=100, artifact/runtime verified | 1/12 native processes complete; 11 pending authorization. B1: 99 unsafe / 1 invalid, P95 49.107s; scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -70,7 +70,8 @@ schema/entity/class linking.
    vượt target, B1 5 unsafe_sql; không tune theo output. Notebook benchmark 16 và
    [campaign offline](kaggle-b12-benchmark-campaign-2026-10-18.md) đã chuẩn bị;
    chốt campaign/caps/budget và quota mới trước khi cho phép 12 genuine processes.
-   Chưa upload hoặc thực thi benchmark; publish native artifacts sau khi được phép.
+   B1 EN r01 đã được cho phép riêng và COMPLETE (100/100 genuine); 11 process
+   còn lại chờ quyết định thực thi. Giữ native outputs/blockers nguyên trạng.
    Ba compatible process runs cho mỗi (baseline, language): EN+VI tổng 12 processes.
    VI đã có typed paired consumer và source-bound native/T5.4 artifacts; metric N=100
    riêng mỗi language, không pooling. [Offline handoff](../research/b12-bilingual-consumer-2026-10-16.md).
@@ -221,3 +222,20 @@ Private notebook v1 is RUNNING; actual inference/hardware/completeness are not y
 verified. No remaining campaign process is authorized by this launch. Preserve
 all results; no tuning/retry based on SQL validity or accuracy.
 [Live-run checkpoint](../research/kaggle-b12-benchmark-first-run-2026-10-18.md).
+
+### 2026-10-18 — first full B1 EN process complete and verified
+
+Private v1 COMPLETE; 100/100 genuine completions, N=100 EN, Tesla T4 ×2,
+original BF16/4-bit, Python 3.11.15 / torch 2.5.1+cu124. All 22 saved files
+retained; 21 driver-manifest entries plus report/source/identity checks pass.
+Native 47.00m; driver 56.11m; platform observed COMPLETE about 65m after submit.
+B1 extraction: 99 unsafe_sql, 1 invalid_sql, zero ok; no repair/retry. P50
+25.457s / P95 49.107s fails unchanged latency gate. Native review/live aggregate
+flags also remain blocked; audit confirms all loader cases carry trusted human/live
+authority. No flags/reports/semantics were changed.
+
+Settled quota remaining 28.82212h, observed account delta 0.94063h. Exactly one
+process executed; remaining 11 have not started. Runtime/artifact completeness
+review passes; scientific completion, T5.4 canonical/privacy/cost and separate
+BigQuery work remain pending.
+[Result and audit](../research/kaggle-b12-benchmark-first-run-2026-10-18.md).
