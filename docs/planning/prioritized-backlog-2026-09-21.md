@@ -173,3 +173,12 @@ model loading, OOM/latency and inference are not yet verified. Five fixed
 train-only questions are planned for both B1/B2; 300s per process, 1,800s
 smoke and 2,700s session caps. Continue monitoring this run before launching
 any genuine benchmark campaign. [Smoke handoff](../research/kaggle-t4-smoke-2026-10-17.md).
+
+### 2026-10-18 — smoke archive guard corrected
+
+Version 1 genuinely failed before installation/model load: its notebook expected
+181 archive members instead of 181 payload files plus the bundle manifest (182).
+Version 2 changes only this count. Local regression reproduced the original error,
+then passed real extraction and native EN/VI data preflight with the unchanged
+accepted bundle. Version 2 is `RUNNING` at the latest checkpoint; model load,
+OOM/latency and genuine benchmark acceptance remain open.

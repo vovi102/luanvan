@@ -1,7 +1,23 @@
 {
+  "api-failed-v1.json": {
+    "bytes": 333,
+    "sha256": "66546313c9918d00a45b7b226b0ec8755df957b77e4524b9282c689866a8dcbb"
+  },
   "api-run-metadata.json": {
     "bytes": 229,
     "sha256": "24b37a3a1fc40395f772777a2df380b780d8854074c68cafd5972a66f65aa597"
+  },
+  "api-submitted-v2.json": {
+    "bytes": 335,
+    "sha256": "1413f22beadc32ca1fe84d9f889fe904e2cf20c805a631896f11b683dea21a92"
+  },
+  "archive-regression-v2.json": {
+    "bytes": 446,
+    "sha256": "718d2430250f63e94e2788da8e97f345f0afd6de19223bf7c77df2d517fb7c12"
+  },
+  "driver-summary-v1.json": {
+    "bytes": 272,
+    "sha256": "cd6526de948ca59b5410524852329998f58b5db4954807ca11dbabf825190611"
   },
   "input-attachments.json": {
     "bytes": 293,
@@ -10,6 +26,10 @@
   "prepared-disabled.ipynb": {
     "bytes": 18506,
     "sha256": "a78c512dfdae87af3d60ce3f252483c7a27da3dbfdc229e8c73d8235e1b62d7d"
+  },
+  "prepared-v2-disabled.ipynb": {
+    "bytes": 18506,
+    "sha256": "1ae4f0abc0dcf9a829a399ce937802e7f6b68d5e8216392868108f53bca91e1e"
   },
   "smoke_worker.py": {
     "bytes": 9003,
@@ -22,5 +42,21 @@
   "submitted-v1.ipynb": {
     "bytes": 18505,
     "sha256": "79bb3b3bb2b79ec0d34189394a6b83d917f4a7ce0eb86c0bc099ce3c370ae1c0"
+  },
+  "submitted-v2.ipynb": {
+    "bytes": 18505,
+    "sha256": "cfd173f78fab9d721eb5b6bd08487da1e7528727e668b1b1078147c71b402fce"
+  },
+  "validate_archive_fix.py": {
+    "bytes": 2033,
+    "sha256": "cb47b3a050ebcedc87336b47fc22e14958e76c2c7706c5d2fda2143ca6d376c7"
+  },
+  "worker-log-v1.log.gz": {
+    "bytes": 1677,
+    "sha256": "9a5d500a2cf665197474e9470d37e631c8d3dff3284e041e1534e3f0d3b3dc14"
+  },
+  "worker-log-v2.log.gz": {
+    "bytes": 702,
+    "sha256": "ca2c4a276719584a8dfe19fd9918e1df117ca27c39d28bf6cfa9bad0ab9fda09"
   }
 }

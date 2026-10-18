@@ -1,0 +1,11 @@
+{
+  "checked_at_utc": "2026-10-18T05:33:43.777159+00:00",
+  "original_guard_reproduces_genuine_failure": true,
+  "corrected_guard_extracts_182_members": true,
+  "native_en_vi_data_preflight_passed": true,
+  "accepted_training_rows": 7208,
+  "archive_hash_unchanged": true,
+  "worker_source_unchanged": true,
+  "only_submitted_behavior_change": "expected member count 181 -> 182",
+  "gpu_compatibility_not_established_by_local_regression": true
+}

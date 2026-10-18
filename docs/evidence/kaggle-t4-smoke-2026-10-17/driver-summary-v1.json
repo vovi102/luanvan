@@ -1,0 +1,10 @@
+{
+  "status": "blocked",
+  "stage": "input_discovery",
+  "campaign_id": "t4-smoke-20261017-r01",
+  "session_cap_seconds": 2700,
+  "smoke_cap_seconds": 1800,
+  "error_type": "ValueError",
+  "error": "Bundle member count/size invalid",
+  "wall_seconds": 0.2804645769999752
+}

@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "checked_at_utc": "2026-10-17T16:37:40.719346+00:00",
-  "status": "submitted_waiting_for_runtime",
+  "checked_at_utc": "2026-10-18T05:33:56.135334+00:00",
+  "status": "corrected_smoke_running",
   "kernel": "aohkvd/nl2sql-b12-t4-smoke-20261017-r01",
-  "version": 1,
-  "worker_status": "QUEUED",
+  "version": 2,
+  "worker_status": "RUNNING",
   "private": true,
   "gpu_requested": true,
   "machine_shape": "NvidiaTeslaT4",
   "actual_hardware_verified": false,
-  "source_commit": "4bacd7d",
-  "submitted_source_sha256": "79bb3b3bb2b79ec0d34189394a6b83d917f4a7ce0eb86c0bc099ce3c370ae1c0",
+  "source_commit": "370e9ea",
+  "submitted_source_sha256": "cfd173f78fab9d721eb5b6bd08487da1e7528727e668b1b1078147c71b402fce",
   "input_dataset": "aohkvd/nl2sql-setup-inputs",
   "cache_kernel": "aohkvd/nl2sql-environment-cache",
   "cache_version_checked_before_submission": 5,
@@ -26,5 +26,23 @@
   "bigquery_jobs": 0,
   "genuine_benchmark_runs_started": false,
   "scientific_ready": false,
-  "artifact_manifest": "kaggle-t4-smoke-2026-10-17/artifacts-manifest.json"
+  "artifact_manifest": "kaggle-t4-smoke-2026-10-17/artifacts-manifest.json",
+  "archive_member_count": 182,
+  "manifest_payload_files": 181,
+  "history": {
+    "v1": {
+      "worker_status": "ERROR",
+      "stage": "input_discovery",
+      "error": "Bundle member count/size invalid",
+      "root_cause": "Notebook expected 181 archive members; accepted tar has 181 payload files plus kaggle-bundle.json = 182",
+      "model_loaded": false,
+      "inference_run": false,
+      "failure_evidence": "kaggle-t4-smoke-2026-10-17/driver-summary-v1.json"
+    },
+    "v2": {
+      "change": "Only expected archive member count 181 -> 182; immutable archive/model/worker unchanged",
+      "local_validation": "Original real extraction block fails; corrected real extraction block and native EN/VI data preflight pass",
+      "worker_status": "RUNNING"
+    }
+  }
 }

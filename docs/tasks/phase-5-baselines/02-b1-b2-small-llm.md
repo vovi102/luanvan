@@ -268,3 +268,12 @@ at the latest saved API checkpoint. It plans five accepted training questions
 for B1 and B2 through unchanged CLI17; no benchmark results are available.
 The GPU/model-load, OOM, latency and genuine-run acceptance boxes remain open.
 [Source, caps and continuation](../../research/kaggle-t4-smoke-2026-10-17.md).
+
+### 2026-10-18 — smoke archive guard corrected
+
+Version 1 genuinely failed before installation/model load: its notebook expected
+181 archive members instead of 181 payload files plus the bundle manifest (182).
+Version 2 changes only this count. Local regression reproduced the original error,
+then passed real extraction and native EN/VI data preflight with the unchanged
+accepted bundle. Version 2 is `RUNNING` at the latest checkpoint; model load,
+OOM/latency and genuine benchmark acceptance remain open.
