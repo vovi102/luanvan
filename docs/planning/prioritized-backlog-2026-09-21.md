@@ -212,3 +212,12 @@ full N=100; only runtime/artifact completeness guides continuation. No upload,
 GPU inference, new Kaggle session or BigQuery job in this preparation turn.
 T5.4 canonical adaptation/privacy/cost and separate BigQuery budget remain pending.
 B0 0/100 is English only; no Vietnamese control is inferred.
+
+### 2026-10-18 — first full B1 EN process authorized and submitted
+
+User authorized only B1 EN r01, all 100 cases, 90m native / 120m session after
+fresh quota check (29.76275h available, no reserved quota, pay-to-scale off).
+Private notebook v1 is RUNNING; actual inference/hardware/completeness are not yet
+verified. No remaining campaign process is authorized by this launch. Preserve
+all results; no tuning/retry based on SQL validity or accuracy.
+[Live-run checkpoint](../research/kaggle-b12-benchmark-first-run-2026-10-18.md).

@@ -1,0 +1,9 @@
+{
+  "configs/kaggle-b12-bootstrap.lock.txt": 1542,
+  "configs/kaggle-b12-model-pins.json": 4840,
+  "configs/kaggle-b12-requirements.lock.txt": 89469,
+  "input-bundle.bundle": 2678997,
+  "notebooks/15_kaggle_environment_cache.ipynb": 11951,
+  "scripts/26_kaggle_environment.py": 7983,
+  "setup-kit-manifest.json": 1122
+}
