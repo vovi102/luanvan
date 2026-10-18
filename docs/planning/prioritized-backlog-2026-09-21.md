@@ -239,3 +239,14 @@ process executed; remaining 11 have not started. Runtime/artifact completeness
 review passes; scientific completion, T5.4 canonical/privacy/cost and separate
 BigQuery work remain pending.
 [Result and audit](../research/kaggle-b12-benchmark-first-run-2026-10-18.md).
+
+### 2026-10-18 — next scheduled B1 VI r01 submitted after continuation
+
+User said continue after EN r01 completion. EN result/evidence committed at
+`3b93dd1`; its runtime/artifact review passes. Fresh quota 28.82212h, no reserved
+quota, pay-to-scale off. Private B1 VI r01 v1 RUNNING from 21:52, full N=100,
+same 90m native / 120m session caps and unchanged research/flags. Prior EN
+attempt carried in cumulative ledger. This is a single-process continuation;
+whole remaining-campaign budget is not inferred. No new BigQuery execution or
+Vietnamese B0 control is implied.
+[VI checkpoint](../research/kaggle-b12-benchmark-b1-vi-r01-2026-10-18.md).

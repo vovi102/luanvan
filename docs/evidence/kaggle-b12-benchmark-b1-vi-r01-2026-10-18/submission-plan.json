@@ -1,0 +1,23 @@
+{
+  "preparation_commit": "8194926",
+  "prior_result_commit": "3b93dd1",
+  "kernel": "aohkvd/nl2sql-b12-benchmark-20261018-b1-vi-r01",
+  "campaign_id": "b12-envi-20261018-c01",
+  "session_id": "s02-b1-vi-r01",
+  "run_id": "b12-envi-20261018-c01-b1-vi-r01",
+  "baseline": "b1",
+  "language": "vi",
+  "replicate": 1,
+  "cases": 100,
+  "notebook_sha256": "55ea3184070dff6d2c3dc222ecd8c4c098ba97a84409779399fa72de4c03e274",
+  "driver_sha256": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7",
+  "native_cap_seconds": 5400,
+  "platform_session_cap_seconds": 7200,
+  "prior_attempted_run_ids": [
+    "b12-envi-20261018-c01-b1-en-r01"
+  ],
+  "prior_runtime_artifact_completeness_reviewed": true,
+  "research_semantics_changed": false,
+  "native_review_live_flags_changed": false,
+  "authorization": "User said continue after first-process results; proceeding with next single scheduled process B1 VI r01 under same 90m/120m caps. Full remaining campaign budget is not inferred."
+}
