@@ -7,17 +7,16 @@ No authorization of the whole remaining campaign budget is inferred.
 
 Private notebook: https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261019-b2-en-r01
 
-**Version 1 submitted at 19:08:56 Asia/Saigon; RUNNING at 19:09:28.**
-These are platform status observations, not proof that native inference has
-started or finished. Actual runtime, hardware and output completeness remain
-unverified until saved evidence is available. Remote cells match the submitted
-source; server metadata confirms private, GPU enabled, NvidiaTeslaT4, and the
-accepted input/cache sources.
+**Version 1 COMPLETE; N=100 independently verified on 2026-10-19.**
+Submitted at 19:08:56 Asia/Saigon; native inference finished at 20:43:25.
+Platform COMPLETE was checked at 21:12:55; the exact platform completion time
+was not observed. Remote cells match the submitted source; server metadata
+confirms private, GPU enabled, NvidiaTeslaT4, and accepted input/cache sources.
 
 Campaign `b12-envi-20261018-c01`, session `s03-b2-en-r01`, native run
 `b12-envi-20261018-c01-b2-en-r01`. The prior ledger carries exactly B1 EN r01
-then B1 VI r01; both completed runtime/artifact reviews. Two of twelve native
-processes are verified complete; this third process is pending verification.
+then B1 VI r01; both completed runtime/artifact reviews. Three of twelve native
+processes are verified complete; nine remain unstarted.
 
 Fresh quota at 19:08:43: 28.046781944h available, 0h reserved, 30h total,
 pay-to-scale disabled. It covers the conservative 4 GPU-device-hour allowance
@@ -72,3 +71,60 @@ or pytest suite was rerun locally. Preparation test counts remain historical.
 
 [Machine checkpoint](../evidence/kaggle-b12-benchmark-b2-en-r01-2026-10-19.json)
 and [artifact manifest](../evidence/kaggle-b12-benchmark-b2-en-r01-2026-10-19/artifacts-manifest.json).
+
+## Verified result
+
+All 25 saved campaign files retained (11,383,637 bytes), including the NPZ
+retrieval cache, metadata and original empty lock. The initial bounded export
+omitted the lock extension; its original zero-byte contents were subsequently
+fetched and verified. No saved campaign artifact remains omitted. All 24 native
+manifest entries match length and SHA-256; the report compact canonical JSON
+self-digest passes. The repository manifest also covers the native manifest.
+
+Verified 100 genuine completions, ordered English case IDs and original
+questions, unchanged seed/model/settings, T4 ×2 hardware, Python 3.11.15,
+torch 2.5.1+cu124 / CUDA 12.4, immutable input/cache/data/runtime gates and
+owned-scratch cleanup. Native exit is 0. The ledger contains B1 EN r01,
+B1 VI r01, then B2 EN r01; this session has only the B2 EN run.
+
+The original cache loads offline with no encoder or inference: matrix
+7,208 × 384, all record identities and training/cache hashes match the accepted
+training snapshot. All 500 selected examples (five distinct record IDs per
+question) match training question/SQL, English language, semantic-family lineage
+and pinned encoder. No development/benchmark rows enter this training matrix.
+A first local audit incorrectly required five distinct semantic families;
+source review confirmed the original retriever requires five eligible records,
+with no family-diversity constraint. The audit was corrected to distinct record
+IDs; native artifacts and research behavior were unchanged. This correction is
+retained in `verifier-correction.json`.
+
+| Observation | Value |
+|---|---:|
+| English denominator / genuine generations | 100 / 100 |
+| Extraction ok | 31 |
+| Prose | 60 |
+| Unsafe SQL | 8 |
+| Invalid SQL | 1 |
+| Generation P50 | 33.696s |
+| Generation P95 | 52.987s |
+| Native process wall | 3,702.281s (61.70m) |
+| Driver wall including setup/checks | 4,098.889s (68.31m) |
+
+Extraction success is not SQL execution accuracy. No BigQuery jobs, canonical
+adaptation, SQL repair, retries or partial-run merges occurred. Native
+`scientific_ready=false`; blockers remain `latency_gate_failed`,
+`live_evidence_missing`, `reviewed_test_set_missing`. Trusted source cases pass
+review/live lineage checks, while original CLI25/CLI17 aggregate flags remain
+conservative, as documented in the B1 audit. No flags or gates were bypassed.
+
+Account quota on return: 26.902696667h remaining, 0h reserved; observed account
+usage delta from the pre-launch snapshot 1.144085278h. This is quota observation
+across the interval, not invoice cost or a universal billing rule.
+
+Campaign **3/12 native processes complete**, nine unstarted. EN and VI remain
+separate N=100 denominators. The next scheduled process B2 VI r01 was not
+launched by this result check. T5.4 and separately authorized BigQuery work remain
+pending; B0 remains English-only. Fresh checks covered saved artifact integrity,
+retrieval authority and runtime/completeness. No local inference or pytest suite
+was rerun. See `verified-result.json`, `verification-source.py`, the download
+record and full `saved-v1/` evidence under the linked checkpoint directory.

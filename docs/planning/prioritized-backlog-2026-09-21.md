@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN and VI r01 COMPLETE, N=100 each, artifact/runtime verified | 2/12 native processes complete; B2 EN r01 RUNNING, 9 unstarted. EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN and VI r01 COMPLETE, N=100 each, artifact/runtime verified | 3/12 native processes complete; 9 unstarted. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -277,3 +277,15 @@ scientific gates unchanged. Cumulative prior ledger contains EN and VI B1 r01.
 No automatic retries, BigQuery, canonical adaptation or whole-campaign approval.
 Two processes verified complete, one submitted/running, nine unstarted.
 [B2 EN checkpoint](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).
+
+### 2026-10-19 — B2 EN r01 COMPLETE and independently verified
+
+Existing private v1 COMPLETE. All 25 saved files retained, 24 native manifest
+hashes/report self-digest pass, 100 genuine completions verified. Train-only
+retrieval cache 7,208 × 384 and all 500 selected training examples verified.
+B2 EN N=100: 31 extraction ok, 60 prose, 8 unsafe_sql, 1 invalid_sql;
+P50 33.696s, P95 52.987s. Native wall 61.70m, driver 68.31m. Native scientific
+blockers unchanged; this is not SQL execution accuracy. No BigQuery, adaptation,
+repair/retry or new session launched. Quota remaining 26.902697h. Campaign 3/12
+native processes complete, nine unstarted; next planned B2 VI r01.
+[Verified B2 EN result](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).

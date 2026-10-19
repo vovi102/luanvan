@@ -236,3 +236,15 @@ sessions and cache v5 COMPLETE. Remote source/private GPU metadata verified;
 native inference and actual runtime/hardware remain unverified. Two processes
 complete, this third pending, nine unstarted. See
 [B2 EN checkpoint](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).
+
+## Third process verified — 2026-10-19
+
+B2 EN r01 private v1 COMPLETE, N=100; all 25 saved artifacts retained, 24 native
+manifest entries/report self-digest verified. All genuine completions and
+7,208-row train-only retrieval matrix / 500 selected examples verified.
+31 extraction ok, 60 prose, 8 unsafe_sql, 1 invalid_sql; P95 52.987s,
+native wall 61.70m, driver 68.31m. Scientific gates remain blocked; no SQL
+execution accuracy, BigQuery, repair/retry or research change claimed.
+Quota remaining 26.902697h. Campaign 3/12 native processes complete, nine
+unstarted; next B2 VI r01 not launched during this result check.
+[Verified B2 EN result](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).
