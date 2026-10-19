@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN r01 COMPLETE, N=100, artifact/runtime verified | 1/12 native processes complete; 11 pending authorization. B1: 99 unsafe / 1 invalid, P95 49.107s; scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN and VI r01 COMPLETE, N=100 each, artifact/runtime verified | 2/12 native processes complete; 10 unstarted. EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -70,8 +70,8 @@ schema/entity/class linking.
    vượt target, B1 5 unsafe_sql; không tune theo output. Notebook benchmark 16 và
    [campaign offline](kaggle-b12-benchmark-campaign-2026-10-18.md) đã chuẩn bị;
    chốt campaign/caps/budget và quota mới trước khi cho phép 12 genuine processes.
-   B1 EN r01 đã được cho phép riêng và COMPLETE (100/100 genuine); 11 process
-   còn lại chờ quyết định thực thi. Giữ native outputs/blockers nguyên trạng.
+   B1 EN và VI r01 đã COMPLETE (mỗi ngôn ngữ 100/100 genuine); 10 process
+   còn lại chưa khởi chạy. Giữ native outputs/blockers nguyên trạng.
    Ba compatible process runs cho mỗi (baseline, language): EN+VI tổng 12 processes.
    VI đã có typed paired consumer và source-bound native/T5.4 artifacts; metric N=100
    riêng mỗi language, không pooling. [Offline handoff](../research/b12-bilingual-consumer-2026-10-16.md).
@@ -244,9 +244,23 @@ BigQuery work remain pending.
 
 User said continue after EN r01 completion. EN result/evidence committed at
 `3b93dd1`; its runtime/artifact review passes. Fresh quota 28.82212h, no reserved
-quota, pay-to-scale off. Private B1 VI r01 v1 RUNNING from 21:52, full N=100,
+quota, pay-to-scale off. At the submission checkpoint, private B1 VI r01 v1 was RUNNING from 21:52, full N=100,
 same 90m native / 120m session caps and unchanged research/flags. Prior EN
 attempt carried in cumulative ledger. This is a single-process continuation;
 whole remaining-campaign budget is not inferred. No new BigQuery execution or
 Vietnamese B0 control is implied.
 [VI checkpoint](../research/kaggle-b12-benchmark-b1-vi-r01-2026-10-18.md).
+
+### 2026-10-19 — B1 VI r01 saved outputs verified
+
+Existing private v1 is COMPLETE. All 22 saved files retained; 21 driver-manifest
+hashes plus native report self-digest pass. Verified all 100 genuine completions,
+original Vietnamese questions/typed paired lineage, pinned model/environment,
+T4 ×2 hardware, cache/data gates, single-session run and cumulative EN/VI ledger.
+Native process 37.17m, driver 46.11m. VI N=100: 100 unsafe_sql, 0 extraction ok,
+P50 20.461s, P95 30.376s. Scientific gates remain blocked; no SQL execution
+accuracy, new BigQuery, repair, retry or research change is claimed.
+Quota remaining on return 28.046782h; observed account delta 0.775337h.
+Campaign 2/12 native processes complete, EN and VI denominators separate;
+10 unstarted, next planned B2 EN r01. No new session launched during resumption.
+[Verified VI result](../research/kaggle-b12-benchmark-b1-vi-r01-2026-10-18.md).

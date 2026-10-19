@@ -205,9 +205,23 @@ constrained decoding or Phase 6–7 implementation is included.
 
 B1 EN r01 v1 COMPLETE, N=100; native/runtime/artifact completeness independently
 verified. See [result/audit](../research/kaggle-b12-benchmark-first-run-2026-10-18.md).
-Exactly one process was authorized/executed; the other eleven remain unstarted.
+At that first EN checkpoint, exactly one process was authorized/executed; see
+the subsequent VI result below for current campaign progress.
 Carry the retained cumulative campaign ledger into any separately authorized
 next session. Keep source defaults disabled. All 100 extraction failures and
 original native scientific blockers are retained; no prompt/model/flag/threshold
 change or automatic retry was made. T5.4 adaptation/privacy/cost and separately
 budgeted BigQuery work remain pending.
+
+## Second genuine process verified — 2026-10-19
+
+B1 VI r01 private v1 COMPLETE, N=100. All genuine completion markers,
+source-bound Vietnamese questions/paired lineage, saved manifest/report hashes,
+cache/data/runtime gates, T4 ×2 hardware and cumulative EN/VI ledger pass.
+See [verified VI result](../research/kaggle-b12-benchmark-b1-vi-r01-2026-10-18.md).
+VI: 100 unsafe_sql, 0 extraction ok, P95 30.376s; scientific gates remain
+blocked. Native wall 37.17m, driver 46.11m. Outputs and negative observations
+retained without repair/retry. Account quota remaining on return 28.046782h.
+Campaign 2/12 native processes complete, N=100 separately per language.
+Remaining ten unstarted; next planned B2 EN r01. Resuming monitoring launched
+no new session and does not imply approval of the whole campaign budget.
