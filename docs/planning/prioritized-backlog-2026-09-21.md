@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN and VI r01 COMPLETE, N=100 each, artifact/runtime verified | 2/12 native processes complete; 10 unstarted. EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN and VI r01 COMPLETE, N=100 each, artifact/runtime verified | 2/12 native processes complete; B2 EN r01 RUNNING, 9 unstarted. EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -264,3 +264,16 @@ Quota remaining on return 28.046782h; observed account delta 0.775337h.
 Campaign 2/12 native processes complete, EN and VI denominators separate;
 10 unstarted, next planned B2 EN r01. No new session launched during resumption.
 [Verified VI result](../research/kaggle-b12-benchmark-b1-vi-r01-2026-10-18.md).
+
+### 2026-10-19 — B2 EN r01 submitted after explicit continuation
+
+User said “OKe tiếp tục triển khai đi” after verified VI results. Submitted only
+next scheduled B2 EN r01, N=100, private v1 at 19:08:56 Asia/Saigon, unchanged
+90m native / 120m session caps. Fresh quota 28.046782h, 0 reserved, pay-to-scale
+off; private cache v5 and both previous sessions COMPLETE. Remote source/private
+GPU metadata verified; platform RUNNING at 19:09:28, actual inference/runtime
+still unverified. Training-only 7,208-row retrieval, model/settings/flags and
+scientific gates unchanged. Cumulative prior ledger contains EN and VI B1 r01.
+No automatic retries, BigQuery, canonical adaptation or whole-campaign approval.
+Two processes verified complete, one submitted/running, nine unstarted.
+[B2 EN checkpoint](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).

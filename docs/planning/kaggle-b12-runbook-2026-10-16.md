@@ -225,3 +225,14 @@ retained without repair/retry. Account quota remaining on return 28.046782h.
 Campaign 2/12 native processes complete, N=100 separately per language.
 Remaining ten unstarted; next planned B2 EN r01. Resuming monitoring launched
 no new session and does not imply approval of the whole campaign budget.
+
+## Third process submitted — 2026-10-19
+
+After explicit continuation, next single B2 EN r01 private v1 submitted at
+19:08:56 Asia/Saigon; platform RUNNING at 19:09:28. Same 90m/120m caps,
+unchanged training-only retrieval/research settings, two prior IDs carried.
+Fresh quota 28.046782h, no reserved quota, pay-to-scale disabled. Both prior
+sessions and cache v5 COMPLETE. Remote source/private GPU metadata verified;
+native inference and actual runtime/hardware remain unverified. Two processes
+complete, this third pending, nine unstarted. See
+[B2 EN checkpoint](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).
