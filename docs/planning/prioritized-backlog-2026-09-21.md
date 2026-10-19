@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN and VI r01 COMPLETE, N=100 each, artifact/runtime verified | 3/12 native processes complete; 9 unstarted. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN and VI r01 COMPLETE, N=100 each, artifact/runtime verified | 3/12 native processes complete; B2 VI r01 submitted/QUEUED, 8 unstarted. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -289,3 +289,15 @@ blockers unchanged; this is not SQL execution accuracy. No BigQuery, adaptation,
 repair/retry or new session launched. Quota remaining 26.902697h. Campaign 3/12
 native processes complete, nine unstarted; next planned B2 VI r01.
 [Verified B2 EN result](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).
+
+### 2026-10-19 — B2 VI r01 explicitly authorized and submitted
+
+User said “oke khởi chạy đi” for B2 VI r01. Private v1 submitted at 22:13:49
+Asia/Saigon; platform QUEUED at 22:14:06. Full N=100, unchanged 90m native /
+120m session caps and research settings. Quota 26.902697h, no reserved quota,
+pay-to-scale off; private cache v5 and three prior sessions COMPLETE. Remote
+cells/private GPU/source metadata verified; actual inference/runtime/hardware
+remain unverified. Prior ledger matches B1 EN, B1 VI, B2 EN r01. Three native
+processes verified complete, fourth submitted, eight unstarted. No new BigQuery,
+retry or whole-campaign authorization inferred.
+[B2 VI checkpoint](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).

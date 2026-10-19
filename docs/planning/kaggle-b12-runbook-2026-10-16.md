@@ -248,3 +248,13 @@ execution accuracy, BigQuery, repair/retry or research change claimed.
 Quota remaining 26.902697h. Campaign 3/12 native processes complete, nine
 unstarted; next B2 VI r01 not launched during this result check.
 [Verified B2 EN result](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).
+
+## Fourth process submitted — 2026-10-19
+
+Explicitly authorized B2 VI r01 private v1, N=100, submitted at 22:13:49
+Asia/Saigon; QUEUED at 22:14:06. Same 90m/120m caps, unchanged research settings,
+three prior IDs carried. Fresh quota 26.902697h, 0 reserved, pay-to-scale off;
+private cache v5 and prior notebooks COMPLETE. Remote source/private GPU metadata
+verified, actual hardware/inference still unverified. Three processes complete,
+fourth submitted, eight unstarted. Queue time is not measured native wall time.
+[B2 VI checkpoint](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).
