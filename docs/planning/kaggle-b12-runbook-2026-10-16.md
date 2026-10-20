@@ -304,3 +304,14 @@ source/private GPU metadata match; actual native runtime/hardware unverified.
 Five complete, sixth submitted, six unstarted. Keep r01/r02 separate with
 original blockers and no automatic retry, SQL repair or BigQuery.
 [B1 VI r02 checkpoint](../research/kaggle-b12-benchmark-b1-vi-r02-2026-10-20.md).
+
+## Sixth process verified — 2026-10-20
+
+B1 VI r02 private v1 COMPLETE, N=100. All 22 saved files/21 native manifest
+hashes/report digest and 100 genuine completions/paired lineage pass. Zero-shot
+settings, T4 ×2 runtime, cleanup and exact six-attempt ledger verified.
+100 unsafe_sql, 0 extraction ok; P95 29.532s; native 35.86m, driver 44.37m.
+Quota remaining 24.161284h. Native scientific blockers retained; no new BigQuery,
+adaptation or repair. User explicitly authorized next B2 EN r02 after review;
+fresh launch preflight remains required. Campaign 6/12 complete at this point.
+[Verified B1 VI r02](../research/kaggle-b12-benchmark-b1-vi-r02-2026-10-20.md).

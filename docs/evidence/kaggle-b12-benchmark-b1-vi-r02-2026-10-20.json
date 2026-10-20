@@ -26,17 +26,17 @@
   "authorization": "User said tiếp after verified B1 EN r02 and next B1 VI r02 was named; launch only this scheduled replicate under unchanged 90m/120m caps. No full campaign budget inferred.",
   "schema_version": 1,
   "date": "2026-10-20",
-  "status": "b1_vi_r02_submitted",
-  "worker_status": "QUEUED",
+  "status": "b1_vi_r02_complete_and_integrity_verified",
+  "worker_status": "COMPLETE",
   "version": 1,
   "private": true,
   "submitted_at_utc": "2026-10-20T14:03:51.329281+00:00",
-  "last_checked_at_utc": "2026-10-20T14:04:08.061698+00:00",
-  "native_process_started": null,
-  "native_process_completed": false,
-  "actual_hardware_verified": false,
+  "last_checked_at_utc": "2026-10-20T16:06:04.159036+00:00",
+  "native_process_started": true,
+  "native_process_completed": true,
+  "actual_hardware_verified": true,
   "scientific_ready": false,
-  "campaign_native_processes_verified": 5,
+  "campaign_native_processes_verified": 6,
   "new_bigquery_jobs": 0,
   "vi_gold_evidence_mode": "exact_reused_english_live_evidence",
   "quota_before": {
@@ -62,21 +62,150 @@
     "prior_result_commit": "cdc7ed7"
   },
   "last_status": {
-    "checked_at_utc": "2026-10-20T14:04:08.061698+00:00",
+    "checked_at_utc": "2026-10-20T16:06:04.159036+00:00",
     "ref": "aohkvd/nl2sql-b12-benchmark-20261020-b1-vi-r02",
     "version": 1,
-    "status": "QUEUED",
+    "status": "COMPLETE",
     "private": true,
     "enable_gpu": true,
     "machine_shape": "NvidiaTeslaT4",
     "kernel_sources": [
       "aohkvd/nl2sql-environment-cache"
     ],
-    "gpu_used_hours": 5.093194166666667,
+    "gpu_used_hours": 5.838716388888889,
     "gpu_reserved_hours": 0.0,
-    "gpu_remaining_hours": 24.906805833333333
+    "gpu_remaining_hours": 24.16128361111111
   },
   "artifact_manifest": "kaggle-b12-benchmark-b1-vi-r02-2026-10-20/artifacts-manifest.json",
   "additional_sessions_started": false,
-  "next_action": "Inspect existing private B1 VI r02 v1; after terminal status retain full saved outputs and verify hashes/report digest, genuine 100 VI completions, original questions/full typed paired lineage and reused English evidence, unchanged settings, actual hardware/runtime and exact six-attempt ledger. Preserve r01/r02 separately; no resubmission, repair, tuning, BigQuery or automatic retry."
+  "next_action": "B1 VI r02 completeness review passes. User explicitly requested checking this result and launching the next single B2 EN r02; perform fresh quota/cache/duplicate checks and carry all six attempted IDs. No whole-campaign approval, adaptation, new BigQuery, tuning or automatic replacement retry.",
+  "verification_date": "2026-10-20",
+  "result": {
+    "status": "native_process_complete_and_integrity_verified",
+    "run_id": "b12-envi-20261018-c01-b1-vi-r02",
+    "baseline": "b1",
+    "language": "vi",
+    "N": 100,
+    "session_native_processes_completed": 1,
+    "campaign_native_processes_completed": 6,
+    "remaining_campaign_processes": 6,
+    "native_wall_seconds": 2151.34254,
+    "driver_wall_seconds": 2661.971913567,
+    "native_manifest_files_verified": 21,
+    "genuine_completions_verified": 100,
+    "hardware": {
+      "compute_capability": [
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          5
+        ]
+      ],
+      "cuda": "12.4",
+      "gpu_names": [
+        "Tesla T4",
+        "Tesla T4"
+      ],
+      "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+      "python": "3.11.15 (main, May 10 2026, 19:28:18) [Clang 22.1.3 ]",
+      "torch": "2.5.1+cu124"
+    },
+    "metrics": {
+      "category_counts": [
+        [
+          "class_level",
+          19
+        ],
+        [
+          "comparison",
+          16
+        ],
+        [
+          "multi_hop",
+          21
+        ],
+        [
+          "simple_filter",
+          13
+        ],
+        [
+          "temporal_pattern",
+          19
+        ],
+        [
+          "time_range",
+          28
+        ],
+        [
+          "token_specific",
+          30
+        ],
+        [
+          "top_k",
+          36
+        ],
+        [
+          "transaction_aggregation",
+          46
+        ]
+      ],
+      "difficulty_counts": [
+        [
+          "easy",
+          30
+        ],
+        [
+          "hard",
+          20
+        ],
+        [
+          "medium",
+          50
+        ]
+      ],
+      "extraction_failed": 100,
+      "extraction_ok": 0,
+      "generated": 100,
+      "input_tokens": 171996,
+      "output_tokens": 8578,
+      "p50_latency_ms": 19813.9829255,
+      "p95_latency_ms": 29531.849873049996,
+      "status_counts": [
+        [
+          "unsafe_sql",
+          100
+        ]
+      ],
+      "total": 100
+    },
+    "native_scientific_ready": false,
+    "native_blockers": [
+      "latency_gate_failed",
+      "live_evidence_missing",
+      "reviewed_test_set_missing"
+    ],
+    "scientific_campaign_complete": false,
+    "bigquery_jobs": 0,
+    "canonical_adaptation_performed": false,
+    "scratch_removed": true
+  },
+  "quota_after": {
+    "checked_at_utc": "2026-10-20T16:06:04.159036+00:00",
+    "ref": "aohkvd/nl2sql-b12-benchmark-20261020-b1-vi-r02",
+    "version": 1,
+    "status": "COMPLETE",
+    "private": true,
+    "enable_gpu": true,
+    "machine_shape": "NvidiaTeslaT4",
+    "kernel_sources": [
+      "aohkvd/nl2sql-environment-cache"
+    ],
+    "gpu_used_hours": 5.838716388888889,
+    "gpu_reserved_hours": 0.0,
+    "gpu_remaining_hours": 24.16128361111111
+  },
+  "observed_account_quota_delta_hours": 0.7455222222222222
 }
