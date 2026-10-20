@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 6/12 native processes complete; 6 unstarted. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 6/12 native processes complete; B2 EN r02 RUNNING, 5 unstarted. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -363,3 +363,16 @@ N=100: 100 unsafe_sql, 0 extraction ok; P95 29.532s. Native 35.86m, driver
 accuracy/BigQuery/adaptation/repair claimed. Campaign 6/12 complete at review;
 next B2 EN r02 explicitly authorized, subject to fresh launch preflight.
 [Verified B1 VI r02](../research/kaggle-b12-benchmark-b1-vi-r02-2026-10-20.md).
+
+### 2026-10-20 — B2 EN r02 submitted after authorized result review
+
+After B1 VI r02 artifact/runtime review passed at `2a24069`, launched the next
+single process explicitly requested by the user. B2 EN r02 private v1 submitted
+at 23:08:04 Asia/Saigon; RUNNING at 23:08:19. N=100, unchanged 90m native /
+120m session caps, model/retrieval/flags/thresholds. Quota before launch
+24.161284h, 0 reserved, pay-to-scale off; six prior notebooks and cache v5
+COMPLETE. Exact six prior IDs carried. Remote source/private GPU metadata
+verified; actual native inference/hardware still unverified. Six complete,
+seventh running, five unstarted. No new BigQuery, tuning, repair/retry or
+whole-campaign budget inferred.
+[B2 EN r02 checkpoint](../research/kaggle-b12-benchmark-b2-en-r02-2026-10-20.md).
