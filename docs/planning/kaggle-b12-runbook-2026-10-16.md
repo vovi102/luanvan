@@ -270,3 +270,14 @@ Scientific blockers unchanged; no SQL execution accuracy, new BigQuery, retry
 or research change claimed. Quota remaining 25.789862h. Campaign 4/12 complete,
 all r01 combinations, eight unstarted; next B1 EN r02 not launched by this check.
 [Verified B2 VI result](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).
+
+## Fifth process submitted — 2026-10-20
+
+Explicitly authorized B1 EN r02 private v1, full N=100, submitted at 19:58:01
+Asia/Saigon; RUNNING at 19:58:17. Scheduled replicate with unchanged research
+settings, 90m native / 120m session caps and all four prior IDs carried.
+Fresh quota 25.789862h, 0 reserved, pay-to-scale off; private cache v5 and all
+prior notebooks COMPLETE. Remote source/private GPU metadata verified; actual
+native hardware/runtime/completeness remain unverified. Four complete, fifth
+running, seven unstarted. No replacement run or benchmark-directed tuning.
+[B1 EN r02 checkpoint](../research/kaggle-b12-benchmark-b1-en-r02-2026-10-20.md).

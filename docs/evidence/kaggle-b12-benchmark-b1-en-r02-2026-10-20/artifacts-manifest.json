@@ -1,0 +1,34 @@
+{
+  "api-submitted-v1.json": {
+    "bytes": 436,
+    "sha256": "2c84f1a7a978ff67c903a32afb9e6b995323cd9abc313903632261ccfec8f132"
+  },
+  "current-status.json": {
+    "bytes": 412,
+    "sha256": "d6cb82de34421e14947029b2c0e63dacb37d0297ade49c307dac6424dee3250b"
+  },
+  "quota-before.json": {
+    "bytes": 757,
+    "sha256": "77ae46341acc2d05e617bd290edad8e7d1d32a9b03e9a390103131c21af8ea2f"
+  },
+  "remote-source-verified.json": {
+    "bytes": 207,
+    "sha256": "a0430035a517e493b04894732b264f27b6fff4517b7050625cd4af247e1fd257"
+  },
+  "status-history-at-submission.jsonl.gz": {
+    "bytes": 276,
+    "sha256": "e7aafa8aa3b7c772bd0121961dcf8b7325d1313972129b4adb00f58c4dba3ffc"
+  },
+  "submission-plan.json": {
+    "bytes": 1115,
+    "sha256": "2c88fbeb79b6a814c947f47407eaecf7440b560e3953c930db60bf8809630ebb"
+  },
+  "submitted-metadata.json": {
+    "bytes": 542,
+    "sha256": "ba0b023cbec8cbbb05d6f89601902749d2b3a70a864a228ee48041ba073b104d"
+  },
+  "submitted-v1.ipynb": {
+    "bytes": 26039,
+    "sha256": "b3c180ee91fafbc6111caa19e04bd1c7dfe327fd721d61218f39942595839dca"
+  }
+}

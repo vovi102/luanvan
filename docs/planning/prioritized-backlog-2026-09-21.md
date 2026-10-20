@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 4/12 native processes complete; 8 unstarted. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 4/12 native processes complete; B1 EN r02 RUNNING, 7 unstarted. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -314,3 +314,16 @@ no execution accuracy, new BigQuery, adaptation, SQL repair/retry or new session
 Quota remaining 25.789862h. Campaign 4/12 complete (all r01); eight unstarted,
 next B1 EN r02. EN/VI denominators remain separate.
 [Verified B2 VI result](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).
+
+### 2026-10-20 — B1 EN r02 explicitly authorized and submitted
+
+User said “oke khởi chạy đi” for next scheduled B1 EN r02. Private v1 submitted
+at 19:58:01 Asia/Saigon; RUNNING at 19:58:17. N=100, same 90m native / 120m
+session caps; unchanged model/seed/greedy/prompts/flags and scientific gates.
+This is the planned r02 replicate, not a repair or replacement of r01.
+Quota before launch 25.789862h, 0 reserved, pay-to-scale off; four prior sessions
+and cache v5 COMPLETE. Exact prior four-attempt ledger carried. Remote source
+and private GPU metadata match; actual native inference/hardware still unverified.
+Four verified processes, fifth running, seven unstarted. No new BigQuery,
+adaptation, tuning or full-campaign budget inferred.
+[B1 EN r02 checkpoint](../research/kaggle-b12-benchmark-b1-en-r02-2026-10-20.md).
