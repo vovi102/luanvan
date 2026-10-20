@@ -293,3 +293,14 @@ no SQL execution accuracy, repair/retry, adaptation, BigQuery or new session.
 Quota remaining 24.906806h. Campaign 5/12 complete, seven unstarted; next B1 VI
 r02 not launched by this check. r01/r02 remain separate immutable evidence.
 [Verified B1 EN r02](../research/kaggle-b12-benchmark-b1-en-r02-2026-10-20.md).
+
+## Sixth process submitted — 2026-10-20
+
+Authorized B1 VI r02 private v1, full N=100, submitted at 21:03:51 Asia/Saigon;
+QUEUED at 21:04:08. Scheduled replicate, unchanged settings/90m native/120m
+session caps, five prior IDs carried. Fresh quota 24.906806h, 0 reserved,
+pay-to-scale off; private cache v5 and all prior sessions COMPLETE. Remote
+source/private GPU metadata match; actual native runtime/hardware unverified.
+Five complete, sixth submitted, six unstarted. Keep r01/r02 separate with
+original blockers and no automatic retry, SQL repair or BigQuery.
+[B1 VI r02 checkpoint](../research/kaggle-b12-benchmark-b1-vi-r02-2026-10-20.md).
