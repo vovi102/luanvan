@@ -8,17 +8,18 @@ retry of r01. No whole-campaign budget is inferred.
 
 Private notebook: https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261020-b1-en-r02
 
-**Version 1 submitted at 19:58:01 Asia/Saigon; RUNNING at 19:58:17.**
+**Version 1 COMPLETE; N=100 independently verified on 2026-10-20.**
+Submitted at 19:58:01 Asia/Saigon; native process finished at 20:55:45.
+Platform COMPLETE was checked at 21:01:30; exact platform completion time was
+not observed.
 Remote cells match the submitted source; metadata confirms private, GPU enabled,
-NvidiaTeslaT4, accepted input dataset and cache source. Platform RUNNING does
-not establish native inference start or completion. Actual hardware/runtime and
-native completeness remain unverified until saved evidence is available.
+NvidiaTeslaT4, accepted input dataset and cache source. The initial RUNNING checkpoint did not establish native inference completion;
+the saved evidence now verifies actual runtime/hardware and all 100 completions.
 
 Campaign `b12-envi-20261018-c01`, session `s05-b1-en-r02`, native run
 `b12-envi-20261018-c01-b1-en-r02`. Prior ledger matches the retained B2 VI
 ledger exactly: B1 EN r01, B1 VI r01, B2 EN r01, B2 VI r01. All four prior
-runtime/artifact reviews pass. Campaign: four verified processes, fifth
-submitted/running, seven unstarted.
+runtime/artifact reviews pass. Campaign: five verified processes, seven unstarted.
 
 Fresh quota at 19:57:48: 25.789861667h available, 0h reserved, 30h total,
 pay-to-scale disabled. This exceeds the conservative four GPU-device-hour
@@ -70,3 +71,50 @@ BigQuery remain pending.
 
 [Machine checkpoint](../evidence/kaggle-b12-benchmark-b1-en-r02-2026-10-20.json)
 and [artifact manifest](../evidence/kaggle-b12-benchmark-b1-en-r02-2026-10-20/artifacts-manifest.json).
+
+## Verified result
+
+Retained all 22 saved campaign files (435,126 bytes), with no omitted artifacts
+or model payload downloads. All 21 native manifest entries match lengths and
+SHA-256. Native report self-digest passes its compact canonical JSON format;
+the repository manifest also covers the native manifest.
+
+Verified all 100 genuine completions, ordered English case IDs and original
+questions, trusted/reviewed/live source authorities, empty B1 selected examples,
+unchanged seed 42/greedy/batch/token/4-bit settings and pinned model/encoder.
+Actual hardware/runtime: Tesla T4 ×2, Python 3.11.15, torch 2.5.1+cu124 /
+CUDA 12.4. Input/cache/data/runtime gates pass, native exit 0 and driver-owned
+scratch removed. Exact ledger contains the four r01 runs then B1 EN r02; only
+r02 is present in this session. Original r01 files remain separate and unchanged.
+
+| Observation | Value |
+|---|---:|
+| English denominator / genuine generations | 100 / 100 |
+| Extraction ok | 0 |
+| Unsafe SQL | 99 |
+| Invalid SQL | 1 |
+| Generation P50 | 25.522s |
+| Generation P95 | 48.809s |
+| Native process wall | 2,876.815s (47.95m) |
+| Driver wall including setup/checks | 3,157.134s (52.62m) |
+
+These are extraction/runtime observations, not SQL execution accuracy. Native
+scientific readiness remains false; unchanged blockers are `latency_gate_failed`,
+`live_evidence_missing`, `reviewed_test_set_missing`. Trusted case authorities
+pass, while unchanged CLI25/CLI17 aggregate review/live flags remain conservative
+as recorded in the first B1 audit. No flags/gates, native report, SQL, prompts,
+model or research settings were changed. No repair/retry, partial-run merge,
+canonical adaptation, BigQuery, training or new inference was performed.
+
+Account quota on return: 24.906805833h remaining, 0h reserved. Observed account
+usage delta from pre-launch snapshot: 0.883055833h. This is account quota
+observation across the interval, not invoice cost or a general billing rule.
+
+Campaign **5/12 native processes verified complete**, seven unstarted. Next
+planned B1 VI r02 was not launched by this result check. Keep each run and
+language denominator N=100 separately; no EN/VI pooling or full-campaign
+completion claim. B0 remains English-only; T5.4 and separately authorized
+BigQuery remain pending. Fresh verification covered saved hashes, completion
+markers, source authority, settings, runtime, cleanup and ledger. No local
+inference or pytest suite reran. See `verified-result.json`, verification source,
+download record and full `saved-v1/` evidence under the checkpoint directory.

@@ -281,3 +281,15 @@ prior notebooks COMPLETE. Remote source/private GPU metadata verified; actual
 native hardware/runtime/completeness remain unverified. Four complete, fifth
 running, seven unstarted. No replacement run or benchmark-directed tuning.
 [B1 EN r02 checkpoint](../research/kaggle-b12-benchmark-b1-en-r02-2026-10-20.md).
+
+## Fifth process verified — 2026-10-20
+
+B1 EN r02 private v1 COMPLETE, full N=100; 22 saved files retained, 21 native
+manifest hashes/report self-digest pass. All genuine completions, original
+English source authority, zero-shot settings, actual T4 ×2 runtime and exact
+five-attempt ledger verified. 99 unsafe_sql, 1 invalid_sql, 0 extraction ok;
+P95 48.809s. Native 47.95m, driver 52.62m. Scientific blockers retained;
+no SQL execution accuracy, repair/retry, adaptation, BigQuery or new session.
+Quota remaining 24.906806h. Campaign 5/12 complete, seven unstarted; next B1 VI
+r02 not launched by this check. r01/r02 remain separate immutable evidence.
+[Verified B1 EN r02](../research/kaggle-b12-benchmark-b1-en-r02-2026-10-20.md).
