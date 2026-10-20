@@ -32,8 +32,8 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1 EN and VI r01 COMPLETE, N=100 each, artifact/runtime verified | 3/12 native processes complete; B2 VI r01 submitted/QUEUED, 8 unstarted. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
-| B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 4/12 native processes complete; 8 unstarted. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
 | Phase 6–7 | Ticket cũ còn SPARQL | Redesign sang NL2SQL trước khi implement |
@@ -301,3 +301,16 @@ remain unverified. Prior ledger matches B1 EN, B1 VI, B2 EN r01. Three native
 processes verified complete, fourth submitted, eight unstarted. No new BigQuery,
 retry or whole-campaign authorization inferred.
 [B2 VI checkpoint](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).
+
+### 2026-10-20 — B2 VI r01 COMPLETE and independently verified
+
+Existing private v1 COMPLETE; all 25 saved files retained, 24 native manifest
+entries and report self-digest pass. Verified 100 genuine VI completions,
+original question/paired lineage and reused English evidence, train-only
+7,208 × 384 retrieval cache and 500 selected examples, T4 ×2 runtime and exact
+four-attempt ledger. VI N=100: 12 extraction ok, 88 prose; P50 30.977s,
+P95 73.590s. Native wall 62.47m, driver 66.49m. Scientific blockers unchanged;
+no execution accuracy, new BigQuery, adaptation, SQL repair/retry or new session.
+Quota remaining 25.789862h. Campaign 4/12 complete (all r01); eight unstarted,
+next B1 EN r02. EN/VI denominators remain separate.
+[Verified B2 VI result](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).

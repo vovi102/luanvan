@@ -258,3 +258,15 @@ private cache v5 and prior notebooks COMPLETE. Remote source/private GPU metadat
 verified, actual hardware/inference still unverified. Three processes complete,
 fourth submitted, eight unstarted. Queue time is not measured native wall time.
 [B2 VI checkpoint](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).
+
+## Fourth process verified — 2026-10-20
+
+B2 VI r01 private v1 COMPLETE, full N=100. All 25 saved files retained, 24
+native manifest hashes/report self-digest pass. Verified original VI questions,
+paired lineage/reused English evidence, all genuine completions, 7,208-row
+train-only cache and 500 selections, actual T4 ×2 runtime and four-attempt
+ledger. 12 extraction ok, 88 prose; P95 73.590s. Native 62.47m, driver 66.49m.
+Scientific blockers unchanged; no SQL execution accuracy, new BigQuery, retry
+or research change claimed. Quota remaining 25.789862h. Campaign 4/12 complete,
+all r01 combinations, eight unstarted; next B1 EN r02 not launched by this check.
+[Verified B2 VI result](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).
