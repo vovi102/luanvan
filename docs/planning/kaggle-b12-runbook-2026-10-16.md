@@ -348,3 +348,14 @@ Remote source/private GPU metadata match; actual runtime/hardware unverified.
 Seven complete, eighth running, four unstarted. Keep exact paired reused
 English evidence and all native blockers; no new BigQuery or adaptation.
 [B2 VI r02 checkpoint](../research/kaggle-b12-benchmark-b2-vi-r02-2026-10-21.md).
+
+## Eighth process verified — 2026-10-21
+
+B2 VI r02 private v1 COMPLETE, N=100; 25 saved files/24 native manifest hashes
+and report digest pass. Verified original VI lineage, all genuine completions,
+7,208-row train-only cache/500 selections, T4 ×2 runtime, exact eight-attempt
+ledger. 12 extraction ok, 88 prose; P95 72.962s; native 61.93m, driver 66.60m.
+Quota remaining 21.979519h. Scientific blockers retained; no new BigQuery,
+repair/adaptation or execution accuracy. Campaign 8/12 complete, all r01/r02;
+user authorized next B1 EN r03 after fresh preflight.
+[Verified B2 VI r02](../research/kaggle-b12-benchmark-b2-vi-r02-2026-10-21.md).

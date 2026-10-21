@@ -1,0 +1,122 @@
+{
+  "status": "native_process_complete_and_integrity_verified",
+  "run_id": "b12-envi-20261018-c01-b2-vi-r02",
+  "baseline": "b2",
+  "language": "vi",
+  "N": 100,
+  "session_native_processes_completed": 1,
+  "campaign_native_processes_completed": 8,
+  "remaining_campaign_processes": 4,
+  "native_wall_seconds": 3715.948011,
+  "driver_wall_seconds": 3996.1411129,
+  "native_manifest_files_verified": 24,
+  "genuine_completions_verified": 100,
+  "hardware": {
+    "compute_capability": [
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        5
+      ]
+    ],
+    "cuda": "12.4",
+    "gpu_names": [
+      "Tesla T4",
+      "Tesla T4"
+    ],
+    "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+    "python": "3.11.15 (main, May 10 2026, 19:28:18) [Clang 22.1.3 ]",
+    "torch": "2.5.1+cu124"
+  },
+  "metrics": {
+    "category_counts": [
+      [
+        "class_level",
+        19
+      ],
+      [
+        "comparison",
+        16
+      ],
+      [
+        "multi_hop",
+        21
+      ],
+      [
+        "simple_filter",
+        13
+      ],
+      [
+        "temporal_pattern",
+        19
+      ],
+      [
+        "time_range",
+        28
+      ],
+      [
+        "token_specific",
+        30
+      ],
+      [
+        "top_k",
+        36
+      ],
+      [
+        "transaction_aggregation",
+        46
+      ]
+    ],
+    "difficulty_counts": [
+      [
+        "easy",
+        30
+      ],
+      [
+        "hard",
+        20
+      ],
+      [
+        "medium",
+        50
+      ]
+    ],
+    "extraction_failed": 88,
+    "extraction_ok": 12,
+    "generated": 100,
+    "input_tokens": 263551,
+    "output_tokens": 12710,
+    "p50_latency_ms": 30515.036167,
+    "p95_latency_ms": 72962.06713925,
+    "status_counts": [
+      [
+        "ok",
+        12
+      ],
+      [
+        "prose",
+        88
+      ]
+    ],
+    "total": 100
+  },
+  "native_scientific_ready": false,
+  "native_blockers": [
+    "latency_gate_failed",
+    "live_evidence_missing",
+    "reviewed_test_set_missing"
+  ],
+  "scientific_campaign_complete": false,
+  "bigquery_jobs": 0,
+  "canonical_adaptation_performed": false,
+  "scratch_removed": true,
+  "retrieval_cache_shape": [
+    7208,
+    384
+  ],
+  "selected_examples_verified": 500,
+  "retrieval_train_only_verified": true
+}
