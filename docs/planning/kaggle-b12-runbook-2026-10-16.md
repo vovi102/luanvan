@@ -359,3 +359,14 @@ Quota remaining 21.979519h. Scientific blockers retained; no new BigQuery,
 repair/adaptation or execution accuracy. Campaign 8/12 complete, all r01/r02;
 user authorized next B1 EN r03 after fresh preflight.
 [Verified B2 VI r02](../research/kaggle-b12-benchmark-b2-vi-r02-2026-10-21.md).
+
+## Ninth process submitted — 2026-10-21
+
+Authorized B1 EN r03 private v1, N=100, submitted 20:33:40 Asia/Saigon;
+QUEUED 20:33:58 after B2 VI r02 review. Same 90m/120m caps, unchanged research
+settings, eight prior IDs carried. Fresh quota 21.979519h, 0 reserved,
+pay-to-scale off; all prior sessions and cache v5 COMPLETE. Remote
+source/private GPU metadata match; actual runtime/hardware unverified.
+Eight complete, ninth submitted, three unstarted; keep all native blockers,
+no BigQuery, retry or adaptation.
+[B1 EN r03 checkpoint](../research/kaggle-b12-benchmark-b1-en-r03-2026-10-21.md).

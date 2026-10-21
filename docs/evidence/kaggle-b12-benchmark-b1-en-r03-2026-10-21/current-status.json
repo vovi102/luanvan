@@ -1,0 +1,15 @@
+{
+  "checked_at_utc": "2026-10-21T13:33:58.675477+00:00",
+  "ref": "aohkvd/nl2sql-b12-benchmark-20261021-b1-en-r03",
+  "version": 1,
+  "status": "QUEUED",
+  "private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "kernel_sources": [
+    "aohkvd/nl2sql-environment-cache"
+  ],
+  "gpu_used_hours": 8.02048138888889,
+  "gpu_reserved_hours": 0.0,
+  "gpu_remaining_hours": 21.979518611111114
+}
