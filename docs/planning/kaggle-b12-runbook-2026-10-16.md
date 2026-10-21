@@ -337,3 +337,14 @@ Native 59.18m, driver 63.73m. Quota remaining 23.094586h. Scientific blockers
 retained; no execution accuracy/BigQuery/repair/adaptation. User authorized
 next single B2 VI r02 after review and fresh preflight. Campaign 7/12 complete.
 [Verified B2 EN r02](../research/kaggle-b12-benchmark-b2-en-r02-2026-10-20.md).
+
+## Eighth process submitted — 2026-10-21
+
+Authorized B2 VI r02 private v1, N=100, submitted at 19:10:52 Asia/Saigon;
+RUNNING at 19:11:08 after B2 EN r02 completeness review. Same 90m/120m caps,
+unchanged research settings, seven prior IDs carried. Fresh quota 23.094586h,
+0 reserved, pay-to-scale off; all prior sessions and cache v5 COMPLETE.
+Remote source/private GPU metadata match; actual runtime/hardware unverified.
+Seven complete, eighth running, four unstarted. Keep exact paired reused
+English evidence and all native blockers; no new BigQuery or adaptation.
+[B2 VI r02 checkpoint](../research/kaggle-b12-benchmark-b2-vi-r02-2026-10-21.md).
