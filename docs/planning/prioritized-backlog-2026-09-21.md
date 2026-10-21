@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 8/12 native processes complete; B1 EN r03 submitted/QUEUED, 3 unstarted. B2 VI r02: 12 ok / 88 prose, P95 72.962s. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 9/12 native processes complete; 3 unstarted. B1 EN r03: 99 unsafe / 1 invalid, P95 45.922s. B2 VI r02: 12 ok / 88 prose, P95 72.962s. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -424,3 +424,14 @@ source/private GPU metadata match; actual inference/hardware unverified.
 Eight complete, ninth submitted, three unstarted. No BigQuery, tuning,
 repair/retry, adaptation or whole-campaign budget inferred.
 [B1 EN r03 checkpoint](../research/kaggle-b12-benchmark-b1-en-r03-2026-10-21.md).
+
+### 2026-10-21 — B1 EN r03 COMPLETE; next B1 VI r03 authorized
+
+Private v1 COMPLETE; all 22 saved files/21 native manifest hashes/report digest
+pass. Verified all 100 genuine EN completions/source authority, zero-shot
+settings, T4 ×2 runtime and exact nine-attempt ledger. N=100: 99 unsafe_sql,
+1 invalid_sql, 0 extraction ok; P95 45.922s. Native 43.47m, driver 47.41m.
+Quota remaining 21.184038h. Scientific blockers retained; no execution accuracy,
+new BigQuery, repair/adaptation. Campaign 9/12 complete at review; user explicitly
+authorized next B1 VI r03 after fresh launch preflight.
+[Verified B1 EN r03](../research/kaggle-b12-benchmark-b1-en-r03-2026-10-21.md).

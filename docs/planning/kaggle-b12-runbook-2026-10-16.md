@@ -370,3 +370,14 @@ source/private GPU metadata match; actual runtime/hardware unverified.
 Eight complete, ninth submitted, three unstarted; keep all native blockers,
 no BigQuery, retry or adaptation.
 [B1 EN r03 checkpoint](../research/kaggle-b12-benchmark-b1-en-r03-2026-10-21.md).
+
+## Ninth process verified — 2026-10-21
+
+B1 EN r03 private v1 COMPLETE, N=100; 22 saved files/21 native manifest hashes
+and report digest pass. All genuine EN completions/source authority, zero-shot
+settings, T4 ×2 runtime/cleanup and nine-attempt ledger verified. 99 unsafe_sql,
+1 invalid_sql; P95 45.922s, native 43.47m, driver 47.41m. Quota remaining
+21.184038h. Scientific blockers unchanged; no BigQuery/adaptation/repair or
+execution accuracy claim. Campaign 9/12 complete; user authorized next B1 VI
+r03 after fresh preflight.
+[Verified B1 EN r03](../research/kaggle-b12-benchmark-b1-en-r03-2026-10-21.md).
