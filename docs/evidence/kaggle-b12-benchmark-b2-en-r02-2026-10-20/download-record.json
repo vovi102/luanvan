@@ -1,0 +1,108 @@
+{
+  "worker_status": "COMPLETE",
+  "downloaded": [
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-en-r02/native-log.jsonl",
+      "bytes": 55501
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-en-r02/native-report.json",
+      "bytes": 14472
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-en-r02/predictions.jsonl",
+      "bytes": 577791
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-en-r02/run.json",
+      "bytes": 11234
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-en-r02/stderr.log",
+      "bytes": 1175
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-en-r02/stdout.log",
+      "bytes": 487
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/en/cache/b2-few-shot.npz",
+      "bytes": 10270722
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/en/cache/b2-few-shot.npz.json",
+      "bytes": 386235
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/en/cache/b2-few-shot.npz.lock",
+      "bytes": 0
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/artifacts-manifest.json",
+      "bytes": 3728
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/benchmark-driver.py",
+      "bytes": 19070
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/campaign-ledger.json",
+      "bytes": 376
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/campaign-plan.json",
+      "bytes": 29661
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/completeness.json",
+      "bytes": 145
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/create_python311.log",
+      "bytes": 206
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/data-preflight.json",
+      "bytes": 518
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/driver-summary.json",
+      "bytes": 802
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/input-provenance.json",
+      "bytes": 832
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/install_bootstrap.log",
+      "bytes": 450
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/install_locked_environment.log",
+      "bytes": 7864
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/run-config.json",
+      "bytes": 563
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/runtime-preflight.json",
+      "bytes": 1003
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/settings.json",
+      "bytes": 525
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/verify_mounted_cache.log",
+      "bytes": 741
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/worker.log",
+      "bytes": 25
+    }
+  ],
+  "omitted": [],
+  "signed_urls_persisted": false,
+  "model_payloads_downloaded": false
+}

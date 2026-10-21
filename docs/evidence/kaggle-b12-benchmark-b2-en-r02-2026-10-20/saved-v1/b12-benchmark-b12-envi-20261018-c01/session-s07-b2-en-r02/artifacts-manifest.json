@@ -1,0 +1,98 @@
+{
+  "runs/b12-envi-20261018-c01-b2-en-r02/native-log.jsonl": {
+    "bytes": 55501,
+    "sha256": "76f49ba47003618fb8d516d3f5dba55049969eb3c5d7c8995aefa9b19966e042"
+  },
+  "runs/b12-envi-20261018-c01-b2-en-r02/native-report.json": {
+    "bytes": 14472,
+    "sha256": "0a2e077ffcef2fa8568f785af11fea5f0bea9f2ec727aa45e1793c319f841664"
+  },
+  "runs/b12-envi-20261018-c01-b2-en-r02/predictions.jsonl": {
+    "bytes": 577791,
+    "sha256": "1e9f0ac3e7ca699b66f7a8313409b875c0f65772a863d6bd9385d8608fccc635"
+  },
+  "runs/b12-envi-20261018-c01-b2-en-r02/run.json": {
+    "bytes": 11234,
+    "sha256": "bea33057e16d3fd0719c4358b3cbabadd66e6da5f5b8679d1717ef183da27b06"
+  },
+  "runs/b12-envi-20261018-c01-b2-en-r02/stderr.log": {
+    "bytes": 1175,
+    "sha256": "ad9e5f7b6d153e576e58271f596ddb22c63c387169b3b9b55da31c66cb23820d"
+  },
+  "runs/b12-envi-20261018-c01-b2-en-r02/stdout.log": {
+    "bytes": 487,
+    "sha256": "6a4c8ecba5b594af6372721ab250fcaf1a6c8bc2ed8c89c8a48d6b0ca7ccf09a"
+  },
+  "runs/en/cache/b2-few-shot.npz": {
+    "bytes": 10270722,
+    "sha256": "2ae970a6c37253cdef8e9e34de8b529b1c15df50b2b75aa4805492a0d9cce48c"
+  },
+  "runs/en/cache/b2-few-shot.npz.json": {
+    "bytes": 386235,
+    "sha256": "cb4374a789ecd2a557a4ee15409402df994d8a28965632050bdc084d04066127"
+  },
+  "runs/en/cache/b2-few-shot.npz.lock": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "session-s07-b2-en-r02/benchmark-driver.py": {
+    "bytes": 19070,
+    "sha256": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7"
+  },
+  "session-s07-b2-en-r02/campaign-ledger.json": {
+    "bytes": 376,
+    "sha256": "50aa7e9be60f67d71bd4b76dffd7150405280fceadc1ca0f39a52b3da7737915"
+  },
+  "session-s07-b2-en-r02/campaign-plan.json": {
+    "bytes": 29661,
+    "sha256": "380b9c7c20e2a1422643e24a154bf2ba84a21d9c512429ba2a183859f6a96315"
+  },
+  "session-s07-b2-en-r02/completeness.json": {
+    "bytes": 145,
+    "sha256": "b7a87a6a9cd1330d2a47e9676174a42526efec9e7f4600fefbdfbba099962920"
+  },
+  "session-s07-b2-en-r02/create_python311.log": {
+    "bytes": 206,
+    "sha256": "e6e702bbc5ee3363ff48df36be3ed0e260d9992b61b02812a4d526e57c4ad06a"
+  },
+  "session-s07-b2-en-r02/data-preflight.json": {
+    "bytes": 518,
+    "sha256": "2380d19df60cae8c067aad5ebe16df524705f64b59d96548932a53a889dadbab"
+  },
+  "session-s07-b2-en-r02/driver-summary.json": {
+    "bytes": 802,
+    "sha256": "70b604a1b6b548f8661b8c9d8b3a3179a8976817830dc15b71c410027afd3104"
+  },
+  "session-s07-b2-en-r02/input-provenance.json": {
+    "bytes": 832,
+    "sha256": "136d3faa3deda4429a114208588c5cf7964e8776ae18b46e8f4f142921663a73"
+  },
+  "session-s07-b2-en-r02/install_bootstrap.log": {
+    "bytes": 450,
+    "sha256": "cbd2e655519b1c283838e0dad62478677342fd45ec011ffb3aae1f54ccd7c52a"
+  },
+  "session-s07-b2-en-r02/install_locked_environment.log": {
+    "bytes": 7864,
+    "sha256": "9ba2e0b4855c6b9ee35b473ebab6c1a18e8321bea3ec11b96009aad1761bc9f3"
+  },
+  "session-s07-b2-en-r02/run-config.json": {
+    "bytes": 563,
+    "sha256": "b2d3b23b26374754de97e3e1da1c21b907af77feab17096347af892f870defe1"
+  },
+  "session-s07-b2-en-r02/runtime-preflight.json": {
+    "bytes": 1003,
+    "sha256": "8aa2e201ef149f53a89780345e1b646dd7b81fadae92e3c991e82d67abd0f004"
+  },
+  "session-s07-b2-en-r02/settings.json": {
+    "bytes": 525,
+    "sha256": "9e8b6d69746d3c06828ed2649203876fca9fa8986d69d7f8d9637555d9b34477"
+  },
+  "session-s07-b2-en-r02/verify_mounted_cache.log": {
+    "bytes": 741,
+    "sha256": "6fcab3abf919a7f7b671511b4879aa9ad54e27f9ec6487fd3638f29e1e2c21fe"
+  },
+  "session-s07-b2-en-r02/worker.log": {
+    "bytes": 25,
+    "sha256": "423bc199fb67f93e859cbf9030ab8ab43d752806fe06e443f3596de63829605f"
+  }
+}

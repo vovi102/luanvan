@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 6/12 native processes complete; B2 EN r02 RUNNING, 5 unstarted. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 7/12 native processes complete; 5 unstarted. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -376,3 +376,15 @@ verified; actual native inference/hardware still unverified. Six complete,
 seventh running, five unstarted. No new BigQuery, tuning, repair/retry or
 whole-campaign budget inferred.
 [B2 EN r02 checkpoint](../research/kaggle-b12-benchmark-b2-en-r02-2026-10-20.md).
+
+### 2026-10-21 — B2 EN r02 COMPLETE; next B2 VI r02 authorized
+
+Private v1 COMPLETE, 25 saved files/24 native manifest hashes/report digest
+verified. All 100 genuine EN completions, original source authority, 7,208-row
+cache and 500 training selections, T4 ×2 runtime and seven-attempt ledger pass.
+N=100: 31 extraction ok, 60 prose, 8 unsafe_sql, 1 invalid_sql; P95 51.300s.
+Native 59.18m, driver 63.73m; quota remaining 23.094586h. Scientific blockers
+unchanged; no execution accuracy, new BigQuery, adaptation or repair claimed.
+Campaign 7/12 complete at review; user explicitly requested next B2 VI r02,
+subject to fresh launch preflight. No full-campaign budget inferred.
+[Verified B2 EN r02](../research/kaggle-b12-benchmark-b2-en-r02-2026-10-20.md).

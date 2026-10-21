@@ -326,3 +326,14 @@ Remote source/private GPU metadata match; actual native runtime unverified.
 Six complete, seventh running, five unstarted. No r01 replacement, new BigQuery
 or adaptation/tuning.
 [B2 EN r02 checkpoint](../research/kaggle-b12-benchmark-b2-en-r02-2026-10-20.md).
+
+## Seventh process verified — 2026-10-21
+
+B2 EN r02 private v1 COMPLETE, N=100. All 25 saved files/24 native manifest
+hashes/report digest, original EN completions/source, 7,208-row cache and 500
+training selections, T4 ×2 runtime and seven-attempt ledger verified.
+31 extraction ok, 60 prose, 8 unsafe_sql, 1 invalid_sql; P95 51.300s.
+Native 59.18m, driver 63.73m. Quota remaining 23.094586h. Scientific blockers
+retained; no execution accuracy/BigQuery/repair/adaptation. User authorized
+next single B2 VI r02 after review and fresh preflight. Campaign 7/12 complete.
+[Verified B2 EN r02](../research/kaggle-b12-benchmark-b2-en-r02-2026-10-20.md).
