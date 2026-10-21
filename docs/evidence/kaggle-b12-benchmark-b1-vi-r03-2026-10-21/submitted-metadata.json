@@ -1,0 +1,20 @@
+{
+  "id": "aohkvd/nl2sql-b12-benchmark-20261021-b1-vi-r03",
+  "title": "nl2sql-b12-benchmark-20261021-b1-vi-r03",
+  "code_file": "nl2sql-b12-benchmark-20261021-b1-vi-r03.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [
+    "aohkvd/nl2sql-setup-inputs"
+  ],
+  "kernel_sources": [
+    "aohkvd/nl2sql-environment-cache/5"
+  ],
+  "competition_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}

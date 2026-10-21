@@ -381,3 +381,14 @@ settings, T4 ×2 runtime/cleanup and nine-attempt ledger verified. 99 unsafe_sql
 execution accuracy claim. Campaign 9/12 complete; user authorized next B1 VI
 r03 after fresh preflight.
 [Verified B1 EN r03](../research/kaggle-b12-benchmark-b1-en-r03-2026-10-21.md).
+
+## Tenth process submitted — 2026-10-21
+
+Authorized B1 VI r03 private v1, N=100, submitted 22:17:02 Asia/Saigon;
+QUEUED 22:17:20 after B1 EN r03 review. Same 90m/120m caps, unchanged settings,
+nine prior IDs carried. Fresh quota 21.184038h, 0 reserved, pay-to-scale off;
+prior sessions and cache v5 COMPLETE. Remote source/private GPU metadata match;
+actual native runtime/hardware unverified. Nine complete, tenth submitted, two
+unstarted. Keep paired reused English evidence/all blockers, no new BigQuery,
+repair/retry or adaptation.
+[B1 VI r03 checkpoint](../research/kaggle-b12-benchmark-b1-vi-r03-2026-10-21.md).
