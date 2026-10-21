@@ -7,16 +7,18 @@ budget inferred; this planned replicate does not replace previous runs.
 
 Private notebook: https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261021-b1-vi-r03
 
-**Version 1 submitted at 22:17:02 Asia/Saigon; QUEUED at 22:17:20.**
+**Version 1 COMPLETE; N=100 independently verified on 2026-10-21.**
+Submitted at 22:17:02 Asia/Saigon; native process finished at 23:10:42.
+Platform COMPLETE checked at 23:24:24; exact platform completion time not observed.
 Remote cells match submitted source; private/GPU/NvidiaTeslaT4 and accepted
-dataset/cache metadata verified. Native inference, actual hardware/runtime and
-saved completeness remain unverified. Queue/provisioning adds elapsed time
+dataset/cache metadata verified. Saved native inference, actual hardware/runtime and
+completeness now pass verification below. Queue/provisioning adds elapsed time
 outside measured native/driver wall time.
 
 Campaign `b12-envi-20261018-c01`, session `s10-b1-vi-r03`, run
 `b12-envi-20261018-c01-b1-vi-r03`. Nine prior IDs match retained B1 EN r03
-ledger: all r01/r02 runs, then B1 EN r03. All prior reviews pass. Nine complete,
-tenth submitted, two unstarted. Keep all previous replicates separate/immutable.
+ledger: all r01/r02 runs, then B1 EN r03. All prior reviews pass. Ten complete,
+two unstarted at review. Keep all previous replicates separate/immutable.
 
 Fresh quota at 22:16:50: 21.184038056h available, 0h reserved, 30h total,
 pay-to-scale off. Covers conservative four GPU-device-hour allowance for one
@@ -67,3 +69,45 @@ counts stay historical. T5.4 and separate BigQuery authorization pending.
 
 [Machine checkpoint](../evidence/kaggle-b12-benchmark-b1-vi-r03-2026-10-21.json)
 and [artifact manifest](../evidence/kaggle-b12-benchmark-b1-vi-r03-2026-10-21/artifacts-manifest.json).
+
+## Verified result
+
+All 22 saved files retained (1,127,666 bytes), no omissions/model downloads.
+All 21 native manifest entries/report compact canonical JSON self-digest pass;
+repository manifest covers the native manifest and full evidence. Verified
+100 genuine VI completions, ordered IDs/questions/full typed paired lineage,
+trusted reviewed/live authorities and exact reused English evidence. B1
+selected examples empty; seed/model/encoder/settings unchanged. Input/cache/
+data/runtime gates, actual T4 ×2, Python 3.11.15, torch 2.5.1+cu124 / CUDA 12.4,
+native exit 0 and scratch cleanup pass. Ledger contains all r01/r02 runs,
+B1 EN r03, then B1 VI r03; only VI r03 is present in this session. Prior runs
+remain separate and unchanged.
+
+| Observation | Value |
+|---|---:|
+| VI denominator / genuine generations | 100 / 100 |
+| Extraction ok | 0 |
+| Unsafe SQL | 100 |
+| Generation P50 | 20.664s |
+| Generation P95 | 31.101s |
+| Native wall | 2,182.728s (36.38m) |
+| Driver wall including setup/checks | 2,970.140s (49.50m) |
+
+These are extraction/runtime observations, not SQL execution accuracy. Native
+scientific readiness remains false with `latency_gate_failed`,
+`live_evidence_missing`, `reviewed_test_set_missing`. Source authorities pass;
+unchanged CLI25/CLI17 aggregate review/live flags remain conservative as
+previously audited. No native SQL/report, flags/gates, settings or model changed;
+no repair/retry, partial-run merge, canonical adaptation, BigQuery, training or
+local inference ran.
+
+Quota after completion: 20.353947222h remaining, 0h reserved; observed account
+usage delta 0.830090833h, an account quota observation across the interval,
+not invoice cost/general billing rule. Campaign 10/12 complete at review;
+all B1 replicates verified, two B2 r03 runs unstarted. User authorized next
+B2 EN r03 after fresh quota/cache/duplicate checks and carrying ten prior IDs.
+No whole-campaign budget inferred. Keep each run/language N=100 separate;
+B0 stays English-only, T5.4 and separate BigQuery pending. Fresh verification
+covered saved bytes/lineage/runtime/ledger; no local inference/pytest reran.
+Full outputs, verifier source/result and download record retained under the
+checkpoint directory.

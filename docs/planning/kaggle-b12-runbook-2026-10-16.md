@@ -392,3 +392,14 @@ actual native runtime/hardware unverified. Nine complete, tenth submitted, two
 unstarted. Keep paired reused English evidence/all blockers, no new BigQuery,
 repair/retry or adaptation.
 [B1 VI r03 checkpoint](../research/kaggle-b12-benchmark-b1-vi-r03-2026-10-21.md).
+
+## Tenth process verified — 2026-10-21
+
+B1 VI r03 private v1 COMPLETE, N=100. All 22 saved files/21 native manifest
+hashes/report digest pass; original paired lineage, all genuine completions,
+zero-shot settings, T4 ×2 runtime/cleanup and ten-attempt ledger verified.
+100 unsafe_sql; P95 31.101s; native 36.38m, driver 49.50m. Quota remaining
+20.353947h. Scientific blockers unchanged; no BigQuery/adaptation/repair or
+execution accuracy claim. Campaign 10/12 complete; next B2 EN r03 authorized
+after fresh preflight.
+[Verified B1 VI r03](../research/kaggle-b12-benchmark-b1-vi-r03-2026-10-21.md).
