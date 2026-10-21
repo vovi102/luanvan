@@ -1,0 +1,32 @@
+{
+  "preparation_commit": "8194926",
+  "prior_result_commit": "84b0f2a",
+  "kernel": "aohkvd/nl2sql-b12-benchmark-20261021-b2-en-r03",
+  "campaign_id": "b12-envi-20261018-c01",
+  "session_id": "s11-b2-en-r03",
+  "run_id": "b12-envi-20261018-c01-b2-en-r03",
+  "baseline": "b2",
+  "language": "en",
+  "replicate": 3,
+  "cases": 100,
+  "notebook_sha256": "4fc2fd4bcd6004c431162556d35ba8b787409d3b4035fdcacb0d63cf31b684c5",
+  "driver_sha256": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7",
+  "native_cap_seconds": 5400,
+  "platform_session_cap_seconds": 7200,
+  "prior_attempted_run_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03"
+  ],
+  "prior_runtime_artifact_completeness_reviewed": true,
+  "research_semantics_changed": false,
+  "native_review_live_flags_changed": false,
+  "authorization": "User explicitly requested next process. B1 VI r03 complete and reviewed; launch only next scheduled B2 EN r03 under unchanged 90m/120m caps. No full-campaign budget inferred."
+}

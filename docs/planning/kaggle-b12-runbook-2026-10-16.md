@@ -403,3 +403,13 @@ zero-shot settings, T4 ×2 runtime/cleanup and ten-attempt ledger verified.
 execution accuracy claim. Campaign 10/12 complete; next B2 EN r03 authorized
 after fresh preflight.
 [Verified B1 VI r03](../research/kaggle-b12-benchmark-b1-vi-r03-2026-10-21.md).
+
+## Eleventh process submitted — 2026-10-21
+
+Authorized B2 EN r03 private v1, N=100, submitted 23:26:48 Asia/Saigon;
+QUEUED 23:27:06 after B1 VI r03 review. Same 90m/120m caps, unchanged settings,
+ten prior IDs carried. Fresh quota 20.353947h, 0 reserved, pay-to-scale off;
+prior sessions and cache v5 COMPLETE. Remote source/private GPU metadata match;
+actual runtime/hardware unverified. Ten complete, eleventh submitted, final
+B2 VI r03 unstarted. No new BigQuery, repair/retry or adaptation.
+[B2 EN r03 checkpoint](../research/kaggle-b12-benchmark-b2-en-r03-2026-10-21.md).
