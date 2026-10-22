@@ -459,3 +459,19 @@ complete native processes, one setup failure, one unstarted slot.
 Accepted release archive SHA verified unchanged. Rebuilding from this checkout's
 updated runbook does not reproduce the accepted archive; never substitute it.
 [Repair handoff](../research/kaggle-b12-setup-repair-2026-10-22.md).
+
+## Real validation passed and final VI submitted — 2026-10-22
+
+Authorized setup-only v1 COMPLETE,15 saved files/14 manifest hashes verified,
+24 cache files/package/data/runtime/timing gates pass, no inference/benchmark
+identity reserved. Setup13.27m, driver13.56m, cache11.71m. Actual hardware
+not probed; successful run itself fit old20m, no guarantee transient delay cured.
+After fresh quota19.783096h/zero reserved/pay-to-scale off, user-authorized
+final B2 VI r03 private v1 submitted22:37:51 Asia/Saigon, RUNNING22:38:09.
+N=100, setup27m/native90m/session120m, new driver7f80915... explicit user failure
+continuation exception; carry eleven prior IDs, including failed EN, without
+claiming its successful receipt. Remote source/private GPU metadata match,
+actual native hardware/completeness pending. Ten complete native processes,
+one failed setup, final VI running. If it completes:eleven native successes,
+one setup failure; never label twelve complete compatible replicates. No EN
+retry/replacement/BigQuery/tuning. See [final checkpoint](../research/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).

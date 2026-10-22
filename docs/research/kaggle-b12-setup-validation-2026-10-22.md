@@ -75,7 +75,7 @@ validation, not another benchmark replicate. Runtime gate deliberately reports
 hardware_checked=false; requested T4/private metadata does not prove actual
 GPU hardware or model loading. Those checks remain part of genuine inference.
 
-Quota after validation: 19.783096944h remaining, zero reserved; exact observed
+Quota after validation: 19.783095833h remaining, zero reserved; exact observed
 account delta is recorded in the machine checkpoint, not inferred as billing.
 The user explicitly renewed next-process execution after the completion notice.
 Proceed only after fresh quota/cache/duplicate checks to final B2 VI r03,
@@ -109,3 +109,11 @@ single B2 VI r03 after fresh launch preflight, without asking again. Preserve
 failed B2 EN r03 and carry all eleven IDs conservatively, with the explicit
 failure-continuation exception recorded. Do not resubmit validation or retry EN
 to resume work. If validation fails, retain all evidence and stop for diagnosis.
+
+## Final VI submitted after validation
+
+Final B2 VI r03 private v1 submitted at22:37:51 Asia/Saigon and RUNNING
+at22:38:09 after fresh preflight. See [final-session checkpoint](kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).
+The explicit reviewed-failure continuation exception is recorded there; original
+EN failure remains immutable with no EN retry/replacement. Diagnostic validation
+still contributes zero native benchmark completions/IDs.

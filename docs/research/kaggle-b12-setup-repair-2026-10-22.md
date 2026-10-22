@@ -84,3 +84,15 @@ updated runbook prose does not reproduce that archive and is not a substitute.
 
 [Diagnosis](kaggle-b12-setup-diagnosis-2026-10-22.md) and
 [repair verification evidence](../evidence/kaggle-b12-setup-repair-2026-10-22.json).
+
+## Authorized real follow-up
+
+User later authorized real setup validation then final VI continuation. Private
+setup-only v1 now passes all24 pinned cache files, data/package/runtime gates,
+source/settings/timing integrity and cleanup, with zero generations and no
+benchmark reservation. Setup13.27m, driver13.56m; this session fit even original
+20m because installation was faster, so it does not establish that the original
+transient delay cannot recur. See [real validation](kaggle-b12-setup-validation-2026-10-22.md).
+Final VI then submitted under the recorded user-approved failure-continuation
+exception; no EN replacement/retry. Earlier offline machine report remains a
+historical record of its verification boundary, not an updated runtime claim.
