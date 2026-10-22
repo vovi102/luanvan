@@ -35,7 +35,7 @@ item=dict(run_id=run_id,baseline='b2',language='en',folder=str(folder))
 check=driver.check_complete(root,item)
 assert read(session/'completeness.json')==check
 ledger=read(session/'campaign-ledger.json')
-plan=read(base/'submission-plan.json')
+plan=read(base/'submission-plan-short-ref.json')
 assert ledger['campaign_id']==campaign and ledger['parent_campaign_id']==parent
 assert ledger['replacement_of']==parent+'-b2-en-r03'
 assert ledger['attempted_run_ids']==plan['prior_attempted_run_ids']+[run_id]

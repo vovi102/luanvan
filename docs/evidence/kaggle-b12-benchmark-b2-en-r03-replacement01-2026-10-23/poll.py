@@ -7,7 +7,7 @@ from pathlib import Path
 from kaggle.api.kaggle_api_extended import KaggleApi
 from kagglesdk.kernels.types.kernels_api_service import ApiGetKernelRequest,ApiGetKernelSessionLogsStreamRequest
 base=Path(__file__).parent
-slug='nl2sql-b12-benchmark-20261023-b2-en-r03-replacement01'
+slug='nl2sql-b12-benchmark-20261023-b2-en-r03-repl01'
 a=KaggleApi();a.authenticate()
 s=a.kernels_status('aohkvd/'+slug)
 r=ApiGetKernelRequest();r.user_name='aohkvd';r.kernel_slug=slug

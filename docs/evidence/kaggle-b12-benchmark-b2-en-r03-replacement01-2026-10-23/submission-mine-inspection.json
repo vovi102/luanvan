@@ -1,0 +1,25 @@
+{
+  "target": "aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-replacement01",
+  "listed_refs": [
+    "aohkvd/xi-yuanwang-glass",
+    "aohkvd/elliptic2-temporal-gnn",
+    "aohkvd/nl2sql-b12-benchmark-20261022-b2-vi-r03",
+    "aohkvd/nl2sql-b12-setup-validation-20261022-v02",
+    "aohkvd/nl2sql-b12-benchmark-20261021-b2-en-r03",
+    "aohkvd/nl2sql-b12-benchmark-20261021-b1-vi-r03",
+    "aohkvd/nl2sql-b12-benchmark-20261021-b1-en-r03",
+    "aohkvd/nl2sql-b12-benchmark-20261021-b2-vi-r02",
+    "aohkvd/nl2sql-b12-benchmark-20261020-b2-en-r02",
+    "aohkvd/nl2sql-b12-benchmark-20261020-b1-vi-r02",
+    "aohkvd/nl2sql-b12-benchmark-20261020-b1-en-r02",
+    "aohkvd/nl2sql-b12-benchmark-20261019-b2-vi-r01",
+    "aohkvd/nl2sql-b12-benchmark-20261019-b2-en-r01",
+    "aohkvd/nl2sql-b12-benchmark-20261018-b1-vi-r01",
+    "aohkvd/nl2sql-b12-benchmark-20261018-b1-en-r01",
+    "aohkvd/nl2sql-b12-t4-smoke-20261017-r01",
+    "aohkvd/nl2sql-environment-cache",
+    "aohkvd/nl2sql-b1-b2-2026-09-22-r01",
+    "aohkvd/sybil-attacks-on-mcs-cloud"
+  ],
+  "exact_target_found": false
+}

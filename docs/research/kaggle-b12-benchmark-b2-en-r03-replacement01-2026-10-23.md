@@ -63,3 +63,39 @@ warnings in758.87s; Ruff check/format, notebook schema/defaults/source hash,
 accepted bundle/source/data/argv/config and retained lineage checks passed.
 Original two new provenance tests failed before implementation; non-string
 validation test also failed before its fix. No genuine inference ran locally.
+
+## Launch checkpoint
+
+Preparation commit `35923fc`. The first API request for the longer external
+notebook name raised HTTPError. Read-only inspection found no20261023 search
+matches and no exact target among all19 owned notebooks; existing prior
+metadata remained readable. The original failure cause is unknown. Its
+request intent/error/inspection remain retained. A shorter external notebook
+name was prepared with byte-identical notebook contents and the same native
+replacement ID. Fresh quota and previous terminal states were checked again.
+This was an upload failure before any recorded benchmark inference attempt;
+no original native run was retried or overwritten.
+
+Accepted private notebook:
+https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl01
+
+Version1, kernel140251262; one accepted remote notebook. Submitted at
+00:59:32 Asia/Saigon on2026-10-23. Platform RUNNING observed at00:59:50
+on2026-10-23. Remote cells exactly match the submitted enabled notebook;
+private/GPU/requestedT4/source dataset/cache metadata verified. Fresh quota
+18.451760556h, zero reserved, pay-to-scale off before the accepted push,
+covering the conservative4device-hour allowance. Cache private v5 and prior
+terminal states verified. Metadata may normalize the cache source to its slug;
+the mounted inventory/bytes still must pass the exact v5 checks in the driver.
+
+RUNNING is platform state and may include setup; actual hardware/runtime,
+native100-case completion,13-ID native ledger, saved artifacts and cleanup
+remain unverified until terminal export/review. No accuracy or scientific
+completion claimed. Monitoring stops after this launch checkpoint as the user
+previously requested; resume by polling this existing ref, never pushing again.
+The initial longer-name deployment/plan is historical. Use
+`submission-plan-short-ref.json` and `deploy-short-ref/` for accepted source;
+terminal verifier follows that plan. No automatic second replacement.
+
+[Machine checkpoint](../evidence/kaggle-b12-benchmark-b2-en-r03-replacement01-2026-10-23.json)
+and [retained artifact manifest](../evidence/kaggle-b12-benchmark-b2-en-r03-replacement01-2026-10-23/artifacts-manifest.json).

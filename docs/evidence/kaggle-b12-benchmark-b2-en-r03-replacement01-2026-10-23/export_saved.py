@@ -5,7 +5,7 @@ import requests
 from kaggle.api.kaggle_api_extended import KaggleApi
 from kagglesdk.kernels.types.kernels_api_service import ApiListKernelSessionOutputRequest
 base=Path(__file__).parent
-slug='nl2sql-b12-benchmark-20261023-b2-en-r03-replacement01'
+slug='nl2sql-b12-benchmark-20261023-b2-en-r03-repl01'
 prefix='b12-benchmark-b12-envi-20261018-c01-replacement01'
 a=KaggleApi();a.authenticate()
 status=a.kernels_status('aohkvd/'+slug).status.name
