@@ -428,3 +428,14 @@ carry it conservatively; do not fabricate successful receipt/ledger or label
 this 0/100 accuracy. Failure-stop protocol requires explicit operational
 decision before final VI; disabled unchanged proposal prepared, user asked,
 no new submission. See [failure audit](../research/kaggle-b12-benchmark-b2-en-r03-2026-10-21.md).
+
+## Setup-first decision and offline diagnosis — 2026-10-22
+
+User declined immediate final VI continuation and chose setup repair first.
+B2 VI r03 stays unstarted; no runtime or cap change/new remote session.
+Eleven-session comparison complete. Proposed bounded repair: 27m setup,
+unchanged 91m maximum worker/90m native and 2m cleanup within original 120m cap,
+plus per-stage timing/budget/failure records; all exact hash gates retained.
+Short design approval/implementation and later real validation remain pending;
+original failed ID/evidence must not be overwritten or reused.
+[Diagnosis](../research/kaggle-b12-setup-diagnosis-2026-10-22.md).

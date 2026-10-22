@@ -87,7 +87,7 @@
   },
   "artifact_manifest": "kaggle-b12-benchmark-b2-en-r03-2026-10-21/artifacts-manifest.json",
   "additional_sessions_started": false,
-  "next_action": "Failure archived; campaign continuation paused pending an explicit operational decision under the precommitted timeout/completeness rule. Prepared proposal: run final B2 VI r03 unchanged, retain B2 EN r03 as failed setup and carry its ID conservatively; no replacement/retry, cap increase or gate bypass. No new session submitted.",
+  "next_action": "User chose to stop and address setup first. Final VI continuation proposal not approved; no new session. Offline comparative diagnosis complete; bounded setup budget/timing design pending approval before runtime change.",
   "verification_date": "2026-10-22",
   "failure": {
     "status": "setup_failure_evidence_integrity_verified",
@@ -132,5 +132,6 @@
     "gpu_reserved_hours": 0.0,
     "gpu_remaining_hours": 20.015843333333333
   },
-  "observed_account_quota_delta_hours": 0.33810388888888987
+  "observed_account_quota_delta_hours": 0.33810388888888987,
+  "user_decision": "stop_and_address_setup_first"
 }

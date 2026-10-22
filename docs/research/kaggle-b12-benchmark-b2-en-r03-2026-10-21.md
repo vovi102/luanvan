@@ -139,3 +139,14 @@ account checkpoint and disabled proposal are retained under the linked evidence
 directory. Fresh verification covered all original bytes, manifest, failure
 stage/budget, absence of native outputs and cleanup. No local inference/pytest
 suite reran. T5.4 and separate BigQuery authorization remain pending.
+
+## User decision — address setup first
+
+User selected “Dừng để xử lý lỗi setup trước”. The disabled final-VI proposal
+above is not approved; B2 VI r03 remains unstarted. No new remote session or
+runtime change has occurred. See the [offline comparative diagnosis and bounded
+repair candidate](kaggle-b12-setup-diagnosis-2026-10-22.md), based on all eleven
+saved sessions. Proposed setup allowance 27m plus unchanged 91m maximum worker
+and 2m cleanup fits the original 120m session cap; the 90m native cap and all
+hash/research gates remain intact. This design is pending approval, not a fix
+or real validation claim. Original failed session/ID/evidence remains immutable.

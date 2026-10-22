@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 10/12 native processes complete; B2 EN r03 setup ERROR, B2 VI r03 unstarted; continuation decision pending. B1 VI r03: 100 unsafe, P95 31.101s. B1 EN r03: 99 unsafe / 1 invalid, P95 45.922s. B2 VI r02: 12 ok / 88 prose, P95 72.962s. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 10/12 native processes complete; B2 EN r03 setup ERROR, B2 VI r03 unstarted; user chose setup diagnosis first. B1 VI r03: 100 unsafe, P95 31.101s. B1 EN r03: 99 unsafe / 1 invalid, P95 45.922s. B2 VI r02: 12 ok / 88 prose, P95 72.962s. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -486,3 +486,15 @@ unchanged B2 VI r03 proposal with all opt-ins/receipt flag false and conservativ
 eleven-ID audit; asked user to approve explicit continuation preserving EN failure
 without retry, or stop for setup diagnosis. No new session submitted or cap changed.
 [Failure audit and proposal](../research/kaggle-b12-benchmark-b2-en-r03-2026-10-21.md).
+
+### 2026-10-22 — user stops continuation to address setup
+
+User selected setup repair first; disabled final-VI proposal not approved.
+Offline comparison of ten successes/one failure confirms setup watchdog expiry:
+failed package prep 7m46s vs prior 56.01s–3m49s, leaving 615.233s for cache
+verification. Underlying cache slowness/corruption not established. No new
+remote session or runtime change. Bounded candidate: 27m setup + unchanged
+91m maximum worker + 2m cleanup = original 120m session cap, native cap 90m;
+add persistent per-stage elapsed/budget/timeout telemetry. Requires short-design
+approval before implementation; no fix or remote validation claimed.
+[Diagnosis](../research/kaggle-b12-setup-diagnosis-2026-10-22.md).

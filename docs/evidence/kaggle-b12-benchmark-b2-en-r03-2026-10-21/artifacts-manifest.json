@@ -79,6 +79,10 @@
     "bytes": 26261,
     "sha256": "4fc2fd4bcd6004c431162556d35ba8b787409d3b4035fdcacb0d63cf31b684c5"
   },
+  "user-decision-2026-10-22.json": {
+    "bytes": 323,
+    "sha256": "1c8b7a9e5ab280261cfd9586f697edee9b9984aa9638d10965edec19b52e202a"
+  },
   "verified-failure.json": {
     "bytes": 1037,
     "sha256": "04d279de75af9a300037c2773b3f42f25c1e8db03194afc5fe94cbce7ecce141"
