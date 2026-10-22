@@ -413,3 +413,18 @@ prior sessions and cache v5 COMPLETE. Remote source/private GPU metadata match;
 actual runtime/hardware unverified. Ten complete, eleventh submitted, final
 B2 VI r03 unstarted. No new BigQuery, repair/retry or adaptation.
 [B2 EN r03 checkpoint](../research/kaggle-b12-benchmark-b2-en-r03-2026-10-21.md).
+
+## Eleventh session failed before native inference — 2026-10-22
+
+B2 EN r03 v1 ERROR at mounted-cache verification: cumulative 20m setup cap,
+615.233s remaining-stage timeout. Full locked install completed. All seven saved
+files/six manifest hashes retained and verified; no native runner/predictions/
+report/completeness/ledger published, zero generated cases, scratch removed.
+No cache corruption/mismatch is established; verification slowness root cause
+undetermined. Driver/settings/caps unchanged; no repair/retry or replacement.
+Quota remaining 20.015843h. Campaign ten complete native processes, one setup
+failure, final VI slot unstarted. Preserve failed session/ID separately and
+carry it conservatively; do not fabricate successful receipt/ledger or label
+this 0/100 accuracy. Failure-stop protocol requires explicit operational
+decision before final VI; disabled unchanged proposal prepared, user asked,
+no new submission. See [failure audit](../research/kaggle-b12-benchmark-b2-en-r03-2026-10-21.md).

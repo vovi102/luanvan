@@ -7,16 +7,19 @@ budget inferred; this replicate does not replace previous runs.
 
 Private notebook: https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261021-b2-en-r03
 
-**Version 1 submitted at 23:26:48 Asia/Saigon; QUEUED at 23:27:06.**
+**Version 1 ERROR; setup-timeout evidence verified on 2026-10-22.**
+Submitted at 23:26:48 Asia/Saigon on 2026-10-21. ERROR observed at
+19:18:04 on 2026-10-22; exact platform failure time was not observed.
 Remote cells match submitted source; private/GPU/NvidiaTeslaT4 and accepted
-dataset/cache metadata verified. Native inference, actual hardware/runtime and
-saved completeness remain unverified. Queue/provisioning adds elapsed time
+dataset/cache metadata verified. Saved evidence establishes setup failed before native inference. Actual GPU
+hardware/runtime and successful cache verification remain unverified. Queue/provisioning adds elapsed time
 outside measured native/driver wall time.
 
 Campaign `b12-envi-20261018-c01`, session `s11-b2-en-r03`, run
 `b12-envi-20261018-c01-b2-en-r03`. Ten prior IDs match retained B1 VI r03
 ledger: all r01/r02 runs, B1 EN r03, B1 VI r03. All prior reviews pass.
-Ten complete, eleventh submitted, final B2 VI r03 unstarted. Keep all prior
+Ten native processes complete, this eleventh session failed during setup,
+final B2 VI r03 unstarted. Keep all prior
 replicates separate/immutable.
 
 Fresh quota at 23:26:32: 20.353947222h available, 0h reserved, 30h total,
@@ -68,3 +71,71 @@ counts stay historical. T5.4 and separate BigQuery authorization pending.
 
 [Machine checkpoint](../evidence/kaggle-b12-benchmark-b2-en-r03-2026-10-21.json)
 and [artifact manifest](../evidence/kaggle-b12-benchmark-b2-en-r03-2026-10-21/artifacts-manifest.json).
+
+## Failed setup audit — 2026-10-22
+
+Retained all seven saved campaign files (11,712 bytes), no omissions/model
+payload downloads. All six native manifest entries match size/SHA-256;
+repository manifest covers the native manifest and failure audit. Driver summary
+is `failed`, stage `verify_mounted_cache`, error type `TimeoutExpired`, wall
+1,200.003s. Stage timeout was 615.233s: the cumulative 1,200s setup budget was
+consumed across prior installation stages and mounted-cache verification.
+The full locked environment installation completed; its log reports preparing
+218 packages in 7m46s and installing them in 14.08s. Owned scratch was removed.
+
+Cache verifier reads and hashes pinned mounted model/encoder bytes and only
+prints a result after completing all files. Its retained log is empty, with no
+cache mismatch error or successful receipt. The direct failure is setup-budget
+exhaustion while verification was running. Underlying verification slowness is
+undetermined: per-file timings were not emitted. Do not claim cache corruption,
+a specific I/O/network bottleneck, OOM or a model/SQL defect from these artifacts.
+The driver and submitted settings/pins are unchanged from reviewed successful
+sessions; no fix or runtime change was attempted.
+
+The driver invokes the native runner only after cache verification. That stage
+was never reached: no `runs/`, native `run.json`, predictions, native log/report,
+completeness receipt, data/runtime preflight or native campaign ledger exists
+in this saved session. **Zero native cases generated; no B2 EN r03 result.**
+This is not 0/100 accuracy or an additional completed replicate. Input provenance
+was retained and binds the exact accepted bundle/cache inventory. Actual
+hardware/runtime and cache integrity could not be independently established.
+
+The last published native ledger remains the ten-ID B1 VI r03 ledger. A separate
+`campaign-attempt-audit.json` records this failed setup/session/planned ID and
+requires preserving its ID conservatively in any later continuation. This audit
+is not a fabricated native ledger/completeness receipt. Never reuse or hide the
+failed session/ID, splice outputs or label it complete.
+
+Quota on return: 20.015843333h remaining, 0h reserved; observed account usage
+delta from pre-launch snapshot 0.338103889h. Account quota observation is not
+invoice cost or a general billing rule. Campaign: **10 complete native
+processes, one setup failure, one unstarted slot**. Scientific readiness stays
+false; no SQL execution accuracy, BigQuery, adaptation, training, retry or new
+process is claimed.
+
+## Concrete next-session proposal, awaiting decision
+
+User requested continuing processes. The precommitted campaign states that
+runtime failures/timeouts stop the session and no later process starts
+automatically, and `PRIOR_COMPLETENESS_REVIEWED=True` requires a successful
+100-native-case receipt. The failed EN session cannot satisfy that condition.
+Therefore an explicit operational decision is pending before continuation;
+source defaults/caps/flags have not been changed and nothing new was uploaded.
+
+`proposed-next-session.json` prepares a single final B2 VI r03 session,
+`s12-b2-vi-r03`, N=100, private/T4, all original caps/settings/driver retained,
+all execution opt-ins false and prior completeness flag false. Proposed
+exception: proceed to final VI after reviewing this failure, preserve EN r03
+as failed setup, carry all eleven IDs conservatively, and do not retry EN.
+If VI succeeds the campaign would have eleven complete native processes and
+one failed setup slot, not twelve complete compatible replicates. Any EN
+replacement would require a separately approved full-process identity and
+protocol update; none is authorized or prepared here.
+
+The user was asked to choose between unchanged final VI continuation with EN
+failure retained, or stopping to address setup first. No answer is inferred
+from elapsed time. Full failure evidence, read-only verification source/result,
+account checkpoint and disabled proposal are retained under the linked evidence
+directory. Fresh verification covered all original bytes, manifest, failure
+stage/budget, absence of native outputs and cleanup. No local inference/pytest
+suite reran. T5.4 and separate BigQuery authorization remain pending.

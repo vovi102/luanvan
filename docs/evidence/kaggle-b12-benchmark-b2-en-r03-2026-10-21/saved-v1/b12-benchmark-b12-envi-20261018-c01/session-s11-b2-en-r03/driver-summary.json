@@ -1,0 +1,34 @@
+{
+  "error": "Command '['/kaggle/working/b12-scratch-_no5feyc/runtime/bin/python', '/kaggle/input/datasets/aohkvd/nl2sql-setup-inputs/scripts/26_kaggle_environment.py', 'verify-cache', '--pins', '/kaggle/input/datasets/aohkvd/nl2sql-setup-inputs/configs/kaggle-b12-model-pins.json', '--hf-home', '/kaggle/input/notebooks/aohkvd/nl2sql-environment-cache/hf-home', '--component', 'all']' timed out after 615.2326039670006 seconds",
+  "error_type": "TimeoutExpired",
+  "process_cap_seconds": 5400,
+  "scientific_ready": false,
+  "scratch_removed": true,
+  "session_cap_seconds": 7200,
+  "settings": {
+    "allow_env_install": true,
+    "allow_preparation": true,
+    "allow_real_inference": true,
+    "baseline": "b2",
+    "campaign_id": "b12-envi-20261018-c01",
+    "language": "en",
+    "prior_attempts": [
+      "b12-envi-20261018-c01-b1-en-r01",
+      "b12-envi-20261018-c01-b1-vi-r01",
+      "b12-envi-20261018-c01-b2-en-r01",
+      "b12-envi-20261018-c01-b2-vi-r01",
+      "b12-envi-20261018-c01-b1-en-r02",
+      "b12-envi-20261018-c01-b1-vi-r02",
+      "b12-envi-20261018-c01-b2-en-r02",
+      "b12-envi-20261018-c01-b2-vi-r02",
+      "b12-envi-20261018-c01-b1-en-r03",
+      "b12-envi-20261018-c01-b1-vi-r03"
+    ],
+    "prior_completeness_reviewed": true,
+    "replicate": 3,
+    "session_id": "s11-b2-en-r03"
+  },
+  "stage": "verify_mounted_cache",
+  "status": "failed",
+  "wall_seconds": 1200.0031078449974
+}
