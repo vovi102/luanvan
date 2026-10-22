@@ -1,0 +1,62 @@
+{
+  "deploy/kernel-metadata.json": {
+    "bytes": 584,
+    "sha256": "49a0b204610c1cc9505dd593bdbace7570fd421782bbdfdcdef91f250a74ff42"
+  },
+  "deploy/nl2sql-b12-benchmark-20261023-b2-en-r03-replacement01.ipynb": {
+    "bytes": 30838,
+    "sha256": "ebd723bbd0574661f3e5c52eba69225ddfaeafee76fe69529a9ab6ba9634bda4"
+  },
+  "export_saved.py": {
+    "bytes": 2487,
+    "sha256": "7518ed7893187528c01a5c2276d51fe616a506146923fc67dee9c840efd16968"
+  },
+  "focused-tests.log": {
+    "bytes": 100,
+    "sha256": "bf3a22c3856d3695b37e9ec9add47c6a45aa388bdcb915025adbf21a5a7ec1d8"
+  },
+  "full-suite.log": {
+    "bytes": 3586,
+    "sha256": "ec679341171e7efd40dca6f6f028eb8033329757a8e42a546733b8d3c0f25a85"
+  },
+  "launch_once.py": {
+    "bytes": 4610,
+    "sha256": "3c91bf3433b71101c574b88102ade03ee2df2e1aba33b48ffed3a8227013d155"
+  },
+  "offline-verification.json": {
+    "bytes": 4332,
+    "sha256": "ebfbbba21cd9fc9d4a32e80b5330a3e59804d9085b0040e62723610a73b432e7"
+  },
+  "poll.py": {
+    "bytes": 2359,
+    "sha256": "72ed0cc6088b25a6838dad221627636574b09f0be6827dcbceec1fa2a377c0f2"
+  },
+  "preparation-review.json": {
+    "bytes": 1154,
+    "sha256": "d6511ea19bb7c2ee2936c67dd81daf2790396eea49b140c974fe067557fd000c"
+  },
+  "prepare_deploy.py": {
+    "bytes": 7237,
+    "sha256": "dc4caa9f9ea01e210d3c5747a3cc50e1297b47bb8d0f76424f583b009bb3c9ca"
+  },
+  "settings.json": {
+    "bytes": 842,
+    "sha256": "15d17d91812dcc96b092b51c1a9c09c490298189ae8c4cb1db7d40e79ae53eaa"
+  },
+  "submission-plan.json": {
+    "bytes": 2145,
+    "sha256": "4a511ba76eb739d93cbf9f0a337a76d53d3d76a1f4dbcd15c5196fbce7bd14f4"
+  },
+  "test-verification.json": {
+    "bytes": 560,
+    "sha256": "929dd2cf83fdfafff14f0d2148c3099fd5ac0f1c9e8ed69a1be59f21f7c14b06"
+  },
+  "verify_remote_source.py": {
+    "bytes": 1606,
+    "sha256": "b025402235997b551ab5bd48951add026ff82d8ca8829dc4a3016bf5637b297d"
+  },
+  "verify_saved.py": {
+    "bytes": 8089,
+    "sha256": "f090d14b6436282265fdbb8581656a1e3e2d75344d346c828b1ea4655446b5b2"
+  }
+}

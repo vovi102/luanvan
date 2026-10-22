@@ -138,6 +138,72 @@ def select_process(plan, baseline, language, replicate, prior_attempts=()):
     return item
 
 
+def validate_attempts(settings):
+    """Validate operational identities before writes; retain failed IDs permanently."""
+    for key in ("campaign_id", "session_id"):
+        if not isinstance(settings[key], str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9_-]{0,59}", settings[key]
+        ):
+            raise ValueError("Set safe explicit " + key)
+    if (
+        settings["baseline"] not in ("b1", "b2")
+        or settings["language"] not in ("en", "vi")
+        or type(settings["replicate"]) is not int
+        or settings["replicate"] not in (1, 2, 3)
+    ):
+        raise ValueError("Choose one baseline/language/replicate")
+    prior = settings["prior_attempts"]
+    provenance = {}
+    parent = settings["campaign_id"]
+    replacement = settings.get("replacement_of")
+    if replacement is not None:
+        # One explicitly selected full B2 EN r03 replacement after the original
+        # twelve attempts. A new native campaign namespace avoids any ID reuse
+        # without modifying the accepted native runner or research configuration.
+        if not isinstance(replacement, str):
+            raise ValueError("Replacement identity must be a string")
+        match = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9_-]{0,59})-b2-en-r03", replacement)
+        if (
+            match is None
+            or settings["campaign_id"] != match[1] + "-replacement01"
+            or (settings["baseline"], settings["language"], settings["replicate"])
+            != ("b2", "en", 3)
+        ):
+            raise ValueError(
+                "Replacement requires a distinct parent-replacement01 campaign and B2 EN r03"
+            )
+        parent = match[1]
+        provenance = {"parent_campaign_id": parent, "replacement_of": replacement}
+    valid_ids = {
+        f"{parent}-{b}-{lang}-r{rep:02d}"
+        for b in ("b1", "b2")
+        for lang in ("en", "vi")
+        for rep in (1, 2, 3)
+    }
+    selected = (
+        f"{settings['campaign_id']}-{settings['baseline']}-"
+        f"{settings['language']}-r{settings['replicate']:02d}"
+    )
+    if (
+        not isinstance(prior, list)
+        or any(x not in valid_ids for x in prior)
+        or len(set(prior)) != len(prior)
+        or selected in prior
+    ):
+        raise ValueError("Supply prior attempted IDs from retained campaign ledger; no reuse")
+    if replacement is not None and set(prior) != valid_ids:
+        raise ValueError("Review and retain all twelve original attempts before replacement")
+    if not prior and (settings["baseline"], settings["language"], settings["replicate"]) != (
+        "b1",
+        "en",
+        1,
+    ):
+        raise ValueError("First process must be full B1 EN r01; review completeness before more")
+    if prior and settings.get("prior_completeness_reviewed") is not True:
+        raise ValueError("Review prior runtime/artifact completeness before continuing")
+    return provenance
+
+
 def run_logged(argv, env, log, timeout):
     """Kill the complete process group on timeout/interrupt, keeping streamed logs."""
     if timeout <= 0:
@@ -291,6 +357,7 @@ def worker(root, home, output, settings, evidence):
     from nl2sparql.kaggle.bundle import preflight_data
     from nl2sparql.kaggle.runner import preflight_runtime, run_campaign
 
+    provenance = validate_attempts(settings)
     plan = campaign_plan(root, settings["campaign_id"], home, output)
     write_new(evidence / "campaign-plan.json", plan)
     item = select_process(
@@ -315,6 +382,7 @@ def worker(root, home, output, settings, evidence):
         evidence / "campaign-ledger.json",
         {
             "campaign_id": settings["campaign_id"],
+            **provenance,
             "attempted_run_ids": [*settings["prior_attempts"], item["run_id"]],
             "scientific_ready": False,
         },
@@ -339,44 +407,7 @@ def prepare(
         return
     if settings["allow_real_inference"] and not settings["allow_env_install"]:
         raise ValueError("Explicit install opt-in required for a fresh pinned runtime")
-    for key in ("campaign_id", "session_id"):
-        if not isinstance(settings[key], str) or not re.fullmatch(
-            r"[A-Za-z0-9][A-Za-z0-9_-]{0,59}", settings[key]
-        ):
-            raise ValueError("Set safe explicit " + key)
-    if (
-        settings["baseline"] not in ("b1", "b2")
-        or settings["language"] not in ("en", "vi")
-        or type(settings["replicate"]) is not int
-        or settings["replicate"] not in (1, 2, 3)
-    ):
-        raise ValueError("Choose one baseline/language/replicate")
-    prior = settings["prior_attempts"]
-    valid_ids = {
-        f"{settings['campaign_id']}-{b}-{lang}-r{rep:02d}"
-        for b in ("b1", "b2")
-        for lang in ("en", "vi")
-        for rep in (1, 2, 3)
-    }
-    selected = (
-        f"{settings['campaign_id']}-{settings['baseline']}-"
-        f"{settings['language']}-r{settings['replicate']:02d}"
-    )
-    if (
-        not isinstance(prior, list)
-        or any(x not in valid_ids for x in prior)
-        or len(set(prior)) != len(prior)
-        or selected in prior
-    ):
-        raise ValueError("Supply prior attempted IDs from retained campaign ledger; no reuse")
-    if not prior and (settings["baseline"], settings["language"], settings["replicate"]) != (
-        "b1",
-        "en",
-        1,
-    ):
-        raise ValueError("First process must be full B1 EN r01; review completeness before more")
-    if prior and settings.get("prior_completeness_reviewed") is not True:
-        raise ValueError("Review prior runtime/artifact completeness before continuing")
+    validate_attempts(settings)
     base = working / ("b12-benchmark-" + settings["campaign_id"])
     if base.is_symlink() or working.is_symlink():
         raise ValueError("Unsafe working output alias")

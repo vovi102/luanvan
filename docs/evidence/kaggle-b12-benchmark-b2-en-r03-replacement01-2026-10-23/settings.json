@@ -1,0 +1,26 @@
+{
+  "allow_preparation": true,
+  "allow_env_install": true,
+  "allow_real_inference": true,
+  "campaign_id": "b12-envi-20261018-c01-replacement01",
+  "session_id": "s11-b2-en-r03-replacement01",
+  "baseline": "b2",
+  "language": "en",
+  "replicate": 3,
+  "prior_attempts": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03",
+    "b12-envi-20261018-c01-b2-en-r03",
+    "b12-envi-20261018-c01-b2-vi-r03"
+  ],
+  "prior_completeness_reviewed": true,
+  "replacement_of": "b12-envi-20261018-c01-b2-en-r03"
+}

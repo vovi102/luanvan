@@ -351,6 +351,115 @@ def test_attempted_ids_and_unreviewed_prior_sessions_block_before_writes(tmp_pat
 
 
 @pytest.fixture
+def replacement_settings():
+    parent = "test-only"
+    return dict(
+        allow_preparation=True,
+        allow_env_install=True,
+        allow_real_inference=True,
+        campaign_id=parent + "-replacement01",
+        session_id="s11-b2-en-r03-replacement01",
+        baseline="b2",
+        language="en",
+        replicate=3,
+        prior_attempts=[
+            f"{parent}-{b}-{lang}-r{r:02d}"
+            for b in ("b1", "b2")
+            for lang in ("en", "vi")
+            for r in (1, 2, 3)
+        ],
+        prior_completeness_reviewed=True,
+        replacement_of=parent + "-b2-en-r03",
+    )
+
+
+def test_replacement_preserves_parent_attempts_and_gets_distinct_native_id(
+    tmp_path, replacement_settings
+):
+    # Reusing the parent campaign would collide with the failed native identity.
+    # Changing research arguments to implement replacement would invalidate this comparison.
+    m = driver()
+    settings = replacement_settings
+    provenance = m.validate_attempts(settings)
+    assert provenance == dict(parent_campaign_id="test-only", replacement_of="test-only-b2-en-r03")
+    output, home = tmp_path / "runs", Path("/missing-cache")
+    plan = m.campaign_plan(ROOT, settings["campaign_id"], home, output)
+    item = m.select_process(plan, "b2", "en", 3, settings["prior_attempts"])
+    original = m.select_process(m.campaign_plan(ROOT, "test-only", home, output), "b2", "en", 3)
+    assert item["run_id"] == "test-only-replacement01-b2-en-r03"
+    assert item["folder"] != original["folder"]
+    assert {k: v for k, v in item["config"].items() if k != "campaign_id"} == {
+        k: v for k, v in original["config"].items() if k != "campaign_id"
+    }
+    assert [a.replace(item["run_id"], original["run_id"]) for a in item["argv"]] == original["argv"]
+    assert "--limit" not in item["argv"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "missing_parent",
+        "reuse",
+        "unreviewed",
+        "wrong_slot",
+        "wrong_campaign",
+        "unsafe",
+        "non_string",
+    ],
+)
+def test_invalid_replacement_blocks_before_writes(tmp_path, replacement_settings, mutation):
+    m = driver()
+    settings = replacement_settings
+    if mutation == "missing_parent":
+        settings["prior_attempts"].remove(settings["replacement_of"])
+    elif mutation == "reuse":
+        settings["prior_attempts"].append(settings["campaign_id"] + "-b2-en-r03")
+    elif mutation == "unreviewed":
+        settings["prior_completeness_reviewed"] = False
+    elif mutation == "wrong_slot":
+        settings["language"] = "vi"
+    elif mutation == "wrong_campaign":
+        settings["campaign_id"] = "test-only"
+    elif mutation == "non_string":
+        settings["replacement_of"] = True
+    else:
+        settings["replacement_of"] = "../test-only-b2-en-r03"
+    with pytest.raises(ValueError):
+        m.prepare(settings, working=tmp_path)
+    assert not list(tmp_path.iterdir())
+
+
+def test_worker_retains_replacement_lineage_before_native_execution(
+    tmp_path, monkeypatch, replacement_settings
+):
+    # External runtime/inference are stubbed; the planner and retained files are real.
+    from nl2sparql.kaggle import bundle, runner
+
+    m = driver()
+    monkeypatch.setattr(m.sys, "version_info", (3, 11, 15))
+    monkeypatch.setattr(bundle, "preflight_data", lambda _: {"status": "data_ready"})
+    monkeypatch.setattr(runner, "preflight_runtime", lambda *_: {"status": "ready"})
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+
+    def native_boundary(root, config, output, **kwargs):
+        ledger = json.loads((evidence / "campaign-ledger.json").read_text())
+        assert ledger["replacement_of"] in ledger["attempted_run_ids"]
+        assert ledger["attempted_run_ids"][-1] == config["campaign_id"] + "-b2-en-r03"
+        assert kwargs == dict(real_inference=True, baseline="b2", replicate=3)
+
+    monkeypatch.setattr(runner, "run_campaign", native_boundary)
+    monkeypatch.setattr(m, "check_complete", lambda *_: {"status": "TEST-ONLY"})
+    m.worker(ROOT, Path("/missing-cache"), tmp_path / "runs", replacement_settings, evidence)
+    ledger = json.loads((evidence / "campaign-ledger.json").read_text())
+    assert ledger["parent_campaign_id"] == "test-only"
+    assert ledger["replacement_of"] == "test-only-b2-en-r03"
+    assert ledger["attempted_run_ids"][:-1] == replacement_settings["prior_attempts"]
+    assert len(set(ledger["attempted_run_ids"])) == 13
+    assert ledger["scientific_ready"] is False
+
+
+@pytest.fixture
 def native_shape(tmp_path):
     """Handwritten TEST-ONLY shapes, never genuine provenance or scientific evidence."""
     from nl2sparql.models.b12.evaluate import load_evaluation_cases
