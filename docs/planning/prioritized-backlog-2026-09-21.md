@@ -32,7 +32,7 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 10/12 native processes complete; B2 EN r03 setup ERROR; real repair validation passed, final B2 VI r03 RUNNING. B1 VI r03: 100 unsafe, P95 31.101s. B1 EN r03: 99 unsafe / 1 invalid, P95 45.922s. B2 VI r02: 12 ok / 88 prose, P95 72.962s. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 11/12 native processes complete; all original slots attempted; B2 EN r03 setup ERROR, replacement decision pending. B1 VI r03: 100 unsafe, P95 31.101s. B1 EN r03: 99 unsafe / 1 invalid, P95 45.922s. B2 VI r02: 12 ok / 88 prose, P95 72.962s. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
 | B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
@@ -530,3 +530,18 @@ Campaign10 complete native processes +1 failed setup +final VI running. If final
 VI completes:11 native successes/1 setup failure, not12 complete replicates.
 No EN retry/replacement, tuning, new BigQuery or scientific completion claim.
 [Final VI checkpoint](../research/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).
+
+### 2026-10-23 — final VI verified;11 native successes/1 setup failure
+
+B2 VI r03 private v1 COMPLETE:26 saved files/25 native manifest hashes/report
+digest pass.100 genuine VI cases/full paired source,7,208-row cache/500 train
+selections, T4×2 runtime/timing/cleanup and12 attempted IDs verified. N=100:
+12 extraction ok,88 prose; P95 68.346s; native57.77m, driver79.56m. Setup21.16m
+exceeded old20m but passed new27m. Quota remaining18.451761h. No new BigQuery,
+SQL repair/tuning/adaptation or execution accuracy. Scientific blockers remain.
+Independent registry:11 native successes, EN/VI kept separate, B1 EN3/VI3,
+B2 EN2/VI3; one failed EN setup. All12 original slots attempted; none unstarted.
+User requests next process, but previous scope excluded EN retry. Disabled new-ID
+B2 EN replacement proposal prepared, not implemented/submitted; explicit scope
+exception and bounded identity support/tests required before any new run.
+[Final VI](../research/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).

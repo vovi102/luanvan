@@ -475,3 +475,19 @@ actual native hardware/completeness pending. Ten complete native processes,
 one failed setup, final VI running. If it completes:eleven native successes,
 one setup failure; never label twelve complete compatible replicates. No EN
 retry/replacement/BigQuery/tuning. See [final checkpoint](../research/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).
+
+## Final original slot verified — 2026-10-23
+
+B2 VI r03 v1 COMPLETE, N=100.26 files/25 native manifest hashes/report digest,
+100 genuine VI cases/paired lineage,7,208-row cache/500 selections, T4×2 runtime,
+repaired timing/cleanup and12 attempted IDs verified.12 extraction ok/88 prose,
+P95 68.346s; native57.77m, driver79.56m; setup21.16m within27m, beyond old20m.
+Quota18.451761h. Scientific blockers retained; no execution accuracy/BigQuery/
+adaptation/repair. Independent11-run registry verifies native output hashes and
+report self-digests. Groups B1 EN3/VI3, B2 EN2/VI3; no pooling. Original EN setup
+failure retained; all12 original slots attempted, no unstarted process.
+Next possible work is a separately approved, distinctly identified full B2 EN
+replacement with bounded operational identity support/tests; current fixed-ID
+planner does not implement it. Disabled proposal only, no new submission, no
+failed ID reuse, fabricated receipts or implicit exception to prior no-EN-retry
+scope. See [final result and proposal](../research/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).

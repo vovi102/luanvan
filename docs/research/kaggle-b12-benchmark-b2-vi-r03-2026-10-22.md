@@ -8,10 +8,13 @@ r03, N=100, under repaired setup27m/native90m/session120m caps.
 
 Private notebook: https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261022-b2-vi-r03
 
-**Version 1 submitted at 22:37:51 Asia/Saigon; RUNNING at 22:38:09.**
+**Version 1 COMPLETE; N=100 independently verified on 2026-10-23.**
+Submitted at22:37:51 Asia/Saigon on2026-10-22; native inference finished
+at00:08:40 on2026-10-23. Platform COMPLETE checked at00:14:15 that day;
+exact platform completion time not observed.
 Remote cells/private GPU metadata match, requested NvidiaTeslaT4 and accepted
-dataset/cache sources verified. Actual GPU/runtime/native completeness remain
-unverified until saved evidence. This is a single submission, no EN retry.
+dataset/cache sources verified. Actual GPU/runtime/native completeness now pass the saved-evidence checks
+below. This is a single submission, no EN retry.
 
 Campaign `b12-envi-20261018-c01`, session `s12-b2-vi-r03`, run
 `b12-envi-20261018-c01-b2-vi-r03`. Carry eleven IDs conservatively: all four
@@ -72,3 +75,63 @@ execution accuracy claimed. T5.4 and separate BigQuery remain pending.
 
 [Machine checkpoint](../evidence/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.json)
 and [artifact manifest](../evidence/kaggle-b12-benchmark-b2-vi-r03-2026-10-22/artifacts-manifest.json).
+
+## Verified final VI result — 2026-10-23
+
+All26 saved campaign files retained (12,250,202 bytes), no omissions/model
+payload downloads. All25 native manifest entries/report compact canonical JSON
+self-digest pass. Verified100 genuine VI completions, ordered IDs/questions/full
+paired lineage and reused English evidence, trusted reviewed/live source
+cases, accepted7,208×384 train-only cache and all500 selected training examples,
+unchanged model/encoder/seed/settings, actual T4×2/Python3.11.15/torch2.5.1+cu124/
+CUDA12.4, input/cache/data/runtime gates, native exit0 and scratch cleanup.
+No additional language filter or family-diversity constraint imposed.
+
+Timing has all10 ordered start/finish events, completed within repaired caps.
+Setup finished at1,269.842s (21.16m), including1,013.519s mounted-cache stage
+and248.557s locked-install stage. This successful setup exceeded old20m while
+fitting new27m, demonstrating the operational headroom in this real session.
+It does not prove transient slowness cannot recur. Native worker stage
+3,503.551s, within91m watchdog; driver elapsed4,773.395s, within118m usable
+session budget before cleanup reserve.
+
+| Observation | Value |
+|---|---:|
+| VI denominator / genuine generations |100 /100 |
+| Extraction ok |12 |
+| Prose |88 |
+| Generation P50 |28.525s |
+| Generation P95 |68.346s |
+| Native inference wall |3,466.264s (57.77m) |
+| Driver wall including setup/checks |4,773.395s (79.56m) |
+
+These are extraction/runtime observations, not SQL execution accuracy. Native
+scientific_ready remains false with original latency_gate_failed,
+live_evidence_missing and reviewed_test_set_missing. Source authorities pass;
+original CLI25/CLI17 aggregate flags stay conservative as audited. No flag/gate,
+SQL/report, prompts, model/retrieval/research semantics changed; no repair,
+partial-run merge, new BigQuery, training or canonical adaptation occurred.
+
+Quota on return18.451760556h, zero reserved; observed account delta1.331335278h.
+Account quota across the interval is not invoice cost or a general billing rule.
+The final native ledger contains all12 attempted IDs, including failed EN ID
+carried conservatively under explicit user exception. Independent registry audit
+finds11 successful native runs: B1 EN3/VI3, B2 EN2/VI3, each N=100 separately.
+Failed EN r03 never produced native output and is not 0/100 accuracy. All12
+original slots have been attempted; no original process remains unstarted.
+
+The user asked for the next process. Only missing successful replicate is B2 EN
+r03. Previous scope explicitly excluded EN retry/replacement; no new session
+was submitted during this check. A disabled, not-yet-implemented proposal for
+one full replacement with a distinct ID is prepared, preserving failed evidence
+and all scientific settings/caps. Existing planner accepts only fixed original
+IDs, so a bounded operational identity/provenance extension and offline tests
+would be required before deploying any replacement. Do not reuse the failed ID
+or fabricate new-campaign prior receipts. Explicit replacement scope decision
+remains pending; not12 complete compatible replicates or scientific completion.
+
+Fresh verification: actual native artifacts, lineage/retrieval/runtime/timing,
+all hashes, twelve-ID ledger and independent11-run registry/report digest audit.
+No local inference/pytest reran. Full outputs/verifier/result/download history
+retained in checkpoint evidence. See [campaign status](../evidence/kaggle-b12-campaign-status-2026-10-23.json)
+and [disabled replacement proposal](../evidence/kaggle-b12-en-r03-replacement-proposal-2026-10-23.json).

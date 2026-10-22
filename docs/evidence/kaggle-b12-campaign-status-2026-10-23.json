@@ -1,0 +1,352 @@
+{
+  "date": "2026-10-23",
+  "status": "all_original_slots_attempted_one_failed_setup",
+  "campaign_id": "b12-envi-20261018-c01",
+  "planned_slots": 12,
+  "native_successes": 11,
+  "setup_failures": 1,
+  "unstarted_original_slots": 0,
+  "native_replicates_per_baseline_language": {
+    "b1_en": 3,
+    "b1_vi": 3,
+    "b2_en": 2,
+    "b2_vi": 3
+  },
+  "rows": [
+    {
+      "run_id": "b12-envi-20261018-c01-b1-en-r02",
+      "baseline": "b1",
+      "language": "en",
+      "replicate": 2,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 0,
+      "status_counts": [
+        [
+          "invalid_sql",
+          1
+        ],
+        [
+          "unsafe_sql",
+          99
+        ]
+      ],
+      "p95_latency_ms": 48808.9909573,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b1-en-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-en-r02/run.json",
+      "source_run_sha256": "cf84d7faaaab8b46cd6343ba95e84431a93219d1c01c6eef1887a3d355abb075",
+      "source_report_sha256": "6b15575b7799cec7b6553b212c0501385ca02b4299e24b59f1cc46b704e11c22"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-en-r03",
+      "baseline": "b1",
+      "language": "en",
+      "replicate": 3,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 0,
+      "status_counts": [
+        [
+          "invalid_sql",
+          1
+        ],
+        [
+          "unsafe_sql",
+          99
+        ]
+      ],
+      "p95_latency_ms": 45922.082433799995,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b1-en-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-en-r03/run.json",
+      "source_run_sha256": "51f354b0202c350abf814db174e5632abb364cc1c2e0504d52f08ca1a1436709",
+      "source_report_sha256": "e5cffa1cbc195e42ec62872bc1702b1e4961a89f330d602ef17fdd7ae38872ac"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-vi-r01",
+      "baseline": "b1",
+      "language": "vi",
+      "replicate": 1,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 0,
+      "status_counts": [
+        [
+          "unsafe_sql",
+          100
+        ]
+      ],
+      "p95_latency_ms": 30376.3131633,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b1-vi-r01-2026-10-18/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r01/run.json",
+      "source_run_sha256": "c58b2d2e94fd5d3f6c193fefbd85d4da732b4f62671b0d9aa553702db2af6dad",
+      "source_report_sha256": "acb7cb08d60dad501609955df94f01fa3276d21b495877480a312e8e430c279b"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-vi-r02",
+      "baseline": "b1",
+      "language": "vi",
+      "replicate": 2,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 0,
+      "status_counts": [
+        [
+          "unsafe_sql",
+          100
+        ]
+      ],
+      "p95_latency_ms": 29531.849873049996,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b1-vi-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r02/run.json",
+      "source_run_sha256": "de827809ea85636015290af77fb0c2ab11f40d9893811bbe7a0519cdb9217066",
+      "source_report_sha256": "96c317c9236cb226605670ee6335e970f7f898312f1ea4d302304ba8394746aa"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-vi-r03",
+      "baseline": "b1",
+      "language": "vi",
+      "replicate": 3,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 0,
+      "status_counts": [
+        [
+          "unsafe_sql",
+          100
+        ]
+      ],
+      "p95_latency_ms": 31101.0051251,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b1-vi-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r03/run.json",
+      "source_run_sha256": "d3e46868c8dcc615031b214f796980e35cb8faf016b4e16ee71bf4b4cf52db60",
+      "source_report_sha256": "f5c98e17bb4b4502259d693841bb5b0bc9b407f6e12b7c626b6d881272de502a"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-en-r01",
+      "baseline": "b2",
+      "language": "en",
+      "replicate": 1,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 31,
+      "status_counts": [
+        [
+          "invalid_sql",
+          1
+        ],
+        [
+          "ok",
+          31
+        ],
+        [
+          "prose",
+          60
+        ],
+        [
+          "unsafe_sql",
+          8
+        ]
+      ],
+      "p95_latency_ms": 52987.02031875,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b2-en-r01-2026-10-19/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-en-r01/run.json",
+      "source_run_sha256": "1ab3bdbe7536117292faf28f3a4ba94528fe08ba2c9901b6aae9731665183ba8",
+      "source_report_sha256": "43ba9b5a29d754f44db17e182478392ba7409b26879843226ef631483dde088c"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-en-r02",
+      "baseline": "b2",
+      "language": "en",
+      "replicate": 2,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 31,
+      "status_counts": [
+        [
+          "invalid_sql",
+          1
+        ],
+        [
+          "ok",
+          31
+        ],
+        [
+          "prose",
+          60
+        ],
+        [
+          "unsafe_sql",
+          8
+        ]
+      ],
+      "p95_latency_ms": 51299.81586235,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b2-en-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-en-r02/run.json",
+      "source_run_sha256": "bea33057e16d3fd0719c4358b3cbabadd66e6da5f5b8679d1717ef183da27b06",
+      "source_report_sha256": "0a2e077ffcef2fa8568f785af11fea5f0bea9f2ec727aa45e1793c319f841664"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-vi-r01",
+      "baseline": "b2",
+      "language": "vi",
+      "replicate": 1,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 12,
+      "status_counts": [
+        [
+          "ok",
+          12
+        ],
+        [
+          "prose",
+          88
+        ]
+      ],
+      "p95_latency_ms": 73590.4863999,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b2-vi-r01-2026-10-19/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-vi-r01/run.json",
+      "source_run_sha256": "bc56bddebc2c26e47324a1a1835fb1370572d53e703c0a8b05d5f1be2797d43b",
+      "source_report_sha256": "408fb7b92de6f80ffc28df3cfda09bac9e3130712fdbf57ddb1d85f4c19a6051"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-vi-r02",
+      "baseline": "b2",
+      "language": "vi",
+      "replicate": 2,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 12,
+      "status_counts": [
+        [
+          "ok",
+          12
+        ],
+        [
+          "prose",
+          88
+        ]
+      ],
+      "p95_latency_ms": 72962.06713925,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b2-vi-r02-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-vi-r02/run.json",
+      "source_run_sha256": "0d57f9e502dd8a7d412b903e05b46f67f766eba34c68e73679ff2a49dd787216",
+      "source_report_sha256": "b4cb5f4296f942049e40bc020c3265aafef2b1c067577e15289aaae4b9dd08da"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-vi-r03",
+      "baseline": "b2",
+      "language": "vi",
+      "replicate": 3,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 12,
+      "status_counts": [
+        [
+          "ok",
+          12
+        ],
+        [
+          "prose",
+          88
+        ]
+      ],
+      "p95_latency_ms": 68346.06747625,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-b2-vi-r03-2026-10-22/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b2-vi-r03/run.json",
+      "source_run_sha256": "b1e6a7f715fd4e62554cf433c09828dfe72f72d2e1229dc270c56ff939d32d29",
+      "source_report_sha256": "cec7cdf01b7cfe8a1d43b1efa0f213e69aebc6899728a61c87efad687656c775"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-en-r01",
+      "baseline": "b1",
+      "language": "en",
+      "replicate": 1,
+      "N": 100,
+      "status": "native_complete_integrity_verified",
+      "extraction_ok": 0,
+      "status_counts": [
+        [
+          "invalid_sql",
+          1
+        ],
+        [
+          "unsafe_sql",
+          99
+        ]
+      ],
+      "p95_latency_ms": 49106.962887149995,
+      "native_scientific_ready": false,
+      "native_blockers": [
+        "latency_gate_failed",
+        "live_evidence_missing",
+        "reviewed_test_set_missing"
+      ],
+      "source_run_json": "docs/evidence/kaggle-b12-benchmark-first-run-2026-10-18/saved-v1/b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-en-r01/run.json",
+      "source_run_sha256": "0dbefa15cfa75759339786b20b113732b577d482a5fd33641439382db67e020f",
+      "source_report_sha256": "d16234cc8de8229f2ed55382aefe6efb93f81833dbd9645de0dfca4341c11cb2"
+    }
+  ],
+  "failed_setup": {
+    "planned_run_id": "b12-envi-20261018-c01-b2-en-r03",
+    "native_inference_started": false,
+    "cases_generated": 0,
+    "evidence": "docs/evidence/kaggle-b12-benchmark-b2-en-r03-2026-10-21.json"
+  },
+  "scientific_campaign_complete": false,
+  "native_execution_accuracy_evaluated": false,
+  "english_vietnamese_pooled": false,
+  "automatic_replacement_started": false,
+  "remaining_missing_successful_replicate": "B2 EN r03",
+  "replacement_requires_explicit_scope_exception_and_distinct_identity": true
+}

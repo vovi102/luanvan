@@ -1,0 +1,22 @@
+{
+  "status": "proposed_not_implemented_or_submitted",
+  "original_failed_run_id": "b12-envi-20261018-c01-b2-en-r03",
+  "proposed_new_run_id": "b12-envi-20261018-c01-b2-en-r03-replacement01",
+  "proposed_session_id": "s11-b2-en-r03-replacement01",
+  "baseline": "b2",
+  "language": "en",
+  "replicate_role": "separately_identified_full_replacement_for_missing_third_EN_replicate",
+  "N": 100,
+  "setup_cap_seconds": 1620,
+  "native_cap_seconds": 5400,
+  "session_cap_seconds": 7200,
+  "driver_base_commit": "78b6d26",
+  "research_semantics_changed": false,
+  "native_review_live_flags_changed": false,
+  "preserve_original_failure": true,
+  "splice_partial_outputs": false,
+  "all_execution_opt_ins": false,
+  "implementation_boundary": "Current driver/planner permits only twelve fixed original identities. A bounded operational identity/provenance extension and offline tests are required before this proposal can be deployed; it is not currently runnable.",
+  "required_decision": "Explicitly override prior no-EN-retry scope to prepare and execute one full replacement under a new identity, retaining all previous failure evidence; never reuse failed ID.",
+  "fresh_quota_required_before_any_launch": true
+}
