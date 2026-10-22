@@ -1,0 +1,19 @@
+{
+  "kind": "private_setup_cache_runtime_validation_only",
+  "kernel": "aohkvd/nl2sql-b12-setup-validation-20261022-v02",
+  "campaign_id": "b12-setup-20261022-v02",
+  "session_id": "validate-setup-v02",
+  "baseline": "b1",
+  "language": "en",
+  "replicate": 1,
+  "prior_attempted_run_ids": [],
+  "allow_real_inference": false,
+  "reserves_benchmark_id": false,
+  "native_generations_authorized": 0,
+  "repair_commit": "78b6d26",
+  "driver_sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de",
+  "notebook_sha256": "f13ebe47698edd8e9edb57d5d467fedc9fc309010f58452d0bcabd56e89729b3",
+  "setup_cap_seconds": 1620,
+  "session_cap_seconds": 7200,
+  "authorization": "User explicitly authorized real validation then continuing execution. One setup-only validation; if verified successful, launch only final B2 VI r03. Preserve failed EN r03; no EN replacement or retry."
+}
