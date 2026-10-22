@@ -1,0 +1,35 @@
+{
+  "status": "draft_only_waiting_for_verified_real_setup",
+  "kernel": "aohkvd/nl2sql-b12-benchmark-20261022-b2-vi-r03",
+  "campaign_id": "b12-envi-20261018-c01",
+  "session_id": "s12-b2-vi-r03",
+  "run_id": "b12-envi-20261018-c01-b2-vi-r03",
+  "baseline": "b2",
+  "language": "vi",
+  "replicate": 3,
+  "N": 100,
+  "prior_attempted_run_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03",
+    "b12-envi-20261018-c01-b2-en-r03"
+  ],
+  "setup_cap_seconds": 1620,
+  "process_cap_seconds": 5400,
+  "session_cap_seconds": 7200,
+  "driver_sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de",
+  "explicit_user_exception": "Continue final VI only after real setup validation; preserve failed EN slot and do not fabricate its completeness or retry EN.",
+  "submit_only_after": [
+    "real setup/cache/runtime validation artifact verification",
+    "fresh quota and cache/duplicate checks"
+  ],
+  "native_inference_started": false,
+  "expected_campaign_after_success": "11 complete native processes + 1 failed setup slot; not 12 complete compatible native replicates."
+}

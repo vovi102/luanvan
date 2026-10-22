@@ -7,6 +7,14 @@
     "bytes": 414,
     "sha256": "512f69e714c7ef9cdf3e5afcf487277ef33dddfd78f6f4bdaba9516c02af52a8"
   },
+  "final-session-draft.json": {
+    "bytes": 1431,
+    "sha256": "c7f0032c70e0bdf4ab9e6ad3cb9c438c35e4dd4c8c65405a08b728c2a96ae30c"
+  },
+  "last-known-status-before-monitoring-stop.json": {
+    "bytes": 414,
+    "sha256": "da330c700b4a72842fc3310129871676d9995e924991877079449eab9efcae3f"
+  },
   "quota-before.json": {
     "bytes": 1192,
     "sha256": "9a4917fec6902df19dc1983ff381905b6d272d7e640cf2a8acd58654c575f744"
@@ -19,6 +27,10 @@
     "bytes": 317,
     "sha256": "6ce5d2f193f46c619f444cc3e490e3e369358a9fbbb37a56a97132a76fb9cf99"
   },
+  "status-history-before-monitoring-stop.jsonl.gz": {
+    "bytes": 437,
+    "sha256": "06ee48d0d9d8237ff025f8a3bf0b14e3d048dba979781049d5a7e57bb7fffad7"
+  },
   "submission-plan.json": {
     "bytes": 890,
     "sha256": "4194d849dc8847b92090b00701bca27502e98064afacd49cc8a257b4a7dbe86e"
@@ -30,5 +42,9 @@
   "submitted-v1.ipynb": {
     "bytes": 28361,
     "sha256": "f13ebe47698edd8e9edb57d5d467fedc9fc309010f58452d0bcabd56e89729b3"
+  },
+  "validation-verification-source.py": {
+    "bytes": 4974,
+    "sha256": "89d6b1bf42bd563be8759fba23dedbc57465015ab80254d4e227dc84519b7d0b"
   }
 }

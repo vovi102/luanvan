@@ -7,7 +7,7 @@
   "version": 1,
   "private": true,
   "submitted_at_utc": "2026-10-22T13:58:15.724126+00:00",
-  "last_checked_at_utc": "2026-10-22T14:00:26.168387+00:00",
+  "last_checked_at_utc": "2026-10-22T14:06:09.925862+00:00",
   "repair_commit": "78b6d26",
   "driver_sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de",
   "inference_enabled": false,
@@ -44,7 +44,7 @@
     "matching_kernel_exists": false
   },
   "last_status": {
-    "checked_at_utc": "2026-10-22T14:00:26.168387+00:00",
+    "checked_at_utc": "2026-10-22T14:06:09.925862+00:00",
     "ref": "aohkvd/nl2sql-b12-setup-validation-20261022-v02",
     "version": 1,
     "status": "RUNNING",
@@ -54,12 +54,12 @@
     "kernel_sources": [
       "aohkvd/nl2sql-environment-cache"
     ],
-    "gpu_used_hours": 10.019975142222222,
+    "gpu_used_hours": 10.115396259722221,
     "gpu_reserved_hours": 0.0,
-    "gpu_remaining_hours": 19.980024857777778
+    "gpu_remaining_hours": 19.884603740277775
   },
   "real_validation_verified": false,
-  "next_action": "Wait for existing diagnostic v1 terminal status; export/verify full outputs and real 24-file cache/data/runtime/timing checks. Only after successful verification and fresh quota check, user authorizes final B2 VI r03 with the failed EN attempt retained and no EN retry.",
+  "next_action": "On user return inspect existing private diagnostic v1, export after terminal status, run retained offline verifier. Only after success and fresh quota/cache/duplicate checks, prior user authorization permits final B2 VI r03 with failed EN setup retained and no EN retry. Do not resubmit validation to resume monitoring.",
   "authorization": {
     "user_request": "Oke bạn có thể kiểm chứng rồi tiếp tục chạy",
     "one_setup_only_session": true,
@@ -71,5 +71,11 @@
   "campaign_setup_failures": 1,
   "scientific_ready": false,
   "bigquery_jobs": 0,
-  "artifact_manifest": "kaggle-b12-setup-validation-2026-10-22/artifacts-manifest.json"
+  "artifact_manifest": "kaggle-b12-setup-validation-2026-10-22/artifacts-manifest.json",
+  "monitoring_status": "stopped_at_user_request",
+  "monitoring_stop_reason": "User will report completion and ask for a check; leave existing validation running. No cancellation and no final VI launch.",
+  "last_known_worker_status": "RUNNING",
+  "last_known_gpu_remaining_hours": 19.884603740277775,
+  "kaggle_cancellation_requested": false,
+  "final_vi_submitted": false
 }

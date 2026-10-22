@@ -49,3 +49,25 @@ setup slot, not twelve successful compatible replicates.
 
 [Machine checkpoint](../evidence/kaggle-b12-setup-validation-2026-10-22.json)
 and [artifact manifest](../evidence/kaggle-b12-setup-validation-2026-10-22/artifacts-manifest.json).
+
+## Monitoring stopped at user request
+
+User asked to stop and will report completion before the next check. The poll
+already in flight returned RUNNING at **21:06:09 Asia/Saigon** (14:06:09 UTC),
+with 19.88460h account GPU quota remaining. No additional remote check was made
+after the request; this is last-known state, not a current completion claim.
+No cancellation was requested. The validation continues under its existing
+caps; final B2 VI r03 has not been submitted.
+
+On return use the existing local `poll.py --status-only` with installed Kaggle
+SDK Python. After terminal status run `export_saved.py`; then run
+`verify_saved.py` with project Python from this worktree. Verification source
+and disabled/non-submitted final-session draft are retained in evidence as
+`validation-verification-source.py` and `final-session-draft.json`. The actual
+helper expects its original local directory layout under `.local/`.
+
+If verified setup succeeds, the existing explicit authorization permits next
+single B2 VI r03 after fresh launch preflight, without asking again. Preserve
+failed B2 EN r03 and carry all eleven IDs conservatively, with the explicit
+failure-continuation exception recorded. Do not resubmit validation or retry EN
+to resume work. If validation fails, retain all evidence and stop for diagnosis.
