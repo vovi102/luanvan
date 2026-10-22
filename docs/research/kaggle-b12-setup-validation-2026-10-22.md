@@ -50,6 +50,44 @@ setup slot, not twelve successful compatible replicates.
 [Machine checkpoint](../evidence/kaggle-b12-setup-validation-2026-10-22.json)
 and [artifact manifest](../evidence/kaggle-b12-setup-validation-2026-10-22/artifacts-manifest.json).
 
+## Verified real validation result
+
+On user return, existing private v1 was COMPLETE at 22:35:11 Asia/Saigon.
+All 15 saved campaign files retained (68,906 bytes), no omissions/model payload
+downloads; all 14 native manifest entries pass size/SHA-256. Source/hash matches
+the repaired driver. All 24 pinned model/encoder cache files verified, model
+not loaded, exact Python 3.11.15 worker guard passed, contract package versions
+and data preflight ready (7,208 train, 100 EN, 100 VI). Original exact accepted
+archive/cache hashes and settings match. Scratch removed.
+
+Stage timing has all ten ordered start/finish records with completed outcomes
+and within-cap allowances. Driver wall 813.633s (13.56m); setup completed at
+795.967s (13.27m). Locked environment stage 80.989s, mounted-cache verification
+702.389s (11.71m), preflight-only worker 17.665s. This successful session itself
+fit even the old 20m budget because installation was faster. It validates the
+new driver/real exact-byte check and timing retention, not proof that the old
+transient slowdown is cured or can never recur. Original failed-stage cache
+allowance was only 615.233s; timings from distinct sessions are not interchangeable.
+
+No `runs/`, native predictions/report/completeness or campaign ledger was
+created. Zero generations; no benchmark attempt ID reserved. This is a setup
+validation, not another benchmark replicate. Runtime gate deliberately reports
+hardware_checked=false; requested T4/private metadata does not prove actual
+GPU hardware or model loading. Those checks remain part of genuine inference.
+
+Quota after validation: 19.783096944h remaining, zero reserved; exact observed
+account delta is recorded in the machine checkpoint, not inferred as billing.
+The user explicitly renewed next-process execution after the completion notice.
+Proceed only after fresh quota/cache/duplicate checks to final B2 VI r03,
+carrying eleven IDs and retaining EN setup failure under the already authorized
+continuation exception. No EN retry/replacement authorized. Scientific campaign
+still has ten complete native processes and one failed setup before final VI.
+
+Verification source/result, full outputs/download record, timing history and
+retained manifest are linked above. Fresh checks are actual saved-file hashes,
+real cache/runtime/data/timing/cleanup and absence of inference; no pytest suite
+or inference was rerun locally. Earlier monitoring-stop section is historical.
+
 ## Monitoring stopped at user request
 
 User asked to stop and will report completion before the next check. The poll

@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "date": "2026-10-22",
-  "status": "setup_only_validation_submitted",
-  "worker_status": "RUNNING",
+  "status": "real_setup_cache_runtime_validation_verified",
+  "worker_status": "COMPLETE",
   "kernel": "aohkvd/nl2sql-b12-setup-validation-20261022-v02",
   "version": 1,
   "private": true,
   "submitted_at_utc": "2026-10-22T13:58:15.724126+00:00",
-  "last_checked_at_utc": "2026-10-22T14:06:09.925862+00:00",
+  "last_checked_at_utc": "2026-10-22T15:35:11.033788+00:00",
   "repair_commit": "78b6d26",
   "driver_sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de",
   "inference_enabled": false,
@@ -44,22 +44,22 @@
     "matching_kernel_exists": false
   },
   "last_status": {
-    "checked_at_utc": "2026-10-22T14:06:09.925862+00:00",
+    "checked_at_utc": "2026-10-22T15:35:11.033788+00:00",
     "ref": "aohkvd/nl2sql-b12-setup-validation-20261022-v02",
     "version": 1,
-    "status": "RUNNING",
+    "status": "COMPLETE",
     "private": true,
     "enable_gpu": true,
     "machine_shape": "NvidiaTeslaT4",
     "kernel_sources": [
       "aohkvd/nl2sql-environment-cache"
     ],
-    "gpu_used_hours": 10.115396259722221,
+    "gpu_used_hours": 10.216904166666668,
     "gpu_reserved_hours": 0.0,
-    "gpu_remaining_hours": 19.884603740277775
+    "gpu_remaining_hours": 19.783095833333334
   },
-  "real_validation_verified": false,
-  "next_action": "On user return inspect existing private diagnostic v1, export after terminal status, run retained offline verifier. Only after success and fresh quota/cache/duplicate checks, prior user authorization permits final B2 VI r03 with failed EN setup retained and no EN retry. Do not resubmit validation to resume monitoring.",
+  "real_validation_verified": true,
+  "next_action": "Real validation passes with no inference/benchmark reservation. User explicitly authorizes final B2 VI r03 after fresh quota/cache/duplicate checks, preserving failed EN setup and carrying eleven IDs under recorded continuation exception. No EN retry.",
   "authorization": {
     "user_request": "Oke bạn có thể kiểm chứng rồi tiếp tục chạy",
     "one_setup_only_session": true,
@@ -72,10 +72,82 @@
   "scientific_ready": false,
   "bigquery_jobs": 0,
   "artifact_manifest": "kaggle-b12-setup-validation-2026-10-22/artifacts-manifest.json",
-  "monitoring_status": "stopped_at_user_request",
+  "monitoring_status": "resumed_and_validation_complete",
   "monitoring_stop_reason": "User will report completion and ask for a check; leave existing validation running. No cancellation and no final VI launch.",
-  "last_known_worker_status": "RUNNING",
-  "last_known_gpu_remaining_hours": 19.884603740277775,
+  "last_known_worker_status": "COMPLETE",
+  "last_known_gpu_remaining_hours": 19.783095833333334,
   "kaggle_cancellation_requested": false,
-  "final_vi_submitted": false
+  "final_vi_submitted": false,
+  "result": {
+    "status": "real_setup_cache_runtime_validation_integrity_verified",
+    "campaign_id": "b12-setup-20261022-v02",
+    "native_generations": 0,
+    "benchmark_attempt_id_reserved": false,
+    "cache_bytes_verified_files": 24,
+    "model_loaded": false,
+    "native_inference_enabled": false,
+    "hardware_checked": false,
+    "python_31115_worker_guard_passed": true,
+    "runtime_packages_ready": true,
+    "data_preflight_ready": true,
+    "new_driver_sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de",
+    "setup_cap_seconds": 1620,
+    "session_cap_seconds": 7200,
+    "driver_wall_seconds": 813.632718202,
+    "setup_completed_seconds": 795.967123073,
+    "stages": [
+      {
+        "stage": "install_bootstrap",
+        "elapsed_seconds": 3.1222454060000473,
+        "driver_elapsed_seconds_at_finish": 11.170310239000173,
+        "timeout_seconds": 1611.9519351669999
+      },
+      {
+        "stage": "create_python311",
+        "elapsed_seconds": 1.4172078060000786,
+        "driver_elapsed_seconds_at_finish": 12.587786642000083,
+        "timeout_seconds": 1608.829421164
+      },
+      {
+        "stage": "install_locked_environment",
+        "elapsed_seconds": 80.9893823320001,
+        "driver_elapsed_seconds_at_finish": 93.57739068800015,
+        "timeout_seconds": 1607.411991644
+      },
+      {
+        "stage": "verify_mounted_cache",
+        "elapsed_seconds": 702.3892384569999,
+        "driver_elapsed_seconds_at_finish": 795.967123073,
+        "timeout_seconds": 1526.4221153839999
+      },
+      {
+        "stage": "native_cli25",
+        "elapsed_seconds": 17.66485437900019,
+        "driver_elapsed_seconds_at_finish": 813.6325409690003,
+        "timeout_seconds": 5460
+      }
+    ],
+    "manifest_entries_verified": 14,
+    "scratch_removed": true,
+    "scientific_ready": false,
+    "bigquery_jobs": 0,
+    "original_en_r03_failure_preserved": true,
+    "limitation": "This real session passed; it does not prove the original transient slowdown cannot recur or verify GPU hardware/model inference."
+  },
+  "quota_after": {
+    "checked_at_utc": "2026-10-22T15:35:11.033788+00:00",
+    "ref": "aohkvd/nl2sql-b12-setup-validation-20261022-v02",
+    "version": 1,
+    "status": "COMPLETE",
+    "private": true,
+    "enable_gpu": true,
+    "machine_shape": "NvidiaTeslaT4",
+    "kernel_sources": [
+      "aohkvd/nl2sql-environment-cache"
+    ],
+    "gpu_used_hours": 10.216904166666668,
+    "gpu_reserved_hours": 0.0,
+    "gpu_remaining_hours": 19.783095833333334
+  },
+  "observed_account_quota_delta_hours": 0.23274750000000033
 }

@@ -1,0 +1,24 @@
+{
+  "cleanup_reserve_seconds": 120,
+  "process_cap_seconds": 5400,
+  "scientific_ready": false,
+  "scratch_removed": true,
+  "session_cap_seconds": 7200,
+  "settings": {
+    "allow_env_install": true,
+    "allow_preparation": true,
+    "allow_real_inference": false,
+    "baseline": "b1",
+    "campaign_id": "b12-setup-20261022-v02",
+    "language": "en",
+    "prior_attempts": [],
+    "prior_completeness_reviewed": false,
+    "replicate": 1,
+    "session_id": "validate-setup-v02"
+  },
+  "setup_cap_seconds": 1620,
+  "stage": "native_cli25",
+  "status": "prepared_without_inference",
+  "wall_seconds": 813.632718202,
+  "worker_max_seconds": 5460
+}

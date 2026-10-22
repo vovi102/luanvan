@@ -1,0 +1,68 @@
+{
+  "worker_status": "COMPLETE",
+  "downloaded": [
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/artifacts-manifest.json",
+      "bytes": 2225
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/benchmark-driver.py",
+      "bytes": 21322
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/campaign-plan.json",
+      "bytes": 29805
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/create_python311.log",
+      "bytes": 206
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/data-preflight.json",
+      "bytes": 518
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/driver-summary.json",
+      "bytes": 650
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/input-provenance.json",
+      "bytes": 832
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/install_bootstrap.log",
+      "bytes": 450
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/install_locked_environment.log",
+      "bytes": 7864
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/run-config.json",
+      "bytes": 564
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/runtime-preflight.json",
+      "bytes": 1003
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/settings.json",
+      "bytes": 297
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/stage-timings.jsonl",
+      "bytes": 2402
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/verify_mounted_cache.log",
+      "bytes": 741
+    },
+    {
+      "name": "b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/worker.log",
+      "bytes": 27
+    }
+  ],
+  "omitted": [],
+  "signed_urls_persisted": false,
+  "model_payloads_downloaded": false
+}
