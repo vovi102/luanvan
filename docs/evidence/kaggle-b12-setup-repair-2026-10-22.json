@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "status": "offline_setup_repair_implemented_and_verified",
+  "base_commit": "9761cf1",
+  "user_approved_design": "20m to 27m setup plus per-stage timing; native90m/session120m preserved; offline only",
+  "old_driver_sha256": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7",
+  "new_driver_sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de",
+  "setup_cap_seconds": 1620,
+  "worker_watchdog_max_seconds": 5460,
+  "native_cap_seconds": 5400,
+  "cleanup_reserve_seconds": 120,
+  "session_cap_seconds": 7200,
+  "tdd": {
+    "before_implementation": "3 targeted tests failed as expected: old setup watchdog exhausted and timing evidence missing",
+    "after_implementation": "3 targeted tests passed; focused suite 19 passed in 19.90s",
+    "simulation_only": true
+  },
+  "project_suite": {
+    "command": "PYTHONPATH=src /home/khoavd/WORKSPACE/LuanVan/.venv/bin/python -m pytest -q",
+    "exit_code": 0,
+    "passed": 1593,
+    "warnings": 342,
+    "seconds": 788.72,
+    "log": "kaggle-b12-setup-repair-2026-10-22/full-suite.log"
+  },
+  "style_checks": [
+    {
+      "argv": [
+        "/home/khoavd/WORKSPACE/LuanVan/.venv/bin/ruff",
+        "check",
+        "scripts/27_kaggle_b12_benchmark.py",
+        "tests/unit/test_kaggle_benchmark_preparation.py"
+      ],
+      "exit_code": 0,
+      "output": "All checks passed!\n"
+    },
+    {
+      "argv": [
+        "/home/khoavd/WORKSPACE/LuanVan/.venv/bin/ruff",
+        "format",
+        "--check",
+        "scripts/27_kaggle_b12_benchmark.py",
+        "tests/unit/test_kaggle_benchmark_preparation.py"
+      ],
+      "exit_code": 0,
+      "output": "2 files already formatted\n"
+    }
+  ],
+  "notebook_checks": {
+    "nbformat_valid": true,
+    "code_cells_compile": true,
+    "embedded_source_and_hash_match": true,
+    "all_three_opt_ins_false": true,
+    "cell_outputs_empty": true
+  },
+  "boundary_probes": {
+    "test_only_simulated_clocks": true,
+    "actual_small_cpu_subprocess_no_inference": true,
+    "worker_max_preserved_with_spare_session_budget": true,
+    "expired_budget_blocks_spawn_and_retains_timeout_event": true
+  },
+  "research_semantics_changed": false,
+  "accepted_setup_kit_unchanged": true,
+  "accepted_bundle_unchanged": true,
+  "notebook14_unchanged": true,
+  "remote_sessions_started": 0,
+  "new_bigquery_jobs": 0,
+  "real_mounted_cache_validation": "not_performed",
+  "original_underlying_cache_delay_cause": "undetermined",
+  "original_failure_preserved": true,
+  "campaign_native_processes_complete": 10,
+  "campaign_setup_failures": 1,
+  "campaign_unstarted_slots": 1,
+  "next_action": "Review offline repair, then separately authorize a fresh private setup-only validation with inference disabled before resuming campaign. No EN replacement or final VI continuation automatically authorized.",
+  "accepted_release_archive_sha256_verified": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+  "real_model_inference_calls": 0
+}

@@ -1,0 +1,2 @@
+{"budget": "session", "budget_remaining_seconds": 5610.0, "driver_elapsed_seconds": 1470.0, "elapsed_seconds": 0.0, "event": "started", "stage": "TEST-ONLY-worker", "timeout_seconds": 5460}
+{"budget": "session", "budget_remaining_seconds": 5609.0, "driver_elapsed_seconds": 1471.0, "elapsed_seconds": 1.0, "event": "finished", "outcome": "completed", "stage": "TEST-ONLY-worker", "timeout_seconds": 5460}

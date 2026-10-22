@@ -11,7 +11,7 @@
   "model_revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2",
   "encoder_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
   "process_cap_seconds": 5400,
-  "setup_and_cache_cap_seconds": 1200,
+  "setup_and_cache_cap_seconds": 1620,
   "session_cap_seconds": 7200,
   "cleanup_reserve_seconds": 120,
   "planned_session_hours_cap": 24,
@@ -118,5 +118,6 @@
       "run_suffix": "b2-vi-r03",
       "cases": 100
     }
-  ]
+  ],
+  "worker_watchdog_cap_seconds": 5460
 }

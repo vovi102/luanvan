@@ -1,0 +1,2 @@
+{"budget": "session", "budget_remaining_seconds": 0.0, "driver_elapsed_seconds": 7081.0, "elapsed_seconds": 0.0, "event": "started", "stage": "TEST-ONLY-expired-budget", "timeout_seconds": 0.0}
+{"budget": "session", "budget_remaining_seconds": 0.0, "driver_elapsed_seconds": 7081.0, "elapsed_seconds": 0.0, "error_type": "TimeoutError", "event": "finished", "outcome": "timed_out", "stage": "TEST-ONLY-expired-budget", "timeout_seconds": 0.0}

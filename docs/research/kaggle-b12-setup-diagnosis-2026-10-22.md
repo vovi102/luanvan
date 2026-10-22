@@ -71,3 +71,13 @@ output is a diagnosis and concrete repair recommendation, not a fix claim.
 contains all eleven session observations and hashes of supporting summary/log
 sources. [Original failure audit](kaggle-b12-benchmark-b2-en-r03-2026-10-21.md)
 and native artifacts remain unchanged.
+
+## Approved offline implementation
+
+The user approved the short bounded design with “oke”. The 27m setup/timing
+repair is implemented and verified offline: 1,593 tests pass, 342 warnings,
+notebook/lint/hash-preservation checks pass. No new remote session or real cache
+validation; final VI remains unstarted and original EN setup failure retained.
+See [repair handoff](kaggle-b12-setup-repair-2026-10-22.md) for the new source/hash,
+exact budget, evidence and remaining real validation boundary. The earlier
+machine diagnosis remains a historical proposal, not an execution authorization.

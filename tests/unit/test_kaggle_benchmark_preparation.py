@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -19,6 +20,142 @@ def driver():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+@pytest.fixture
+def simulated_setup(tmp_path, monkeypatch):
+    """TEST-ONLY subprocess timings; never install packages or create native evidence."""
+    m = driver()
+    mount, working = tmp_path / "mount", tmp_path / "working"
+    mount.mkdir()
+    working.mkdir()
+    (mount / "keep").write_text("immutable")
+    inventory = mount / "inventory.json"
+    inventory.write_text("{}")
+    clock = [0.0]
+    monkeypatch.setattr(m, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+    # Transport/installation are external to this timing test; real integrity
+    # and subprocess-group cleanup are covered by separate operational tests.
+    monkeypatch.setattr(m, "discover_inputs", lambda _: (mount, mount, inventory, mount))
+    monkeypatch.setattr(m, "extract_inputs", lambda _, target: target.mkdir())
+    monkeypatch.setattr(m.os, "killpg", lambda *_: None)
+
+    def execute(durations, exit_codes=None):
+        pending = iter(zip(durations, exit_codes or [0] * len(durations), strict=True))
+
+        class Process:
+            pid = 99999999
+
+            def __init__(self, argv, *, env, stdout, stderr, start_new_session):
+                self.argv = argv
+                self.duration, self.code = next(pending)
+                self.stdout = stdout
+                self.returncode = None
+
+            def wait(self, timeout=None):
+                if timeout is None:
+                    self.returncode = -9
+                    return self.returncode
+                if self.duration > timeout:
+                    clock[0] += timeout
+                    self.stdout.write("TEST-ONLY subprocess output before timeout\n")
+                    self.stdout.flush()
+                    raise subprocess.TimeoutExpired(self.argv, timeout)
+                clock[0] += self.duration
+                self.stdout.write("TEST-ONLY subprocess completed\n")
+                self.returncode = self.code
+                return self.returncode
+
+        monkeypatch.setattr(m.subprocess, "Popen", Process)
+        settings = dict(
+            allow_preparation=True,
+            allow_env_install=True,
+            allow_real_inference=False,
+            campaign_id="test-only",
+            session_id="timing-test",
+            baseline="b1",
+            language="en",
+            replicate=1,
+            prior_attempts=[],
+        )
+        m.prepare(settings, mount=mount, working=working)
+
+    evidence = working / "b12-benchmark-test-only/session-timing-test"
+    return execute, evidence, mount, working
+
+
+def test_slow_setup_uses_headroom_without_exceeding_session_or_worker_caps(simulated_setup):
+    # Reverting the setup allowance would time out before cache verification
+    # completes. Removing worker/session clamping would violate the cleanup reserve.
+    execute, evidence, _, _ = simulated_setup
+    execute([60, 30, 480, 1050, 5460])
+    summary = json.loads((evidence / "driver-summary.json").read_text())
+    assert summary["status"] == "prepared_without_inference"
+    assert summary["wall_seconds"] == 7080
+    assert summary["process_cap_seconds"] == 5400
+    assert summary["session_cap_seconds"] == 7200
+    assert summary["setup_cap_seconds"] == 1620
+    assert summary["cleanup_reserve_seconds"] == 120
+    events = [
+        json.loads(line) for line in (evidence / "stage-timings.jsonl").read_text().splitlines()
+    ]
+    starts = [e for e in events if e["event"] == "started"]
+    assert [e["timeout_seconds"] for e in starts] == [1620, 1560, 1530, 1050, 5460]
+    assert starts[-1]["stage"] == "native_cli25"
+    assert events[-1]["outcome"] == "completed"
+    assert events[-1]["budget_remaining_seconds"] == 0
+    assert not (evidence.parent / "runs").exists()
+
+
+def test_setup_timeout_retains_stage_timing_output_and_cleanup(simulated_setup):
+    # Losing the finally record would hide the stage duration that caused the
+    # real incident; launching worker after this timeout would violate fail-stop.
+    execute, evidence, mount, working = simulated_setup
+    with pytest.raises(subprocess.TimeoutExpired):
+        execute([30, 30, 480, 2000])
+    events = [
+        json.loads(line) for line in (evidence / "stage-timings.jsonl").read_text().splitlines()
+    ]
+    assert events[-1] == dict(
+        event="finished",
+        stage="verify_mounted_cache",
+        budget="setup",
+        driver_elapsed_seconds=1620,
+        elapsed_seconds=1080,
+        timeout_seconds=1080,
+        budget_remaining_seconds=0,
+        outcome="timed_out",
+        error_type="TimeoutExpired",
+    )
+    assert "before timeout" in (evidence / "verify_mounted_cache.log").read_text()
+    summary = json.loads((evidence / "driver-summary.json").read_text())
+    assert summary["status"] == "failed" and summary["scratch_removed"] is True
+    assert not (evidence / "worker.log").exists()
+    assert not list(working.glob("b12-scratch-*"))
+    assert (mount / "keep").read_text() == "immutable"
+    manifest = json.loads((evidence / "artifacts-manifest.json").read_text())
+    assert "session-timing-test/stage-timings.jsonl" in manifest
+
+
+def test_setup_error_retains_finished_event_without_logging_environment(
+    simulated_setup, monkeypatch
+):
+    # Missing error telemetry or serializing command/env values would either
+    # obscure failed installation or leak credentials into retained timing data.
+    monkeypatch.setenv("PATH", "TEST-ONLY-PRIVATE-PATH")
+    monkeypatch.setenv("HF_TOKEN", "TEST-ONLY-SECRET")
+    execute, evidence, _, _ = simulated_setup
+    with pytest.raises(RuntimeError, match="exit=7"):
+        execute([10, 20, 30], [0, 0, 7])
+    text = (evidence / "stage-timings.jsonl").read_text()
+    events = [json.loads(line) for line in text.splitlines()]
+    assert events[-1]["stage"] == "install_locked_environment"
+    assert events[-1]["outcome"] == "failed"
+    assert events[-1]["error_type"] == "RuntimeError"
+    assert events[-1]["elapsed_seconds"] == 30
+    assert events[-1]["budget_remaining_seconds"] == 1560
+    assert "TEST-ONLY-SECRET" not in text and "TEST-ONLY-PRIVATE-PATH" not in text
+    assert not (evidence / "verify_mounted_cache.log").exists()
 
 
 def test_default_notebook_has_no_effects(tmp_path, monkeypatch):

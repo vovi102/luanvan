@@ -108,14 +108,25 @@ started automatically. Complete artifacts may still fail latency/scientific gate
 
 Proposed one process per session, serial sessions on the same T4 ×2 hardware
 class as smoke. Process cap: **5,400s (90m)** including native model/encoder setup
-and all 100 generations. Setup plus cache verification: **1,200s (20m)** from
+and all 100 generations. Setup plus cache verification: **1,620s (27m)** from
 start of driver. Driver session cap: **7,200s (120m)**, including 120s reserved
 for cleanup/evidence; worker watchdog is min(5,460s, remaining session budget).
 Preflight inside the worker uses some watchdog time. This is an operational
 wall-time policy, not an accuracy/latency threshold or guaranteed completion time.
 
-At the caps: 12 × 1.5h native = 18h; up to 4h setup, with remaining space inside
-**24 GPU-session-hours** for checks/cleanup. Propose **3h additional contingency**,
+Operational revision approved on 2026-10-22 after the B2 EN r03 setup timeout:
+setup was originally 1,200s (20m), as retained in all earlier session sources.
+The new allowance uses existing session headroom: 1,620s setup + 5,460s maximum
+worker + 120s cleanup = 7,200s. It does not raise the native/session caps or
+relax any hash/research gate. Per-stage start/finish/elapsed/remaining-budget
+and completion/error/timeout outcomes are retained in `stage-timings.jsonl`,
+including failed stages, without command or environment dumps. Keep old/new
+driver hashes with their sessions; this revision has only been tested offline.
+It does not authorize any new GPU session, retry/replacement or failed-process
+continuation exception. Real mounted-cache completion remains unverified.
+
+At the revised caps: 12 × 1.5h native = 18h; up to 5.4h setup, with 0.6h left
+inside **24 GPU-session-hours** for worker overhead/cleanup. Propose **3h additional contingency**,
 for **27 GPU-session-hours total**, requiring explicit approval. With two
 provisioned T4s, the corresponding physical allocation could be as high as 54
 GPU-device-hours including reserve. Verify Kaggle's actual quota charging unit
@@ -188,6 +199,10 @@ target. Kaggle hard termination/disk failure can prevent final summaries/manifes
 this is why logs stream and each process has its own session. Native CLI17
 publishes predictions atomically at process completion: a killed process may
 retain logs but no per-case prediction file. Do not fabricate partial artifacts.
+The revised driver also records the setup/worker/cleanup caps explicitly in
+its summary and includes `stage-timings.jsonl` in the output manifest. An empty
+timing file can indicate failure before the first subprocess (such as input
+discovery); terminal summaries still carry the failing stage.
 
 ## Remaining scientific gates
 

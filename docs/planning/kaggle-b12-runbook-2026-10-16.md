@@ -190,7 +190,9 @@ real bundle/data/cache/runtime gates. It selects one complete native process per
 session through CLI25, preserving CLI17 and existing trust gates. The full plan
 contains 12 processes: three for each B1/B2 × EN/VI, N=100 separately per language.
 
-Proposed caps: 5,400s/process, 1,200s setup/cache, 7,200s/session. Twelve separate
+Current caps (2026-10-22 revision): 5,400s/process, 1,620s setup/cache,
+7,200s/session including 120s cleanup. Earlier sessions used 1,200s setup/cache
+as retained in their immutable source/evidence. Twelve separate
 sessions cap at 24 GPU-session-hours; propose 3h contingency (27h total). Charging
 units for T4 ×2 and fresh quota must be checked before approval. Historical 29.76h
 is not a current guarantee. See the campaign for the exact matrix, ledger/archival
@@ -439,3 +441,21 @@ plus per-stage timing/budget/failure records; all exact hash gates retained.
 Short design approval/implementation and later real validation remain pending;
 original failed ID/evidence must not be overwritten or reused.
 [Diagnosis](../research/kaggle-b12-setup-diagnosis-2026-10-22.md).
+
+## Approved offline setup repair — 2026-10-22
+
+User approved the bounded design; driver/notebook16/config now allow 27m setup
+with per-stage timing records (including failure), retaining native90m/session120m:
+27m setup +91m maximum worker +2m cleanup =120m. New driver SHA
+`7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de`;
+all original pins/exact cache verification and research functions unchanged.
+Keep source/hash/cap revision with each session; earlier sources/evidence stay
+immutable. Full offline suite1,593 passed/342 warnings in788.72s; focused19,
+lint/format/notebook checks pass. All execution opt-ins remain false.
+No new remote session or real cache validation. Next external check would be a
+separately authorized private setup-only validation with inference disabled;
+no automatic EN replacement or final VI continuation. Campaign remains ten
+complete native processes, one setup failure, one unstarted slot.
+Accepted release archive SHA verified unchanged. Rebuilding from this checkout's
+updated runbook does not reproduce the accepted archive; never substitute it.
+[Repair handoff](../research/kaggle-b12-setup-repair-2026-10-22.md).

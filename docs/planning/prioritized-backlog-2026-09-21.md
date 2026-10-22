@@ -498,3 +498,17 @@ remote session or runtime change. Bounded candidate: 27m setup + unchanged
 add persistent per-stage elapsed/budget/timeout telemetry. Requires short-design
 approval before implementation; no fix or remote validation claimed.
 [Diagnosis](../research/kaggle-b12-setup-diagnosis-2026-10-22.md).
+
+### 2026-10-22 — approved setup repair implemented offline
+
+User approved 20m→27m setup allowance and per-stage timing. Operational driver,
+embedded disabled notebook 16 and campaign config/docs updated. Native 90m and
+session 120m unchanged: setup 27m + worker max91m + cleanup2m =120m. Original
+cache-byte/hash checks, accepted bundle/setup pins and research functions
+unchanged; old failed session and IDs preserved. TDD: three new regressions
+failed before implementation, then passed; focused19 passed, full1,593 passed
+with342 warnings in788.72s. Lint/format/notebook/static checks pass.
+No new Kaggle/inference/BigQuery session; real mounted-cache validation pending.
+Campaign remains10 complete, one setup failure, final VI unstarted. No EN
+replacement or final VI continuation authorized by this offline repair.
+[Repair handoff](../research/kaggle-b12-setup-repair-2026-10-22.md).

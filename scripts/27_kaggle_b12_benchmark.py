@@ -39,8 +39,10 @@ SETUP_HASHES = {
     ),
 }
 PROCESS_CAP = 5400
-SETUP_CAP = 1200
 SESSION_CAP = 7200
+WORKER_OVERHEAD = 60
+CLEANUP_RESERVE = 120
+SETUP_CAP = SESSION_CAP - (PROCESS_CAP + WORKER_OVERHEAD) - CLEANUP_RESERVE
 
 
 def digest(path):
@@ -157,6 +159,58 @@ def run_logged(argv, env, log, timeout):
             raise
     if code:
         raise RuntimeError(f"Stage failed: exit={code}; inspect {log.name}")
+
+
+def run_timed_stage(
+    argv,
+    env,
+    log,
+    *,
+    timings,
+    stage,
+    driver_started,
+    budget,
+    deadline_seconds,
+    max_seconds=None,
+):
+    """Persist stage timing even on failure; never serialize commands or environment."""
+    started = time.monotonic()
+    remaining = max(0.0, deadline_seconds - (started - driver_started))
+    timeout = remaining if max_seconds is None else min(max_seconds, remaining)
+
+    def record(event, now, **extra):
+        with timings.open("a") as stream:
+            stream.write(
+                json.dumps(
+                    {
+                        "event": event,
+                        "stage": stage,
+                        "budget": budget,
+                        "driver_elapsed_seconds": now - driver_started,
+                        "elapsed_seconds": now - started,
+                        "timeout_seconds": timeout,
+                        "budget_remaining_seconds": max(
+                            0.0, deadline_seconds - (now - driver_started)
+                        ),
+                        **extra,
+                    },
+                    sort_keys=True,
+                )
+                + "\n"
+            )
+
+    record("started", started)
+    outcome, error = "completed", {}
+    try:
+        run_logged(argv, env, log, timeout)
+    except BaseException as exc:
+        outcome = (
+            "timed_out" if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)) else "failed"
+        )
+        error = {"error_type": type(exc).__name__}
+        raise
+    finally:
+        record("finished", time.monotonic(), outcome=outcome, **error)
 
 
 def cleanup_scratch(scratch, working):
@@ -337,9 +391,14 @@ def prepare(
         "settings": settings,
         "session_cap_seconds": SESSION_CAP,
         "process_cap_seconds": PROCESS_CAP,
+        "setup_cap_seconds": SETUP_CAP,
+        "worker_max_seconds": PROCESS_CAP + WORKER_OVERHEAD,
+        "cleanup_reserve_seconds": CLEANUP_RESERVE,
     }
+    timings = evidence / "stage-timings.jsonl"
     stage = "input_discovery"
     try:
+        timings.touch(exist_ok=False)
         archive, kit, inventory, home = discover_inputs(mount)
         workspace, runtime = scratch / "input", scratch / "runtime"
         bootstrap = scratch / "bootstrap"
@@ -376,11 +435,15 @@ def prepare(
         def setup(argv, name, custom_env=None):
             nonlocal stage
             stage = name
-            run_logged(
+            run_timed_stage(
                 argv,
                 custom_env or env,
                 evidence / (name + ".log"),
-                SETUP_CAP - (time.monotonic() - started),
+                timings=timings,
+                stage=name,
+                driver_started=started,
+                budget="setup",
+                deadline_seconds=SETUP_CAP,
             )
 
         setup(
@@ -452,7 +515,7 @@ def prepare(
         )
         write_new(evidence / "settings.json", settings)
         stage = "native_cli25"
-        run_logged(
+        run_timed_stage(
             [
                 python,
                 str(source),
@@ -470,7 +533,12 @@ def prepare(
             ],
             offline,
             evidence / "worker.log",
-            min(PROCESS_CAP + 60, SESSION_CAP - 120 - (time.monotonic() - started)),
+            timings=timings,
+            stage=stage,
+            driver_started=started,
+            budget="session",
+            deadline_seconds=SESSION_CAP - CLEANUP_RESERVE,
+            max_seconds=PROCESS_CAP + WORKER_OVERHEAD,
         )
         summary["status"] = (
             "completed_native_process"
