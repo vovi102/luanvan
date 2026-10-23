@@ -98,3 +98,45 @@ Monitoring stops after this launch checkpoint, following the user's preference
 to return after a completion notice. Poll this existing ref only on return;
 never rerun the launcher. This launch does not establish root cause, a cache
 repair, T4 equivalence, or readiness for another B2 EN benchmark attempt.
+
+## Terminal API check — 2026-10-23
+
+**ERROR with no saved diagnostic output or execution-log events.** Status
+observed at20:16:33 Asia/Saigon on2026-10-23. Exact failure time and
+actual runtime start are not established. The private version1 source still
+matches the accepted submission; GPU/TPU/internet remain off and dataset/cache
+source metadata matches. Source metadata RUNNING at launch was platform state,
+not proof that notebook cells or the diagnostic worker began execution.
+
+The full output listing is empty, with no next page. This is not an export
+prefix/filter omission. Terminal export downloaded0files,0bytes, no omissions.
+The SDK persisted-log endpoint returns the2-byte JSON array `[]` (zero log
+events). The stream endpoint returned zero events without exception. Platform
+failure_message is empty. There is no diagnostic-summary.json, worker.log,
+cache-progress.jsonl, native-cache-receipt.json or saved hash manifest to audit.
+The prepared terminal artifact verifier cannot run without those files; no
+successful verification or cache receipt is fabricated.
+
+The source-view cell execution counters are null with empty output arrays.
+Those belong to the source API and are not proof that runtime never started.
+Its last_run_time metadata predates this new submission, so it is not used
+as an execution/failure clock. Default CPU Python/version and actual worker
+state remain unknown. No evidence currently identifies a file/hash/read stall,
+notebook exception, dependency error, startup/staging error, platform timeout,
+or output persistence failure. All remain unproven; no speculative fix or cap/
+pin/runtime/network change was made in this review.
+
+Therefore the CPU diagnostic produced **no usable per-file measurement**.
+It is not another established cache timeout and does not resolve the T4 setup
+failure. The2earlier benchmark setup failures and11native successes (13retained
+benchmark IDs) remain unchanged. This is1failed diagnostic session, not a new
+benchmark replicate/failure. No inference or benchmark was requested by this
+session, and no new session or automatic retry was submitted during this check.
+
+API observations/source metadata/download history and empty persisted log are
+retained with hashes. They are platform evidence only, not runtime artifacts.
+No product code changed or model/tests/install ran in this review. Investigate
+why Kaggle supplies no execution log/output before considering a fresh diagnostic
+submission. Monitoring stops after this terminal checkpoint. Underlying cache
+slowness/root cause remains unresolved; earlier local fixture probes are still
+only test evidence, not proof that this remote diagnostic executed.

@@ -4,8 +4,8 @@
     "sha256": "bd6fd33f67b506d21f855e26d0e9faba60568f5318cdee69fd97376a6d820c16"
   },
   "current-status.json": {
-    "bytes": 350,
-    "sha256": "fd4fdbce026cfb0d158093a069ba8aa236879443e037b168c01a60a783317119"
+    "bytes": 348,
+    "sha256": "78a362cf201c05c1eb62ee69af2bba9de127f29506f3ec4cca9b9502e3dff5a4"
   },
   "deploy/kernel-metadata.json": {
     "bytes": 481,
@@ -19,6 +19,10 @@
     "bytes": 12139,
     "sha256": "6f72f78d6ae1d5b6d6a56d2f5b527c3bc08da202e6bc306bdb28372a375f192f"
   },
+  "download-record.json": {
+    "bytes": 140,
+    "sha256": "9a5fdf671434133252d3a25c323465e18b3adf590e6275dce5bae1e39b973556"
+  },
   "export_saved.py": {
     "bytes": 2435,
     "sha256": "e201d6da2d346338dbe3258024a983601a91ecc746344d58cc0612c533592d4e"
@@ -27,9 +31,21 @@
     "bytes": 3545,
     "sha256": "c1ae8afa0c702ac77f71e7a3179010ead3968e0c2e2ca740b63a294e8b894dfd"
   },
+  "log-stream-result.json": {
+    "bytes": 62,
+    "sha256": "36fb351bf74d5678045991936adaf220d4c102505f700f43f5e97163b40ca96d"
+  },
   "offline-probes.json": {
     "bytes": 875,
     "sha256": "e6c9d832a564354ee71630341ba5bbf98ecfc57c92ffdd9ea9ecc908053b04d0"
+  },
+  "platform-failure.json": {
+    "bytes": 101,
+    "sha256": "3d4d333630aa3ece9649e3c5f4b7502d2bf8d413998c91e15d42e3412ebfc18d"
+  },
+  "platform-saved.log": {
+    "bytes": 2,
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
   },
   "poll.py": {
     "bytes": 1724,
@@ -47,9 +63,13 @@
     "bytes": 527,
     "sha256": "e00b7e4612722ffc417be49d16aeda2acb1a60d9868cc31d132c969195810252"
   },
+  "remote-cell-execution-inspection.json": {
+    "bytes": 342,
+    "sha256": "87712a48656d32dd1669a6271a222730312b11f36d3a2a7845040664a96673b0"
+  },
   "status-history.jsonl": {
-    "bytes": 326,
-    "sha256": "9e6fed1b85998472de29ab2a159b27f285c420b486d59b3b038e1d9245516440"
+    "bytes": 650,
+    "sha256": "6c90d8cdd54e2b56aec621a7a15cfd0bb8036a68d0811efa82b001d494d2755c"
   },
   "submission-intent.json": {
     "bytes": 137,
@@ -58,6 +78,10 @@
   "submission-plan.json": {
     "bytes": 1262,
     "sha256": "1d754586e0f1c8c51f21277eaee7f9042a83c5c56dc5a517aebd9ec669444511"
+  },
+  "verified-platform-failure.json": {
+    "bytes": 1575,
+    "sha256": "c0bd4a01b02ff0e5a26738e02be520a9c83dcc0ffac4f077274644d7303dd4a3"
   },
   "verify_saved.py": {
     "bytes": 4940,
