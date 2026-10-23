@@ -4,8 +4,8 @@
     "sha256": "73c128027eb735b293ef089896755ed6fbaa54a6c2e2e93d520f5060dd0dfad0"
   },
   "current-status.json": {
-    "bytes": 406,
-    "sha256": "ae611651b21e3a90ba9a22bbfcb7a944d20714a3dcd35c8ce82a7ce3e5fdd3e8"
+    "bytes": 421,
+    "sha256": "9d970b3f75c88ca3b5fa6eb2e7166924f173547b22cda4db7b6c309dd8f48057"
   },
   "deploy/kernel-metadata.json": {
     "bytes": 563,
@@ -14,6 +14,10 @@
   "deploy/nl2sql-b12-benchmark-20261023-b2-en-r03-repl02.ipynb": {
     "bytes": 31387,
     "sha256": "f753bc3c7354d4369dd7959008e6157ee73007b6a29389518fa703bc3c5ef18b"
+  },
+  "download-record.json": {
+    "bytes": 4193,
+    "sha256": "34f57d691b68a27c72416161424a0419a1e326a17e1fa173063c96db4dedc87c"
   },
   "export_saved.py": {
     "bytes": 2480,
@@ -59,13 +63,117 @@
     "bytes": 263,
     "sha256": "ffb9c4a1681f52ac0afd7d1af3e3944f5e9a8f849fee99a7227f8c56609b5e2b"
   },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/b12-envi-20261018-c01-replacement02-b2-en-r03/native-log.jsonl": {
+    "bytes": 56894,
+    "sha256": "e659f1595dbf3c8771ac48a90b8d3650e61ce89cc0e4849d1476c4f56824122d"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/b12-envi-20261018-c01-replacement02-b2-en-r03/native-report.json": {
+    "bytes": 14481,
+    "sha256": "6d1a51601bbd836886e45f8f5962a967525b653a5e9311d62a3e67eb9083e16d"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/b12-envi-20261018-c01-replacement02-b2-en-r03/predictions.jsonl": {
+    "bytes": 579184,
+    "sha256": "643bec7e7534d6f87d990553a43699daf1c4d3f28b405a3375c824a733be2a31"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/b12-envi-20261018-c01-replacement02-b2-en-r03/run.json": {
+    "bytes": 11402,
+    "sha256": "20b3b3148eae7588fb6134d01b9ae2154a073e0cd3edce575ba9cdf392eba77b"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/b12-envi-20261018-c01-replacement02-b2-en-r03/stderr.log": {
+    "bytes": 1175,
+    "sha256": "162b7f71e56a80ca459cfeca7ed89e8a899fe6140c9ff3fc4bd99b0622e5c873"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/b12-envi-20261018-c01-replacement02-b2-en-r03/stdout.log": {
+    "bytes": 571,
+    "sha256": "63e2e192e881b0d044159e6bbc0d12d4f8e93f7870a27c71162ed42ed23c2f75"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/en/cache/b2-few-shot.npz": {
+    "bytes": 10270722,
+    "sha256": "2ae970a6c37253cdef8e9e34de8b529b1c15df50b2b75aa4805492a0d9cce48c"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/en/cache/b2-few-shot.npz.json": {
+    "bytes": 386235,
+    "sha256": "cb4374a789ecd2a557a4ee15409402df994d8a28965632050bdc084d04066127"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/runs/en/cache/b2-few-shot.npz.lock": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/artifacts-manifest.json": {
+    "bytes": 4191,
+    "sha256": "faaacbafe6f3737d0ed254c9a5c24680bbd946d8ad95d904cba7f3783e70c9eb"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/benchmark-driver.py": {
+    "bytes": 23008,
+    "sha256": "bb03d446c40b0bc7374ad44b50945b55b8ae6ca378c8ae79819d0af819f20a8c"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/campaign-ledger.json": {
+    "bytes": 795,
+    "sha256": "cf671f32de0018f0f6a9520c6a017d646e4ae78f0a2cbebb14e2bcaf211bb618"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/campaign-plan.json": {
+    "bytes": 31677,
+    "sha256": "6df4b20a8fe51e94cf99e9a53f4eb7460de201196b475c95e0669a08b1eb9d22"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/completeness.json": {
+    "bytes": 145,
+    "sha256": "b7a87a6a9cd1330d2a47e9676174a42526efec9e7f4600fefbdfbba099962920"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/create_python311.log": {
+    "bytes": 206,
+    "sha256": "042f7210c3f7b7b61a021ee25273b18bc9d957ad76c222a1a82ea13a8a55eb87"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/data-preflight.json": {
+    "bytes": 518,
+    "sha256": "2380d19df60cae8c067aad5ebe16df524705f64b59d96548932a53a889dadbab"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/driver-summary.json": {
+    "bytes": 1281,
+    "sha256": "8610d66bbe6ab70fd1ede0727f7789093039926885345ab12a0e50964b59d9f3"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/input-provenance.json": {
+    "bytes": 832,
+    "sha256": "136d3faa3deda4429a114208588c5cf7964e8776ae18b46e8f4f142921663a73"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/install_bootstrap.log": {
+    "bytes": 448,
+    "sha256": "6779160ebbb2db2698c69cfc54f05c0000886eda917acf324a5ac8ac7f862bdf"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/install_locked_environment.log": {
+    "bytes": 7864,
+    "sha256": "a767fe78f0ba1c45240f9d6e510e41c4764b0b359647b57bffd792bb2671bce3"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/run-config.json": {
+    "bytes": 577,
+    "sha256": "391ce5cd19ec80bd1ee96edb29b68820d456dbb76d0e16cfe6cd86ccb8c3b11a"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/runtime-preflight.json": {
+    "bytes": 1003,
+    "sha256": "8aa2e201ef149f53a89780345e1b646dd7b81fadae92e3c991e82d67abd0f004"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/settings.json": {
+    "bytes": 895,
+    "sha256": "1be4778ed37ef3c5aecf386fff7fa106a562d96230be0edc9759612f8af12361"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/stage-timings.jsonl": {
+    "bytes": 2409,
+    "sha256": "07f9601afbe1f2a9f301173fd7b22dde1129c0ddc94da3a8997565745397ed41"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/verify_mounted_cache.log": {
+    "bytes": 741,
+    "sha256": "6fcab3abf919a7f7b671511b4879aa9ad54e27f9ec6487fd3638f29e1e2c21fe"
+  },
+  "saved-v1/b12-benchmark-b12-envi-20261018-c01-replacement02/session-s11-b2-en-r03-replacement02/worker.log": {
+    "bytes": 25,
+    "sha256": "423bc199fb67f93e859cbf9030ab8ab43d752806fe06e443f3596de63829605f"
+  },
   "settings.json": {
     "bytes": 895,
     "sha256": "8f238113b0cc07357160a19ebf3ac3762cc629c1f0bc9aab28d5ed90f8df1674"
   },
   "status-history.jsonl": {
-    "bytes": 374,
-    "sha256": "0789bcb638795b9de4a217d04c211be1b82a170af4fef276756ab3be5265efbe"
+    "bytes": 763,
+    "sha256": "f1c5fa1684fca437b9ecaa7c65b76747c2cd99fe0628bfa777dc3f3ca6d862b5"
   },
   "submission-intent.json": {
     "bytes": 221,
@@ -75,13 +183,25 @@
     "bytes": 2188,
     "sha256": "07711d1570ea6f17916f1e8394751a894441b81d16b4c1c7b19f7a9fa4d7dead"
   },
+  "terminal-source-verified.json": {
+    "bytes": 263,
+    "sha256": "db2b2bd224f879371196d3bfb88927423a766fc7bcf9a094f5677dfab0752b9d"
+  },
   "test-verification.json": {
     "bytes": 501,
     "sha256": "b73d933384295959e3e937dddb137cc233fe336d38facc514d53e8eccdaa1dc2"
   },
+  "verified-result.json": {
+    "bytes": 2561,
+    "sha256": "fbf04cf652c053ccf06885f1c9c8067908b48a3c684308caf2070f1d9d80fa55"
+  },
   "verify_remote_source.py": {
     "bytes": 1706,
     "sha256": "a82e033ae78f9f8e67a15ddc5d30f7f0e930c30984585cc60595d2d35be21893"
+  },
+  "verify_remote_source_terminal.py": {
+    "bytes": 1708,
+    "sha256": "c8e8bffeb96ee3544487341b7a22fcb05827b9b902d384e22ea3d8f8bafad049"
   },
   "verify_saved.py": {
     "bytes": 8161,

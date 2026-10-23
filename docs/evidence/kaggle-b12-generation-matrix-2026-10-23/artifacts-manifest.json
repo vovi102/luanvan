@@ -1,0 +1,10 @@
+{
+  "audit_campaign.py": {
+    "bytes": 5601,
+    "sha256": "f108a650a5f035bc1310bcf9b38ac41e89463b36527c4bb7352f96db245aacd3"
+  },
+  "native-runs.csv": {
+    "bytes": 1242,
+    "sha256": "029ff688326dc9a243158ff3526f04644cfa001e77a57207ba71bf3371d77793"
+  }
+}

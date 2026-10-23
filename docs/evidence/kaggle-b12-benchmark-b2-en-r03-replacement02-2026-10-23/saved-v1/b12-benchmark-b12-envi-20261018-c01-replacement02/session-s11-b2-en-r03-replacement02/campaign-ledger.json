@@ -1,0 +1,22 @@
+{
+  "attempted_run_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03",
+    "b12-envi-20261018-c01-b2-en-r03",
+    "b12-envi-20261018-c01-b2-vi-r03",
+    "b12-envi-20261018-c01-replacement01-b2-en-r03",
+    "b12-envi-20261018-c01-replacement02-b2-en-r03"
+  ],
+  "campaign_id": "b12-envi-20261018-c01-replacement02",
+  "parent_campaign_id": "b12-envi-20261018-c01",
+  "replacement_of": "b12-envi-20261018-c01-b2-en-r03",
+  "scientific_ready": false
+}

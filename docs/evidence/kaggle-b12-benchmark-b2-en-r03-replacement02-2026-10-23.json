@@ -40,7 +40,7 @@
   "preserve_original_failure": true,
   "splice_partial_outputs": false,
   "expected_campaign_if_success": "12 successful native processes across namespaces and two retained setup failures (14 attempted IDs), each language/run N=100 separately; scientific blockers retained.",
-  "status": "submitted_private_v1_running_native_results_pending",
+  "status": "native_process_complete_and_integrity_verified",
   "cpu_diagnostic_result": {
     "status": "terminal_cpu_diagnostic_artifacts_verified",
     "diagnostic_outcome": "completed_cache_diagnostic",
@@ -315,19 +315,19 @@
   "kernel_id": 140401001,
   "version": 1,
   "observed_status": {
-    "checked_at_utc": "2026-10-23T13:53:31.917118+00:00",
+    "checked_at_utc": "2026-10-23T15:55:57.404125+00:00",
     "ref": "aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl02",
     "version": 1,
-    "status": "RUNNING",
+    "status": "COMPLETE",
     "private": true,
     "enable_gpu": true,
     "machine_shape": "NvidiaTeslaT4",
     "kernel_sources": [
       "aohkvd/nl2sql-environment-cache"
     ],
-    "gpu_used_hours": 12.00629308,
+    "gpu_used_hours": 13.043173888888889,
     "gpu_reserved_hours": 0.0,
-    "gpu_remaining_hours": 17.99370692
+    "gpu_remaining_hours": 16.956826111111113
   },
   "quota_before": {
     "checked_at_utc": "2026-10-23T13:53:20.146097+00:00",
@@ -365,7 +365,146 @@
     "replacement_explicitly_authorized": true
   },
   "remote_source_kernelspec_private_gpu_and_inputs_verified": true,
-  "actual_t4_runtime_and_native_results_verified": false,
+  "actual_t4_runtime_and_native_results_verified": true,
   "automatic_retry_performed": false,
-  "monitoring_stops_after_launch_checkpoint": true
+  "monitoring_stops_after_launch_checkpoint": true,
+  "verified_result": {
+    "status": "native_process_complete_and_integrity_verified",
+    "run_id": "b12-envi-20261018-c01-replacement02-b2-en-r03",
+    "baseline": "b2",
+    "language": "en",
+    "N": 100,
+    "session_native_processes_completed": 1,
+    "campaign_native_processes_completed": 12,
+    "remaining_campaign_processes": 0,
+    "campaign_setup_failures": 2,
+    "total_attempted_ids": 14,
+    "replacement_of": "b12-envi-20261018-c01-b2-en-r03",
+    "campaign_unstarted_slots": 0,
+    "all_planned_slots_attempted": true,
+    "native_wall_seconds": 3474.01085,
+    "driver_wall_seconds": 3727.0319915799996,
+    "native_manifest_files_verified": 25,
+    "genuine_completions_verified": 100,
+    "hardware": {
+      "compute_capability": [
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          5
+        ]
+      ],
+      "cuda": "12.4",
+      "gpu_names": [
+        "Tesla T4",
+        "Tesla T4"
+      ],
+      "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+      "python": "3.11.15 (main, May 10 2026, 19:28:18) [Clang 22.1.3 ]",
+      "torch": "2.5.1+cu124"
+    },
+    "metrics": {
+      "category_counts": [
+        [
+          "class_level",
+          19
+        ],
+        [
+          "comparison",
+          16
+        ],
+        [
+          "multi_hop",
+          21
+        ],
+        [
+          "simple_filter",
+          13
+        ],
+        [
+          "temporal_pattern",
+          19
+        ],
+        [
+          "time_range",
+          28
+        ],
+        [
+          "token_specific",
+          30
+        ],
+        [
+          "top_k",
+          36
+        ],
+        [
+          "transaction_aggregation",
+          46
+        ]
+      ],
+      "difficulty_counts": [
+        [
+          "easy",
+          30
+        ],
+        [
+          "hard",
+          20
+        ],
+        [
+          "medium",
+          50
+        ]
+      ],
+      "extraction_failed": 69,
+      "extraction_ok": 31,
+      "generated": 100,
+      "input_tokens": 241887,
+      "output_tokens": 12941,
+      "p50_latency_ms": 31958.9542735,
+      "p95_latency_ms": 50256.28107785,
+      "status_counts": [
+        [
+          "invalid_sql",
+          1
+        ],
+        [
+          "ok",
+          31
+        ],
+        [
+          "prose",
+          60
+        ],
+        [
+          "unsafe_sql",
+          8
+        ]
+      ],
+      "total": 100
+    },
+    "native_scientific_ready": false,
+    "native_blockers": [
+      "latency_gate_failed",
+      "live_evidence_missing",
+      "reviewed_test_set_missing"
+    ],
+    "scientific_campaign_complete": false,
+    "bigquery_jobs": 0,
+    "canonical_adaptation_performed": false,
+    "scratch_removed": true,
+    "retrieval_cache_shape": [
+      7208,
+      384
+    ],
+    "selected_examples_verified": 500,
+    "retrieval_train_only_verified": true
+  },
+  "native_generation_matrix_complete": true,
+  "remaining_native_generation_processes": 0,
+  "automatic_new_process_started": false,
+  "monitoring_stops_after_terminal_checkpoint": true
 }

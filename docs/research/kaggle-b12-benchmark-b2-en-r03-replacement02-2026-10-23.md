@@ -120,3 +120,35 @@ Monitoring stops after this launch checkpoint under the user's earlier return-
 after-completion preference. Poll this existing ref on return; never push again
 to monitor it. Failure/timeout stops without automatic replacement03. Retain
 all13previous IDs and all failed artifacts before any later scope decision.
+
+## Verified terminal result — 2026-10-23
+
+**Version1 COMPLETE;100genuine native EN cases independently verified.**
+All26 saved original files retained (11,397,279bytes),25native manifest entries,
+report canonical self-digest/source/settings/model/encoder/genuine markers,
+ordered EN IDs/questions/source authority,7208×384accepted train-only cache and
+all500selected examples pass. ActualT4×2/Python3.11.15/torch2.5.1+cu124/CUDA12.4,
+input/cache-v5/data/runtime gates, native exit0 and cleanup pass. Final14-ID
+native ledger retains all13prior IDs, including both setup failures, plus the
+new replacement02 ID. Remote private v1 cells/python3 kernelspec/source metadata
+still match. No native research/live/review flags or reported predictions change.
+
+31extraction OK,60prose,8unsafe,1invalid; P5031.959s/P9550.256s. These are
+extraction/generation observations, not SQL execution accuracy. Native wall
+3,474.011s57.90m, driver3,727.032s62.12m. All10timing start/finish records
+completed within caps: setup219.001s, cache137.393s, locked install75.168s,
+worker3,508.031s. Mounted checks passed normally in this session; root cause
+of previous T4 slowness is not retrospectively established.
+
+Native inference started20:57:43 and finished21:55:37 Asia/Saigon on2026-10-23.
+Platform COMPLETE observed22:55:57; exact platform finish was not observed.
+Quota16.956826111h, zero reserved, account-observed difference1.039825000h;
+not invoice cost. No new model/BigQuery/tests/install/session was run locally
+in this result review; only genuine saved outputs and registry integrity audited.
+
+Independent audit now finds12successful native processes:3each forB1/B2×EN/VI,
+N=100separately, no pooling. Two setup failures remain immutable and are not
+0/100accuracy. No further B1/B2 generation process is needed. Scientific_ready
+remains false with all original latency/live/review blockers. T5.4 canonical
+adaptation/privacy/cost/separately authorized BigQuery/reports remain pending.
+See [final generation matrix](kaggle-b12-generation-matrix-2026-10-23.md).
