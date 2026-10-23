@@ -1,4 +1,12 @@
 {
+  "api-submitted-v1.json": {
+    "bytes": 481,
+    "sha256": "73c128027eb735b293ef089896755ed6fbaa54a6c2e2e93d520f5060dd0dfad0"
+  },
+  "current-status.json": {
+    "bytes": 406,
+    "sha256": "ae611651b21e3a90ba9a22bbfcb7a944d20714a3dcd35c8ce82a7ce3e5fdd3e8"
+  },
   "deploy/kernel-metadata.json": {
     "bytes": 563,
     "sha256": "e8b476a71deccdcd1f648a3b29b04b95c737b5e01aed4f4af40cd5a55882127f"
@@ -39,13 +47,29 @@
     "bytes": 7518,
     "sha256": "5a395db81311a2c4c00efa71dad254e6bd1feb2d2613e04ef7d47558d53cc45c"
   },
+  "quota-before.json": {
+    "bytes": 1537,
+    "sha256": "8c04d8b607db786ee9e17b0699c78626b01b7fb710d95b12da3b75d2049486ef"
+  },
   "red-tests.log": {
     "bytes": 8054,
     "sha256": "0833a4ef1f12f60a74f83c509687c02196ac5c1a746824b99469517bce5b8c76"
   },
+  "remote-source-verified.json": {
+    "bytes": 263,
+    "sha256": "ffb9c4a1681f52ac0afd7d1af3e3944f5e9a8f849fee99a7227f8c56609b5e2b"
+  },
   "settings.json": {
     "bytes": 895,
     "sha256": "8f238113b0cc07357160a19ebf3ac3762cc629c1f0bc9aab28d5ed90f8df1674"
+  },
+  "status-history.jsonl": {
+    "bytes": 374,
+    "sha256": "0789bcb638795b9de4a217d04c211be1b82a170af4fef276756ab3be5265efbe"
+  },
+  "submission-intent.json": {
+    "bytes": 221,
+    "sha256": "54c7c7f66dead2a03fc021fe30a4746522d34aade4a091a9ceff5a6be46e0f65"
   },
   "submission-plan.json": {
     "bytes": 2188,

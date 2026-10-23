@@ -89,3 +89,34 @@ and [source/artifact manifest](../evidence/kaggle-b12-benchmark-b2-en-r03-replac
 Fresh full project verification completed:1,609 passed,342warnings in878.24s
 (14m38s). Focused35passed22.09s; Ruff check/format and all offline source/
 archive/config/notebook/provenance checks pass. No model ran locally.
+
+## Authorized launch checkpoint
+
+Preparation commit `a1ab728`. One request accepted as private version1,
+kernel140401001:
+https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl02
+
+Submitted at20:53:22 Asia/Saigon on2026-10-23. RUNNING observed
+at20:53:31 that day. Remote cells and python3 kernelspec match the exact
+submitted source; private/GPU/requestedNvidiaTeslaT4, accepted setup dataset
+and cache-v5 source metadata verified. The returned cache source may normalize
+to its slug; exact inventory/byte gates still run in this T4 session.
+
+Fresh quota17.996651111h remaining, zero reserved, pay-to-scale off, enough
+for the conservative4device-hour allowance for this one2hour T4×2 session.
+Prior statuses/source versions match, including both benchmark setup failures,
+completed CPU control and completed cache diagnostic. Exact target ref absent
+before the single request. This is an account quota observation, not invoice
+cost or a general billing rule.
+
+RUNNING includes setup; actual T4 hardware/runtime, native100-case generation,
+14-ID native ledger publication, cache/data/runtime completion, saved artifacts
+and cleanup remain unverified until terminal export/review. No model accuracy
+or scientific completion claim. Setup27m, native90m, worker91m, cleanup2m and
+platform120m caps remain fixed. No native review/live flag, research threshold,
+model/encoder/prompt/retrieval/normalization or accepted source change occurred.
+
+Monitoring stops after this launch checkpoint under the user's earlier return-
+after-completion preference. Poll this existing ref on return; never push again
+to monitor it. Failure/timeout stops without automatic replacement03. Retain
+all13previous IDs and all failed artifacts before any later scope decision.

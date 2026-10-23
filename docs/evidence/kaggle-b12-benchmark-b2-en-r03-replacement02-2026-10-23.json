@@ -40,7 +40,7 @@
   "preserve_original_failure": true,
   "splice_partial_outputs": false,
   "expected_campaign_if_success": "12 successful native processes across namespaces and two retained setup failures (14 attempted IDs), each language/run N=100 separately; scientific blockers retained.",
-  "status": "offline_verified_ready_for_authorized_benchmark_submission",
+  "status": "submitted_private_v1_running_native_results_pending",
   "cpu_diagnostic_result": {
     "status": "terminal_cpu_diagnostic_artifacts_verified",
     "diagnostic_outcome": "completed_cache_diagnostic",
@@ -307,5 +307,65 @@
     "notebook_schema_default_guards_source_and_kernelspec_verified": true,
     "driver_sha256": "bb03d446c40b0bc7374ad44b50945b55b8ae6ca378c8ae79819d0af819f20a8c"
   },
-  "remote_submission_performed": false
+  "remote_submission_performed": true,
+  "preparation_commit": "a1ab728",
+  "accepted_submissions": 1,
+  "submitted_at_utc": "2026-10-23T13:53:22.678787+00:00",
+  "url": "https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl02",
+  "kernel_id": 140401001,
+  "version": 1,
+  "observed_status": {
+    "checked_at_utc": "2026-10-23T13:53:31.917118+00:00",
+    "ref": "aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl02",
+    "version": 1,
+    "status": "RUNNING",
+    "private": true,
+    "enable_gpu": true,
+    "machine_shape": "NvidiaTeslaT4",
+    "kernel_sources": [
+      "aohkvd/nl2sql-environment-cache"
+    ],
+    "gpu_used_hours": 12.00629308,
+    "gpu_reserved_hours": 0.0,
+    "gpu_remaining_hours": 17.99370692
+  },
+  "quota_before": {
+    "checked_at_utc": "2026-10-23T13:53:20.146097+00:00",
+    "gpu_used_hours": 12.003348888888889,
+    "gpu_reserved_hours": 0.0,
+    "gpu_total_hours": 30.0,
+    "gpu_remaining_hours": 17.996651111111113,
+    "is_pay_to_scale_enabled": false,
+    "authorized_session_cap_seconds": 7200,
+    "conservative_two_device_hours_required": 4,
+    "prior_statuses": {
+      "nl2sql-b12-benchmark-20261018-b1-en-r01": "COMPLETE",
+      "nl2sql-b12-benchmark-20261018-b1-vi-r01": "COMPLETE",
+      "nl2sql-b12-benchmark-20261019-b2-en-r01": "COMPLETE",
+      "nl2sql-b12-benchmark-20261019-b2-vi-r01": "COMPLETE",
+      "nl2sql-b12-benchmark-20261020-b1-en-r02": "COMPLETE",
+      "nl2sql-b12-benchmark-20261020-b1-vi-r02": "COMPLETE",
+      "nl2sql-b12-benchmark-20261020-b2-en-r02": "COMPLETE",
+      "nl2sql-environment-cache": "COMPLETE",
+      "nl2sql-b12-benchmark-20261021-b2-vi-r02": "COMPLETE",
+      "nl2sql-b12-benchmark-20261021-b1-en-r03": "COMPLETE",
+      "nl2sql-b12-benchmark-20261021-b1-vi-r03": "COMPLETE",
+      "nl2sql-b12-benchmark-20261021-b2-en-r03": "ERROR",
+      "nl2sql-b12-setup-validation-20261022-v02": "COMPLETE",
+      "nl2sql-b12-benchmark-20261022-b2-vi-r03": "COMPLETE",
+      "nl2sql-b12-benchmark-20261023-b2-en-r03-repl01": "ERROR",
+      "nl2sql-cache-diag-20261023-d04": "COMPLETE",
+      "nl2sql-cpu-smoke-20261023-d03": "COMPLETE"
+    },
+    "cache_version": 5,
+    "cache_private_complete": true,
+    "validation_v1_private_complete": true,
+    "matching_kernel_exists": false,
+    "failed_en_setup_preserved": true,
+    "replacement_explicitly_authorized": true
+  },
+  "remote_source_kernelspec_private_gpu_and_inputs_verified": true,
+  "actual_t4_runtime_and_native_results_verified": false,
+  "automatic_retry_performed": false,
+  "monitoring_stops_after_launch_checkpoint": true
 }
