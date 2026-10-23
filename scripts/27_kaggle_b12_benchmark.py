@@ -157,20 +157,21 @@ def validate_attempts(settings):
     parent = settings["campaign_id"]
     replacement = settings.get("replacement_of")
     if replacement is not None:
-        # One explicitly selected full B2 EN r03 replacement after the original
-        # twelve attempts. A new native campaign namespace avoids any ID reuse
+        # One explicitly selected B2 EN r03 replacement; each later request must
+        # retain the previous attempted identity. Separate namespaces avoid reuse
         # without modifying the accepted native runner or research configuration.
         if not isinstance(replacement, str):
             raise ValueError("Replacement identity must be a string")
         match = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9_-]{0,59})-b2-en-r03", replacement)
         if (
             match is None
-            or settings["campaign_id"] != match[1] + "-replacement01"
+            or settings["campaign_id"]
+            not in (match[1] + "-replacement01", match[1] + "-replacement02")
             or (settings["baseline"], settings["language"], settings["replicate"])
             != ("b2", "en", 3)
         ):
             raise ValueError(
-                "Replacement requires a distinct parent-replacement01 campaign and B2 EN r03"
+                "Replacement requires distinct parent-replacement01/02 campaign and B2 EN r03"
             )
         parent = match[1]
         provenance = {"parent_campaign_id": parent, "replacement_of": replacement}
@@ -180,6 +181,8 @@ def validate_attempts(settings):
         for lang in ("en", "vi")
         for rep in (1, 2, 3)
     }
+    if replacement is not None and settings["campaign_id"] == parent + "-replacement02":
+        valid_ids.add(parent + "-replacement01-b2-en-r03")
     selected = (
         f"{settings['campaign_id']}-{settings['baseline']}-"
         f"{settings['language']}-r{settings['replicate']:02d}"
@@ -192,7 +195,9 @@ def validate_attempts(settings):
     ):
         raise ValueError("Supply prior attempted IDs from retained campaign ledger; no reuse")
     if replacement is not None and set(prior) != valid_ids:
-        raise ValueError("Review and retain all twelve original attempts before replacement")
+        raise ValueError(
+            "Review and retain all original and prior replacement attempts before replacement"
+        )
     if not prior and (settings["baseline"], settings["language"], settings["replicate"]) != (
         "b1",
         "en",

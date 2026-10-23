@@ -1,0 +1,40 @@
+{
+  "worker_status": "COMPLETE",
+  "downloaded": [
+    {
+      "name": "cache-diagnostic-d01/artifacts-manifest.json",
+      "bytes": 938
+    },
+    {
+      "name": "cache-diagnostic-d01/cache-progress.jsonl",
+      "bytes": 48331
+    },
+    {
+      "name": "cache-diagnostic-d01/diagnostic-driver.py",
+      "bytes": 12139
+    },
+    {
+      "name": "cache-diagnostic-d01/diagnostic-provenance.json",
+      "bytes": 810
+    },
+    {
+      "name": "cache-diagnostic-d01/diagnostic-settings.json",
+      "bytes": 328
+    },
+    {
+      "name": "cache-diagnostic-d01/diagnostic-summary.json",
+      "bytes": 332
+    },
+    {
+      "name": "cache-diagnostic-d01/native-cache-receipt.json",
+      "bytes": 823
+    },
+    {
+      "name": "cache-diagnostic-d01/worker.log",
+      "bytes": 57
+    }
+  ],
+  "omitted": [],
+  "signed_urls_persisted": false,
+  "model_payloads_downloaded": false
+}

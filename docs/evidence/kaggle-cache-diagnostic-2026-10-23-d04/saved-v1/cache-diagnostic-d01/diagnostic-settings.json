@@ -1,0 +1,11 @@
+{
+  "accepted_setup_sha256": "91be7869ae7223b93e7ff6c3c7a58589b241161ef7a782351f02e105e86d9218",
+  "benchmark_attempt_reserved": false,
+  "cpu_only": true,
+  "diagnostic_only": true,
+  "inference": false,
+  "model_loaded": false,
+  "platform_cap_seconds": 1800,
+  "scientific_ready": false,
+  "verification_cap_seconds": 1620
+}

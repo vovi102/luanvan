@@ -1,8 +1,8 @@
 {
-  "checked_at_utc": "2026-10-23T13:33:52.425943+00:00",
+  "checked_at_utc": "2026-10-23T13:35:48.296233+00:00",
   "ref": "aohkvd/nl2sql-cache-diag-20261023-d04",
   "version": 1,
-  "status": "RUNNING",
+  "status": "COMPLETE",
   "private": true,
   "gpu_enabled": false,
   "tpu_enabled": false,

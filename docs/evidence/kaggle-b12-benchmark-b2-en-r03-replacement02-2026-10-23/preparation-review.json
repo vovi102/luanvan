@@ -1,0 +1,40 @@
+{
+  "status": "retained_native_successes_and_two_setup_failures_reviewed",
+  "complete_native_runs": 11,
+  "setup_failures": 2,
+  "prior_attempted_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03",
+    "b12-envi-20261018-c01-b2-en-r03",
+    "b12-envi-20261018-c01-b2-vi-r03",
+    "b12-envi-20261018-c01-replacement01-b2-en-r03"
+  ],
+  "no_native_receipts_fabricated": true,
+  "new_selected_run_id": "b12-envi-20261018-c01-replacement02-b2-en-r03",
+  "new_id_reused": false,
+  "current_authorization": "Ch\u1ea1y len benchmark \u0111i",
+  "self_review": "Only replacement02 identity/history guard and embedded source changed; no native/inference/research function changed.",
+  "red_tests_observed": "Two new attempt02 cases failed under prior replacement01-only guard; both attempt01 cases passed.",
+  "focused_tests_passed": 35,
+  "full_suite": {
+    "full_suite_exit_code": 0,
+    "full_suite_passed": 1609,
+    "full_suite_warnings": 342,
+    "full_suite_seconds": 878.24,
+    "full_suite_log_sha256": "a6e64acd9735fa3bfe410831c34b16b63b18dd3925c6831982d37db626366ba5",
+    "focused_tests_passed": 35,
+    "focused_tests_seconds": 22.09,
+    "ruff_check_passed": true,
+    "ruff_format_passed": true,
+    "notebook_schema_default_guards_source_and_kernelspec_verified": true,
+    "driver_sha256": "bb03d446c40b0bc7374ad44b50945b55b8ae6ca378c8ae79819d0af819f20a8c"
+  }
+}

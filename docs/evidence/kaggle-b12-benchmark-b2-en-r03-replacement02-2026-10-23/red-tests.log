@@ -1,0 +1,148 @@
+.F.F                                                                     [100%]
+=================================== FAILURES ===================================
+__ test_replacement_preserves_parent_attempts_and_gets_distinct_native_id[2] ___
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-0/test_replacement_preserves_par1')
+replacement_settings = {'allow_env_install': True, 'allow_preparation': True, 'allow_real_inference': True, 'baseline': 'b2', ...}
+attempt = 2
+
+    @pytest.mark.parametrize("attempt", [1, 2])
+    def test_replacement_preserves_parent_attempts_and_gets_distinct_native_id(
+        tmp_path, replacement_settings, attempt
+    ):
+        # Reusing the parent campaign would collide with the failed native identity.
+        # Changing research arguments to implement replacement would invalidate this comparison.
+        m = driver()
+        settings = replacement_settings
+        if attempt == 2:
+            settings["campaign_id"] = "test-only-replacement02"
+            settings["prior_attempts"].append("test-only-replacement01-b2-en-r03")
+>       provenance = m.validate_attempts(settings)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/unit/test_kaggle_benchmark_preparation.py:387: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+settings = {'allow_env_install': True, 'allow_preparation': True, 'allow_real_inference': True, 'baseline': 'b2', ...}
+
+    def validate_attempts(settings):
+        """Validate operational identities before writes; retain failed IDs permanently."""
+        for key in ("campaign_id", "session_id"):
+            if not isinstance(settings[key], str) or not re.fullmatch(
+                r"[A-Za-z0-9][A-Za-z0-9_-]{0,59}", settings[key]
+            ):
+                raise ValueError("Set safe explicit " + key)
+        if (
+            settings["baseline"] not in ("b1", "b2")
+            or settings["language"] not in ("en", "vi")
+            or type(settings["replicate"]) is not int
+            or settings["replicate"] not in (1, 2, 3)
+        ):
+            raise ValueError("Choose one baseline/language/replicate")
+        prior = settings["prior_attempts"]
+        provenance = {}
+        parent = settings["campaign_id"]
+        replacement = settings.get("replacement_of")
+        if replacement is not None:
+            # One explicitly selected full B2 EN r03 replacement after the original
+            # twelve attempts. A new native campaign namespace avoids any ID reuse
+            # without modifying the accepted native runner or research configuration.
+            if not isinstance(replacement, str):
+                raise ValueError("Replacement identity must be a string")
+            match = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9_-]{0,59})-b2-en-r03", replacement)
+            if (
+                match is None
+                or settings["campaign_id"] != match[1] + "-replacement01"
+                or (settings["baseline"], settings["language"], settings["replicate"])
+                != ("b2", "en", 3)
+            ):
+>               raise ValueError(
+                    "Replacement requires a distinct parent-replacement01 campaign and B2 EN r03"
+                )
+E               ValueError: Replacement requires a distinct parent-replacement01 campaign and B2 EN r03
+
+scripts/27_kaggle_b12_benchmark.py:172: ValueError
+______ test_worker_retains_replacement_lineage_before_native_execution[2] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-0/test_worker_retains_replacemen1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7e3b009b18d0>
+replacement_settings = {'allow_env_install': True, 'allow_preparation': True, 'allow_real_inference': True, 'baseline': 'b2', ...}
+attempt = 2
+
+    @pytest.mark.parametrize("attempt", [1, 2])
+    def test_worker_retains_replacement_lineage_before_native_execution(
+        tmp_path, monkeypatch, replacement_settings, attempt
+    ):
+        # External runtime/inference are stubbed; the planner and retained files are real.
+        from nl2sparql.kaggle import bundle, runner
+    
+        m = driver()
+        if attempt == 2:
+            replacement_settings["campaign_id"] = "test-only-replacement02"
+            replacement_settings["prior_attempts"].append("test-only-replacement01-b2-en-r03")
+        monkeypatch.setattr(m.sys, "version_info", (3, 11, 15))
+        monkeypatch.setattr(bundle, "preflight_data", lambda _: {"status": "data_ready"})
+        monkeypatch.setattr(runner, "preflight_runtime", lambda *_: {"status": "ready"})
+        evidence = tmp_path / "evidence"
+        evidence.mkdir()
+    
+        def native_boundary(root, config, output, **kwargs):
+            ledger = json.loads((evidence / "campaign-ledger.json").read_text())
+            assert ledger["replacement_of"] in ledger["attempted_run_ids"]
+            assert ledger["attempted_run_ids"][-1] == config["campaign_id"] + "-b2-en-r03"
+            assert kwargs == dict(real_inference=True, baseline="b2", replicate=3)
+    
+        monkeypatch.setattr(runner, "run_campaign", native_boundary)
+        monkeypatch.setattr(m, "check_complete", lambda *_: {"status": "TEST-ONLY"})
+>       m.worker(ROOT, Path("/missing-cache"), tmp_path / "runs", replacement_settings, evidence)
+
+tests/unit/test_kaggle_benchmark_preparation.py:461: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/27_kaggle_b12_benchmark.py:360: in worker
+    provenance = validate_attempts(settings)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+settings = {'allow_env_install': True, 'allow_preparation': True, 'allow_real_inference': True, 'baseline': 'b2', ...}
+
+    def validate_attempts(settings):
+        """Validate operational identities before writes; retain failed IDs permanently."""
+        for key in ("campaign_id", "session_id"):
+            if not isinstance(settings[key], str) or not re.fullmatch(
+                r"[A-Za-z0-9][A-Za-z0-9_-]{0,59}", settings[key]
+            ):
+                raise ValueError("Set safe explicit " + key)
+        if (
+            settings["baseline"] not in ("b1", "b2")
+            or settings["language"] not in ("en", "vi")
+            or type(settings["replicate"]) is not int
+            or settings["replicate"] not in (1, 2, 3)
+        ):
+            raise ValueError("Choose one baseline/language/replicate")
+        prior = settings["prior_attempts"]
+        provenance = {}
+        parent = settings["campaign_id"]
+        replacement = settings.get("replacement_of")
+        if replacement is not None:
+            # One explicitly selected full B2 EN r03 replacement after the original
+            # twelve attempts. A new native campaign namespace avoids any ID reuse
+            # without modifying the accepted native runner or research configuration.
+            if not isinstance(replacement, str):
+                raise ValueError("Replacement identity must be a string")
+            match = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9_-]{0,59})-b2-en-r03", replacement)
+            if (
+                match is None
+                or settings["campaign_id"] != match[1] + "-replacement01"
+                or (settings["baseline"], settings["language"], settings["replicate"])
+                != ("b2", "en", 3)
+            ):
+>               raise ValueError(
+                    "Replacement requires a distinct parent-replacement01 campaign and B2 EN r03"
+                )
+E               ValueError: Replacement requires a distinct parent-replacement01 campaign and B2 EN r03
+
+scripts/27_kaggle_b12_benchmark.py:172: ValueError
+=========================== short test summary info ============================
+FAILED tests/unit/test_kaggle_benchmark_preparation.py::test_replacement_preserves_parent_attempts_and_gets_distinct_native_id[2]
+FAILED tests/unit/test_kaggle_benchmark_preparation.py::test_worker_retains_replacement_lineage_before_native_execution[2]
+2 failed, 2 passed, 31 deselected in 0.22s

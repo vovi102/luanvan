@@ -1,0 +1,30 @@
+{
+  "cache-progress.jsonl": {
+    "bytes": 48331,
+    "sha256": "a726e3717e6f132c5133ae3f3eed8ad2cdad1e959374f96c79e138f32981b101"
+  },
+  "diagnostic-driver.py": {
+    "bytes": 12139,
+    "sha256": "6f72f78d6ae1d5b6d6a56d2f5b527c3bc08da202e6bc306bdb28372a375f192f"
+  },
+  "diagnostic-provenance.json": {
+    "bytes": 810,
+    "sha256": "fadd3b4ea56f888407f9c35b2648f1ea43ee0ac866f16e647476492304d8b066"
+  },
+  "diagnostic-settings.json": {
+    "bytes": 328,
+    "sha256": "17fc52d05974a5b8bf9179f5f31a41963f9beb5eca53697324724d682182eeff"
+  },
+  "diagnostic-summary.json": {
+    "bytes": 332,
+    "sha256": "2c08292427dc16521d188aac9e8c6a4c9fd592f49241e2792fad18100383427f"
+  },
+  "native-cache-receipt.json": {
+    "bytes": 823,
+    "sha256": "7ec63365dd77d76238a0c243661e4ce13bae7a4e61b2c31095f620177bed09ea"
+  },
+  "worker.log": {
+    "bytes": 57,
+    "sha256": "0ea10a3f781f95358b2ab5a4541ee7a2f870b6e4c26f8e88584f010fa9709467"
+  }
+}

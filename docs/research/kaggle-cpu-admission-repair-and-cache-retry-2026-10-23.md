@@ -98,3 +98,22 @@ this launch checkpoint; no further retry or benchmark launch is automatic.
 Final handoff poll at20:33:52 Asia/Saigon still RUNNING; remote v1 source/
 python3 kernelspec/private CPU/no-internet checks pass. No terminal cache
 receipt or per-file artifact review claimed.
+
+
+## Verified CPU cache result and next explicit user request
+
+D04 COMPLETE observed20:35:48 Asia/Saigon on2026-10-23. All8 saved files
+(63,758bytes),7manifest entries, observer source/settings/provenance and exact
+native cache receipt pass offline checks. All24 ordered files and16,161,347,681
+bytes were read and passed original size/path/SHA256/git-blob-SHA1 checks.
+Verification journal elapsed182.924s, parent driver185.169s. Large model shard
+file wall times54.147/55.949/56.176/12.827s; no individual file/hash mismatch.
+This CPU/default-Python session is healthy. It does not identify or prove a
+repair for earlier T4 mounted-cache slowness; no T4 hash gate may be bypassed
+using this separate-session receipt. Scientific readiness/inference remain false.
+
+The user next explicitly requested launching the benchmark. One full B2 EN r03
+attempt under a fresh replacement02 identity is being prepared with unchanged
+setup27m/native90m/session120m caps and all13previous attempted IDs. This renews
+benchmark scope for that one process only, preserves both setup failures and
+requires fresh quota and exact T4-session cache/data/runtime verification.

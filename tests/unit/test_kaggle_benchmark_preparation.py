@@ -373,20 +373,24 @@ def replacement_settings():
     )
 
 
+@pytest.mark.parametrize("attempt", [1, 2])
 def test_replacement_preserves_parent_attempts_and_gets_distinct_native_id(
-    tmp_path, replacement_settings
+    tmp_path, replacement_settings, attempt
 ):
     # Reusing the parent campaign would collide with the failed native identity.
     # Changing research arguments to implement replacement would invalidate this comparison.
     m = driver()
     settings = replacement_settings
+    if attempt == 2:
+        settings["campaign_id"] = "test-only-replacement02"
+        settings["prior_attempts"].append("test-only-replacement01-b2-en-r03")
     provenance = m.validate_attempts(settings)
     assert provenance == dict(parent_campaign_id="test-only", replacement_of="test-only-b2-en-r03")
     output, home = tmp_path / "runs", Path("/missing-cache")
     plan = m.campaign_plan(ROOT, settings["campaign_id"], home, output)
     item = m.select_process(plan, "b2", "en", 3, settings["prior_attempts"])
     original = m.select_process(m.campaign_plan(ROOT, "test-only", home, output), "b2", "en", 3)
-    assert item["run_id"] == "test-only-replacement01-b2-en-r03"
+    assert item["run_id"] == f"test-only-replacement{attempt:02d}-b2-en-r03"
     assert item["folder"] != original["folder"]
     assert {k: v for k, v in item["config"].items() if k != "campaign_id"} == {
         k: v for k, v in original["config"].items() if k != "campaign_id"
@@ -429,13 +433,17 @@ def test_invalid_replacement_blocks_before_writes(tmp_path, replacement_settings
     assert not list(tmp_path.iterdir())
 
 
+@pytest.mark.parametrize("attempt", [1, 2])
 def test_worker_retains_replacement_lineage_before_native_execution(
-    tmp_path, monkeypatch, replacement_settings
+    tmp_path, monkeypatch, replacement_settings, attempt
 ):
     # External runtime/inference are stubbed; the planner and retained files are real.
     from nl2sparql.kaggle import bundle, runner
 
     m = driver()
+    if attempt == 2:
+        replacement_settings["campaign_id"] = "test-only-replacement02"
+        replacement_settings["prior_attempts"].append("test-only-replacement01-b2-en-r03")
     monkeypatch.setattr(m.sys, "version_info", (3, 11, 15))
     monkeypatch.setattr(bundle, "preflight_data", lambda _: {"status": "data_ready"})
     monkeypatch.setattr(runner, "preflight_runtime", lambda *_: {"status": "ready"})
@@ -455,8 +463,33 @@ def test_worker_retains_replacement_lineage_before_native_execution(
     assert ledger["parent_campaign_id"] == "test-only"
     assert ledger["replacement_of"] == "test-only-b2-en-r03"
     assert ledger["attempted_run_ids"][:-1] == replacement_settings["prior_attempts"]
-    assert len(set(ledger["attempted_run_ids"])) == 13
+    assert len(set(ledger["attempted_run_ids"])) == 12 + attempt
     assert ledger["scientific_ready"] is False
+
+
+@pytest.mark.parametrize(
+    "mutation", ["missing_first_replacement", "reuse_second", "third", "duplicate", "unreviewed"]
+)
+def test_second_replacement_requires_full_retained_history_before_writes(
+    tmp_path, replacement_settings, mutation
+):
+    m = driver()
+    settings = replacement_settings
+    settings["campaign_id"] = "test-only-replacement02"
+    settings["prior_attempts"].append("test-only-replacement01-b2-en-r03")
+    if mutation == "missing_first_replacement":
+        settings["prior_attempts"].pop()
+    elif mutation == "reuse_second":
+        settings["prior_attempts"].append("test-only-replacement02-b2-en-r03")
+    elif mutation == "third":
+        settings["campaign_id"] = "test-only-replacement03"
+    elif mutation == "duplicate":
+        settings["prior_attempts"].append(settings["prior_attempts"][-1])
+    else:
+        settings["prior_completeness_reviewed"] = False
+    with pytest.raises(ValueError):
+        m.prepare(settings, working=tmp_path)
+    assert not list(tmp_path.iterdir())
 
 
 @pytest.fixture
