@@ -1,0 +1,33 @@
+{
+  "source_native_ledger": "../kaggle-b12-benchmark-b1-vi-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s10-b1-vi-r03/campaign-ledger.json",
+  "verified_complete_native_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03"
+  ],
+  "failed_setup_session_id": "s11-b2-en-r03",
+  "failed_setup_planned_run_id": "b12-envi-20261018-c01-b2-en-r03",
+  "failed_setup_native_ledger_published": false,
+  "failed_setup_id_must_not_be_reused": true,
+  "conservative_next_prior_attempted_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03",
+    "b12-envi-20261018-c01-b2-en-r03"
+  ],
+  "note": "Audit of saved evidence, not a fabricated native campaign-ledger or completeness receipt."
+}

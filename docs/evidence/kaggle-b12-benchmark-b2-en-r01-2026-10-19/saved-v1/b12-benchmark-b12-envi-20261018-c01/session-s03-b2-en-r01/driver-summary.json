@@ -1,0 +1,24 @@
+{
+  "process_cap_seconds": 5400,
+  "scientific_ready": false,
+  "scratch_removed": true,
+  "session_cap_seconds": 7200,
+  "settings": {
+    "allow_env_install": true,
+    "allow_preparation": true,
+    "allow_real_inference": true,
+    "baseline": "b2",
+    "campaign_id": "b12-envi-20261018-c01",
+    "language": "en",
+    "prior_attempts": [
+      "b12-envi-20261018-c01-b1-en-r01",
+      "b12-envi-20261018-c01-b1-vi-r01"
+    ],
+    "prior_completeness_reviewed": true,
+    "replicate": 1,
+    "session_id": "s03-b2-en-r01"
+  },
+  "stage": "native_cli25",
+  "status": "completed_native_process",
+  "wall_seconds": 4098.889343334
+}

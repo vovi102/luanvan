@@ -1,0 +1,9 @@
+{
+  "status": "actual_papermill_failure_reproduced_and_metadata_fix_validated",
+  "original_failure": "No kernel name found in notebook and no override provided.",
+  "fixed_kernel_name": "python3",
+  "cells_unchanged": true,
+  "product_code_changed": false,
+  "source_before_sha256": "a9b35da472875e8b8260db0e1e0cff7c3f6cd88fe0d79c24d68d827af2e6616e",
+  "source_after_sha256": "a09805cde3b1b01d3c9eadf4daf1c8c5655aa3453893075b4510d20364d529e2"
+}

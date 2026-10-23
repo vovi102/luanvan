@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "all_cells_match_submitted_source": true,
+  "private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "input_dataset_verified": true,
+  "cache_source_verified": true,
+  "allow_real_inference_verified_false": true
+}

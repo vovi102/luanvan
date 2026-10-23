@@ -1,0 +1,13 @@
+{
+  "submitted_at_utc": "2026-10-19T12:08:56.380954+00:00",
+  "ref": "/code/aohkvd/nl2sql-b12-benchmark-20261019-b2-en-r01",
+  "url": "https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261019-b2-en-r01",
+  "version": 1,
+  "kernel_id": 139607082,
+  "error": "",
+  "invalid_dataset_sources": [],
+  "invalid_kernel_sources": [],
+  "private_requested": true,
+  "platform_timeout_seconds": 7200,
+  "machine_shape": "NvidiaTeslaT4"
+}

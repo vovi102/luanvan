@@ -1,0 +1,36 @@
+{
+  "status": "offline_requested_retry_prepared",
+  "kernel": "aohkvd/nl2sql-cache-diag-20261023-d04",
+  "diagnostic_only": true,
+  "gpu_requested": false,
+  "internet_requested": false,
+  "model_inference": false,
+  "benchmark_attempt_reserved": false,
+  "verification_cap_seconds": 1620,
+  "platform_cap_seconds": 1800,
+  "heartbeat_seconds": 10,
+  "driver_sha256": "6f72f78d6ae1d5b6d6a56d2f5b527c3bc08da202e6bc306bdb28372a375f192f",
+  "notebook_sha256": "beb5ac5088b5cdedcd5f649eb4084df15ce8ee73e605e68db113d53e4a688cf6",
+  "accepted_verifier_sha256": "91be7869ae7223b93e7ff6c3c7a58589b241161ef7a782351f02e105e86d9218",
+  "native_verifier_modified": false,
+  "pins_and_digest_guards_unchanged": true,
+  "authorization": "User explicitly requested API checks or retry; after metadata-only CPU control succeeded, one bounded CPU cache diagnostic retry with a fresh ref.",
+  "comparison_limit": "Default CPU host/Python differs from the pinned T4 benchmark runtime; cannot alone prove the T4 failure cause or repair.",
+  "purpose": "Identify file/read/open/hash-and-loop bottlenecks with 10s in-flight heartbeats and exact native full-byte checks.",
+  "research_settings_changed": false,
+  "all_existing_failure_evidence_preserved": true,
+  "preceding_diagnostic": "aohkvd/nl2sql-cache-diag-20261023-d01",
+  "successful_control": "aohkvd/nl2sql-cpu-smoke-20261023-d03",
+  "repaired_notebook_metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    }
+  },
+  "notebook_cells_unchanged": true,
+  "diagnostic_driver_unchanged": true,
+  "output_prefix": "cache-diagnostic-d01",
+  "benchmark_retry_authorized": false,
+  "default_cpu_python_observed_in_control": "3.13.15 (main, Aug  6 2026, 11:06:22) [GCC 13.3.0]"
+}

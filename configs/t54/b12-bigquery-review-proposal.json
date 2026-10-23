@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "kind": "T5.4_review_proposal_not_execution_authorization",
+  "allow_bigquery": false,
+  "allow_dry_run": false,
+  "authorization": null,
+  "billing_project": null,
+  "location": null,
+  "project_candidate_from_historical_evidence": "nl2sparql-thesis",
+  "location_candidate_from_historical_evidence": "US",
+  "privacy_review_status": "pending_human_review",
+  "pricing": {
+    "status": "requires_current_review_and_pin",
+    "policy_id": null,
+    "amount_per_tib": null,
+    "source_sha256": null,
+    "historical_reference_only": {
+      "amount_per_tib": "6.25",
+      "billing_increment_bytes": 1048576,
+      "currency": "USD",
+      "minimum_billed_bytes": 10485760,
+      "policy_id": "bigquery-on-demand-usd-us-2026-10-03",
+      "source_sha256": "0997852dca48e55a15eda18843cb825d06a76e94e2fdffaed9ecbea6c3365a04"
+    }
+  },
+  "proposed_limits": {
+    "timeout_seconds": 120,
+    "per_query_byte_cap": 25769803776,
+    "aggregate_byte_cap_per_run": 798863917056,
+    "aggregate_billed_byte_cap_per_run": 798863917056,
+    "estimated_cost_cap_usd_per_run": "4.75",
+    "campaign_processed_byte_cap": 9895604649984,
+    "campaign_billed_byte_cap": 9895604649984,
+    "campaign_estimated_cost_cap_usd": "60.00",
+    "parallel_runs": 1,
+    "automatic_retries": 0,
+    "query_cache": false,
+    "reservation_bytes_per_run": 824633720832,
+    "reservation_usd_per_run": "5.00",
+    "overshoot_reserve_bytes_per_run": 25769803776,
+    "overshoot_reserve_usd_per_run": "0.25"
+  },
+  "historical_budget_basis": {
+    "path": "data/eval/evidence/b0-exec-01.json",
+    "file_sha256": "0cb9d9950a2d3e14289ff010c7dcde5d7211f9bdb9bd2a1483f27c57253c7b33",
+    "gold_cases": 100,
+    "gold_billed_bytes": 559594602496,
+    "max_gold_billed_bytes": 22305308672,
+    "is_current_estimate": false
+  },
+  "execution_scope": {
+    "gold_queries_max": 1200,
+    "predicted_queries_max": 129,
+    "skipped_prediction_cases": 1071,
+    "live_queries_max": 1329,
+    "dry_run_requests_max": 2658,
+    "gold_reuse_across_runs": false,
+    "pool_languages": false,
+    "N_per_run_language": 100,
+    "runs": [
+      {
+        "run_id": "b12-envi-20261018-c01-b1-en-r01",
+        "baseline": "b1",
+        "language": "en",
+        "replicate": 1,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-en-r01.json",
+        "canonical_file_sha256": "69e24108d7f6eb43f1ac4d00f174c9afcc90f58826c851b71d7962d5bb7dda6a",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 0
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b1-en-r02",
+        "baseline": "b1",
+        "language": "en",
+        "replicate": 2,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-en-r02.json",
+        "canonical_file_sha256": "f5dcc629358d2aac60d9ea7b5d141c5dad951be11258c9cabbceccf0331ea926",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 0
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b1-en-r03",
+        "baseline": "b1",
+        "language": "en",
+        "replicate": 3,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-en-r03.json",
+        "canonical_file_sha256": "6164788aeae02910b3b0cd56cfbfbcd273ddeb3ff059afa478a2146c04a12682",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 0
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b1-vi-r01",
+        "baseline": "b1",
+        "language": "vi",
+        "replicate": 1,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-vi-r01.json",
+        "canonical_file_sha256": "5dd0c62d36c2731bae8d9af575f4746a8f436a9d25f35339d5faf199f21bd693",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 0
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b1-vi-r02",
+        "baseline": "b1",
+        "language": "vi",
+        "replicate": 2,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-vi-r02.json",
+        "canonical_file_sha256": "9bd3001f330530a699b8214f828ad89e344ee394ca8742620bafbba95ab115ba",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 0
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b1-vi-r03",
+        "baseline": "b1",
+        "language": "vi",
+        "replicate": 3,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-vi-r03.json",
+        "canonical_file_sha256": "ff2aa01a6796aafbc3a1ac3f1533a15937ee0266a69732a15c8e599ed5f0a0d1",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 0
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b2-en-r01",
+        "baseline": "b2",
+        "language": "en",
+        "replicate": 1,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-en-r01.json",
+        "canonical_file_sha256": "08c3c92aab5e17a94035a1e06c0c5c29378d063be64cb0f05c31ce1b26c59b8d",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 31
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b2-en-r02",
+        "baseline": "b2",
+        "language": "en",
+        "replicate": 2,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-en-r02.json",
+        "canonical_file_sha256": "def4ba47bcd8df2a3d3bbfc68d451a40427b1e00088ed8243bcb0877d9f276e7",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 31
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-replacement02-b2-en-r03",
+        "baseline": "b2",
+        "language": "en",
+        "replicate": 3,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-replacement02-b2-en-r03.json",
+        "canonical_file_sha256": "1e779b5ffdcf237d8443ad0132afbad8fb08c395026aa338e28e9554cd68e53c",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 31
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b2-vi-r01",
+        "baseline": "b2",
+        "language": "vi",
+        "replicate": 1,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-vi-r01.json",
+        "canonical_file_sha256": "23a271ea49af920b5c4c292b964d75e2351ab034a7b944ba88697fad2716d795",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 12
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b2-vi-r02",
+        "baseline": "b2",
+        "language": "vi",
+        "replicate": 2,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-vi-r02.json",
+        "canonical_file_sha256": "0d1123d7d6b5ebb07ed179bcd5e0325a75bc8763f0c7fb79aa013d93ed463b03",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 12
+      },
+      {
+        "run_id": "b12-envi-20261018-c01-b2-vi-r03",
+        "baseline": "b2",
+        "language": "vi",
+        "replicate": 3,
+        "canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-vi-r03.json",
+        "canonical_file_sha256": "76c04dfbfccad64dc40c28920c055983c17be003ef2a1c643fd8a29bae674a76",
+        "gold_queries_max": 100,
+        "predicted_queries_max": 12
+      }
+    ]
+  },
+  "direct_sql_objects_to_review": {
+    "gold": [
+      "block_facts",
+      "contract_dimension",
+      "entity_labels_v1",
+      "token_transfer_facts",
+      "transaction_facts"
+    ],
+    "predicted": [
+      "block_facts",
+      "labeled_token_transfers",
+      "transaction_facts"
+    ],
+    "dataset": "nl2sparql-thesis.nl2sparql_analytics",
+    "transitive_view_tvf_dependencies": "unresolved_offline"
+  },
+  "required_before_any_bigquery_request": [
+    "approve exact billing project and matching dataset location",
+    "approve privacy scope, access, provider policy, private journal/result-hash retention and reviewer identity",
+    "publish four genuine PrivacyReview sidecars (B1/B2 x EN/VI); re-adapt and pin new canonical hashes",
+    "pin current pricing source and review floor/rounding for underlying multi-table TVF/view queries",
+    "approve both gold and predicted scope plus query/run/campaign bytes and USD caps",
+    "approve immutable execution IDs, sequential reservation ledger owner and stop/cancel procedure",
+    "explicitly authorize dry-runs and live execution against final configuration hash"
+  ],
+  "campaign_budget_mechanism": {
+    "status": "manual_reservation_required_not_implemented_by_CLI19",
+    "rule": "reserve full 768 GiB processed + 768 GiB billed + USD 5 before each serial run, with CLI guards at 744 GiB and USD 4.75; no automatic release; reserve 24 GiB/USD 0.25 for one final job overshoot",
+    "stop_on": [
+      "gold_failure",
+      "policy_breach",
+      "unresolved_billing",
+      "timeout_or_unknown_cancel",
+      "missing_terminal_journal",
+      "missing_budget_reservation",
+      "user_stop"
+    ],
+    "after_stop": "retain submission IDs; reconcile status and billing read-only only after authorization; no retry or next run",
+    "pricing_precondition": "pinned conservative cost for one maximum-24-GiB query including reviewed billing floors must be <= USD 0.25; otherwise stop for a revised proposal",
+    "limitation": "CLI aggregate guards can detect overshoot after a submitted job; server maximum_bytes_billed bounds that final job; no invoice-level campaign cap is implemented"
+  },
+  "execution_commands_enabled": false
+}

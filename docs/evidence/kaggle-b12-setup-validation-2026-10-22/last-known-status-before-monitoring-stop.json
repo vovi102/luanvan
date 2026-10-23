@@ -1,0 +1,15 @@
+{
+  "checked_at_utc": "2026-10-22T14:06:09.925862+00:00",
+  "ref": "aohkvd/nl2sql-b12-setup-validation-20261022-v02",
+  "version": 1,
+  "status": "RUNNING",
+  "private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "kernel_sources": [
+    "aohkvd/nl2sql-environment-cache"
+  ],
+  "gpu_used_hours": 10.115396259722221,
+  "gpu_reserved_hours": 0.0,
+  "gpu_remaining_hours": 19.884603740277775
+}

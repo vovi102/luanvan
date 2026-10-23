@@ -1,0 +1,14 @@
+{
+  "submitted_at_utc": "2026-10-23T13:30:33.314312+00:00",
+  "ref": "/code/aohkvd/nl2sql-cache-diag-20261023-d04",
+  "url": "https://www.kaggle.com/code/aohkvd/nl2sql-cache-diag-20261023-d04",
+  "version": 1,
+  "kernel_id": 140398078,
+  "error": "",
+  "invalid_dataset_sources": [],
+  "invalid_kernel_sources": [],
+  "private_requested": true,
+  "gpu_requested": false,
+  "internet_requested": false,
+  "platform_timeout_seconds": 1800
+}

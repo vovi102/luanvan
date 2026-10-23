@@ -1,0 +1,12 @@
+{
+  "allow_env_install": true,
+  "allow_preparation": true,
+  "allow_real_inference": false,
+  "baseline": "b1",
+  "campaign_id": "b12-setup-20261022-v02",
+  "language": "en",
+  "prior_attempts": [],
+  "prior_completeness_reviewed": false,
+  "replicate": 1,
+  "session_id": "validate-setup-v02"
+}

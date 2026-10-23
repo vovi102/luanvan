@@ -1,0 +1,17 @@
+{
+  "batch_size": 1,
+  "campaign_id": "b12-envi-20261018-c01",
+  "do_sample": false,
+  "encoder_id": "sentence-transformers/all-MiniLM-L6-v2",
+  "encoder_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+  "hf_home": "/kaggle/input/notebooks/aohkvd/nl2sql-environment-cache/hf-home",
+  "language": "en",
+  "load_in_4bit": true,
+  "max_new_tokens": 512,
+  "model_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+  "model_revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2",
+  "replicates": 3,
+  "run_timeout_seconds": 5400,
+  "schema_version": 1,
+  "seed": 42
+}

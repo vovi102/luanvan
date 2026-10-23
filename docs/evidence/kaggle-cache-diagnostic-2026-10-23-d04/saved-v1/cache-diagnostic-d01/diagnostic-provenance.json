@@ -1,0 +1,17 @@
+{
+  "benchmark_attempt_reserved": false,
+  "bundle_sha256": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+  "comparison_limit": "CPU host/default Python; differs from pinned T4 benchmark runtime",
+  "inference": false,
+  "inventory_sha256": "ae3b7dc2361f151bcc59d68f4b2ddcdef74b99a5fe8374b041190bded84d84f1",
+  "logical_cpus": 4,
+  "model_loaded": false,
+  "network_enabled": false,
+  "pins_sha256": "6f72c03fe03c379b1ed0844192ef17c94cb60e908c5269f0e49750a32f04998a",
+  "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+  "python": "3.13.15 (main, Aug  6 2026, 11:06:22) [GCC 13.3.0]",
+  "scientific_ready": false,
+  "script_sha256": "91be7869ae7223b93e7ff6c3c7a58589b241161ef7a782351f02e105e86d9218",
+  "started_at_utc": "2026-10-23T13:30:49.223938+00:00",
+  "weights_copied": false
+}

@@ -1,0 +1,12 @@
+{
+  "benchmark_attempt_reserved": false,
+  "diagnostic_only": true,
+  "finished_at_utc": "2026-10-23T13:33:52.209119+00:00",
+  "inference": false,
+  "model_loaded": false,
+  "returncode": 0,
+  "scientific_ready": false,
+  "status": "completed_cache_diagnostic",
+  "verification_cap_seconds": 1620,
+  "wall_seconds": 185.168761179
+}

@@ -1,0 +1,29 @@
+{
+  "status": "genuine_cpu_runtime_and_output_control_complete",
+  "files_verified": 3,
+  "cpu_python": "3.13.15 (main, Aug  6 2026, 11:06:22) [GCC 13.3.0]",
+  "gpu_requested": false,
+  "internet_requested": false,
+  "no_input_attachments": true,
+  "missing_kernelspec_fix_remote_execution_validated": true,
+  "kaggle_runtime_and_output_persistence_worked": true,
+  "cache_verification_performed": false,
+  "T4_setup_issue_resolved": false,
+  "model_loaded": false,
+  "benchmark_attempt_reserved": false,
+  "scientific_ready": false,
+  "saved_files": {
+    "started.json": {
+      "bytes": 224,
+      "sha256": "a7475d58e57fc125f23225d40ecd17d047e06f7caf4c5b350e6ae012903925b5"
+    },
+    "complete.json": {
+      "bytes": 271,
+      "sha256": "7af377898706b6865c283d453c2bb82f739508b2964bbba417b762f997a76282"
+    },
+    "heartbeat.jsonl": {
+      "bytes": 36,
+      "sha256": "2be0f3b2dcd95a156d227138df46c74349e658038a8957b12c9172bd473dff32"
+    }
+  }
+}

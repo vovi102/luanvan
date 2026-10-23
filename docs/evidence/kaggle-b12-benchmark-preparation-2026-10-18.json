@@ -1,0 +1,130 @@
+{
+  "artifact_manifest": "kaggle-b12-benchmark-preparation-2026-10-18/artifacts-manifest.json",
+  "base_contains_pr": 32,
+  "base_main_commit": "ef3b66d",
+  "bigquery_jobs": 0,
+  "branch": "feat/b12-benchmark-preparation",
+  "budget_proposal": {
+    "fresh_remaining_gpu_hours": null,
+    "native_process_seconds": 5400,
+    "quota_charge_multiplier": null,
+    "reserve_session_hours": 3,
+    "session_hours_cap": 24,
+    "session_seconds": 7200,
+    "sessions": 12,
+    "setup_cache_seconds": 1200,
+    "t4x2_physical_device_hours_including_reserve": 54,
+    "total_proposed_session_hours": 27
+  },
+  "credentials_read": false,
+  "date": "2026-10-18",
+  "execution_authorized": false,
+  "fresh_verification": {
+    "accepted_archive": {
+      "current_checkout_matches_release_payloads": 180,
+      "native_and_driver_extraction": "passed",
+      "only_changed_release_payload": "docs/planning/kaggle-b12-runbook-2026-10-16.md",
+      "payload_files": 181,
+      "sha256": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+      "tar_members": 182
+    },
+    "focused": {
+      "command": "PYTHONPATH=src /home/khoavd/WORKSPACE/LuanVan/.venv/bin/python -m pytest -q tests/unit/test_kaggle_benchmark_preparation.py",
+      "exit_code": 0,
+      "passed": 16,
+      "seconds": 17.13
+    },
+    "full_suite": {
+      "command": "PYTHONPATH=src /home/khoavd/WORKSPACE/LuanVan/.venv/bin/python -m pytest -q",
+      "exit_code": 0,
+      "passed": 1590,
+      "seconds": 702.88,
+      "warnings": 342
+    },
+    "git_diff_check": "passed",
+    "native_data_preflight": {
+      "catalog_sha256": "db8393aa7258d1331387eff9825e22ca729daf93234419f00d7dd538196cb3dd",
+      "english_records": 100,
+      "execution_languages": [
+        "en",
+        "vi"
+      ],
+      "scientific_ready": false,
+      "status": "data_ready",
+      "summary_sha256": "03909790d7d25b6512bf2610cb3912c444ee9d7d5695c17bf93368ea87665daf",
+      "training_records": 7208,
+      "training_sha256": "b6440c0b281a270907d8dd5b8d11cdd1506ce125ae465aa63ee66963e0dd4835",
+      "vietnamese_execution": "typed_paired_finalized_consumer",
+      "vietnamese_records": 100
+    },
+    "native_plan": {
+      "cases_per_process": 100,
+      "language_and_cache_isolated": true,
+      "not_executed": true,
+      "per_baseline_language": 3,
+      "per_language": 6,
+      "processes": 12
+    },
+    "notebook": {
+      "compiled_cells": 3,
+      "default_cells_executed_under_guards": true,
+      "embedded_source_matches": true,
+      "nbformat_valid": true
+    },
+    "offline_guard": {
+      "credential_reads": 0,
+      "model_provider_imports": 0,
+      "network_attempts": 0,
+      "scope": "accepted unpack/data preflight/planning; Python instrumentation, not OS sandbox",
+      "subprocess_attempts": 0
+    },
+    "ruff_lint_and_format": "passed"
+  },
+  "genuine_benchmark_evaluation": false,
+  "gpu_inference": false,
+  "kaggle_sessions_started": 0,
+  "kaggle_uploads": 0,
+  "model_or_encoder_downloaded_or_loaded": false,
+  "notebook_defaults": {
+    "allow_env_install": false,
+    "allow_preparation": false,
+    "allow_real_inference": false
+  },
+  "old_smoke_worktree_preserved": true,
+  "quota_rechecked": false,
+  "remaining_before_execution": [
+    "campaign/session identities",
+    "private notebook and immutable attachment versions",
+    "cumulative attempt ledger and output archival owner",
+    "fresh quota and charging units, platform session/storage limits",
+    "caps and total GPU budget approval",
+    "explicit upload/install/inference authorization"
+  ],
+  "review": "author self-review; user prohibited subagents",
+  "schema_version": 1,
+  "scientific_ready": false,
+  "scientific_remaining": [
+    "12 genuine full native processes and latency acceptance",
+    "T5.4 canonical adaptation",
+    "privacy and cost evidence",
+    "separately authorized and budgeted BigQuery execution/comparison",
+    "language-compatible control evidence; B0 existing artifact is English only"
+  ],
+  "source_sha256": {
+    "configs/kaggle-b12-benchmark-campaign.json": "e72d22cacb8620bc0556f2428661c0b52a0b6ea36cc92e12307aa835967a3228",
+    "notebooks/16_kaggle_b12_benchmark.ipynb": "560c53e46da18b52adf7ba15c1b1cb478d3ece86dcb73d3dda6d1f13ee8c5fe3",
+    "scripts/27_kaggle_b12_benchmark.py": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7",
+    "tests/unit/test_kaggle_benchmark_preparation.py": "c3b273380ee78bc4aa313c42acfe2b71b43465c192ccc835e8f38a0f51fd5542"
+  },
+  "status": "offline_preparation_complete",
+  "subagents_spawned": false,
+  "training": false,
+  "unsuccessful_checkpoints": [
+    "initial RED: five missing/default-side-effect failures",
+    "completeness RED: report baseline mismatch not rejected (one failed, five passed)",
+    "current-doc rebuild differs from accepted release SHA; unpack rejected and dependent preflight absent",
+    "plan log parser rejected interleaved stdout/stderr; final separate-stream matrix validation passed",
+    "one interrupted full-suite checkpoint, not counted as a full pass"
+  ],
+  "worktree": "/home/khoavd/WORKSPACE/LuanVan/.worktrees/b12-benchmark-preparation"
+}

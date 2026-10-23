@@ -1,0 +1,14 @@
+{
+  "full_suite_exit_code": 0,
+  "full_suite_passed": 1602,
+  "full_suite_warnings": 342,
+  "full_suite_seconds": 758.87,
+  "full_suite_summary": "1602 passed, 342 warnings in 758.87s (0:12:38)",
+  "full_suite_log_sha256": "ec679341171e7efd40dca6f6f028eb8033329757a8e42a546733b8d3c0f25a85",
+  "focused_tests_passed": 28,
+  "focused_tests_seconds": 16.79,
+  "ruff_check_passed": true,
+  "ruff_format_passed": true,
+  "notebook_schema_and_disabled_defaults_verified": true,
+  "driver_sha256": "57eacba9b110b82f7a09c384794181b2a8f11222da69f9ec487c9dfe6ca38b9a"
+}

@@ -1,0 +1,102 @@
+{
+  "api-submitted-v1.json": {
+    "bytes": 439,
+    "sha256": "53db3ede116d463122ba09441f68706ba28766776b6d6102c973e1b3cefb38b9"
+  },
+  "current-status.json": {
+    "bytes": 351,
+    "sha256": "6e5da17c6b2644b4a83a83e58be65da03a639e8856bea79ddbb3576743bbe0d8"
+  },
+  "deploy/kernel-metadata.json": {
+    "bytes": 481,
+    "sha256": "5b5624ce616877f624f88e63b278f6c14f0712eb457e503e6a4c9ece45dd9997"
+  },
+  "deploy/nl2sql-cache-diag-20261023-d04.ipynb": {
+    "bytes": 15163,
+    "sha256": "beb5ac5088b5cdedcd5f649eb4084df15ce8ee73e605e68db113d53e4a688cf6"
+  },
+  "diagnostic_driver.py": {
+    "bytes": 12139,
+    "sha256": "6f72f78d6ae1d5b6d6a56d2f5b527c3bc08da202e6bc306bdb28372a375f192f"
+  },
+  "download-record.json": {
+    "bytes": 887,
+    "sha256": "2af9bb46e72ce67a5d72cb81cc192fb32e4eb7fcfb252e13e292a65e4ab26c92"
+  },
+  "export_saved.py": {
+    "bytes": 2435,
+    "sha256": "459c16a20d4517e8e24e55e86c685f8985b1fd5cf8be20918eea1add21305dae"
+  },
+  "launch_once.py": {
+    "bytes": 3816,
+    "sha256": "1a7b13eb1edcdf8fa0044a4837a6ba1978ec727e13c30cbec8e8186bd780406c"
+  },
+  "offline-retry-check.json": {
+    "bytes": 321,
+    "sha256": "a963cbeb89c5d596c7a83032e0bad605c6c2bbd8073d15700a030c389c2ab8e2"
+  },
+  "poll.py": {
+    "bytes": 1824,
+    "sha256": "080f1a56a871a21404eeef5b0136bf16c06525cb03cda860849ea018c92ff9ce"
+  },
+  "prepare_retry.py": {
+    "bytes": 3893,
+    "sha256": "5ff351d8904bed67ebe427d5e55d90db517a2a6b9808fcf8ea6a9aff9acffccc"
+  },
+  "quota-and-state-before.json": {
+    "bytes": 527,
+    "sha256": "0de87de605eaf7cb7c0346a67aca2b2d51ecc7408ee55643503717bf2d67fd78"
+  },
+  "saved-v1/cache-diagnostic-d01/artifacts-manifest.json": {
+    "bytes": 938,
+    "sha256": "90bbedb942ca1e3f364e6299012ce001b12f77427cd0a2f3b7f1d41511fb519a"
+  },
+  "saved-v1/cache-diagnostic-d01/cache-progress.jsonl": {
+    "bytes": 48331,
+    "sha256": "a726e3717e6f132c5133ae3f3eed8ad2cdad1e959374f96c79e138f32981b101"
+  },
+  "saved-v1/cache-diagnostic-d01/diagnostic-driver.py": {
+    "bytes": 12139,
+    "sha256": "6f72f78d6ae1d5b6d6a56d2f5b527c3bc08da202e6bc306bdb28372a375f192f"
+  },
+  "saved-v1/cache-diagnostic-d01/diagnostic-provenance.json": {
+    "bytes": 810,
+    "sha256": "fadd3b4ea56f888407f9c35b2648f1ea43ee0ac866f16e647476492304d8b066"
+  },
+  "saved-v1/cache-diagnostic-d01/diagnostic-settings.json": {
+    "bytes": 328,
+    "sha256": "17fc52d05974a5b8bf9179f5f31a41963f9beb5eca53697324724d682182eeff"
+  },
+  "saved-v1/cache-diagnostic-d01/diagnostic-summary.json": {
+    "bytes": 332,
+    "sha256": "2c08292427dc16521d188aac9e8c6a4c9fd592f49241e2792fad18100383427f"
+  },
+  "saved-v1/cache-diagnostic-d01/native-cache-receipt.json": {
+    "bytes": 823,
+    "sha256": "7ec63365dd77d76238a0c243661e4ce13bae7a4e61b2c31095f620177bed09ea"
+  },
+  "saved-v1/cache-diagnostic-d01/worker.log": {
+    "bytes": 57,
+    "sha256": "0ea10a3f781f95358b2ab5a4541ee7a2f870b6e4c26f8e88584f010fa9709467"
+  },
+  "status-history.jsonl": {
+    "bytes": 979,
+    "sha256": "416a10b48cb723b5ea132462d73e5ec1b1372df17ce96039cd9aba1e0be304e6"
+  },
+  "submission-intent.json": {
+    "bytes": 137,
+    "sha256": "bb020d3c7c5abdc6f20b435dd2853fa9d36a8e03036da697c3b95a3ac0a5066b"
+  },
+  "submission-plan.json": {
+    "bytes": 1777,
+    "sha256": "3e39049814e6529971f7d6a9aa17df019ce46b57d95df18a8d16aa98167a8a0d"
+  },
+  "verified-result.json": {
+    "bytes": 8970,
+    "sha256": "8a5a2a8988f285d3bc35f747a17cc1a7b181cb06564f68a171027362cdeb52b9"
+  },
+  "verify_saved.py": {
+    "bytes": 4940,
+    "sha256": "63b96ed24c16000beeb6c606df1b38fa1ccffa5652e7c3700401b0458146c587"
+  }
+}

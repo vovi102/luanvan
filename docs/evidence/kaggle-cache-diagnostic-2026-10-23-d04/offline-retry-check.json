@@ -1,0 +1,8 @@
+{
+  "status": "papermill_metadata_repair_and_control_validated",
+  "original_diagnostic_lacks_kernel": true,
+  "fixed_kernel_name": "python3",
+  "source_cells_unchanged": true,
+  "diagnostic_driver_unchanged": true,
+  "control_verified_result_sha256": "d6bc56a8dad7dc1d709d0c1646b849232e851c759b1dbee141472d3fc6bf698c"
+}

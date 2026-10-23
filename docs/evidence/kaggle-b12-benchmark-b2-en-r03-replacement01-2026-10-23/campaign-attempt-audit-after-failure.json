@@ -1,0 +1,44 @@
+{
+  "status": "retained_evidence_audit_not_native_campaign_ledger",
+  "native_successes_verified": 11,
+  "native_replicates_per_baseline_language": {
+    "b1_en": 3,
+    "b1_vi": 3,
+    "b2_en": 2,
+    "b2_vi": 3
+  },
+  "original_failed_setup": {
+    "planned_run_id": "b12-envi-20261018-c01-b2-en-r03",
+    "native_inference_started": false,
+    "cases_generated": 0,
+    "evidence": "docs/evidence/kaggle-b12-benchmark-b2-en-r03-2026-10-21.json"
+  },
+  "replacement_failed_setup": {
+    "run_id": "b12-envi-20261018-c01-replacement01-b2-en-r03",
+    "native_inference_started": false,
+    "cases_generated": 0
+  },
+  "setup_failures": 2,
+  "total_attempted_ids": 13,
+  "conservative_attempted_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03",
+    "b12-envi-20261018-c01-b2-en-r03",
+    "b12-envi-20261018-c01-b2-vi-r03",
+    "b12-envi-20261018-c01-replacement01-b2-en-r03"
+  ],
+  "no_native_ledger_fabricated": true,
+  "failed_ids_must_not_be_reused": true,
+  "scientific_campaign_complete": false,
+  "native_execution_accuracy_evaluated": false,
+  "english_vietnamese_pooled": false,
+  "automatic_retry_performed": false
+}

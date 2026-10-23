@@ -1,0 +1,1 @@
+{"initial_check":"five distinct semantic families per selection","outcome":"invalid auditor assumption; original retriever guarantees five eligible examples, not family diversity","source":"src/nl2sparql/models/b12/retrieval.py:retrieve","corrected_check":"five distinct training record IDs, unchanged selected examples and native artifacts"}

@@ -1,0 +1,17 @@
+{
+  "source_commit": "8194926",
+  "kernel": "aohkvd/nl2sql-b12-benchmark-20261018-b1-en-r01",
+  "campaign_id": "b12-envi-20261018-c01",
+  "session_id": "s01-b1-en-r01",
+  "run_id": "b12-envi-20261018-c01-b1-en-r01",
+  "baseline": "b1",
+  "language": "en",
+  "replicate": 1,
+  "cases": 100,
+  "notebook_sha256": "f886761c0f7b8966de27438f6edc5d63db35c19bd13d194544b58507c6e6dbf4",
+  "driver_sha256": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7",
+  "native_cap_seconds": 5400,
+  "platform_session_cap_seconds": 7200,
+  "only_changes_from_disabled_notebook": "settings cell",
+  "authorization": "user explicitly approved private upload and first full B1 EN r01 after quota check; no remaining campaign processes authorized"
+}

@@ -1,0 +1,58 @@
+{
+  "session-validate-setup-v02/benchmark-driver.py": {
+    "bytes": 21322,
+    "sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de"
+  },
+  "session-validate-setup-v02/campaign-plan.json": {
+    "bytes": 29805,
+    "sha256": "be56c40598c94479019c0b4432fa294430235370ccb7cd0c23a72ebcabf0a90a"
+  },
+  "session-validate-setup-v02/create_python311.log": {
+    "bytes": 206,
+    "sha256": "ba2b71de673f3a14eec175d58a2c0350b3e87267a66c28ebd81cba92fe0afcad"
+  },
+  "session-validate-setup-v02/data-preflight.json": {
+    "bytes": 518,
+    "sha256": "2380d19df60cae8c067aad5ebe16df524705f64b59d96548932a53a889dadbab"
+  },
+  "session-validate-setup-v02/driver-summary.json": {
+    "bytes": 650,
+    "sha256": "d18d2a3e9b703d34434347be739abc7f6bdf7d1d83fec9fedc4ed3ec9e6eb3da"
+  },
+  "session-validate-setup-v02/input-provenance.json": {
+    "bytes": 832,
+    "sha256": "136d3faa3deda4429a114208588c5cf7964e8776ae18b46e8f4f142921663a73"
+  },
+  "session-validate-setup-v02/install_bootstrap.log": {
+    "bytes": 450,
+    "sha256": "71af86a422d54b2b4d8f8c372c8c83f70da9eba9e065588f7ebaa3054fa2f79e"
+  },
+  "session-validate-setup-v02/install_locked_environment.log": {
+    "bytes": 7864,
+    "sha256": "3be4b9de004461b60d4c026419f34b59cf15087c90c2b24b02cd28019fd1f049"
+  },
+  "session-validate-setup-v02/run-config.json": {
+    "bytes": 564,
+    "sha256": "45a0dc63cd4a33b63340c42f5521f05baf4fe62a16d8860fc4a6a11cf5831f5d"
+  },
+  "session-validate-setup-v02/runtime-preflight.json": {
+    "bytes": 1003,
+    "sha256": "8aa2e201ef149f53a89780345e1b646dd7b81fadae92e3c991e82d67abd0f004"
+  },
+  "session-validate-setup-v02/settings.json": {
+    "bytes": 297,
+    "sha256": "06c91623b5e591cebae87a5daa4528f06f5d9ce927161103cc98087d4de2a47f"
+  },
+  "session-validate-setup-v02/stage-timings.jsonl": {
+    "bytes": 2402,
+    "sha256": "35d55ef73eb512d50664dd94433b9d9327371a0e6b7d8181ff72daabb206c90f"
+  },
+  "session-validate-setup-v02/verify_mounted_cache.log": {
+    "bytes": 741,
+    "sha256": "6fcab3abf919a7f7b671511b4879aa9ad54e27f9ec6487fd3638f29e1e2c21fe"
+  },
+  "session-validate-setup-v02/worker.log": {
+    "bytes": 27,
+    "sha256": "4283d298a67aa750b1f9e0fafba76b96cc0cc8d2b93375f47514badf8f1b398a"
+  }
+}

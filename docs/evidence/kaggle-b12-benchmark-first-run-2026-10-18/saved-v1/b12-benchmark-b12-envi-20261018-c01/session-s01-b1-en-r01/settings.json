@@ -1,0 +1,12 @@
+{
+  "allow_env_install": true,
+  "allow_preparation": true,
+  "allow_real_inference": true,
+  "baseline": "b1",
+  "campaign_id": "b12-envi-20261018-c01",
+  "language": "en",
+  "prior_attempts": [],
+  "prior_completeness_reviewed": false,
+  "replicate": 1,
+  "session_id": "s01-b1-en-r01"
+}

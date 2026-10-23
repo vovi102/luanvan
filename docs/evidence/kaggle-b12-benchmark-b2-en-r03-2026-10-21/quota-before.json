@@ -1,0 +1,27 @@
+{
+  "checked_at_utc": "2026-10-21T16:26:32.633697+00:00",
+  "gpu_used_hours": 9.646052777777777,
+  "gpu_reserved_hours": 0.0,
+  "gpu_total_hours": 30.0,
+  "gpu_remaining_hours": 20.353947222222224,
+  "is_pay_to_scale_enabled": false,
+  "authorized_session_cap_seconds": 7200,
+  "conservative_two_device_hours_required": 4,
+  "prior_statuses": {
+    "nl2sql-b12-benchmark-20261018-b1-en-r01": "COMPLETE",
+    "nl2sql-b12-benchmark-20261018-b1-vi-r01": "COMPLETE",
+    "nl2sql-b12-benchmark-20261019-b2-en-r01": "COMPLETE",
+    "nl2sql-b12-benchmark-20261019-b2-vi-r01": "COMPLETE",
+    "nl2sql-b12-benchmark-20261020-b1-en-r02": "COMPLETE",
+    "nl2sql-b12-benchmark-20261020-b1-vi-r02": "COMPLETE",
+    "nl2sql-b12-benchmark-20261020-b2-en-r02": "COMPLETE",
+    "nl2sql-environment-cache": "COMPLETE",
+    "nl2sql-b12-benchmark-20261021-b2-vi-r02": "COMPLETE",
+    "nl2sql-b12-benchmark-20261021-b1-en-r03": "COMPLETE",
+    "nl2sql-b12-benchmark-20261021-b1-vi-r03": "COMPLETE"
+  },
+  "cache_version": 5,
+  "cache_private_complete": true,
+  "matching_kernel_exists": false,
+  "prior_result_commit": "84b0f2a"
+}

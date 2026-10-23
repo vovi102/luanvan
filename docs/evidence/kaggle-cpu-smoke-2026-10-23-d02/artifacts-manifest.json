@@ -1,0 +1,54 @@
+{
+  "api-submitted-v1.json": {
+    "bytes": 372,
+    "sha256": "a7c6dce5acc93437799135a006e0ed6694beaa08dd147dc1d0e9ee32f5dc5d59"
+  },
+  "current-status.json": {
+    "bytes": 3805,
+    "sha256": "702fd54fa54b3576a41f44824dc74a5621881ca4381352e2632ac4e6ece2fb07"
+  },
+  "deploy/kernel-metadata.json": {
+    "bytes": 399,
+    "sha256": "539ff376123aca3ee808c382bce86c86ca645db4468d5fab2c7ab709f7255704"
+  },
+  "deploy/nl2sql-cpu-smoke-20261023-d02.ipynb": {
+    "bytes": 1506,
+    "sha256": "a9b35da472875e8b8260db0e1e0cff7c3f6cd88fe0d79c24d68d827af2e6616e"
+  },
+  "export_saved.py": {
+    "bytes": 2427,
+    "sha256": "53f714f38243c197d4822774a30264cfb04ed18418810fe6506a011037960c39"
+  },
+  "platform-events.json": {
+    "bytes": 3662,
+    "sha256": "99f3ba67c4c731317b7806f26b6955debd85357aff4ca563c95d4d62ca1a47e6"
+  },
+  "platform.log": {
+    "bytes": 1892,
+    "sha256": "b5cd85ebe9c537cd243307456b992a4a5b0cebd27ad05c81c382004d3495fefa"
+  },
+  "poll.py": {
+    "bytes": 1899,
+    "sha256": "bf315d9391b0ecaeb0f2d30defeb1a11fbf9d72aeda3af34d30e826d0fe09561"
+  },
+  "prepare.py": {
+    "bytes": 3020,
+    "sha256": "28a75d869602ebb7f7a7b6595722c17476d8917b7cb1187d4bf5d53e469df316"
+  },
+  "status-history.jsonl": {
+    "bytes": 4005,
+    "sha256": "6668d53c7f10ac38636b6664387d45cd26e5f837e51c2175084879e469a11001"
+  },
+  "submission-intent.json": {
+    "bytes": 131,
+    "sha256": "7cb090036567ef01f5c178444edec4e31a41ba001d2f642241e611f526405aad"
+  },
+  "submission-plan.json": {
+    "bytes": 606,
+    "sha256": "e853762d3d8eecc86415ad0d69509070b07973702c196e2f0b86455929fc3e78"
+  },
+  "submit_once.py": {
+    "bytes": 1698,
+    "sha256": "36801502471cceef3301b2b02eb63d7d1b7974b82a0cf0003f46c8de9db5f88c"
+  }
+}

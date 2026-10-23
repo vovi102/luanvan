@@ -30,10 +30,10 @@ schema/entity/class linking.
 | T3.4 | Superseded | Không sinh noise dataset riêng |
 | T3.5 | English và Vietnamese finalized; VI có 100 user ACCEPT events, điểm 5/5/5/1 | Giữ snapshots immutable; VI reuse exact English live evidence, zero new BigQuery jobs |
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
-| T5.1/B0 | Genuine negative result hoàn tất (`0/100`) | Giữ làm lower bound, không tune trên test set |
+| T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | Typed runner/cache hoàn tất; T4 smoke v2 COMPLETE, 10 genuine non-test processes, không OOM | 12 genuine benchmark processes còn pending; smoke latency vượt target, B1 5 unsafe_sql |
-| B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; genuine runs vẫn pending |
+| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 11/12 native processes complete; all original slots attempted; B2 EN r03 setup ERROR, replacement decision pending. B1 VI r03: 100 unsafe, P95 31.101s. B1 EN r03: 99 unsafe / 1 invalid, P95 45.922s. B2 VI r02: 12 ok / 88 prose, P95 72.962s. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
+| B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
 | T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
 | T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
 | Phase 6–7 | Ticket cũ còn SPARQL | Redesign sang NL2SQL trước khi implement |
@@ -67,8 +67,11 @@ schema/entity/class linking.
    Kaggle version 5 đã xác minh; full Python 3.11.15 environment đã cài thành công
    ở phiên riêng. Non-test T4 smoke v2 đã COMPLETE, 10/10 genuine processes,
    không OOM. Giữ negative observations: median generation B1 20,95s/B2 20,01s
-   vượt target, B1 5 unsafe_sql; không tune theo output. Chốt campaign/wall-time
-   cap và quota mới trước 12 genuine benchmark processes; publish native artifacts.
+   vượt target, B1 5 unsafe_sql; không tune theo output. Notebook benchmark 16 và
+   [campaign offline](kaggle-b12-benchmark-campaign-2026-10-18.md) đã chuẩn bị;
+   chốt campaign/caps/budget và quota mới trước khi cho phép 12 genuine processes.
+   B1 EN và VI r01 đã COMPLETE (mỗi ngôn ngữ 100/100 genuine); 10 process
+   còn lại chưa khởi chạy. Giữ native outputs/blockers nguyên trạng.
    Ba compatible process runs cho mỗi (baseline, language): EN+VI tổng 12 processes.
    VI đã có typed paired consumer và source-bound native/T5.4 artifacts; metric N=100
    riêng mỗi language, không pooling. [Offline handoff](../research/b12-bilingual-consumer-2026-10-16.md).
@@ -197,3 +200,348 @@ BF16/4-bit, no OOM. Generation medians: B1 20.95s, B2 20.01s. B1 extraction:
 5 unsafe_sql; B2: 5 ok, without correctness evaluation. Compatibility smoke
 passed; latency acceptance and 12 benchmark processes remain open. Post-run
 quota snapshot: 29.76h GPU remaining; recheck before use. No new BigQuery job.
+
+### 2026-10-18 — benchmark campaign prepared offline
+
+[Campaign and operational controls](kaggle-b12-benchmark-campaign-2026-10-18.md):
+notebook 16 is disabled by default, reuses smoke-v2 setup and cache v5 read-only,
+and schedules one full 100-case native process per selected session. Full matrix:
+B1/B2 × EN/VI × 3 = 12 processes; N=100 per language. Proposed 90m/process,
+120m/session, 24 GPU-session-hours plus 3h contingency; fresh quota, charge unit,
+IDs and execution authorization remain unresolved. First genuine process remains
+full N=100; only runtime/artifact completeness guides continuation. No upload,
+GPU inference, new Kaggle session or BigQuery job in this preparation turn.
+T5.4 canonical adaptation/privacy/cost and separate BigQuery budget remain pending.
+B0 0/100 is English only; no Vietnamese control is inferred.
+
+### 2026-10-18 — first full B1 EN process authorized and submitted
+
+User authorized only B1 EN r01, all 100 cases, 90m native / 120m session after
+fresh quota check (29.76275h available, no reserved quota, pay-to-scale off).
+Private notebook v1 is RUNNING; actual inference/hardware/completeness are not yet
+verified. No remaining campaign process is authorized by this launch. Preserve
+all results; no tuning/retry based on SQL validity or accuracy.
+[Live-run checkpoint](../research/kaggle-b12-benchmark-first-run-2026-10-18.md).
+
+### 2026-10-18 — first full B1 EN process complete and verified
+
+Private v1 COMPLETE; 100/100 genuine completions, N=100 EN, Tesla T4 ×2,
+original BF16/4-bit, Python 3.11.15 / torch 2.5.1+cu124. All 22 saved files
+retained; 21 driver-manifest entries plus report/source/identity checks pass.
+Native 47.00m; driver 56.11m; platform observed COMPLETE about 65m after submit.
+B1 extraction: 99 unsafe_sql, 1 invalid_sql, zero ok; no repair/retry. P50
+25.457s / P95 49.107s fails unchanged latency gate. Native review/live aggregate
+flags also remain blocked; audit confirms all loader cases carry trusted human/live
+authority. No flags/reports/semantics were changed.
+
+Settled quota remaining 28.82212h, observed account delta 0.94063h. Exactly one
+process executed; remaining 11 have not started. Runtime/artifact completeness
+review passes; scientific completion, T5.4 canonical/privacy/cost and separate
+BigQuery work remain pending.
+[Result and audit](../research/kaggle-b12-benchmark-first-run-2026-10-18.md).
+
+### 2026-10-18 — next scheduled B1 VI r01 submitted after continuation
+
+User said continue after EN r01 completion. EN result/evidence committed at
+`3b93dd1`; its runtime/artifact review passes. Fresh quota 28.82212h, no reserved
+quota, pay-to-scale off. At the submission checkpoint, private B1 VI r01 v1 was RUNNING from 21:52, full N=100,
+same 90m native / 120m session caps and unchanged research/flags. Prior EN
+attempt carried in cumulative ledger. This is a single-process continuation;
+whole remaining-campaign budget is not inferred. No new BigQuery execution or
+Vietnamese B0 control is implied.
+[VI checkpoint](../research/kaggle-b12-benchmark-b1-vi-r01-2026-10-18.md).
+
+### 2026-10-19 — B1 VI r01 saved outputs verified
+
+Existing private v1 is COMPLETE. All 22 saved files retained; 21 driver-manifest
+hashes plus native report self-digest pass. Verified all 100 genuine completions,
+original Vietnamese questions/typed paired lineage, pinned model/environment,
+T4 ×2 hardware, cache/data gates, single-session run and cumulative EN/VI ledger.
+Native process 37.17m, driver 46.11m. VI N=100: 100 unsafe_sql, 0 extraction ok,
+P50 20.461s, P95 30.376s. Scientific gates remain blocked; no SQL execution
+accuracy, new BigQuery, repair, retry or research change is claimed.
+Quota remaining on return 28.046782h; observed account delta 0.775337h.
+Campaign 2/12 native processes complete, EN and VI denominators separate;
+10 unstarted, next planned B2 EN r01. No new session launched during resumption.
+[Verified VI result](../research/kaggle-b12-benchmark-b1-vi-r01-2026-10-18.md).
+
+### 2026-10-19 — B2 EN r01 submitted after explicit continuation
+
+User said “OKe tiếp tục triển khai đi” after verified VI results. Submitted only
+next scheduled B2 EN r01, N=100, private v1 at 19:08:56 Asia/Saigon, unchanged
+90m native / 120m session caps. Fresh quota 28.046782h, 0 reserved, pay-to-scale
+off; private cache v5 and both previous sessions COMPLETE. Remote source/private
+GPU metadata verified; platform RUNNING at 19:09:28, actual inference/runtime
+still unverified. Training-only 7,208-row retrieval, model/settings/flags and
+scientific gates unchanged. Cumulative prior ledger contains EN and VI B1 r01.
+No automatic retries, BigQuery, canonical adaptation or whole-campaign approval.
+Two processes verified complete, one submitted/running, nine unstarted.
+[B2 EN checkpoint](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).
+
+### 2026-10-19 — B2 EN r01 COMPLETE and independently verified
+
+Existing private v1 COMPLETE. All 25 saved files retained, 24 native manifest
+hashes/report self-digest pass, 100 genuine completions verified. Train-only
+retrieval cache 7,208 × 384 and all 500 selected training examples verified.
+B2 EN N=100: 31 extraction ok, 60 prose, 8 unsafe_sql, 1 invalid_sql;
+P50 33.696s, P95 52.987s. Native wall 61.70m, driver 68.31m. Native scientific
+blockers unchanged; this is not SQL execution accuracy. No BigQuery, adaptation,
+repair/retry or new session launched. Quota remaining 26.902697h. Campaign 3/12
+native processes complete, nine unstarted; next planned B2 VI r01.
+[Verified B2 EN result](../research/kaggle-b12-benchmark-b2-en-r01-2026-10-19.md).
+
+### 2026-10-19 — B2 VI r01 explicitly authorized and submitted
+
+User said “oke khởi chạy đi” for B2 VI r01. Private v1 submitted at 22:13:49
+Asia/Saigon; platform QUEUED at 22:14:06. Full N=100, unchanged 90m native /
+120m session caps and research settings. Quota 26.902697h, no reserved quota,
+pay-to-scale off; private cache v5 and three prior sessions COMPLETE. Remote
+cells/private GPU/source metadata verified; actual inference/runtime/hardware
+remain unverified. Prior ledger matches B1 EN, B1 VI, B2 EN r01. Three native
+processes verified complete, fourth submitted, eight unstarted. No new BigQuery,
+retry or whole-campaign authorization inferred.
+[B2 VI checkpoint](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).
+
+### 2026-10-20 — B2 VI r01 COMPLETE and independently verified
+
+Existing private v1 COMPLETE; all 25 saved files retained, 24 native manifest
+entries and report self-digest pass. Verified 100 genuine VI completions,
+original question/paired lineage and reused English evidence, train-only
+7,208 × 384 retrieval cache and 500 selected examples, T4 ×2 runtime and exact
+four-attempt ledger. VI N=100: 12 extraction ok, 88 prose; P50 30.977s,
+P95 73.590s. Native wall 62.47m, driver 66.49m. Scientific blockers unchanged;
+no execution accuracy, new BigQuery, adaptation, SQL repair/retry or new session.
+Quota remaining 25.789862h. Campaign 4/12 complete (all r01); eight unstarted,
+next B1 EN r02. EN/VI denominators remain separate.
+[Verified B2 VI result](../research/kaggle-b12-benchmark-b2-vi-r01-2026-10-19.md).
+
+### 2026-10-20 — B1 EN r02 explicitly authorized and submitted
+
+User said “oke khởi chạy đi” for next scheduled B1 EN r02. Private v1 submitted
+at 19:58:01 Asia/Saigon; RUNNING at 19:58:17. N=100, same 90m native / 120m
+session caps; unchanged model/seed/greedy/prompts/flags and scientific gates.
+This is the planned r02 replicate, not a repair or replacement of r01.
+Quota before launch 25.789862h, 0 reserved, pay-to-scale off; four prior sessions
+and cache v5 COMPLETE. Exact prior four-attempt ledger carried. Remote source
+and private GPU metadata match; actual native inference/hardware still unverified.
+Four verified processes, fifth running, seven unstarted. No new BigQuery,
+adaptation, tuning or full-campaign budget inferred.
+[B1 EN r02 checkpoint](../research/kaggle-b12-benchmark-b1-en-r02-2026-10-20.md).
+
+### 2026-10-20 — B1 EN r02 COMPLETE and independently verified
+
+Existing private v1 COMPLETE. All 22 saved files retained, 21 native manifest
+hashes and report self-digest pass. Verified 100 genuine EN completions,
+zero-shot B1/source authority, unchanged settings, actual T4 ×2 runtime and
+exact five-attempt ledger. N=100: 99 unsafe_sql, 1 invalid_sql, 0 extraction ok;
+P50 25.522s, P95 48.809s. Native wall 47.95m, driver 52.62m. Native blockers
+unchanged; no execution accuracy, BigQuery, adaptation, repair/retry or new
+session. Quota remaining 24.906806h. Campaign 5/12 complete, seven unstarted;
+next B1 VI r02 not launched. r01/r02 preserved separately.
+[Verified B1 EN r02](../research/kaggle-b12-benchmark-b1-en-r02-2026-10-20.md).
+
+### 2026-10-20 — B1 VI r02 authorized and submitted
+
+User said “tiếp” after verified B1 EN r02 and next B1 VI r02 was named.
+Private v1 submitted at 21:03:51 Asia/Saigon; QUEUED at 21:04:08. N=100,
+unchanged 90m native / 120m session caps and research settings. Quota before
+launch 24.906806h, 0 reserved, pay-to-scale off; five prior sessions and cache
+v5 COMPLETE. Exact five prior IDs carried; remote source/private GPU metadata
+verified, actual native inference/hardware still unverified. Five processes
+complete, sixth submitted, six unstarted. No tuning/repair, new BigQuery,
+adaptation or full-campaign budget inferred.
+[B1 VI r02 checkpoint](../research/kaggle-b12-benchmark-b1-vi-r02-2026-10-20.md).
+
+### 2026-10-20 — B1 VI r02 COMPLETE and verified; next process authorized
+
+User requested result check and launching the next single process. B1 VI r02
+v1 COMPLETE: 22 saved files retained, 21 native manifest hashes/report digest
+pass; all 100 genuine VI completions, original paired lineage/reused English
+evidence, zero-shot settings, T4 ×2 runtime and six-attempt ledger verified.
+N=100: 100 unsafe_sql, 0 extraction ok; P95 29.532s. Native 35.86m, driver
+44.37m. Quota remaining 24.161284h. Scientific blockers unchanged, no execution
+accuracy/BigQuery/adaptation/repair claimed. Campaign 6/12 complete at review;
+next B2 EN r02 explicitly authorized, subject to fresh launch preflight.
+[Verified B1 VI r02](../research/kaggle-b12-benchmark-b1-vi-r02-2026-10-20.md).
+
+### 2026-10-20 — B2 EN r02 submitted after authorized result review
+
+After B1 VI r02 artifact/runtime review passed at `2a24069`, launched the next
+single process explicitly requested by the user. B2 EN r02 private v1 submitted
+at 23:08:04 Asia/Saigon; RUNNING at 23:08:19. N=100, unchanged 90m native /
+120m session caps, model/retrieval/flags/thresholds. Quota before launch
+24.161284h, 0 reserved, pay-to-scale off; six prior notebooks and cache v5
+COMPLETE. Exact six prior IDs carried. Remote source/private GPU metadata
+verified; actual native inference/hardware still unverified. Six complete,
+seventh running, five unstarted. No new BigQuery, tuning, repair/retry or
+whole-campaign budget inferred.
+[B2 EN r02 checkpoint](../research/kaggle-b12-benchmark-b2-en-r02-2026-10-20.md).
+
+### 2026-10-21 — B2 EN r02 COMPLETE; next B2 VI r02 authorized
+
+Private v1 COMPLETE, 25 saved files/24 native manifest hashes/report digest
+verified. All 100 genuine EN completions, original source authority, 7,208-row
+cache and 500 training selections, T4 ×2 runtime and seven-attempt ledger pass.
+N=100: 31 extraction ok, 60 prose, 8 unsafe_sql, 1 invalid_sql; P95 51.300s.
+Native 59.18m, driver 63.73m; quota remaining 23.094586h. Scientific blockers
+unchanged; no execution accuracy, new BigQuery, adaptation or repair claimed.
+Campaign 7/12 complete at review; user explicitly requested next B2 VI r02,
+subject to fresh launch preflight. No full-campaign budget inferred.
+[Verified B2 EN r02](../research/kaggle-b12-benchmark-b2-en-r02-2026-10-20.md).
+
+### 2026-10-21 — B2 VI r02 authorized and submitted
+
+After B2 EN r02 completeness review passed at `50e1a70`, launched explicitly
+requested next B2 VI r02 private v1. Submitted at 19:10:52 Asia/Saigon;
+RUNNING at 19:11:08. N=100, unchanged 90m native / 120m session caps and all
+research settings. Quota before launch 23.094586h, 0 reserved, pay-to-scale off;
+seven prior sessions and cache v5 COMPLETE. Exact seven prior IDs carried.
+Remote source/private GPU metadata verified; actual inference/hardware still
+unverified. Seven complete, eighth running, four unstarted. No new BigQuery,
+tuning, repair/retry, adaptation or full-campaign budget inferred.
+[B2 VI r02 checkpoint](../research/kaggle-b12-benchmark-b2-vi-r02-2026-10-21.md).
+
+### 2026-10-21 — B2 VI r02 COMPLETE; next B1 EN r03 authorized
+
+Private v1 COMPLETE; 25 saved files/24 native manifest hashes/report digest
+verified. All 100 genuine VI completions, original paired lineage/reused English
+evidence, 7,208-row cache and 500 training selections, T4 ×2 runtime and exact
+eight-attempt ledger pass. N=100: 12 extraction ok, 88 prose; P95 72.962s.
+Native 61.93m, driver 66.60m. Quota remaining 21.979519h. Scientific blockers
+unchanged; no execution accuracy, new BigQuery, repair/adaptation claimed.
+Campaign 8/12 complete at review, all r01/r02 combinations; user authorized
+next B1 EN r03 after fresh launch preflight, no full-campaign budget inferred.
+[Verified B2 VI r02](../research/kaggle-b12-benchmark-b2-vi-r02-2026-10-21.md).
+
+### 2026-10-21 — B1 EN r03 authorized and submitted
+
+After B2 VI r02 review passed at `b8147e6`, launched explicitly requested next
+scheduled B1 EN r03 private v1, N=100. Submitted 20:33:40 Asia/Saigon;
+QUEUED 20:33:58. Unchanged 90m native / 120m session caps and research settings.
+Quota before launch 21.979519h, 0 reserved, pay-to-scale off; eight prior
+sessions and cache v5 COMPLETE. Exact eight prior IDs carried. Remote
+source/private GPU metadata match; actual inference/hardware unverified.
+Eight complete, ninth submitted, three unstarted. No BigQuery, tuning,
+repair/retry, adaptation or whole-campaign budget inferred.
+[B1 EN r03 checkpoint](../research/kaggle-b12-benchmark-b1-en-r03-2026-10-21.md).
+
+### 2026-10-21 — B1 EN r03 COMPLETE; next B1 VI r03 authorized
+
+Private v1 COMPLETE; all 22 saved files/21 native manifest hashes/report digest
+pass. Verified all 100 genuine EN completions/source authority, zero-shot
+settings, T4 ×2 runtime and exact nine-attempt ledger. N=100: 99 unsafe_sql,
+1 invalid_sql, 0 extraction ok; P95 45.922s. Native 43.47m, driver 47.41m.
+Quota remaining 21.184038h. Scientific blockers retained; no execution accuracy,
+new BigQuery, repair/adaptation. Campaign 9/12 complete at review; user explicitly
+authorized next B1 VI r03 after fresh launch preflight.
+[Verified B1 EN r03](../research/kaggle-b12-benchmark-b1-en-r03-2026-10-21.md).
+
+### 2026-10-21 — B1 VI r03 authorized and submitted
+
+After B1 EN r03 review passed at `6c19205`, launched next explicitly requested
+B1 VI r03 private v1, N=100. Submitted 22:17:02 Asia/Saigon; QUEUED 22:17:20.
+Unchanged 90m native / 120m session caps and research settings. Quota before
+launch 21.184038h, 0 reserved, pay-to-scale off; nine prior sessions and cache
+v5 COMPLETE. Exact nine prior IDs carried. Remote source/private GPU metadata
+match; actual inference/hardware unverified. Nine complete, tenth submitted,
+two unstarted. No BigQuery, tuning, repair/retry, adaptation or whole-campaign
+budget inferred.
+[B1 VI r03 checkpoint](../research/kaggle-b12-benchmark-b1-vi-r03-2026-10-21.md).
+
+### 2026-10-21 — B1 VI r03 COMPLETE; next B2 EN r03 authorized
+
+Private v1 COMPLETE; all 22 saved files/21 native manifest hashes/report digest
+pass. Verified all 100 genuine VI completions/full paired lineage/reused English
+evidence, zero-shot settings, T4 ×2 runtime and exact ten-attempt ledger.
+100 unsafe_sql, 0 extraction ok; P95 31.101s, native 36.38m, driver 49.50m.
+Quota remaining 20.353947h. Scientific blockers retained; no execution accuracy,
+new BigQuery/repair/adaptation. Campaign 10/12 complete at review, all B1 runs
+verified. User authorized next B2 EN r03 after fresh launch preflight.
+[Verified B1 VI r03](../research/kaggle-b12-benchmark-b1-vi-r03-2026-10-21.md).
+
+### 2026-10-21 — B2 EN r03 authorized and submitted
+
+After B1 VI r03 review passed at `84b0f2a`, launched next explicitly requested
+B2 EN r03 private v1, N=100. Submitted 23:26:48 Asia/Saigon; QUEUED 23:27:06.
+Unchanged 90m native / 120m session caps and research settings. Quota before
+launch 20.353947h, 0 reserved, pay-to-scale off; ten prior sessions and cache v5
+COMPLETE. Exact ten prior IDs carried. Remote source/private GPU metadata match;
+actual inference/hardware unverified. Ten complete, eleventh submitted, final
+B2 VI r03 unstarted. No BigQuery, tuning, repair/retry, adaptation or
+whole-campaign budget inferred.
+[B2 EN r03 checkpoint](../research/kaggle-b12-benchmark-b2-en-r03-2026-10-21.md).
+
+### 2026-10-22 — B2 EN r03 setup timeout; failure retained, continuation pending
+
+Private v1 ERROR; all seven saved files/6 native manifest hashes verified.
+Cumulative setup cap 1,200s exhausted while verifying mounted cache; full
+locked install completed, then verification timed out after remaining 615.233s.
+No mismatch/success receipt; underlying slowness unknown, corruption not proven.
+Native runner never started: zero generated cases and no native ledger/report.
+Scratch removed. This is not a completed/0%-accuracy EN replicate.
+Quota remaining 20.015843h; observed account delta 0.338104h.
+Campaign 10 complete native processes, one setup failure, final VI slot unstarted.
+Failure-stop/completeness protocol prevents automatic continuation. Prepared
+unchanged B2 VI r03 proposal with all opt-ins/receipt flag false and conservative
+eleven-ID audit; asked user to approve explicit continuation preserving EN failure
+without retry, or stop for setup diagnosis. No new session submitted or cap changed.
+[Failure audit and proposal](../research/kaggle-b12-benchmark-b2-en-r03-2026-10-21.md).
+
+### 2026-10-22 — user stops continuation to address setup
+
+User selected setup repair first; disabled final-VI proposal not approved.
+Offline comparison of ten successes/one failure confirms setup watchdog expiry:
+failed package prep 7m46s vs prior 56.01s–3m49s, leaving 615.233s for cache
+verification. Underlying cache slowness/corruption not established. No new
+remote session or runtime change. Bounded candidate: 27m setup + unchanged
+91m maximum worker + 2m cleanup = original 120m session cap, native cap 90m;
+add persistent per-stage elapsed/budget/timeout telemetry. Requires short-design
+approval before implementation; no fix or remote validation claimed.
+[Diagnosis](../research/kaggle-b12-setup-diagnosis-2026-10-22.md).
+
+### 2026-10-22 — approved setup repair implemented offline
+
+User approved 20m→27m setup allowance and per-stage timing. Operational driver,
+embedded disabled notebook 16 and campaign config/docs updated. Native 90m and
+session 120m unchanged: setup 27m + worker max91m + cleanup2m =120m. Original
+cache-byte/hash checks, accepted bundle/setup pins and research functions
+unchanged; old failed session and IDs preserved. TDD: three new regressions
+failed before implementation, then passed; focused19 passed, full1,593 passed
+with342 warnings in788.72s. Lint/format/notebook/static checks pass.
+No new Kaggle/inference/BigQuery session; real mounted-cache validation pending.
+Campaign remains10 complete, one setup failure, final VI unstarted. No EN
+replacement or final VI continuation authorized by this offline repair.
+[Repair handoff](../research/kaggle-b12-setup-repair-2026-10-22.md).
+
+### 2026-10-22 — real setup validation passed; final B2 VI r03 launched
+
+Setup-only private v1 COMPLETE:15 saved files/14 manifest entries verified,
+24 pinned cache files/data/package/runtime/timing gates pass, zero inference
+and no benchmark ID reserved. Setup13.27m, driver13.56m, cache11.71m; actual
+hardware not probed. Successful session fit old20m too; no guarantee original
+transient slowdown cured. Evidence commit `b94a0f8`.
+User explicitly authorized continuation after validation and renewed execution.
+Final B2 VI r03 private v1 N=100 submitted22:37:51 Asia/Saigon, RUNNING22:38:09.
+Fresh quota19.783096h, 0 reserved/pay-to-scale off; repaired setup27m,
+native90m/session120m. Eleven IDs carried conservatively including failed EN;
+review flag acknowledges explicit failure exception, not a successful EN receipt.
+Remote source/private GPU metadata match; native hardware/completeness pending.
+Campaign10 complete native processes +1 failed setup +final VI running. If final
+VI completes:11 native successes/1 setup failure, not12 complete replicates.
+No EN retry/replacement, tuning, new BigQuery or scientific completion claim.
+[Final VI checkpoint](../research/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).
+
+### 2026-10-23 — final VI verified;11 native successes/1 setup failure
+
+B2 VI r03 private v1 COMPLETE:26 saved files/25 native manifest hashes/report
+digest pass.100 genuine VI cases/full paired source,7,208-row cache/500 train
+selections, T4×2 runtime/timing/cleanup and12 attempted IDs verified. N=100:
+12 extraction ok,88 prose; P95 68.346s; native57.77m, driver79.56m. Setup21.16m
+exceeded old20m but passed new27m. Quota remaining18.451761h. No new BigQuery,
+SQL repair/tuning/adaptation or execution accuracy. Scientific blockers remain.
+Independent registry:11 native successes, EN/VI kept separate, B1 EN3/VI3,
+B2 EN2/VI3; one failed EN setup. All12 original slots attempted; none unstarted.
+User requests next process, but previous scope excluded EN retry. Disabled new-ID
+B2 EN replacement proposal prepared, not implemented/submitted; explicit scope
+exception and bounded identity support/tests required before any new run.
+[Final VI](../research/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).

@@ -1,0 +1,11 @@
+{
+  "attempted_run_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02"
+  ],
+  "campaign_id": "b12-envi-20261018-c01",
+  "scientific_ready": false
+}

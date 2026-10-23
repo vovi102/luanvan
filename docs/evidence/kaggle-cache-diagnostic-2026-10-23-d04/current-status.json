@@ -1,0 +1,13 @@
+{
+  "checked_at_utc": "2026-10-23T13:35:48.296233+00:00",
+  "ref": "aohkvd/nl2sql-cache-diag-20261023-d04",
+  "version": 1,
+  "status": "COMPLETE",
+  "private": true,
+  "gpu_enabled": false,
+  "tpu_enabled": false,
+  "internet_enabled": false,
+  "remote_cells_match": true,
+  "input_dataset_verified": true,
+  "cache_source_metadata_verified": true
+}

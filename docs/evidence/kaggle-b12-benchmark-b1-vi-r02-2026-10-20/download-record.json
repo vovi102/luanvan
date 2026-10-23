@@ -1,0 +1,96 @@
+{
+  "worker_status": "COMPLETE",
+  "downloaded": [
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r02/native-log.jsonl",
+      "bytes": 416643
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r02/native-report.json",
+      "bytes": 15797
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r02/predictions.jsonl",
+      "bytes": 615907
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r02/run.json",
+      "bytes": 11237
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r02/stderr.log",
+      "bytes": 1175
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/runs/b12-envi-20261018-c01-b1-vi-r02/stdout.log",
+      "bytes": 487
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/artifacts-manifest.json",
+      "bytes": 3290
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/benchmark-driver.py",
+      "bytes": 19070
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/campaign-ledger.json",
+      "bytes": 337
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/campaign-plan.json",
+      "bytes": 29661
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/completeness.json",
+      "bytes": 145
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/create_python311.log",
+      "bytes": 206
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/data-preflight.json",
+      "bytes": 518
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/driver-summary.json",
+      "bytes": 757
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/input-provenance.json",
+      "bytes": 832
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/install_bootstrap.log",
+      "bytes": 450
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/install_locked_environment.log",
+      "bytes": 7864
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/run-config.json",
+      "bytes": 563
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/runtime-preflight.json",
+      "bytes": 1003
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/settings.json",
+      "bytes": 486
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/verify_mounted_cache.log",
+      "bytes": 741
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/worker.log",
+      "bytes": 25
+    }
+  ],
+  "omitted": [],
+  "signed_urls_persisted": false,
+  "model_payloads_downloaded": false
+}

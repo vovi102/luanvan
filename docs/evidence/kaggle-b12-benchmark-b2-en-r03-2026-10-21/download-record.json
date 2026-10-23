@@ -1,0 +1,36 @@
+{
+  "worker_status": "ERROR",
+  "downloaded": [
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/artifacts-manifest.json",
+      "bytes": 942
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/create_python311.log",
+      "bytes": 206
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/driver-summary.json",
+      "bytes": 1418
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/input-provenance.json",
+      "bytes": 832
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/install_bootstrap.log",
+      "bytes": 450
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/install_locked_environment.log",
+      "bytes": 7864
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/verify_mounted_cache.log",
+      "bytes": 0
+    }
+  ],
+  "omitted": [],
+  "signed_urls_persisted": false,
+  "model_payloads_downloaded": false
+}

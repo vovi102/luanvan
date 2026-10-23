@@ -1,0 +1,10 @@
+{
+  "cases": 100,
+  "all_loader_trusted": true,
+  "all_case_reviewed": true,
+  "all_case_live_verified": true,
+  "snapshot_sha256": "5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d",
+  "native_reviewed_and_live_flags_present": false,
+  "native_report_retained_unchanged": true,
+  "explanation": "CLI25 omits manual --reviewed/--live-verified flags. CLI17 passes their default False to evaluate_baseline, which retains aggregate reviewed/live blockers even though trusted loader cases carry both. No flag, report, acceptance threshold or research semantics changed; T5.4 adaptation remains pending."
+}

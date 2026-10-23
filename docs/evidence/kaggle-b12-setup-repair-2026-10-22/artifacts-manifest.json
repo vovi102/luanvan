@@ -1,0 +1,22 @@
+{
+  "TEST-ONLY-budget-probes/exhausted.jsonl": {
+    "bytes": 443,
+    "sha256": "21a2b048c6ee27ba33a4d86145b2e3767cc8f4d999e0f4133e216c6ff4c48fb0"
+  },
+  "TEST-ONLY-budget-probes/headroom.jsonl": {
+    "bytes": 405,
+    "sha256": "1fd6b99efe0634fb738a1705755a6508737b850e5cc3d646602d3ec7617539b4"
+  },
+  "TEST-ONLY-budget-probes/headroom.log": {
+    "bytes": 23,
+    "sha256": "5a592baedf5c7e2dd54279e6ba4d30f561f5133a615593cc6ef903bcb85931c1"
+  },
+  "full-suite.log": {
+    "bytes": 3586,
+    "sha256": "d3d9612d8ae953b56aaaf4a4b6f46f9b9a2c3a2a80e501bca0ad50661ff39272"
+  },
+  "static-audit.json": {
+    "bytes": 1261,
+    "sha256": "3b447b1808e0b993eb0cda05754a54105afd1ff889a3838fcc2515c167d74fbb"
+  }
+}

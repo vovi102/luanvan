@@ -1,0 +1,31 @@
+{
+  "status": "offline_prepared_full_suite_passed_no_submission",
+  "baseline": "b2",
+  "language": "en",
+  "N": 100,
+  "replacement_of": "b12-envi-20261018-c01-b2-en-r03",
+  "new_run_id": "b12-envi-20261018-c01-replacement01-b2-en-r03",
+  "focused_tests_passed": 28,
+  "new_tests": 9,
+  "tdd_observed_failures": [
+    "New provenance helper absent (AttributeError)",
+    "Worker ledger missing replacement_of (KeyError)",
+    "Non-string replacement raised TypeError instead of controlled ValueError"
+  ],
+  "tdd_green": "28 passed in 16.79s",
+  "self_review": {
+    "no_subagents": true,
+    "scope": "operational driver/notebook/tests only; immutable inference source unchanged",
+    "blockers_found": [],
+    "parent_failure_retained": true,
+    "default_side_effect_guards_preserved": true,
+    "replacement_is_one_full_b2_en_r03_only": true,
+    "explicit_review_flag_preserved": true,
+    "no_fake_success_receipt_for_failed_setup": true,
+    "worker_reserves_new_identity_before_native_invocation": true
+  },
+  "scientific_campaign_complete": false,
+  "native_results_verified": false,
+  "full_suite_passed": 1602,
+  "full_suite_warnings": 342
+}

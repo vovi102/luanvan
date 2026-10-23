@@ -1,0 +1,86 @@
+{
+  "runs/b12-envi-20261018-c01-b1-vi-r01/native-log.jsonl": {
+    "bytes": 416646,
+    "sha256": "4a739db9efdc65e1b80a9dde533533c800a5b23c82b13c1e93644d70bb8058a0"
+  },
+  "runs/b12-envi-20261018-c01-b1-vi-r01/native-report.json": {
+    "bytes": 15791,
+    "sha256": "acb7cb08d60dad501609955df94f01fa3276d21b495877480a312e8e430c279b"
+  },
+  "runs/b12-envi-20261018-c01-b1-vi-r01/predictions.jsonl": {
+    "bytes": 615910,
+    "sha256": "7a778323cc777c4452e98652080e2b6df5cc701417e753da7e54d70d4f83a0e6"
+  },
+  "runs/b12-envi-20261018-c01-b1-vi-r01/run.json": {
+    "bytes": 11237,
+    "sha256": "c58b2d2e94fd5d3f6c193fefbd85d4da732b4f62671b0d9aa553702db2af6dad"
+  },
+  "runs/b12-envi-20261018-c01-b1-vi-r01/stderr.log": {
+    "bytes": 1175,
+    "sha256": "c86262d515e8669d4da8d8ed32fb0212704c4a89ccb343694cdd2d6de4a3eb54"
+  },
+  "runs/b12-envi-20261018-c01-b1-vi-r01/stdout.log": {
+    "bytes": 487,
+    "sha256": "cc93901a71622dd65082b980a8247a71854563c9bf464752963adeb60acee0a4"
+  },
+  "session-s02-b1-vi-r01/benchmark-driver.py": {
+    "bytes": 19070,
+    "sha256": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7"
+  },
+  "session-s02-b1-vi-r01/campaign-ledger.json": {
+    "bytes": 181,
+    "sha256": "389938c142108c48211092448f046876bc06821d7514e61ddd794a32a90e2c0e"
+  },
+  "session-s02-b1-vi-r01/campaign-plan.json": {
+    "bytes": 29661,
+    "sha256": "6a2d674bb00e09a8ba471e762fb79bb78f34170099be122c4af1983ba009f9e8"
+  },
+  "session-s02-b1-vi-r01/completeness.json": {
+    "bytes": 145,
+    "sha256": "eae83a866959d2432012fbcb81c604571b866cff714f4f49a5952cb87ac82273"
+  },
+  "session-s02-b1-vi-r01/create_python311.log": {
+    "bytes": 206,
+    "sha256": "036619b0a362eaff90fb4710626938f188d3092f64c4dff162afcfb1992b8864"
+  },
+  "session-s02-b1-vi-r01/data-preflight.json": {
+    "bytes": 518,
+    "sha256": "2380d19df60cae8c067aad5ebe16df524705f64b59d96548932a53a889dadbab"
+  },
+  "session-s02-b1-vi-r01/driver-summary.json": {
+    "bytes": 593,
+    "sha256": "83976dc273561d261c385de8ee0bd84f4503d2453f0cdf8a8cca1119f546fa26"
+  },
+  "session-s02-b1-vi-r01/input-provenance.json": {
+    "bytes": 832,
+    "sha256": "136d3faa3deda4429a114208588c5cf7964e8776ae18b46e8f4f142921663a73"
+  },
+  "session-s02-b1-vi-r01/install_bootstrap.log": {
+    "bytes": 450,
+    "sha256": "13042afe3bf967b0fdfbfe8afbc7acbabdefa742c0828bca693ff518dffda520"
+  },
+  "session-s02-b1-vi-r01/install_locked_environment.log": {
+    "bytes": 7864,
+    "sha256": "bfc9fbef94910cb2b9b3308a8ac7828016a7ef0c4a92479f2add433992ec8e52"
+  },
+  "session-s02-b1-vi-r01/run-config.json": {
+    "bytes": 563,
+    "sha256": "253b5e75ad14d88aea13e0b4977a2594cf531dfc346ce944f942768d13e51c8b"
+  },
+  "session-s02-b1-vi-r01/runtime-preflight.json": {
+    "bytes": 1003,
+    "sha256": "8aa2e201ef149f53a89780345e1b646dd7b81fadae92e3c991e82d67abd0f004"
+  },
+  "session-s02-b1-vi-r01/settings.json": {
+    "bytes": 330,
+    "sha256": "db8cbcc71024214f0346aa135f3fbf523c28649dcb5b7d81e658833e88a1e5cd"
+  },
+  "session-s02-b1-vi-r01/verify_mounted_cache.log": {
+    "bytes": 741,
+    "sha256": "6fcab3abf919a7f7b671511b4879aa9ad54e27f9ec6487fd3638f29e1e2c21fe"
+  },
+  "session-s02-b1-vi-r01/worker.log": {
+    "bytes": 25,
+    "sha256": "423bc199fb67f93e859cbf9030ab8ab43d752806fe06e443f3596de63829605f"
+  }
+}

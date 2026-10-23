@@ -1,0 +1,15 @@
+{
+  "bundle_sha256": "2aa4dac0cb4110783279c3361b4c7618ce601402ed3a40cef168adad75caa6de",
+  "cache_inventory_sha256": "ae3b7dc2361f151bcc59d68f4b2ddcdef74b99a5fe8374b041190bded84d84f1",
+  "cache_version": 5,
+  "hf_home": "/kaggle/input/notebooks/aohkvd/nl2sql-environment-cache/hf-home",
+  "payload_files": 181,
+  "setup_hashes": {
+    "configs/kaggle-b12-bootstrap.lock.txt": "021d7fd19573db49d3acd74056047912457790f20ceffb4d1196ebffa067a9c8",
+    "configs/kaggle-b12-model-pins.json": "6f72c03fe03c379b1ed0844192ef17c94cb60e908c5269f0e49750a32f04998a",
+    "configs/kaggle-b12-requirements.lock.txt": "da3c09c04886fca688aa6a2e54aa1d7c46726be5a4c67b19bc2ba8b9ab36a5cd",
+    "scripts/26_kaggle_environment.py": "91be7869ae7223b93e7ff6c3c7a58589b241161ef7a782351f02e105e86d9218"
+  },
+  "tar_members": 182,
+  "weights_copied": false
+}

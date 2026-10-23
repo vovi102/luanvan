@@ -1,0 +1,29 @@
+{
+  "status": "static_operational_change_audit_passed",
+  "old_driver_sha256": "39a39ad40a5fd0b2a3c575cc437e473ac5bdea24f88871cac23d1ae531f3bfe7",
+  "new_driver_sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de",
+  "unchanged_functions_ast": [
+    "campaign_plan",
+    "select_process",
+    "check_complete",
+    "worker",
+    "run_logged",
+    "cleanup_scratch"
+  ],
+  "repository_setup_kit_matches_accepted_fingerprints": {
+    "scripts/26_kaggle_environment.py": "91be7869ae7223b93e7ff6c3c7a58589b241161ef7a782351f02e105e86d9218",
+    "configs/kaggle-b12-model-pins.json": "6f72c03fe03c379b1ed0844192ef17c94cb60e908c5269f0e49750a32f04998a",
+    "configs/kaggle-b12-requirements.lock.txt": "da3c09c04886fca688aa6a2e54aa1d7c46726be5a4c67b19bc2ba8b9ab36a5cd",
+    "configs/kaggle-b12-bootstrap.lock.txt": "021d7fd19573db49d3acd74056047912457790f20ceffb4d1196ebffa067a9c8"
+  },
+  "notebook14_unchanged": true,
+  "setup_cap_seconds_before": 1200,
+  "setup_cap_seconds_after": 1620,
+  "native_cap_seconds": 5400,
+  "worker_watchdog_cap_seconds": 5460,
+  "cleanup_reserve_seconds": 120,
+  "session_cap_seconds": 7200,
+  "research_semantics_changed": false,
+  "new_remote_sessions": 0,
+  "real_cache_timeout_reproduction_after_fix": false
+}

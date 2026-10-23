@@ -1,0 +1,235 @@
+{
+  "date": "2026-10-22",
+  "status": "offline_diagnosis_complete_bounded_design_pending",
+  "remote_sessions_started": 0,
+  "user_decision": "Stop before final VI and address setup failure first",
+  "facts": [
+    "All ten earlier native sessions completed with unchanged driver/model/cache pins.",
+    "Failed setup completed locked install; prepared 218 packages in 466s, installed in 14.08s.",
+    "Cache verification timed out at remaining 615.233s; cumulative setup elapsed 1200.003s.",
+    "Cache verifier emits final result only after hashing all files; failed stage log empty.",
+    "No native runner/model inference or campaign ledger published by failed session."
+  ],
+  "direct_cause": "Cumulative 1200s setup watchdog expired while cache verification was running.",
+  "underlying_delay_cause": "Not established. Install preparation slower than observed prior sessions; no per-file cache timing available. Do not claim corrupted bytes or a specific I/O/network bottleneck.",
+  "sessions": [
+    {
+      "session": "session-s05-b1-en-r02",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 3157.134235629,
+      "native_wall_seconds": 2876.814884,
+      "driver_minus_native_seconds": 280.319,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.50s",
+        "Prepared 218 packages in 1m 10s",
+        "Installed 218 packages in 19.54s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b1-en-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s05-b1-en-r02/driver-summary.json": "492acebaa858b7c2dab52bc9375e4c6725662a0297ca90eabd45c4c783bb3e9f",
+        "docs/evidence/kaggle-b12-benchmark-b1-en-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s05-b1-en-r02/install_locked_environment.log": "e27050140a5becb3e7d172626371338e9656d33127cab14f4530e8f4be80f9e7"
+      }
+    },
+    {
+      "session": "session-s09-b1-en-r03",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 2844.413684516,
+      "native_wall_seconds": 2608.453158,
+      "driver_minus_native_seconds": 235.961,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.42s",
+        "Prepared 218 packages in 56.01s",
+        "Installed 218 packages in 17.22s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b1-en-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s09-b1-en-r03/driver-summary.json": "c527454914a13b19a85acfe577f8b0ea6c3f2a4ae7e8bd7bd192d76c1ad0fa53",
+        "docs/evidence/kaggle-b12-benchmark-b1-en-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s09-b1-en-r03/install_locked_environment.log": "d479ea431fa72470743a91d82194058b4382ec3cb649ce7a1daf3fcf3b7281ca"
+      }
+    },
+    {
+      "session": "session-s02-b1-vi-r01",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 2766.555370397,
+      "native_wall_seconds": 2230.03497,
+      "driver_minus_native_seconds": 536.52,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.46s",
+        "Prepared 218 packages in 3m 49s",
+        "Installed 218 packages in 15.03s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b1-vi-r01-2026-10-18/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s02-b1-vi-r01/driver-summary.json": "83976dc273561d261c385de8ee0bd84f4503d2453f0cdf8a8cca1119f546fa26",
+        "docs/evidence/kaggle-b12-benchmark-b1-vi-r01-2026-10-18/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s02-b1-vi-r01/install_locked_environment.log": "bfc9fbef94910cb2b9b3308a8ac7828016a7ef0c4a92479f2add433992ec8e52"
+      }
+    },
+    {
+      "session": "session-s06-b1-vi-r02",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 2661.971913567,
+      "native_wall_seconds": 2151.34254,
+      "driver_minus_native_seconds": 510.629,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.69s",
+        "Prepared 218 packages in 3m 24s",
+        "Installed 218 packages in 13.31s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b1-vi-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/driver-summary.json": "02e0cd7256616d293a0dc948e2bbc9aac0408ee29e32193e7ac53f21dc17306c",
+        "docs/evidence/kaggle-b12-benchmark-b1-vi-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s06-b1-vi-r02/install_locked_environment.log": "fc8d8222c80c6330df47c17ab2cc014f1cde7d4554ec89164fb957e645b0cb98"
+      }
+    },
+    {
+      "session": "session-s10-b1-vi-r03",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 2970.140411245,
+      "native_wall_seconds": 2182.727683,
+      "driver_minus_native_seconds": 787.413,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.45s",
+        "Prepared 218 packages in 2m 50s",
+        "Installed 218 packages in 23.59s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b1-vi-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s10-b1-vi-r03/driver-summary.json": "76d4df16be893653f74d9bbdba3e3bf4eb0073142d3dc4eaadc294c22b603936",
+        "docs/evidence/kaggle-b12-benchmark-b1-vi-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s10-b1-vi-r03/install_locked_environment.log": "1560fc10aabe0d2633e86e926b6700257897ae61fc0c830bb738ac6b047f844b"
+      }
+    },
+    {
+      "session": "session-s03-b2-en-r01",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 4098.889343334,
+      "native_wall_seconds": 3702.281462,
+      "driver_minus_native_seconds": 396.608,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.69s",
+        "Prepared 218 packages in 2m 43s",
+        "Installed 218 packages in 10.36s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b2-en-r01-2026-10-19/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s03-b2-en-r01/driver-summary.json": "555768bf78de93f04dc241e1aaa6ce9c1e0701e65ee29db90d269781eb0a303d",
+        "docs/evidence/kaggle-b12-benchmark-b2-en-r01-2026-10-19/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s03-b2-en-r01/install_locked_environment.log": "ce3c4b2bfcfdaef8c316c7923e361c77783a8c323b1915d515b310ebd2a6a6bd"
+      }
+    },
+    {
+      "session": "session-s07-b2-en-r02",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 3823.9138675159998,
+      "native_wall_seconds": 3550.51467,
+      "driver_minus_native_seconds": 273.399,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.63s",
+        "Prepared 218 packages in 1m 24s",
+        "Installed 218 packages in 20.57s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b2-en-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/driver-summary.json": "70b604a1b6b548f8661b8c9d8b3a3179a8976817830dc15b71c410027afd3104",
+        "docs/evidence/kaggle-b12-benchmark-b2-en-r02-2026-10-20/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s07-b2-en-r02/install_locked_environment.log": "9ba2e0b4855c6b9ee35b473ebab6c1a18e8321bea3ec11b96009aad1761bc9f3"
+      }
+    },
+    {
+      "session": "session-s11-b2-en-r03",
+      "status": "failed",
+      "driver_wall_seconds": 1200.0031078449974,
+      "native_wall_seconds": null,
+      "driver_minus_native_seconds": null,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.54s",
+        "Prepared 218 packages in 7m 46s",
+        "Installed 218 packages in 14.08s"
+      ],
+      "cache_verification_receipt_present": false,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b2-en-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/driver-summary.json": "86cca9bf0062ed45faf380403d60ec1bfa725c86e6780ff1407439616ecf4f65",
+        "docs/evidence/kaggle-b12-benchmark-b2-en-r03-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s11-b2-en-r03/install_locked_environment.log": "eaf62a1ac1c494529e7c3535ecfb5bec0a95d33f6279216724c5c89dedbd1b0b"
+      }
+    },
+    {
+      "session": "session-s04-b2-vi-r01",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 3989.4866260400004,
+      "native_wall_seconds": 3747.964317,
+      "driver_minus_native_seconds": 241.522,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.30s",
+        "Prepared 218 packages in 58.05s",
+        "Installed 218 packages in 24.74s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b2-vi-r01-2026-10-19/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s04-b2-vi-r01/driver-summary.json": "9b9f1e8912a5c506d566cdc91f77de4e24acf56cc6db2edc36369f1174b0e9af",
+        "docs/evidence/kaggle-b12-benchmark-b2-vi-r01-2026-10-19/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s04-b2-vi-r01/install_locked_environment.log": "90af12cfadc05ac3d652d4e58a36edb9b297f323c2eddbac1bdd619a7cc1a4ce"
+      }
+    },
+    {
+      "session": "session-s08-b2-vi-r02",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 3996.1411129,
+      "native_wall_seconds": 3715.948011,
+      "driver_minus_native_seconds": 280.193,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.47s",
+        "Prepared 218 packages in 1m 11s",
+        "Installed 218 packages in 18.81s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-b2-vi-r02-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s08-b2-vi-r02/driver-summary.json": "6de3849634eb899f10a9d3fe590e4dd7b36d418c3a9d14f1b2811538c26cc82a",
+        "docs/evidence/kaggle-b12-benchmark-b2-vi-r02-2026-10-21/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s08-b2-vi-r02/install_locked_environment.log": "eb7684fafae4d01ca79897c66457416f092c1012f6b1c9b6942ecdad77090de6"
+      }
+    },
+    {
+      "session": "session-s01-b1-en-r01",
+      "status": "completed_native_process",
+      "driver_wall_seconds": 3366.644601504,
+      "native_wall_seconds": 2819.781051,
+      "driver_minus_native_seconds": 546.864,
+      "driver_minus_native_scope": "setup plus worker preflight and driver evidence/overhead; not exact cache verification time",
+      "install_log_timings": [
+        "Resolved 218 packages in 1.46s",
+        "Prepared 218 packages in 1m 31s",
+        "Installed 218 packages in 16.75s"
+      ],
+      "cache_verification_receipt_present": true,
+      "source_hashes": {
+        "docs/evidence/kaggle-b12-benchmark-first-run-2026-10-18/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s01-b1-en-r01/driver-summary.json": "a15e26d0e87ad8e1e66901c2cb2e1ed1657d1e1b441889224fb4401b8d25174e",
+        "docs/evidence/kaggle-b12-benchmark-first-run-2026-10-18/saved-v1/b12-benchmark-b12-envi-20261018-c01/session-s01-b1-en-r01/install_locked_environment.log": "18e52da7f58e7727f2ed735e020deb2eb72ae94e860b8a35146f964cb2eb1122"
+      }
+    }
+  ],
+  "proposed_bounded_change": {
+    "status": "pending_in_chat_design_approval",
+    "setup_cap_seconds": 1620,
+    "process_cap_seconds": 5400,
+    "worker_max_seconds": 5460,
+    "cleanup_reserve_seconds": 120,
+    "session_cap_seconds": 7200,
+    "budget_sum_seconds": 7200,
+    "add": "Persist start/end/elapsed/remaining-budget/exit-or-timeout per setup stage, including failure, without credential/env dumps.",
+    "keep": "Exact cache-byte verification, immutable bundle/cache/pins, lock, model/encoder, prompts/retrieval/seed/greedy/settings, scientific gates and all failed evidence.",
+    "files": [
+      "scripts/27_kaggle_b12_benchmark.py",
+      "notebooks/16_kaggle_b12_benchmark.ipynb",
+      "tests/unit/test_kaggle_benchmark_preparation.py",
+      "operational campaign/runbook/evidence docs"
+    ],
+    "tests": "Simulated clock verifies 27m setup + 91m worker + 2m cleanup <=120m; stage timings survive timeout; existing group-kill/default-disabled/embedded-source integrity tests.",
+    "limitation": "Extra seven minutes is bounded operational headroom, not proof mounted verification will finish. Remote setup-only validation would still be required after offline checks.",
+    "remote_execution_authorized_by_this_design": false
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "cleanup_reserve_seconds": 120,
+  "process_cap_seconds": 5400,
+  "scientific_ready": false,
+  "scratch_removed": true,
+  "session_cap_seconds": 7200,
+  "settings": {
+    "allow_env_install": true,
+    "allow_preparation": true,
+    "allow_real_inference": true,
+    "baseline": "b2",
+    "campaign_id": "b12-envi-20261018-c01",
+    "language": "vi",
+    "prior_attempts": [
+      "b12-envi-20261018-c01-b1-en-r01",
+      "b12-envi-20261018-c01-b1-vi-r01",
+      "b12-envi-20261018-c01-b2-en-r01",
+      "b12-envi-20261018-c01-b2-vi-r01",
+      "b12-envi-20261018-c01-b1-en-r02",
+      "b12-envi-20261018-c01-b1-vi-r02",
+      "b12-envi-20261018-c01-b2-en-r02",
+      "b12-envi-20261018-c01-b2-vi-r02",
+      "b12-envi-20261018-c01-b1-en-r03",
+      "b12-envi-20261018-c01-b1-vi-r03",
+      "b12-envi-20261018-c01-b2-en-r03"
+    ],
+    "prior_completeness_reviewed": true,
+    "replicate": 3,
+    "session_id": "s12-b2-vi-r03"
+  },
+  "setup_cap_seconds": 1620,
+  "stage": "native_cli25",
+  "status": "completed_native_process",
+  "wall_seconds": 4773.394536196,
+  "worker_max_seconds": 5460
+}

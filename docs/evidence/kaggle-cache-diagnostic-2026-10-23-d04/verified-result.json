@@ -1,0 +1,250 @@
+{
+  "status": "terminal_cpu_diagnostic_artifacts_verified",
+  "diagnostic_outcome": "completed_cache_diagnostic",
+  "cache_verification_complete": true,
+  "saved_files_verified": 8,
+  "manifest_entries_verified": 7,
+  "saved_bytes_verified": 63758,
+  "driver_wall_seconds": 185.168761179,
+  "expected_files": 24,
+  "expected_total_bytes": 16161347681,
+  "files_read_started": 24,
+  "files_read_closed": 24,
+  "last_progress": {
+    "current_operation_elapsed_seconds": 0.0005297840000366705,
+    "elapsed_seconds": 182.92367912999998,
+    "event": "verification_completed",
+    "expected_bytes": 231508,
+    "file": "encoder/vocab.txt",
+    "file_bytes_read": 231508,
+    "files_read_complete": 24,
+    "hash_and_loop_wall_seconds": 0.000599964999992153,
+    "phase": "all_native_hash_checks_passed",
+    "read_cpu_seconds": 0.00024463500000138083,
+    "read_wall_seconds": 0.10757637899996553,
+    "total_bytes_read": 16161347681
+  },
+  "per_file_read_observations": [
+    {
+      "file": "model/LICENSE",
+      "expected_bytes": 7801,
+      "file_bytes_read": 7801,
+      "file_wall_seconds": 0.11300768399996741,
+      "read_wall_seconds": 0.10698915199998282,
+      "read_cpu_seconds": 0.00015907700000000746,
+      "hash_and_loop_wall_seconds": 0.0012544100000013714
+    },
+    {
+      "file": "model/README.md",
+      "expected_bytes": 38854,
+      "file_bytes_read": 38854,
+      "file_wall_seconds": 0.1061107790000051,
+      "read_wall_seconds": 0.1018076619999988,
+      "read_cpu_seconds": 0.0001299899999999965,
+      "hash_and_loop_wall_seconds": 9.232400003611474e-05
+    },
+    {
+      "file": "model/USE_POLICY.md",
+      "expected_bytes": 4696,
+      "file_bytes_read": 4696,
+      "file_wall_seconds": 0.10845735399999512,
+      "read_wall_seconds": 0.10408904400003394,
+      "read_cpu_seconds": 8.955199999999275e-05,
+      "hash_and_loop_wall_seconds": 4.323100000647173e-05
+    },
+    {
+      "file": "model/config.json",
+      "expected_bytes": 654,
+      "file_bytes_read": 654,
+      "file_wall_seconds": 0.0696238780000158,
+      "read_wall_seconds": 0.06406680599997117,
+      "read_cpu_seconds": 9.430400000001726e-05,
+      "hash_and_loop_wall_seconds": 3.841300002704884e-05
+    },
+    {
+      "file": "model/generation_config.json",
+      "expected_bytes": 187,
+      "file_bytes_read": 187,
+      "file_wall_seconds": 0.109125425000002,
+      "read_wall_seconds": 0.10474348399998235,
+      "read_cpu_seconds": 9.249800000002417e-05,
+      "hash_and_loop_wall_seconds": 3.881800000726798e-05
+    },
+    {
+      "file": "model/model-00001-of-00004.safetensors",
+      "expected_bytes": 4976698672,
+      "file_bytes_read": 4976698672,
+      "file_wall_seconds": 54.14708176700003,
+      "read_wall_seconds": 37.32019498400166,
+      "read_cpu_seconds": 3.2606366089999974,
+      "hash_and_loop_wall_seconds": 16.821946237998304
+    },
+    {
+      "file": "model/model-00002-of-00004.safetensors",
+      "expected_bytes": 4999802720,
+      "file_bytes_read": 4999802720,
+      "file_wall_seconds": 55.949133501999995,
+      "read_wall_seconds": 39.05040227299912,
+      "read_cpu_seconds": 3.204484273999981,
+      "hash_and_loop_wall_seconds": 16.893911948000834
+    },
+    {
+      "file": "model/model-00003-of-00004.safetensors",
+      "expected_bytes": 4915916176,
+      "file_bytes_read": 4915916176,
+      "file_wall_seconds": 56.17605989999993,
+      "read_wall_seconds": 39.094317163998085,
+      "read_cpu_seconds": 3.338396460999938,
+      "hash_and_loop_wall_seconds": 17.077193611001917
+    },
+    {
+      "file": "model/model-00004-of-00004.safetensors",
+      "expected_bytes": 1168138808,
+      "file_bytes_read": 1168138808,
+      "file_wall_seconds": 12.827343693999978,
+      "read_wall_seconds": 8.902009610000164,
+      "read_cpu_seconds": 0.7637978629999935,
+      "hash_and_loop_wall_seconds": 3.9191703359998655
+    },
+    {
+      "file": "model/model.safetensors.index.json",
+      "expected_bytes": 23950,
+      "file_bytes_read": 23950,
+      "file_wall_seconds": 0.10738753799989809,
+      "read_wall_seconds": 0.10287279599992871,
+      "read_cpu_seconds": 0.00010200900000256752,
+      "hash_and_loop_wall_seconds": 9.61810000035257e-05
+    },
+    {
+      "file": "model/special_tokens_map.json",
+      "expected_bytes": 73,
+      "file_bytes_read": 73,
+      "file_wall_seconds": 0.1561486780000223,
+      "read_wall_seconds": 0.15186930800007303,
+      "read_cpu_seconds": 8.022199999402346e-05,
+      "hash_and_loop_wall_seconds": 3.9968000010048854e-05
+    },
+    {
+      "file": "model/tokenizer.json",
+      "expected_bytes": 9085698,
+      "file_bytes_read": 9085698,
+      "file_wall_seconds": 0.2810213920000706,
+      "read_wall_seconds": 0.2621963610000648,
+      "read_cpu_seconds": 0.005942118999996637,
+      "hash_and_loop_wall_seconds": 0.014474436999989848
+    },
+    {
+      "file": "model/tokenizer_config.json",
+      "expected_bytes": 50977,
+      "file_bytes_read": 50977,
+      "file_wall_seconds": 0.11803109300001324,
+      "read_wall_seconds": 0.11274494399992818,
+      "read_cpu_seconds": 0.00011317999999960193,
+      "hash_and_loop_wall_seconds": 0.00010967100001835206
+    },
+    {
+      "file": "encoder/1_Pooling/config.json",
+      "expected_bytes": 190,
+      "file_bytes_read": 190,
+      "file_wall_seconds": 0.1573071179999488,
+      "read_wall_seconds": 0.15177509199997985,
+      "read_cpu_seconds": 8.378200000436209e-05,
+      "hash_and_loop_wall_seconds": 3.8224000036279904e-05
+    },
+    {
+      "file": "encoder/README.md",
+      "expected_bytes": 10502,
+      "file_bytes_read": 10502,
+      "file_wall_seconds": 0.12415484099994956,
+      "read_wall_seconds": 0.11938525400012168,
+      "read_cpu_seconds": 0.0001181979999955729,
+      "hash_and_loop_wall_seconds": 7.055799994759582e-05
+    },
+    {
+      "file": "encoder/config.json",
+      "expected_bytes": 612,
+      "file_bytes_read": 612,
+      "file_wall_seconds": 0.1086311700000806,
+      "read_wall_seconds": 0.10286285099994075,
+      "read_cpu_seconds": 0.00017062799999223444,
+      "hash_and_loop_wall_seconds": 4.6213000018724415e-05
+    },
+    {
+      "file": "encoder/config_sentence_transformers.json",
+      "expected_bytes": 116,
+      "file_bytes_read": 116,
+      "file_wall_seconds": 0.17050245999996605,
+      "read_wall_seconds": 0.16526301600015358,
+      "read_cpu_seconds": 9.515899998291388e-05,
+      "hash_and_loop_wall_seconds": 3.927799991743086e-05
+    },
+    {
+      "file": "encoder/model.safetensors",
+      "expected_bytes": 90868376,
+      "file_bytes_read": 90868376,
+      "file_wall_seconds": 1.3814813949999234,
+      "read_wall_seconds": 1.073152353999717,
+      "read_cpu_seconds": 0.056484543000081544,
+      "hash_and_loop_wall_seconds": 0.3032854790002375
+    },
+    {
+      "file": "encoder/modules.json",
+      "expected_bytes": 349,
+      "file_bytes_read": 349,
+      "file_wall_seconds": 0.129426045999935,
+      "read_wall_seconds": 0.12523594999993293,
+      "read_cpu_seconds": 7.908699998893098e-05,
+      "hash_and_loop_wall_seconds": 3.963300002851611e-05
+    },
+    {
+      "file": "encoder/sentence_bert_config.json",
+      "expected_bytes": 53,
+      "file_bytes_read": 53,
+      "file_wall_seconds": 0.11596700199993393,
+      "read_wall_seconds": 0.11181078499998875,
+      "read_cpu_seconds": 0.00010746899998537174,
+      "hash_and_loop_wall_seconds": 3.49890000279629e-05
+    },
+    {
+      "file": "encoder/special_tokens_map.json",
+      "expected_bytes": 112,
+      "file_bytes_read": 112,
+      "file_wall_seconds": 0.11539720199994008,
+      "read_wall_seconds": 0.11126016999992316,
+      "read_cpu_seconds": 7.85269999994398e-05,
+      "hash_and_loop_wall_seconds": 3.7824000060027174e-05
+    },
+    {
+      "file": "encoder/tokenizer.json",
+      "expected_bytes": 466247,
+      "file_bytes_read": 466247,
+      "file_wall_seconds": 0.11768648100007795,
+      "read_wall_seconds": 0.11273521000009623,
+      "read_cpu_seconds": 0.0003626129999929617,
+      "hash_and_loop_wall_seconds": 0.0006523099999640181
+    },
+    {
+      "file": "encoder/tokenizer_config.json",
+      "expected_bytes": 350,
+      "file_bytes_read": 350,
+      "file_wall_seconds": 0.11037419899992074,
+      "read_wall_seconds": 0.10542429999998149,
+      "read_cpu_seconds": 9.965700000691413e-05,
+      "hash_and_loop_wall_seconds": 4.026500005238631e-05
+    },
+    {
+      "file": "encoder/vocab.txt",
+      "expected_bytes": 231508,
+      "file_bytes_read": 231508,
+      "file_wall_seconds": 0.11248496400003205,
+      "read_wall_seconds": 0.10757637899996553,
+      "read_cpu_seconds": 0.00024463500000138083,
+      "hash_and_loop_wall_seconds": 0.000599964999992153
+    }
+  ],
+  "comparison_limit": "Default CPU host/Python differs from the pinned T4 benchmark runtime; cannot alone prove the T4 failure cause or repair.",
+  "T4_setup_failure_resolved": false,
+  "model_loaded": false,
+  "benchmark_attempt_reserved": false,
+  "scientific_ready": false
+}

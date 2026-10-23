@@ -1,0 +1,247 @@
+{
+  "preparation_commit": "8194926",
+  "repair_commit": "78b6d26",
+  "validation_result_commit": "b94a0f8",
+  "kernel": "aohkvd/nl2sql-b12-benchmark-20261022-b2-vi-r03",
+  "campaign_id": "b12-envi-20261018-c01",
+  "session_id": "s12-b2-vi-r03",
+  "run_id": "b12-envi-20261018-c01-b2-vi-r03",
+  "baseline": "b2",
+  "language": "vi",
+  "replicate": 3,
+  "cases": 100,
+  "notebook_sha256": "f84b4c048bd2b0fd28b280c6c94f65a5e07851172c4520b45e43469dff97768e",
+  "driver_sha256": "7f80915acfb47ce4e2741eb1f60f20487b121390d9cdd2ef43ffe8b1f4e7c5de",
+  "setup_cap_seconds": 1620,
+  "native_cap_seconds": 5400,
+  "platform_session_cap_seconds": 7200,
+  "prior_attempted_run_ids": [
+    "b12-envi-20261018-c01-b1-en-r01",
+    "b12-envi-20261018-c01-b1-vi-r01",
+    "b12-envi-20261018-c01-b2-en-r01",
+    "b12-envi-20261018-c01-b2-vi-r01",
+    "b12-envi-20261018-c01-b1-en-r02",
+    "b12-envi-20261018-c01-b1-vi-r02",
+    "b12-envi-20261018-c01-b2-en-r02",
+    "b12-envi-20261018-c01-b2-vi-r02",
+    "b12-envi-20261018-c01-b1-en-r03",
+    "b12-envi-20261018-c01-b1-vi-r03",
+    "b12-envi-20261018-c01-b2-en-r03"
+  ],
+  "prior_successful_native_processes": 10,
+  "prior_failed_setup_slots": 1,
+  "prior_completeness_reviewed_flag": true,
+  "review_exception": "Ten successful native receipts reviewed; failed EN setup fully retained/reviewed and user explicitly authorized continuation after real repair validation. This flag does not claim a successful EN r03 receipt. Conservative failed ID carried; no native ledger fabricated for the failed session.",
+  "research_semantics_changed": false,
+  "native_review_live_flags_changed": false,
+  "authorization": "User authorized real validation then continuation, and renewed launch after completion. Validation passed. Launch only final B2 VI r03; preserve EN failure, no EN replacement or retry.",
+  "expected_campaign_if_success": "11 complete native processes, one failed setup slot; not twelve complete compatible replicates.",
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "status": "b2_vi_r03_complete_and_integrity_verified",
+  "worker_status": "COMPLETE",
+  "version": 1,
+  "private": true,
+  "submitted_at_utc": "2026-10-22T15:37:51.230165+00:00",
+  "last_checked_at_utc": "2026-10-22T17:14:15.041518+00:00",
+  "native_process_started": true,
+  "native_process_completed": true,
+  "actual_hardware_verified": true,
+  "scientific_ready": false,
+  "campaign_native_processes_verified": 11,
+  "campaign_setup_failures": 1,
+  "new_bigquery_jobs": 0,
+  "vi_gold_evidence_mode": "exact_reused_english_live_evidence",
+  "quota_before": {
+    "checked_at_utc": "2026-10-22T15:37:37.727466+00:00",
+    "gpu_used_hours": 10.216904166666668,
+    "gpu_reserved_hours": 0.0,
+    "gpu_total_hours": 30.0,
+    "gpu_remaining_hours": 19.783095833333334,
+    "is_pay_to_scale_enabled": false,
+    "authorized_session_cap_seconds": 7200,
+    "conservative_two_device_hours_required": 4,
+    "prior_statuses": {
+      "nl2sql-b12-benchmark-20261018-b1-en-r01": "COMPLETE",
+      "nl2sql-b12-benchmark-20261018-b1-vi-r01": "COMPLETE",
+      "nl2sql-b12-benchmark-20261019-b2-en-r01": "COMPLETE",
+      "nl2sql-b12-benchmark-20261019-b2-vi-r01": "COMPLETE",
+      "nl2sql-b12-benchmark-20261020-b1-en-r02": "COMPLETE",
+      "nl2sql-b12-benchmark-20261020-b1-vi-r02": "COMPLETE",
+      "nl2sql-b12-benchmark-20261020-b2-en-r02": "COMPLETE",
+      "nl2sql-environment-cache": "COMPLETE",
+      "nl2sql-b12-benchmark-20261021-b2-vi-r02": "COMPLETE",
+      "nl2sql-b12-benchmark-20261021-b1-en-r03": "COMPLETE",
+      "nl2sql-b12-benchmark-20261021-b1-vi-r03": "COMPLETE",
+      "nl2sql-b12-benchmark-20261021-b2-en-r03": "ERROR",
+      "nl2sql-b12-setup-validation-20261022-v02": "COMPLETE"
+    },
+    "cache_version": 5,
+    "cache_private_complete": true,
+    "validation_v1_private_complete": true,
+    "validation_saved_artifacts_verified": true,
+    "matching_kernel_exists": false,
+    "validation_result_commit": "b94a0f8",
+    "failed_en_setup_preserved": true
+  },
+  "last_status": {
+    "checked_at_utc": "2026-10-22T17:14:15.041518+00:00",
+    "ref": "aohkvd/nl2sql-b12-benchmark-20261022-b2-vi-r03",
+    "version": 1,
+    "status": "COMPLETE",
+    "private": true,
+    "enable_gpu": true,
+    "machine_shape": "NvidiaTeslaT4",
+    "kernel_sources": [
+      "aohkvd/nl2sql-environment-cache"
+    ],
+    "gpu_used_hours": 11.548239444444443,
+    "gpu_reserved_hours": 0.0,
+    "gpu_remaining_hours": 18.451760555555555
+  },
+  "artifact_manifest": "kaggle-b12-benchmark-b2-vi-r03-2026-10-22/artifacts-manifest.json",
+  "en_r03_replacement_or_retry": false,
+  "next_action": "All twelve original slots attempted:11 complete native processes,1 failed EN setup; no unstarted original process. User asks for next process, but previous scope explicitly excluded EN retry/replacement. Prepare a distinct full-process B2 EN replacement proposal and obtain explicit exception before implementing/submitting it; never reuse/hide failed ID or splice outputs. No new session launched by this check.",
+  "verification_date": "2026-10-23",
+  "result": {
+    "status": "native_process_complete_and_integrity_verified",
+    "run_id": "b12-envi-20261018-c01-b2-vi-r03",
+    "baseline": "b2",
+    "language": "vi",
+    "N": 100,
+    "session_native_processes_completed": 1,
+    "campaign_native_processes_completed": 11,
+    "remaining_campaign_processes": 1,
+    "campaign_setup_failures": 1,
+    "campaign_unstarted_slots": 0,
+    "all_planned_slots_attempted": true,
+    "native_wall_seconds": 3466.264096,
+    "driver_wall_seconds": 4773.394536196,
+    "native_manifest_files_verified": 25,
+    "genuine_completions_verified": 100,
+    "hardware": {
+      "compute_capability": [
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          5
+        ]
+      ],
+      "cuda": "12.4",
+      "gpu_names": [
+        "Tesla T4",
+        "Tesla T4"
+      ],
+      "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+      "python": "3.11.15 (main, May 10 2026, 19:28:18) [Clang 22.1.3 ]",
+      "torch": "2.5.1+cu124"
+    },
+    "metrics": {
+      "category_counts": [
+        [
+          "class_level",
+          19
+        ],
+        [
+          "comparison",
+          16
+        ],
+        [
+          "multi_hop",
+          21
+        ],
+        [
+          "simple_filter",
+          13
+        ],
+        [
+          "temporal_pattern",
+          19
+        ],
+        [
+          "time_range",
+          28
+        ],
+        [
+          "token_specific",
+          30
+        ],
+        [
+          "top_k",
+          36
+        ],
+        [
+          "transaction_aggregation",
+          46
+        ]
+      ],
+      "difficulty_counts": [
+        [
+          "easy",
+          30
+        ],
+        [
+          "hard",
+          20
+        ],
+        [
+          "medium",
+          50
+        ]
+      ],
+      "extraction_failed": 88,
+      "extraction_ok": 12,
+      "generated": 100,
+      "input_tokens": 263551,
+      "output_tokens": 12710,
+      "p50_latency_ms": 28525.0404635,
+      "p95_latency_ms": 68346.06747625,
+      "status_counts": [
+        [
+          "ok",
+          12
+        ],
+        [
+          "prose",
+          88
+        ]
+      ],
+      "total": 100
+    },
+    "native_scientific_ready": false,
+    "native_blockers": [
+      "latency_gate_failed",
+      "live_evidence_missing",
+      "reviewed_test_set_missing"
+    ],
+    "scientific_campaign_complete": false,
+    "bigquery_jobs": 0,
+    "canonical_adaptation_performed": false,
+    "scratch_removed": true,
+    "retrieval_cache_shape": [
+      7208,
+      384
+    ],
+    "selected_examples_verified": 500,
+    "retrieval_train_only_verified": true
+  },
+  "quota_after": {
+    "checked_at_utc": "2026-10-22T17:14:15.041518+00:00",
+    "ref": "aohkvd/nl2sql-b12-benchmark-20261022-b2-vi-r03",
+    "version": 1,
+    "status": "COMPLETE",
+    "private": true,
+    "enable_gpu": true,
+    "machine_shape": "NvidiaTeslaT4",
+    "kernel_sources": [
+      "aohkvd/nl2sql-environment-cache"
+    ],
+    "gpu_used_hours": 11.548239444444443,
+    "gpu_reserved_hours": 0.0,
+    "gpu_remaining_hours": 18.451760555555555
+  },
+  "observed_account_quota_delta_hours": 1.3313352777777752
+}
