@@ -66,3 +66,35 @@ metadata and saved hashes must be checked before interpreting results.
 
 [Machine checkpoint](../evidence/kaggle-cache-diagnostic-2026-10-23-d01.json)
 and [source/probe manifest](../evidence/kaggle-cache-diagnostic-2026-10-23-d01/artifacts-manifest.json).
+
+## Launch checkpoint
+
+Preparation commit01e4bc6. One submission accepted as private version1,
+kernel140391141:
+https://www.kaggle.com/code/aohkvd/nl2sql-cache-diag-20261023-d01
+
+Submitted at19:39:00 Asia/Saigon on2026-10-23. Platform RUNNING
+observed at19:39:07 that day. Remote cells exactly match the prepared source;
+private/GPU-off/TPU-off/internet-off, setup dataset and cache source metadata
+verified. API may normalize the cache reference to its slug; exact v5 inventory
+and pinned file checks remain mandatory inside the diagnostic.
+
+Fresh state check: original EN failure and replacement01 ERROR, finalVI and
+private cache-v5 COMPLETE, exact diagnostic ref absent before the one push.
+GPU quota17.996651111h remaining, zero reserved, pay-to-scale off; this notebook
+requests no GPU. Account observation is not invoice cost. No benchmark session
+or new native ID was created. Both setup failures and11 native successes remain
+unchanged. The CPU diagnostic is not a thirteenth/fourteenth benchmark result.
+
+Actual per-file observations/cache receipt remain pending. A terminal-only
+offline verifier is prepared but has not been run against absent results.
+After terminal state export original outputs and run verify_saved.py with
+project Python; it checks hashes, settings/source identity, monotonic heartbeat/
+byte progress, per-file ordering, all24 native receipt files/bytes on success,
+and absence of model/benchmark artifacts. A timeout retains its last observed
+file/phase rather than a fabricated successful cache receipt.
+
+Monitoring stops after this launch checkpoint, following the user's preference
+to return after a completion notice. Poll this existing ref only on return;
+never rerun the launcher. This launch does not establish root cause, a cache
+repair, T4 equivalence, or readiness for another B2 EN benchmark attempt.

@@ -1,4 +1,12 @@
 {
+  "api-submitted-v1.json": {
+    "bytes": 439,
+    "sha256": "bd6fd33f67b506d21f855e26d0e9faba60568f5318cdee69fd97376a6d820c16"
+  },
+  "current-status.json": {
+    "bytes": 350,
+    "sha256": "fd4fdbce026cfb0d158093a069ba8aa236879443e037b168c01a60a783317119"
+  },
   "deploy/kernel-metadata.json": {
     "bytes": 481,
     "sha256": "541a6430c293c31869695953d9560d0475b854f35c6b704f4dba1f2684a46dce"
@@ -35,8 +43,24 @@
     "bytes": 6069,
     "sha256": "7d3f9818b38db1bd8ee8f91b1f0f65fca0331feb22a43f1c12c105fc6e83562d"
   },
+  "quota-and-state-before.json": {
+    "bytes": 527,
+    "sha256": "e00b7e4612722ffc417be49d16aeda2acb1a60d9868cc31d132c969195810252"
+  },
+  "status-history.jsonl": {
+    "bytes": 326,
+    "sha256": "9e6fed1b85998472de29ab2a159b27f285c420b486d59b3b038e1d9245516440"
+  },
+  "submission-intent.json": {
+    "bytes": 137,
+    "sha256": "0647c8a9384412fd63168c1dfcce949641dc4991722825ec395a2171d64f4fc9"
+  },
   "submission-plan.json": {
     "bytes": 1262,
     "sha256": "1d754586e0f1c8c51f21277eaee7f9042a83c5c56dc5a517aebd9ec669444511"
+  },
+  "verify_saved.py": {
+    "bytes": 4940,
+    "sha256": "63b96ed24c16000beeb6c606df1b38fa1ccffa5652e7c3700401b0458146c587"
   }
 }
