@@ -1,0 +1,42 @@
+{
+  "deploy/kernel-metadata.json": {
+    "bytes": 481,
+    "sha256": "541a6430c293c31869695953d9560d0475b854f35c6b704f4dba1f2684a46dce"
+  },
+  "deploy/nl2sql-cache-diag-20261023-d01.ipynb": {
+    "bytes": 15062,
+    "sha256": "b2cd7acb32713ec6a4182eecfaf72e7c90d176c6d8c2dba9d597851fac461041"
+  },
+  "diagnostic_driver.py": {
+    "bytes": 12139,
+    "sha256": "6f72f78d6ae1d5b6d6a56d2f5b527c3bc08da202e6bc306bdb28372a375f192f"
+  },
+  "export_saved.py": {
+    "bytes": 2435,
+    "sha256": "e201d6da2d346338dbe3258024a983601a91ecc746344d58cc0612c533592d4e"
+  },
+  "launch_once.py": {
+    "bytes": 3545,
+    "sha256": "c1ae8afa0c702ac77f71e7a3179010ead3968e0c2e2ca740b63a294e8b894dfd"
+  },
+  "offline-probes.json": {
+    "bytes": 875,
+    "sha256": "e6c9d832a564354ee71630341ba5bbf98ecfc57c92ffdd9ea9ecc908053b04d0"
+  },
+  "poll.py": {
+    "bytes": 1724,
+    "sha256": "0ed089959c1eeb250c0f3845883ab77a3e5a023ea8744853ed34f925f3ba2122"
+  },
+  "prepare_deploy.py": {
+    "bytes": 4186,
+    "sha256": "e8e41ac81631402b7d8f09ecd62e1ecba5f8759129dcb4102af65efa06f1422e"
+  },
+  "probe_offline.py": {
+    "bytes": 6069,
+    "sha256": "7d3f9818b38db1bd8ee8f91b1f0f65fca0331feb22a43f1c12c105fc6e83562d"
+  },
+  "submission-plan.json": {
+    "bytes": 1262,
+    "sha256": "1d754586e0f1c8c51f21277eaee7f9042a83c5c56dc5a517aebd9ec669444511"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "status": "offline_fixture_probes_passed",
+  "test_only": true,
+  "genuine_cache_verified": false,
+  "real_models_loaded": false,
+  "benchmark_attempts_reserved": 0,
+  "checks": [
+    "Exact native receipt, byte counts, four-file progress, both digest algorithms and observer restoration",
+    "Unchanged native digest failure and restoration, no success marker",
+    "Unchanged native size failure and restoration, no success marker",
+    "Unchanged native escape failure and restoration, no success marker",
+    "Heartbeat survives slow simulated reads; exact original 2MiB read requests preserved",
+    "Real child group timeout preserves summary/log/manifest and reserves no benchmark ID",
+    "Invalid mount fails admission in real child; no fake cache receipt"
+  ],
+  "diagnostic_driver_sha256": "6f72f78d6ae1d5b6d6a56d2f5b527c3bc08da202e6bc306bdb28372a375f192f"
+}
