@@ -99,3 +99,58 @@ terminal verifier follows that plan. No automatic second replacement.
 
 [Machine checkpoint](../evidence/kaggle-b12-benchmark-b2-en-r03-replacement01-2026-10-23.json)
 and [retained artifact manifest](../evidence/kaggle-b12-benchmark-b2-en-r03-replacement01-2026-10-23/artifacts-manifest.json).
+
+## Terminal check — 2026-10-23
+
+**ERROR, setup timed out before native inference.** Status observed at
+19:12:58 Asia/Saigon on2026-10-23; this is the check time,
+not an observed exact platform failure time. Version1 remote cells still match
+accepted submission and private/GPU/requestedT4/input metadata. Actual runtime
+hardware was never probed; no native runner or model generation began.
+
+All8 saved files retained (14,146bytes), no omissions or model payload downloads.
+All7 original manifest hashes/byte counts pass. Three setup stages completed:
+bootstrap2.521s, Python creation1.367s, locked218-package installation77.036s.
+Mounted-cache verification began84.616s into driver execution with1,535.384s
+remaining setup allowance. It timed out after1,535.387s (25.59m), exhausting the
+1,620s setup cap. Driver wall1,620.003s; owned scratch cleanup succeeded.
+The90m native watchdog and120m platform session cap were not the failing limit.
+
+Cache verification log is0bytes. The unchanged verifier streams files in2MiB
+chunks, checking size/path/hash for all pinned bytes, and emits its JSON receipt
+only after all files complete. It has no per-file/progress telemetry. Empty
+output does not prove no bytes were checked, a particular file stalled, or
+cache corruption. No mismatch is recorded. Exact-byte verification did not
+complete, so data/runtime/native gates were never bypassed or reached.
+
+There is no worker.log, native run directory, predictions, native log/report,
+run.json, native campaign ledger or completeness receipt. **Zero cases generated
+is a setup failure, not0/100 execution accuracy.** Original native source,
+research configuration, accepted bundle/cache/setup fingerprints, caps and
+all failure evidence remain unchanged. No new upload, runtime installation,
+pytest/model call, BigQuery, scientific flag change or retry occurred in this
+terminal check. The installed Kaggle client reports a newer client release;
+this read/export warning is unrelated to the remote saved setup timeout and
+no SDK upgrade was attempted.
+
+Comparison from genuine retained timing files: setup-only validation cache
+702.389s, finalVI cache1,013.519s, replacement cache timeout1,535.387s. Fast
+77s installation here shows the cache stage alone can exceed available setup
+time. The earlier27m headroom change did not eliminate the operational failure.
+Underlying mounted-I/O/verification slowness remains unresolved; no evidence
+supports a specific file, hash error or resource cause yet. Before another
+benchmark, collect bounded per-file/progress diagnostics while preserving all
+pin/digest checks. This check implements no verifier or cap changes.
+
+All11 earlier native run/report file hashes and report self-digests reverified;
+their100-case denominators remain intact. B1 EN3/VI3, B2 EN2/VI3. There are now
+**eleven successful native runs and two setup failures**,13 conservative attempted
+IDs across parent and replacement namespaces. B2 EN still lacks a third
+successful replicate. The new failed identity stays reserved in a separate
+retained-evidence audit; no native ledger or completeness receipt is fabricated.
+No scientific campaign completion or pooled language score is claimed.
+
+Quota at check17.996651111h, zero reserved. Difference from prelaunch account
+observation is0.455109444h; this is not invoice cost or a general billing rule.
+Monitoring stops after this terminal evidence checkpoint. No automatic retry,
+new replacement identity or future launch is authorized by this result review.

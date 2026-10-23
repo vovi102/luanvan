@@ -1,0 +1,40 @@
+{
+  "worker_status": "ERROR",
+  "downloaded": [
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/artifacts-manifest.json",
+      "bytes": 1194
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/create_python311.log",
+      "bytes": 206
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/driver-summary.json",
+      "bytes": 1671
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/input-provenance.json",
+      "bytes": 832
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/install_bootstrap.log",
+      "bytes": 447
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/install_locked_environment.log",
+      "bytes": 7864
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/stage-timings.jsonl",
+      "bytes": 1932
+    },
+    {
+      "name": "b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/verify_mounted_cache.log",
+      "bytes": 0
+    }
+  ],
+  "omitted": [],
+  "signed_urls_persisted": false,
+  "model_payloads_downloaded": false
+}

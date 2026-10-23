@@ -1,0 +1,54 @@
+{
+  "status": "setup_timeout_saved_artifacts_integrity_verified",
+  "kernel": "aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl01",
+  "version": 1,
+  "run_id": "b12-envi-20261018-c01-replacement01-b2-en-r03",
+  "replacement_of": "b12-envi-20261018-c01-b2-en-r03",
+  "session_id": "s11-b2-en-r03-replacement01",
+  "native_inference_started": false,
+  "cases_generated": 0,
+  "failure_stage": "verify_mounted_cache",
+  "error_type": "TimeoutExpired",
+  "driver_wall_seconds": 1620.003093226,
+  "setup_cap_seconds": 1620,
+  "native_cap_seconds": 5400,
+  "session_cap_seconds": 7200,
+  "setup_stage_timings": [
+    {
+      "stage": "install_bootstrap",
+      "elapsed_seconds": 2.5212498189999906,
+      "outcome": "completed"
+    },
+    {
+      "stage": "create_python311",
+      "elapsed_seconds": 1.3670385899999928,
+      "outcome": "completed"
+    },
+    {
+      "stage": "install_locked_environment",
+      "elapsed_seconds": 77.036329975,
+      "outcome": "completed"
+    },
+    {
+      "stage": "verify_mounted_cache",
+      "elapsed_seconds": 1535.3871393299999,
+      "outcome": "timed_out"
+    }
+  ],
+  "cache_timeout_seconds": 1535.384297053,
+  "cache_log_bytes": 0,
+  "cache_verification_complete": false,
+  "cache_corruption_established": false,
+  "underlying_cache_slowness_cause": "not established; no per-file or byte-progress telemetry",
+  "scratch_removed": true,
+  "saved_files_verified": 8,
+  "saved_bytes_verified": 14146,
+  "native_manifest_entries_verified": 7,
+  "native_ledger_published": false,
+  "native_completeness_receipt_published": false,
+  "scientific_ready": false,
+  "accuracy_assessed": false,
+  "new_bigquery_jobs": 0,
+  "automatic_retry_performed": false,
+  "attempt_id_must_not_be_reused": true
+}

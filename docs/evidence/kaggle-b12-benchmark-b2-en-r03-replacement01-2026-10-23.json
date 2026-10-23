@@ -1,5 +1,5 @@
 {
-  "status": "submitted_running_saved_native_results_pending",
+  "status": "setup_timeout_saved_artifacts_integrity_verified",
   "date": "2026-10-23",
   "kernel": "aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl01",
   "campaign_id": "b12-envi-20261018-c01-replacement01",
@@ -74,19 +74,19 @@
   "url": "https://www.kaggle.com/code/aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl01",
   "submitted_at_utc": "2026-10-22T17:59:32.718191+00:00",
   "observed_status": {
-    "checked_at_utc": "2026-10-22T17:59:50.746123+00:00",
+    "checked_at_utc": "2026-10-23T12:12:58.855547+00:00",
     "ref": "aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl01",
     "version": 1,
-    "status": "RUNNING",
+    "status": "ERROR",
     "private": true,
     "enable_gpu": true,
     "machine_shape": "NvidiaTeslaT4",
     "kernel_sources": [
       "aohkvd/nl2sql-environment-cache"
     ],
-    "gpu_used_hours": 11.55280941111111,
+    "gpu_used_hours": 12.003348888888889,
     "gpu_reserved_hours": 0.0,
-    "gpu_remaining_hours": 18.447190588888887
+    "gpu_remaining_hours": 17.996651111111113
   },
   "quota_before": {
     "checked_at_utc": "2026-10-22T17:59:30.217026+00:00",
@@ -132,5 +132,134 @@
   },
   "automatic_monitoring_stopped_after_launch_checkpoint": true,
   "original_eleven_native_successes_retained": true,
-  "original_failed_setup_retained": true
+  "original_failed_setup_retained": true,
+  "saved_setup_failure_artifacts_verified": true,
+  "saved_setup_failure": {
+    "status": "setup_timeout_saved_artifacts_integrity_verified",
+    "kernel": "aohkvd/nl2sql-b12-benchmark-20261023-b2-en-r03-repl01",
+    "version": 1,
+    "run_id": "b12-envi-20261018-c01-replacement01-b2-en-r03",
+    "replacement_of": "b12-envi-20261018-c01-b2-en-r03",
+    "session_id": "s11-b2-en-r03-replacement01",
+    "native_inference_started": false,
+    "cases_generated": 0,
+    "failure_stage": "verify_mounted_cache",
+    "error_type": "TimeoutExpired",
+    "driver_wall_seconds": 1620.003093226,
+    "setup_cap_seconds": 1620,
+    "native_cap_seconds": 5400,
+    "session_cap_seconds": 7200,
+    "setup_stage_timings": [
+      {
+        "stage": "install_bootstrap",
+        "elapsed_seconds": 2.5212498189999906,
+        "outcome": "completed"
+      },
+      {
+        "stage": "create_python311",
+        "elapsed_seconds": 1.3670385899999928,
+        "outcome": "completed"
+      },
+      {
+        "stage": "install_locked_environment",
+        "elapsed_seconds": 77.036329975,
+        "outcome": "completed"
+      },
+      {
+        "stage": "verify_mounted_cache",
+        "elapsed_seconds": 1535.3871393299999,
+        "outcome": "timed_out"
+      }
+    ],
+    "cache_timeout_seconds": 1535.384297053,
+    "cache_log_bytes": 0,
+    "cache_verification_complete": false,
+    "cache_corruption_established": false,
+    "underlying_cache_slowness_cause": "not established; no per-file or byte-progress telemetry",
+    "scratch_removed": true,
+    "saved_files_verified": 8,
+    "saved_bytes_verified": 14146,
+    "native_manifest_entries_verified": 7,
+    "native_ledger_published": false,
+    "native_completeness_receipt_published": false,
+    "scientific_ready": false,
+    "accuracy_assessed": false,
+    "new_bigquery_jobs": 0,
+    "automatic_retry_performed": false,
+    "attempt_id_must_not_be_reused": true
+  },
+  "campaign_attempt_audit": {
+    "status": "retained_evidence_audit_not_native_campaign_ledger",
+    "native_successes_verified": 11,
+    "native_replicates_per_baseline_language": {
+      "b1_en": 3,
+      "b1_vi": 3,
+      "b2_en": 2,
+      "b2_vi": 3
+    },
+    "original_failed_setup": {
+      "planned_run_id": "b12-envi-20261018-c01-b2-en-r03",
+      "native_inference_started": false,
+      "cases_generated": 0,
+      "evidence": "docs/evidence/kaggle-b12-benchmark-b2-en-r03-2026-10-21.json"
+    },
+    "replacement_failed_setup": {
+      "run_id": "b12-envi-20261018-c01-replacement01-b2-en-r03",
+      "native_inference_started": false,
+      "cases_generated": 0
+    },
+    "setup_failures": 2,
+    "total_attempted_ids": 13,
+    "conservative_attempted_ids": [
+      "b12-envi-20261018-c01-b1-en-r01",
+      "b12-envi-20261018-c01-b1-vi-r01",
+      "b12-envi-20261018-c01-b2-en-r01",
+      "b12-envi-20261018-c01-b2-vi-r01",
+      "b12-envi-20261018-c01-b1-en-r02",
+      "b12-envi-20261018-c01-b1-vi-r02",
+      "b12-envi-20261018-c01-b2-en-r02",
+      "b12-envi-20261018-c01-b2-vi-r02",
+      "b12-envi-20261018-c01-b1-en-r03",
+      "b12-envi-20261018-c01-b1-vi-r03",
+      "b12-envi-20261018-c01-b2-en-r03",
+      "b12-envi-20261018-c01-b2-vi-r03",
+      "b12-envi-20261018-c01-replacement01-b2-en-r03"
+    ],
+    "no_native_ledger_fabricated": true,
+    "failed_ids_must_not_be_reused": true,
+    "scientific_campaign_complete": false,
+    "native_execution_accuracy_evaluated": false,
+    "english_vietnamese_pooled": false,
+    "automatic_retry_performed": false
+  },
+  "cache_timing_comparison": [
+    {
+      "session": "real_setup_only_validation",
+      "timing_source": ".local/kaggle-b12-setup-validation-20261022-v02/downloaded/b12-benchmark-b12-setup-20261022-v02/session-validate-setup-v02/stage-timings.jsonl",
+      "timing_sha256": "35d55ef73eb512d50664dd94433b9d9327371a0e6b7d8181ff72daabb206c90f",
+      "cache_elapsed_seconds": 702.3892384569999,
+      "cache_outcome": "completed",
+      "locked_install_seconds": 80.9893823320001
+    },
+    {
+      "session": "final_b2_vi_r03_success",
+      "timing_source": ".local/kaggle-b12-benchmark-20261022-b2-vi-r03/downloaded/b12-benchmark-b12-envi-20261018-c01/session-s12-b2-vi-r03/stage-timings.jsonl",
+      "timing_sha256": "e9f1b36016fe167a24cf6f542c5d38a6f4a5287d849364b76736bc9f3c3523c8",
+      "cache_elapsed_seconds": 1013.5191290910002,
+      "cache_outcome": "completed",
+      "locked_install_seconds": 248.557185032
+    },
+    {
+      "session": "b2_en_r03_replacement_setup_failure",
+      "timing_source": ".local/kaggle-b12-benchmark-20261023-b2-en-r03-replacement01/downloaded/b12-benchmark-b12-envi-20261018-c01-replacement01/session-s11-b2-en-r03-replacement01/stage-timings.jsonl",
+      "timing_sha256": "14db5ff030178333c7417c359a06520344df9dc2367052545b938c8e7313cba6",
+      "cache_elapsed_seconds": 1535.3871393299999,
+      "cache_outcome": "timed_out",
+      "locked_install_seconds": 77.036329975
+    }
+  ],
+  "automatic_retry_performed": false,
+  "attempt_id_must_not_be_reused": true,
+  "next_action": "Diagnose mounted-cache verification slowness with per-file/progress evidence before considering any new benchmark attempt; no pins, checks or caps changed in this verification.",
+  "automatic_monitoring_stopped_after_terminal_checkpoint": true
 }
