@@ -1,11 +1,19 @@
 {
+  "api-log-recheck.json": {
+    "bytes": 126,
+    "sha256": "50a655c7ed36ebbd3d2d62da7d8b8c4e4408085ed4531c39417e67339df14738"
+  },
+  "api-recheck.json": {
+    "bytes": 182,
+    "sha256": "c7a5980cb5699a155112a02d784bed97fa2e88fccdd6a1e03cc0d430436cd081"
+  },
   "api-submitted-v1.json": {
     "bytes": 439,
     "sha256": "bd6fd33f67b506d21f855e26d0e9faba60568f5318cdee69fd97376a6d820c16"
   },
   "current-status.json": {
     "bytes": 348,
-    "sha256": "78a362cf201c05c1eb62ee69af2bba9de127f29506f3ec4cca9b9502e3dff5a4"
+    "sha256": "0c66e21fa38e66fb8cb93559e4e2222b70f3cb8d2caff03311083ceeac8b43f7"
   },
   "deploy/kernel-metadata.json": {
     "bytes": 481,
@@ -68,8 +76,8 @@
     "sha256": "87712a48656d32dd1669a6271a222730312b11f36d3a2a7845040664a96673b0"
   },
   "status-history.jsonl": {
-    "bytes": 650,
-    "sha256": "6c90d8cdd54e2b56aec621a7a15cfd0bb8036a68d0811efa82b001d494d2755c"
+    "bytes": 974,
+    "sha256": "4e2e7cfc7de8b2a9a1f20524a9004e9c8d178cbdf3270b47ddbb427796aa9219"
   },
   "submission-intent.json": {
     "bytes": 137,

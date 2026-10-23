@@ -1,0 +1,20 @@
+{
+  "worker_status": "COMPLETE",
+  "downloaded": [
+    {
+      "name": "cpu-smoke-d02/complete.json",
+      "bytes": 271
+    },
+    {
+      "name": "cpu-smoke-d02/heartbeat.jsonl",
+      "bytes": 36
+    },
+    {
+      "name": "cpu-smoke-d02/started.json",
+      "bytes": 224
+    }
+  ],
+  "omitted": [],
+  "signed_urls_persisted": false,
+  "model_payloads_downloaded": false
+}

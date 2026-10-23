@@ -1,0 +1,16 @@
+{
+  "checked_at_utc": "2026-10-23T13:30:31.501072+00:00",
+  "prior_statuses": {
+    "nl2sql-b12-benchmark-20261023-b2-en-r03-repl01": "ERROR",
+    "nl2sql-b12-benchmark-20261021-b2-en-r03": "ERROR",
+    "nl2sql-b12-benchmark-20261022-b2-vi-r03": "COMPLETE",
+    "nl2sql-environment-cache": "COMPLETE"
+  },
+  "gpu_remaining_hours": 17.996651111111113,
+  "gpu_reserved_hours": 0,
+  "is_pay_to_scale_enabled": false,
+  "gpu_requested": false,
+  "cache_private": true,
+  "cache_version": 5,
+  "matching_diagnostic_exists": false
+}

@@ -1,0 +1,12 @@
+{
+  "submitted_at_utc": "2026-10-23T13:24:16.608157+00:00",
+  "ref": "/code/aohkvd/nl2sql-cpu-smoke-20261023-d02",
+  "url": "https://www.kaggle.com/code/aohkvd/nl2sql-cpu-smoke-20261023-d02",
+  "version": 1,
+  "kernel_id": 140397194,
+  "error": "",
+  "invalid_dataset_sources": [],
+  "invalid_kernel_sources": [],
+  "gpu_requested": false,
+  "platform_cap_seconds": 300
+}

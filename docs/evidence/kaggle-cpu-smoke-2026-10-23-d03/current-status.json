@@ -1,0 +1,17 @@
+{
+  "checked_at_utc": "2026-10-23T13:29:08.818875+00:00",
+  "status": "COMPLETE",
+  "failure_message": "",
+  "private": true,
+  "gpu_enabled": false,
+  "internet_enabled": false,
+  "no_input_attachments": true,
+  "remote_source_match": true,
+  "output_names": [
+    "cpu-smoke-d02/complete.json",
+    "cpu-smoke-d02/heartbeat.jsonl",
+    "cpu-smoke-d02/started.json"
+  ],
+  "next_page_present": false,
+  "persisted_log": "[{\"stream_name\":\"stderr\",\"time\":12.522867881,\"data\":\"0.00s - Debugger warning: It seems that frozen modules are being used, which may\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":12.522944953,\"data\":\"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":12.522959208,\"data\":\"0.00s - to python to disable frozen modules.\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":12.522963611,\"data\":\"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":13.502633573,\"data\":\"0.00s - Debugger warning: It seems that frozen modules are being used, which may\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":13.502671472,\"data\":\"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":13.502684826,\"data\":\"0.00s - to python to disable frozen modules.\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":13.502689082,\"data\":\"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\\n\"}\n,{\"stream_name\":\"stdout\",\"time\":15.137417926,\"data\":\"CPU_SMOKE_BEGIN\\n\"}\n,{\"stream_name\":\"stdout\",\"time\":15.13933637,\"data\":\"CPU_SMOKE_HEARTBEAT 0\\n\"}\n,{\"stream_name\":\"stdout\",\"time\":16.141326171,\"data\":\"CPU_SMOKE_HEARTBEAT 1\\n\"}\n,{\"stream_name\":\"stdout\",\"time\":17.142960174,\"data\":\"CPU_SMOKE_HEARTBEAT 2\\n\"}\n,{\"stream_name\":\"stdout\",\"time\":18.145649157,\"data\":\"CPU_SMOKE_COMPLETE\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":24.737708597,\"data\":\"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\\\|'\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":24.737782511,\"data\":\"  cells[i][c] = re.sub('\\\\\\\\\\\\\\\\\\\\|', '|', cell)\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":25.069373285,\"data\":\"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\\\_'\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":25.069409343,\"data\":\"  text = re.sub(r'_', '\\\\_', text) # Escape underscores in display text\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":26.355305514,\"data\":\"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":26.448574984,\"data\":\"[NbConvertApp] Writing 3197 bytes to __notebook__.ipynb\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":30.370347774,\"data\":\"[NbConvertApp] Converting notebook __notebook__.ipynb to html\\n\"}\n,{\"stream_name\":\"stderr\",\"time\":31.105501946,\"data\":\"[NbConvertApp] Writing 278516 bytes to __results__.html\\n\"}\n]"
+}

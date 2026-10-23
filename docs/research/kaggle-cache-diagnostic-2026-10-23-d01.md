@@ -140,3 +140,14 @@ why Kaggle supplies no execution log/output before considering a fresh diagnosti
 submission. Monitoring stops after this terminal checkpoint. Underlying cache
 slowness/root cause remains unresolved; earlier local fixture probes are still
 only test evidence, not proof that this remote diagnostic executed.
+
+## Later user-requested API retry and source defect diagnosis
+
+A fresh no-input CPU control exposed a Papermill missing-kernelspec error via
+API logs. The same missing metadata is present in this d01 source, though its
+own log still returns `[]`. An actual Papermill reproduction and metadata-only
+fix passed locally, then a fixed CPU control completed with3saved artifacts.
+A fresh d04 cache diagnostic was requested and launched with the same cells/
+observer and added python3 kernelspec. D01 remains immutable historical evidence;
+its exact platform exception is not invented from the control. See the
+[repair/control/retry handoff](kaggle-cpu-admission-repair-and-cache-retry-2026-10-23.md).

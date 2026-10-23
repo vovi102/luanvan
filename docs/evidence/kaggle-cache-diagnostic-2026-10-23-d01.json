@@ -107,5 +107,15 @@
     "next_action": "Investigate why the platform produced no execution log/output before another diagnostic submission; do not treat this as a cache timeout or successful diagnostic."
   },
   "actual_file_measurements_obtained": false,
-  "monitoring_stops_after_terminal_checkpoint": true
+  "monitoring_stops_after_terminal_checkpoint": true,
+  "later_followup": {
+    "original_api_log_still_empty": true,
+    "original_notebook_kernelspec_missing": true,
+    "same_defect_reproduced_by_actual_papermill_locally": true,
+    "no_input_control_api_trace_proved_missing_kernel": "aohkvd/nl2sql-cpu-smoke-20261023-d02",
+    "metadata_only_control_repair_complete": "aohkvd/nl2sql-cpu-smoke-20261023-d03",
+    "user_requested_cpu_diagnostic_retry": "aohkvd/nl2sql-cache-diag-20261023-d04",
+    "original_d01_exact_platform_failure_not_directly_observed": true,
+    "T4_cache_issue_resolved": false
+  }
 }

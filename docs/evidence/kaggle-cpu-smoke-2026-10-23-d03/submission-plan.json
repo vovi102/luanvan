@@ -1,0 +1,25 @@
+{
+  "kernel": "aohkvd/nl2sql-cpu-smoke-20261023-d03",
+  "purpose": "Validate Python kernelspec-only fix after API log proved Papermill admission error",
+  "platform_cap_seconds": 300,
+  "gpu_requested": false,
+  "internet_requested": false,
+  "input_attachments": [],
+  "notebook_sha256": "a09805cde3b1b01d3c9eadf4daf1c8c5655aa3453893075b4510d20364d529e2",
+  "offline_exact_cell_fixture_passed": true,
+  "model_inference": false,
+  "benchmark_attempt_reserved": false,
+  "authorization": "User requested API recheck or retry after empty failed CPU diagnostic; one small bounded control.",
+  "preceding_failed_control": "aohkvd/nl2sql-cpu-smoke-20261023-d02",
+  "notebook_cells_byte_equivalent": true,
+  "notebook_metadata_only_change": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    }
+  },
+  "output_prefix": "cpu-smoke-d02",
+  "papermill_missing_kernel_reproduced": true,
+  "papermill_kernel_admission_after_fix": "python3"
+}

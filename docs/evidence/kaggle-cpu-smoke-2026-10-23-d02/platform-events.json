@@ -1,0 +1,112 @@
+[
+  {
+    "stream_name": "stderr",
+    "time": 7.774064347,
+    "data": "Traceback (most recent call last):\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775009239,
+    "data": "  File \"<string>\", line 1, in <module>\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775032728,
+    "data": "    import sys;import papermill as pm;pm.execute_notebook(\"__notebook__.ipynb\",\"__notebook__.ipynb\",progress_bar=False,log_output=True,stdout_file=sys.stdout,stderr_file=sys.stderr,allow_errors=False,timeout=300)\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775040577,
+    "data": "                                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775045336,
+    "data": "  File \"/usr/local/lib/python3.13/dist-packages/papermill/execute.py\", line 113, in execute_notebook\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775062085,
+    "data": "    kernel_name = papermill_engines.nb_kernel_name(engine_name=engine_name, nb=nb, name=kernel_name)\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775066665,
+    "data": "  File \"/usr/local/lib/python3.13/dist-packages/papermill/engines.py\", line 53, in nb_kernel_name\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775070604,
+    "data": "    return self.get_engine(engine_name).nb_kernel_name(nb, name)\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775074504,
+    "data": "           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775077131,
+    "data": "  File \"/usr/local/lib/python3.13/dist-packages/papermill/engines.py\", line 386, in nb_kernel_name\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775079763,
+    "data": "    return nb_kernel_name(nb, name)\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775082276,
+    "data": "  File \"/usr/local/lib/python3.13/dist-packages/papermill/utils.py\", line 52, in nb_kernel_name\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775084762,
+    "data": "    raise ValueError(\"No kernel name found in notebook and no override provided.\")\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 7.775087358,
+    "data": "ValueError: No kernel name found in notebook and no override provided.\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 10.441856629,
+    "data": "/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 10.441894374,
+    "data": "  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 10.6797738,
+    "data": "/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 10.679801102,
+    "data": "  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 11.684395821,
+    "data": "[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 11.772526968,
+    "data": "[NbConvertApp] Writing 1506 bytes to __notebook__.ipynb\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 14.905547832,
+    "data": "[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"
+  },
+  {
+    "stream_name": "stderr",
+    "time": 16.23340115,
+    "data": "[NbConvertApp] Writing 278197 bytes to __results__.html\n"
+  }
+]

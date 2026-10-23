@@ -1,0 +1,13 @@
+{
+  "kernel": "aohkvd/nl2sql-cpu-smoke-20261023-d02",
+  "purpose": "Check CPU runtime execution and output persistence with no mounts before retrying cache diagnostic",
+  "platform_cap_seconds": 300,
+  "gpu_requested": false,
+  "internet_requested": false,
+  "input_attachments": [],
+  "notebook_sha256": "a9b35da472875e8b8260db0e1e0cff7c3f6cd88fe0d79c24d68d827af2e6616e",
+  "offline_exact_cell_fixture_passed": true,
+  "model_inference": false,
+  "benchmark_attempt_reserved": false,
+  "authorization": "User requested API recheck or retry after empty failed CPU diagnostic; one small bounded control."
+}
