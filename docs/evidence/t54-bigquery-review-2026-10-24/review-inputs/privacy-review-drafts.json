@@ -1,0 +1,61 @@
+{
+  "kind": "unsigned_review_worksheet",
+  "reviews": [
+    {
+      "baseline_id": "b1",
+      "language": "en",
+      "test_set_path": "data/dataset/test/test-100.jsonl",
+      "test_set_sha256": "5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d",
+      "data_egress": "provider",
+      "provider": "Kaggle; Google Cloud BigQuery",
+      "policy_sha256": "80f70422d9b2a95db7d9ee5417b6ded0a4a18fdfae54c91fca8bc7adfd5ac861",
+      "reviewer_id": null,
+      "reviewed_at": null,
+      "synthetic": false,
+      "status": "unsigned_draft_not_canonical_privacy_review"
+    },
+    {
+      "baseline_id": "b1",
+      "language": "vi",
+      "test_set_path": "data/dataset/test/test-100-vi.jsonl",
+      "test_set_sha256": "0abf44dca4b9111f4fe10930fca5d7c56961b7ef79a0ac0fe50f8b16cb1ba5eb",
+      "data_egress": "provider",
+      "provider": "Kaggle; Google Cloud BigQuery",
+      "policy_sha256": "80f70422d9b2a95db7d9ee5417b6ded0a4a18fdfae54c91fca8bc7adfd5ac861",
+      "reviewer_id": null,
+      "reviewed_at": null,
+      "synthetic": false,
+      "status": "unsigned_draft_not_canonical_privacy_review"
+    },
+    {
+      "baseline_id": "b2",
+      "language": "en",
+      "test_set_path": "data/dataset/test/test-100.jsonl",
+      "test_set_sha256": "5d342a5c063ea2d4b5fb7cd62ab15fabb82d2164e5eca5cb248843797989ff0d",
+      "data_egress": "provider",
+      "provider": "Kaggle; Google Cloud BigQuery",
+      "policy_sha256": "80f70422d9b2a95db7d9ee5417b6ded0a4a18fdfae54c91fca8bc7adfd5ac861",
+      "reviewer_id": null,
+      "reviewed_at": null,
+      "synthetic": false,
+      "status": "unsigned_draft_not_canonical_privacy_review"
+    },
+    {
+      "baseline_id": "b2",
+      "language": "vi",
+      "test_set_path": "data/dataset/test/test-100-vi.jsonl",
+      "test_set_sha256": "0abf44dca4b9111f4fe10930fca5d7c56961b7ef79a0ac0fe50f8b16cb1ba5eb",
+      "data_egress": "provider",
+      "provider": "Kaggle; Google Cloud BigQuery",
+      "policy_sha256": "80f70422d9b2a95db7d9ee5417b6ded0a4a18fdfae54c91fca8bc7adfd5ac861",
+      "reviewer_id": null,
+      "reviewed_at": null,
+      "synthetic": false,
+      "status": "unsigned_draft_not_canonical_privacy_review"
+    }
+  ],
+  "policy_path": "docs/planning/t54-bigquery-privacy-policy-2026-10-24.md",
+  "policy_sha256": "80f70422d9b2a95db7d9ee5417b6ded0a4a18fdfae54c91fca8bc7adfd5ac861",
+  "review_decision": null,
+  "note": "Prepared provider-egress scope only; no reviewer signature, no synthetic acceptance, no BigQuery authorization."
+}

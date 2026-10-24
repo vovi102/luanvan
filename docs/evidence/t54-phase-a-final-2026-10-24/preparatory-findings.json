@@ -1,0 +1,171 @@
+{
+  "kind": "agent_preparatory_diagnosis_not_human_semantic_review_or_execution_evidence",
+  "created_at_utc": "2026-10-24T07:38:09.782691+00:00",
+  "metadata_source_path": "docs/evidence/t54-bigquery-review-2026-10-24/metadata.json",
+  "metadata_source_sha256": "cff88b96788b70e57dbd345871201b8777ff4f5113d95e15241932fb46589449",
+  "scope_path": "docs/evidence/t54-bigquery-review-2026-10-24/dry-run-scope.json",
+  "scope_sha256": "2246cb0d79a19e40733574558f642c41056037dbe6282cb4c8aec533791149ae",
+  "findings": [
+    {
+      "scope_index": 24,
+      "sql_sha256": "2c1080d7da54a3f1438f0f0a98a92b9c476f64cc3c064084a2cad00fedd88396",
+      "source_journal": "docs/evidence/t54-phase-a-2026-10-24/dry-run-journal.jsonl",
+      "source_status": "estimate_above_24_GiB",
+      "estimated_bytes": 30470124008,
+      "provider_errors": null,
+      "logical_uses": [
+        {
+          "run_id": "b12-envi-20261018-c01-b2-en-r01",
+          "case_id": "t35-028",
+          "role": "prediction"
+        },
+        {
+          "run_id": "b12-envi-20261018-c01-b2-en-r02",
+          "case_id": "t35-028",
+          "role": "prediction"
+        },
+        {
+          "run_id": "b12-envi-20261018-c01-replacement02-b2-en-r03",
+          "case_id": "t35-028",
+          "role": "prediction"
+        }
+      ],
+      "relation_kind_observations": [],
+      "SQL_changed": false,
+      "kind": "per_query_cap_exceeded",
+      "cap_bytes": 25769803776,
+      "date_argument_window_days": 1470,
+      "metadata_window_limit_days": 31,
+      "runtime_note": "Pinned TVF definition checks a <=31-day window. The literal dates exceed that bound; dry-run success is not proof of runtime success. No live query was sent."
+    },
+    {
+      "scope_index": 98,
+      "sql_sha256": "bca620d09297f385c7b65f847e0e0d7160bf388cfa2542780575d27080d35622",
+      "source_journal": "docs/evidence/t54-phase-a-continuation-2026-10-24/dry-run-journal.jsonl",
+      "source_status": "dry_run_error",
+      "estimated_bytes": null,
+      "provider_errors": [
+        {
+          "message": "Not found: Table nl2sparql-thesis:nl2sparql_analytics.transaction_facts was not found in location US",
+          "domain": "global",
+          "reason": "notFound"
+        }
+      ],
+      "logical_uses": [
+        {
+          "run_id": "b12-envi-20261018-c01-b2-en-r01",
+          "case_id": "t35-006",
+          "role": "prediction"
+        },
+        {
+          "run_id": "b12-envi-20261018-c01-b2-en-r02",
+          "case_id": "t35-006",
+          "role": "prediction"
+        },
+        {
+          "run_id": "b12-envi-20261018-c01-replacement02-b2-en-r03",
+          "case_id": "t35-006",
+          "role": "prediction"
+        }
+      ],
+      "relation_kind_observations": [
+        {
+          "relation": "nl2sparql-thesis.nl2sparql_analytics.transaction_facts",
+          "metadata_kind": "TABLE_VALUED_FUNCTION",
+          "AST_relation_form": "plain_table_identifier",
+          "diagnosis": "Prediction refers to a table-valued function as a table; no function-call arguments are supplied."
+        }
+      ],
+      "SQL_changed": false,
+      "kind": "compilation_failure",
+      "interpretation": "HTTP 404 is preserved as returned. Metadata and AST show a relation-kind mismatch; it is not evidence that the routine was deleted."
+    },
+    {
+      "scope_index": 110,
+      "sql_sha256": "cb004e39213e81d127408572a52c3d42da2ad1d01faadc344c8bdb2baaa830b0",
+      "source_journal": "docs/evidence/t54-phase-a-final-2026-10-24/dry-run-journal.jsonl",
+      "source_status": "compile_error",
+      "estimated_bytes": null,
+      "provider_errors": [
+        {
+          "message": "Not found: Table nl2sparql-thesis:nl2sparql_analytics.transaction_facts was not found in location US",
+          "domain": "global",
+          "reason": "notFound"
+        }
+      ],
+      "logical_uses": [
+        {
+          "run_id": "b12-envi-20261018-c01-b2-en-r01",
+          "case_id": "t35-015",
+          "role": "prediction"
+        },
+        {
+          "run_id": "b12-envi-20261018-c01-b2-en-r02",
+          "case_id": "t35-015",
+          "role": "prediction"
+        },
+        {
+          "run_id": "b12-envi-20261018-c01-replacement02-b2-en-r03",
+          "case_id": "t35-015",
+          "role": "prediction"
+        }
+      ],
+      "relation_kind_observations": [
+        {
+          "relation": "nl2sparql-thesis.nl2sparql_analytics.transaction_facts",
+          "metadata_kind": "TABLE_VALUED_FUNCTION",
+          "AST_relation_form": "plain_table_identifier",
+          "diagnosis": "Prediction refers to a table-valued function as a table; no function-call arguments are supplied."
+        }
+      ],
+      "SQL_changed": false,
+      "kind": "compilation_failure",
+      "interpretation": "HTTP 404 is preserved as returned. Metadata and AST show a relation-kind mismatch; it is not evidence that the routine was deleted."
+    },
+    {
+      "scope_index": 121,
+      "sql_sha256": "e195cc932e7326317bb391e469f97de17a587ceb5f2fc5d960f1562117a04384",
+      "source_journal": "docs/evidence/t54-phase-a-final-2026-10-24/dry-run-journal.jsonl",
+      "source_status": "compile_error",
+      "estimated_bytes": null,
+      "provider_errors": [
+        {
+          "message": "Not found: Table nl2sparql-thesis:nl2sparql_analytics.transaction_facts was not found in location US",
+          "domain": "global",
+          "reason": "notFound"
+        }
+      ],
+      "logical_uses": [
+        {
+          "run_id": "b12-envi-20261018-c01-b2-en-r01",
+          "case_id": "t35-110",
+          "role": "prediction"
+        },
+        {
+          "run_id": "b12-envi-20261018-c01-b2-en-r02",
+          "case_id": "t35-110",
+          "role": "prediction"
+        },
+        {
+          "run_id": "b12-envi-20261018-c01-replacement02-b2-en-r03",
+          "case_id": "t35-110",
+          "role": "prediction"
+        }
+      ],
+      "relation_kind_observations": [
+        {
+          "relation": "nl2sparql-thesis.nl2sparql_analytics.transaction_facts",
+          "metadata_kind": "TABLE_VALUED_FUNCTION",
+          "AST_relation_form": "plain_table_identifier",
+          "diagnosis": "Prediction refers to a table-valued function as a table; no function-call arguments are supplied."
+        }
+      ],
+      "SQL_changed": false,
+      "kind": "compilation_failure",
+      "interpretation": "HTTP 404 is preserved as returned. Metadata and AST show a relation-kind mismatch; it is not evidence that the routine was deleted."
+    }
+  ],
+  "model_or_SQL_repairs": false,
+  "native_status_overrides": false,
+  "execution_accuracy": null
+}

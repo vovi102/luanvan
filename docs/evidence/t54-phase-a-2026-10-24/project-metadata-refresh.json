@@ -1,0 +1,41 @@
+{
+  "observed_at_utc": "2026-10-24T06:58:48.497824+00:00",
+  "method": "GET",
+  "url": "https://cloudresourcemanager.googleapis.com/v1/projects/nl2sparql-thesis",
+  "status_code": 403,
+  "body": {
+    "error": {
+      "code": 403,
+      "message": "Cloud Resource Manager API has not been used in project nl2sparql-thesis before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=nl2sparql-thesis then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.",
+      "status": "PERMISSION_DENIED",
+      "details": [
+        {
+          "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+          "reason": "SERVICE_DISABLED",
+          "domain": "googleapis.com",
+          "metadata": {
+            "containerInfo": "nl2sparql-thesis",
+            "consumer": "projects/nl2sparql-thesis",
+            "service": "cloudresourcemanager.googleapis.com",
+            "activationUrl": "https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=nl2sparql-thesis",
+            "serviceTitle": "Cloud Resource Manager API"
+          }
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+          "locale": "en-US",
+          "message": "Cloud Resource Manager API has not been used in project nl2sparql-thesis before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=nl2sparql-thesis then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.Help",
+          "links": [
+            {
+              "description": "Google developers console API activation",
+              "url": "https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=nl2sparql-thesis"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

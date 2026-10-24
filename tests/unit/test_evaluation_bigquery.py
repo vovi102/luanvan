@@ -83,6 +83,7 @@ class _Client:
         self.jobs = list(jobs)
         self.calls: list[tuple[str, object, str]] = []
         self.job_retries: list[object] = []
+        self.http_retries: list[object] = []
 
     def query(
         self,
@@ -92,9 +93,11 @@ class _Client:
         location: str,
         job_id: str | None = None,
         job_retry: object = "unset",
+        retry: object = "unset",
     ):
         self.calls.append((sql, job_config, location))
         self.job_retries.append(job_retry)
+        self.http_retries.append(retry)
         job = self.jobs.pop(0)
         if job_id is not None:
             job.job_id = job_id
@@ -165,6 +168,7 @@ def test_dry_run_and_execution_capture_guarded_job_evidence() -> None:
     assert live_config.maximum_bytes_billed == _policy().per_query_byte_cap
     assert [call[2] for call in client.calls] == ["EU", "EU"]
     assert client.job_retries == ["unset", None]
+    assert client.http_retries == [None, None]
     assert live_job.result_timeouts == [7.5]
     assert outcome.job_id is not None
     assert outcome.job_id.startswith("nl2sql_eval_")
@@ -253,3 +257,57 @@ def test_result_canonicalization_failure_preserves_submitted_job_billing() -> No
     assert outcome.job_id.startswith("nl2sql_eval_")
     assert outcome.billed_bytes == 10
     assert outcome.cost.measurement_status == "estimated"
+
+
+@pytest.mark.parametrize(
+    "exception_name,reason,isolated",
+    [
+        ("NotFound", "notFound", True),
+        ("BadRequest", "invalidQuery", True),
+        ("Forbidden", "accessDenied", False),
+        ("BadRequest", "quotaExceeded", False),
+    ],
+)
+def test_only_known_compilation_errors_are_isolated(exception_name, reason, isolated):
+    from google.api_core import exceptions
+
+    from nl2sparql.evaluation.executor import QueryValidationError
+
+    failure = getattr(exceptions, exception_name)("provider message", errors=[{"reason": reason}])
+
+    class FailingClient:
+        def query(self, *args, **kwargs):
+            raise failure
+
+    executor, _ = _executor(FailingClient())
+    expected = QueryValidationError if isolated else type(failure)
+    with pytest.raises(expected, match="provider message"):
+        executor.dry_run(QueryRequest("q", "prediction", "SELECT 1", True), _policy())
+
+
+@pytest.mark.parametrize(
+    "reason,expected",
+    [
+        ("billingTierLimitExceeded", "billingTierLimitExceeded"),
+        ("invalidQuery", "invalidQuery"),
+        ("quotaExceeded", "BadRequest"),
+    ],
+)
+def test_runtime_error_preserves_known_sql_reason_and_leaves_quota_as_infrastructure(
+    reason, expected
+):
+    from google.api_core.exceptions import BadRequest
+
+    class FailedJob(_Job):
+        def result(self, *, timeout):
+            raise BadRequest("runtime rejection", errors=[{"reason": reason}])
+
+    client = _Client([FailedJob(job_id="job", processed=0, billed=0)])
+    executor, _ = _executor(client)
+    outcome = executor.execute(
+        QueryRequest("q", "prediction", "SELECT 1", True), _policy(), DryRunEvidence(1, NOW, True)
+    )
+    assert outcome.status == "error"
+    assert outcome.billed_bytes == 0
+    assert outcome.submission_acknowledged is True
+    assert outcome.error_code == expected

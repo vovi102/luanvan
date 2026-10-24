@@ -1,0 +1,126 @@
+.............................FF...........FF.                            [100%]
+=================================== FAILURES ===================================
+________ test_unselected_run_unknown_billing_blocks_every_shared_report ________
+
+    def test_unselected_run_unknown_billing_blocks_every_shared_report():
+        from nl2sparql.evaluation.contracts import BootstrapPolicy
+        from nl2sparql.evaluation.reporting import build_report
+        from nl2sparql.evaluation.shared_execution import plan_shared_campaign, sql_digest
+    
+        selected = tuple(make_run(f"r{i}", predictions=(SQL_A,)) for i in range(3))
+        other = make_run("unselected", predictions=(SQL_B,))
+        runs = (*selected, other)
+        fake = make_executor(plan_shared_campaign(runs))
+        key = (sql_digest(SQL_B), "prediction")
+        fake.executions[key] = replace(fake.executions[key], status="unresolved_cost",
+                                      billed_bytes=None, error_code="unknown_billing",
+                                      cost=CostEvidence("unmeasured", None, None, None))
+        evidence = execute(runs, fake=fake)
+        assert evidence.status == "unresolved_cost"
+        report = build_report(primary_run=selected[0], primary_evidence=evidence,
+                              replicate_pairs=tuple((run, evidence) for run in selected[1:]),
+                              bootstrap_policy=BootstrapPolicy(samples=10))
+>       assert "unresolved_submitted_job_cost" in report.readiness.scientific_blockers
+E       AssertionError: assert 'unresolved_submitted_job_cost' in ('fake_executor', 'missing_genuine_baseline_runs', 'synthetic_input')
+E        +  where ('fake_executor', 'missing_genuine_baseline_runs', 'synthetic_input') = Readiness(implementation_blockers=(), scientific_blockers=('fake_executor', 'missing_genuine_baseline_runs', 'synthetic_input')).scientific_blockers
+E        +    where Readiness(implementation_blockers=(), scientific_blockers=('fake_executor', 'missing_genuine_baseline_runs', 'synthetic_input')) = EvaluationReport(baseline_id='b2', primary_run_id='r0', primary_prediction_sha256='8019d95e9ce4c331604e7ada62868c9c988...merator=1.0, denominator=1, value=1.0, interval=ConfidenceInterval(lower=1.0, upper=1.0, confidence_level=0.95))}),)))).readiness
+
+tests/unit/test_shared_execution.py:582: AssertionError
+___ test_shared_journal_rejects_interleaved_submissions_before_gold_outcome ____
+
+tmp_path = PosixPath('/tmp/pytest-of-khoavd/pytest-13/test_shared_journal_rejects_in0')
+
+    def test_shared_journal_rejects_interleaved_submissions_before_gold_outcome(tmp_path):
+        import json
+        from nl2sparql.evaluation.executor import MemoryExecutionJournal
+        from nl2sparql.evaluation.shared_execution import verify_shared_execution_journal
+    
+        journal = MemoryExecutionJournal()
+        evidence = execute((make_run(),), journal=journal)
+        records = json.loads(artifacts.canonical_json(journal.records))
+        header_initial = [r for r in records if r["record_type"] in ("shared_header", "initial_dry_run")]
+        operations = [r for r in records if r["record_type"] in
+                      ("immediate_dry_run", "submission_intent", "submitted")]
+        outcomes = [r for r in records if r["record_type"] == "execution"]
+        forged = MemoryExecutionJournal()
+        for record in (*header_initial, *operations, *outcomes):
+            forged.append(record["record_type"], record["body"])
+        terminal = forged.seal(records[-1]["body"])
+        path = tmp_path / "interleaved.jsonl"
+        path.write_bytes(b"".join(artifacts.canonical_json(r) for r in forged.records))
+>       with pytest.raises(EvaluationError, match="order|sequence"):
+E       Failed: DID NOT RAISE <class 'nl2sparql.evaluation.contracts.EvaluationError'>
+
+tests/unit/test_shared_execution.py:603: Failed
+_ test_runtime_error_preserves_known_sql_reason_and_leaves_quota_as_infrastructure[billingTierLimitExceeded-billingTierLimitExceeded] _
+
+reason = 'billingTierLimitExceeded', expected = 'billingTierLimitExceeded'
+
+    @pytest.mark.parametrize("reason,expected", [
+        ("billingTierLimitExceeded", "billingTierLimitExceeded"),
+        ("invalidQuery", "invalidQuery"),
+        ("quotaExceeded", "BadRequest"),
+    ])
+    def test_runtime_error_preserves_known_sql_reason_and_leaves_quota_as_infrastructure(reason, expected):
+        from google.api_core.exceptions import BadRequest
+    
+        class FailedJob(_Job):
+            def result(self, *, timeout):
+                raise BadRequest("runtime rejection", errors=[{"reason": reason}])
+    
+        client = _Client([FailedJob(job_id="job", processed=0, billed=0)])
+        executor, _ = _executor(client)
+        outcome = executor.execute(QueryRequest("q", "prediction", "SELECT 1", True), _policy(),
+                                   DryRunEvidence(1, NOW, True))
+        assert outcome.status == "error"
+        assert outcome.billed_bytes == 0
+        assert outcome.submission_acknowledged is True
+>       assert outcome.error_code == expected
+E       AssertionError: assert 'BadRequest' == 'billingTierLimitExceeded'
+E         
+E         - billingTierLimitExceeded
+E         + BadRequest
+
+tests/unit/test_evaluation_bigquery.py:303: AssertionError
+_ test_runtime_error_preserves_known_sql_reason_and_leaves_quota_as_infrastructure[invalidQuery-invalidQuery] _
+
+reason = 'invalidQuery', expected = 'invalidQuery'
+
+    @pytest.mark.parametrize("reason,expected", [
+        ("billingTierLimitExceeded", "billingTierLimitExceeded"),
+        ("invalidQuery", "invalidQuery"),
+        ("quotaExceeded", "BadRequest"),
+    ])
+    def test_runtime_error_preserves_known_sql_reason_and_leaves_quota_as_infrastructure(reason, expected):
+        from google.api_core.exceptions import BadRequest
+    
+        class FailedJob(_Job):
+            def result(self, *, timeout):
+                raise BadRequest("runtime rejection", errors=[{"reason": reason}])
+    
+        client = _Client([FailedJob(job_id="job", processed=0, billed=0)])
+        executor, _ = _executor(client)
+        outcome = executor.execute(QueryRequest("q", "prediction", "SELECT 1", True), _policy(),
+                                   DryRunEvidence(1, NOW, True))
+        assert outcome.status == "error"
+        assert outcome.billed_bytes == 0
+        assert outcome.submission_acknowledged is True
+>       assert outcome.error_code == expected
+E       AssertionError: assert 'BadRequest' == 'invalidQuery'
+E         
+E         - invalidQuery
+E         + BadRequest
+
+tests/unit/test_evaluation_bigquery.py:303: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/google/api_core/_python_version_support.py:255
+  /home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/api_core/_python_version_support.py:255: FutureWarning: You are using a Python version (3.11.15) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2027-10-24). Please upgrade to the latest Python version, or at least Python 3.12, to continue receiving updates for google.api_core past that date.
+    warnings.warn(message, FutureWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/test_shared_execution.py::test_unselected_run_unknown_billing_blocks_every_shared_report
+FAILED tests/unit/test_shared_execution.py::test_shared_journal_rejects_interleaved_submissions_before_gold_outcome
+FAILED tests/unit/test_evaluation_bigquery.py::test_runtime_error_preserves_known_sql_reason_and_leaves_quota_as_infrastructure[billingTierLimitExceeded-billingTierLimitExceeded]
+FAILED tests/unit/test_evaluation_bigquery.py::test_runtime_error_preserves_known_sql_reason_and_leaves_quota_as_infrastructure[invalidQuery-invalidQuery]
+4 failed, 41 passed, 1 warning in 4.75s

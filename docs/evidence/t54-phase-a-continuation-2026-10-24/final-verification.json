@@ -1,0 +1,17 @@
+{
+  "kind": "phase_A_continuation_final_verification",
+  "verified_at_utc": "2026-10-24T07:28:59.626272+00:00",
+  "prior_payloads_and_inputs_unchanged": true,
+  "both_journal_chains_and_seals": "pass",
+  "all_attempted_scope_indices": 99,
+  "raw_http_bodies_verified": 74,
+  "logical_mapping_rows": 1329,
+  "estimate_uses": 942,
+  "error_uses": 3,
+  "unattempted_uses": 384,
+  "remaining_scope_hashes": 44,
+  "remaining_scope_authorized": false,
+  "full_campaign_estimate": null,
+  "live_queries": 0,
+  "local_markdown_links": "pass"
+}

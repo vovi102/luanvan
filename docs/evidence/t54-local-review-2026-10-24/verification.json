@@ -1,0 +1,39 @@
+{
+  "kind": "T5.4_local_review_reverification_not_execution_evidence",
+  "checked_at_utc": "2026-10-23T18:28:39.201107+00:00",
+  "audit_script_sha256": "244e1f08ab576f855b5cf7bfbd75ce13458d7b1b95ee6d70ad74f3da30d593e2",
+  "review_manifest_sha256": "e24da3a4ee2a7ecbcd3de111b6707d93368ebfd5276393821dbc35f79a708d61",
+  "proposal_sha256": "ba38f9020d1311e6c51ff1ae21f34c96aeb38c308bf28dfbba87902a4ff7534e",
+  "policy_sha256": "80f70422d9b2a95db7d9ee5417b6ded0a4a18fdfae54c91fca8bc7adfd5ac861",
+  "scope_sha256": "2246cb0d79a19e40733574558f642c41056037dbe6282cb4c8aec533791149ae",
+  "checks": {
+    "review_package_payload_hashes_and_sizes": 19,
+    "frozen_review_inputs_equal_current": 6,
+    "compressed_and_uncompressed_source_hashes": 4,
+    "canonical_codec_and_N100": 12,
+    "unique_sql_hashes_and_static_safety": 143,
+    "unique_sql_by_role": {
+      "gold": 100,
+      "prediction": 43
+    },
+    "exact_source_bound_logical_uses": {
+      "gold": 1200,
+      "prediction": 129
+    },
+    "unsigned_privacy_worksheets": 4,
+    "unsigned_approval_and_uninitialized_ledger": "pass",
+    "byte_identical_offline_artifacts_reproduced_in_memory": 15,
+    "retained_setup_failures_source_manifests": "22 and 45 entries verified by existing prepare()"
+  },
+  "network_requests_performed": false,
+  "bigquery_requests_performed": false,
+  "scientific_status": "blocked",
+  "remaining_gates": [
+    "real privacy decision and reviewer identity/access/retention",
+    "separate phase A dry-run authorization",
+    "current dry-run estimates and authoritative free allowance",
+    "new privacy-bound canonical hashes and separate live approval",
+    "genuine sealed execution evidence/reports/comparisons",
+    "B3 feasible configuration and resource plan"
+  ]
+}

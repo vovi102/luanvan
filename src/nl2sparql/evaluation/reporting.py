@@ -14,6 +14,7 @@ from nl2sparql.evaluation.artifacts import (
     serialize_evaluation_report,
     serialize_execution_evidence,
     serialize_prediction_run,
+    serialize_shared_execution_evidence,
 )
 from nl2sparql.evaluation.contracts import (
     AnswerScores,
@@ -30,6 +31,7 @@ from nl2sparql.evaluation.contracts import (
     MetricDelta,
     RatioMetric,
     Readiness,
+    SharedExecutionEvidence,
 )
 from nl2sparql.evaluation.failures import classify_failure
 from nl2sparql.evaluation.metrics import (
@@ -39,7 +41,12 @@ from nl2sparql.evaluation.metrics import (
     reproducibility_metric,
 )
 from nl2sparql.evaluation.result_semantics import answer_scores, results_equal
-from nl2sparql.evaluation.sql_semantics import exact_match, structural_match
+from nl2sparql.evaluation.shared_execution import (
+    SharedRunView,
+    bind_shared_run,
+    shared_measurement_scope,
+)
+from nl2sparql.evaluation.sql_semantics import analyze_sql, exact_match, structural_match
 
 DEFAULT_BOOTSTRAP_POLICY = BootstrapPolicy()
 
@@ -56,7 +63,9 @@ def _prediction_sha(run: CanonicalPredictionRun) -> str:
     return _artifact_sha(serialize_prediction_run(run))
 
 
-def _execution_sha(evidence: ExecutionEvidence) -> str:
+def _execution_sha(evidence: ExecutionEvidence | SharedRunView) -> str:
+    if isinstance(evidence, SharedRunView):
+        return _artifact_sha(serialize_shared_execution_evidence(evidence.campaign))
     return _artifact_sha(serialize_execution_evidence(evidence))
 
 
@@ -68,7 +77,17 @@ def _case_ids(run: CanonicalPredictionRun) -> tuple[str, ...]:
     return tuple(case.case_id for case in run.cases)
 
 
-def _validate_pair(run: CanonicalPredictionRun, evidence: ExecutionEvidence) -> None:
+def _validate_pair(
+    run: CanonicalPredictionRun, evidence: ExecutionEvidence | SharedRunView
+) -> None:
+    if isinstance(evidence, SharedRunView):
+        bind_shared_run(run, evidence.campaign)
+        if (
+            evidence.campaign.policy_sha256
+            != hashlib.sha256(canonical_json(evidence.campaign.policy)).hexdigest()
+        ):
+            raise EvaluationError("shared policy binding mismatch")
+        return
     if evidence.prediction_run_sha256 != _prediction_sha(run):
         raise EvaluationError("execution prediction binding does not match canonical run")
     evidence_ids = tuple(case.case_id for case in evidence.cases)
@@ -162,7 +181,13 @@ def _case_evaluations(
         else:
             assert execution.gold.result is not None
             assert execution.prediction.result is not None
-            execution_match = results_equal(execution.gold.result, execution.prediction.result)
+            execution_match = results_equal(
+                execution.gold.result,
+                execution.prediction.result,
+                order_sensitive=(analyze_sql(prediction.gold_sql).result_order == "sequence")
+                if isinstance(evidence, SharedRunView)
+                else None,
+            )
             scores = answer_scores(execution.gold.result, execution.prediction.result)
 
         automated = classify_failure(
@@ -185,12 +210,20 @@ def _case_evaluations(
                 execution_match=execution_match,
                 answer_scores=scores,
                 inference_latency_ms=prediction.inference.latency_ms,
-                execution_latency_ms=execution.prediction.latency_ms,
+                execution_latency_ms=None
+                if isinstance(evidence, SharedRunView)
+                else execution.prediction.latency_ms,
                 inference_cost=prediction.inference.cost,
-                execution_cost=execution.prediction.cost,
+                execution_cost=CostEvidence("unmeasured", None, None, None)
+                if isinstance(evidence, SharedRunView)
+                else execution.prediction.cost,
                 failure_tags=tuple(sorted(tags)),
-                gold_execution_latency_ms=execution.gold.latency_ms,
-                gold_execution_cost=execution.gold.cost,
+                gold_execution_latency_ms=None
+                if isinstance(evidence, SharedRunView)
+                else execution.gold.latency_ms,
+                gold_execution_cost=CostEvidence("unmeasured", None, None, None)
+                if isinstance(evidence, SharedRunView)
+                else execution.gold.cost,
             )
         )
     return tuple(output)
@@ -438,6 +471,10 @@ def _readiness(
         for query in (case.gold, case.prediction)
     ):
         blockers.add("unresolved_submitted_job_cost")
+    if any(evidence.status == "halted" for evidence in evidences):
+        blockers.add("shared_campaign_halted")
+    if any(evidence.status == "unresolved_cost" for evidence in evidences):
+        blockers.add("unresolved_submitted_job_cost")
     if len(runs) < 2:
         blockers.add("incomplete_reproducibility")
     genuine = sum(
@@ -454,12 +491,23 @@ def _readiness(
 def build_report(
     *,
     primary_run: CanonicalPredictionRun,
-    primary_evidence: ExecutionEvidence,
-    replicate_pairs: Sequence[tuple[CanonicalPredictionRun, ExecutionEvidence]] = (),
+    primary_evidence: ExecutionEvidence | SharedExecutionEvidence,
+    replicate_pairs: Sequence[
+        tuple[CanonicalPredictionRun, ExecutionEvidence | SharedExecutionEvidence]
+    ] = (),
     bootstrap_policy: BootstrapPolicy = DEFAULT_BOOTSTRAP_POLICY,
     manual_reviews: Sequence[ManualFailureReview] = (),
 ) -> EvaluationReport:
     """Build a report solely from verified immutable prediction/execution evidence."""
+    shared = isinstance(primary_evidence, SharedExecutionEvidence)
+    if any(isinstance(ev, SharedExecutionEvidence) != shared for _, ev in replicate_pairs):
+        raise EvaluationError("mixed shared and legacy execution protocols")
+    if shared:
+        campaign = primary_evidence
+        if any(ev != campaign for _, ev in replicate_pairs):
+            raise EvaluationError("shared replicates require the same campaign")
+        primary_evidence = bind_shared_run(primary_run, campaign)
+        replicate_pairs = tuple((run, bind_shared_run(run, ev)) for run, ev in replicate_pairs)
     _validate_pair(primary_run, primary_evidence)
     sorted_replicates = tuple(sorted(replicate_pairs, key=lambda pair: pair[0].run_id))
     if any(_identity(run) != _identity(primary_run) for run, _ in sorted_replicates):
@@ -475,6 +523,8 @@ def build_report(
     all_runs = (primary_run, *(run for run, _ in sorted_replicates))
     all_evidence = (primary_evidence, *(evidence for _, evidence in sorted_replicates))
     dimensions = list(_headline_dimensions(cases, bootstrap_policy))
+    if isinstance(primary_evidence, SharedRunView):
+        dimensions.append(("shared_execution", shared_measurement_scope(primary_evidence.campaign)))
     dimensions.append(
         (
             "gold_sql_sha256s",
@@ -549,6 +599,10 @@ def compare_reports(
     bootstrap_policy: BootstrapPolicy = DEFAULT_BOOTSTRAP_POLICY,
 ) -> ComparisonReport:
     """Build a paired left-minus-right comparison without winner semantics."""
+    if ("shared_execution" in dict(left.dimensions)) != (
+        "shared_execution" in dict(right.dimensions)
+    ):
+        raise EvaluationError("mixed shared and legacy execution protocols")
     if left.test_set_sha256 != right.test_set_sha256:
         raise EvaluationError("comparison requires identical test-set identity")
     if left.case_set_sha256 != right.case_set_sha256:
@@ -623,6 +677,14 @@ def compare_reports(
     blockers.update(left.readiness.implementation_blockers)
     blockers.update(right.readiness.implementation_blockers)
     for metric, extractor in extractors:
+        if "shared_execution" in dict(left.dimensions) and metric in {
+            "prediction_execution_latency_ms",
+            "gold_execution_latency_ms",
+            "total_query_execution_latency_ms",
+            "execution_cost_usd",
+            "gold_execution_cost_usd",
+        }:
+            continue
         delta, blocker = _paired_metric(
             metric,
             tuple(extractor(case) for case in left_cases),

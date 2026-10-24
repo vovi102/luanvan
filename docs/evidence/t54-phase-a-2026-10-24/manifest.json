@@ -1,0 +1,190 @@
+{
+  "kind": "phase_A_stopped_dry_run_package_not_live_execution_evidence",
+  "sealed_at_utc": "2026-10-24T07:06:04.981349+00:00",
+  "files": [
+    {
+      "path": "bigquery-projects-metadata.json",
+      "bytes": 723,
+      "sha256": "43eb9a075ebcb3d47de6a279544a87dfb4b6246eaafa65f9b0c1dc7c306b49f1"
+    },
+    {
+      "path": "billing-refresh.json",
+      "bytes": 144,
+      "sha256": "12952cd5544e7bf4b1b0256808bd9cf9b623d66dd3714733319280e9c704cfa6"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b1-en-r01.json",
+      "bytes": 116617,
+      "sha256": "c04afb2f799ad64eb489b337c226125a21a951d09c6797d2b3061fe2b056ea2c"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b1-en-r02.json",
+      "bytes": 116616,
+      "sha256": "8aaeaeb7968b7f3075b67b1b3a34d992a9e2a1166ae0aaa6f0023443691a967d"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b1-en-r03.json",
+      "bytes": 116617,
+      "sha256": "716b21fbad4a966d5dd26a9f347133faad4ff5316f9336810fa545e508f5335c"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b1-vi-r01.json",
+      "bytes": 123918,
+      "sha256": "6b95b8fd190e30e4435a459414591c09fda44a129318b520969391d25ae6d339"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b1-vi-r02.json",
+      "bytes": 123915,
+      "sha256": "f4c7a653ae5dcabca67523117cdf8b6b4db985825f9bfa040069a1eabecf3966"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b1-vi-r03.json",
+      "bytes": 123916,
+      "sha256": "221447fb5006f879aea01eef0041ef05fc89ac4ff519035458fa77a2574bf0f0"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b2-en-r01.json",
+      "bytes": 123899,
+      "sha256": "02d52ae50a74c187436e676b78964c742c41ca85149db3dc9f91f52051531d84"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b2-en-r02.json",
+      "bytes": 123901,
+      "sha256": "9497db0c53213a7cd8c1d7754b5452b773bf585089f3c4d5f25b478b9531e452"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b2-vi-r01.json",
+      "bytes": 126008,
+      "sha256": "4287228906b58999c77c39493cd8fa8a48564cc9d7c9c696896cbed56d9d3151"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b2-vi-r02.json",
+      "bytes": 126011,
+      "sha256": "306c4ce665c8fad6a192a12b6e84836104917c9610f66ab6ce91e23d597a228f"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-b2-vi-r03.json",
+      "bytes": 126005,
+      "sha256": "cca85f149331b2f1021fe167f13a60afb9d21e13a7bb03d98e0e421e342543bd"
+    },
+    {
+      "path": "canonical/b12-envi-20261018-c01-replacement02-b2-en-r03.json",
+      "bytes": 123908,
+      "sha256": "f95a24329836c7f552d628a4e75e73197f24523c6bced4637fb9d348b2cdd78f"
+    },
+    {
+      "path": "decision.json",
+      "bytes": 1757,
+      "sha256": "cc9165e14a98b5210671fa3ffc4f7bbe3aef08f90178c88c6cf6d2b6f0e2175b"
+    },
+    {
+      "path": "dry-run-journal.jsonl",
+      "bytes": 45546,
+      "sha256": "042a1da367ab5731a2c6111a0519542f8d55cf8669dade2b701ddadd2f989299"
+    },
+    {
+      "path": "dry-run-summary.json",
+      "bytes": 12117,
+      "sha256": "8b8fc5413a8523ebd01644e2abc60a88982d1e1f7ef202b496b5fdd8d9ae0b2a"
+    },
+    {
+      "path": "operations/prepare.py.txt",
+      "bytes": 4630,
+      "sha256": "54bf08221c7275f4586bd6d4806772ff616b43742691ef90a9e7f6e58442e22d"
+    },
+    {
+      "path": "operations/read_quota_metadata.py.txt",
+      "bytes": 2048,
+      "sha256": "c325e7fe15e735444cdc7b570770e4887abb77998bfd0cd5c2ddc65b13aa0739"
+    },
+    {
+      "path": "operations/run_dry_runs.py.txt",
+      "bytes": 8059,
+      "sha256": "d21647ce2c93477443e284305f161cd1d57e7c53f34eb8424f9c3f6005cdbab5"
+    },
+    {
+      "path": "privacy/b1-en.json",
+      "bytes": 499,
+      "sha256": "aa889930521fd0240bfa6326665a2c7f78816cb681359618a3a68a57af708eab"
+    },
+    {
+      "path": "privacy/b1-vi.json",
+      "bytes": 499,
+      "sha256": "5e86ddda57c314ff4fe28319bf3aecb502c8d8951cbc44a7eaa01161d9000809"
+    },
+    {
+      "path": "privacy/b2-en.json",
+      "bytes": 499,
+      "sha256": "b8b459219fe32b48da1847dc0455ce032a26e6b6b50e890825dd8d95f4b2e050"
+    },
+    {
+      "path": "privacy/b2-vi.json",
+      "bytes": 499,
+      "sha256": "d59cd5bd5fc840a70d8669014eb06fa28978a1cae432131902a938ecfc1eb469"
+    },
+    {
+      "path": "privacy-bound-runs.json",
+      "bytes": 7693,
+      "sha256": "b33d14a72b0f6b9c6ffd726498adcc91e11da265f0fed3412a6bf8966aceae88"
+    },
+    {
+      "path": "project-metadata-refresh.json",
+      "bytes": 2104,
+      "sha256": "d7b29c575c9724f4324efd1ab4ab3748f3577e309c579fb336f8690fc218344c"
+    },
+    {
+      "path": "quota-direct-probe.json",
+      "bytes": 80008,
+      "sha256": "a94a39fcd4616183a404b30d3bdd88fd549a3a40f4c198ebba62b36c63fe22f1"
+    },
+    {
+      "path": "quota-metadata-refresh.json",
+      "bytes": 290,
+      "sha256": "0640fcb7629f113cfa6a8b3a72ba2e02835d544acb7d52d71adce356c80bae49"
+    },
+    {
+      "path": "request-policy.json",
+      "bytes": 654,
+      "sha256": "58ebe660fcd19b1d79e05be5b19dd67893ad847c02fb165c0ffbafbfb3ebdac0"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 769,
+      "sha256": "acc27917e39c257ce4fd2a7734679efc13021574a4b65a66b9ff84ffddb57ab3"
+    },
+    {
+      "path": "verify.py",
+      "bytes": 5340,
+      "sha256": "019b15ae4c4fc99ef142fdc1d453fd63661a71962194e08e065f7ac56dd34787"
+    }
+  ],
+  "related_inputs": [
+    {
+      "path": "configs/t54/phase-a-approval-2026-10-24.json",
+      "sha256": "384b024efc2fdd4368feee4d94e1e69a8f3ebb2f47e1cb01f7ba7ca77455a31f"
+    },
+    {
+      "path": "configs/t54/phase-a-state-2026-10-24.json",
+      "sha256": "0a78f3d96ac6eaa5c30090151b3f6c10aabeb88df45d0cc73727333cbb96022a"
+    },
+    {
+      "path": "configs/t54/phase-a-continuation-proposal-2026-10-24.json",
+      "sha256": "a27f67000b6e562988cd2f9c1c1cb6cdf39fbd496777ef4e67610c8f8927aa3e"
+    },
+    {
+      "path": "configs/t54/b12-bigquery-review-proposal.json",
+      "sha256": "ba38f9020d1311e6c51ff1ae21f34c96aeb38c308bf28dfbba87902a4ff7534e"
+    },
+    {
+      "path": "docs/planning/t54-bigquery-privacy-policy-2026-10-24.md",
+      "sha256": "80f70422d9b2a95db7d9ee5417b6ded0a4a18fdfae54c91fca8bc7adfd5ac861"
+    },
+    {
+      "path": "docs/evidence/t54-bigquery-review-2026-10-24/dry-run-scope.json",
+      "sha256": "2246cb0d79a19e40733574558f642c41056037dbe6282cb4c8aec533791149ae"
+    }
+  ],
+  "dry_run_requests": 25,
+  "live_queries": 0,
+  "scientific_complete": false
+}

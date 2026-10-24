@@ -1,0 +1,289 @@
+"""One approved continuation of preparatory dry-runs; no live capability."""
+
+import hashlib
+import json
+import os
+import time
+from collections import Counter
+from datetime import UTC, datetime
+from pathlib import Path
+
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
+from google.cloud import bigquery
+
+from nl2sparql.dataset.testset.sql_safety import validate_sql_text
+
+ROOT = Path.cwd()
+OUT = ROOT / "docs/evidence/t54-phase-a-continuation-2026-10-24"
+
+
+def read(path):
+    return json.loads(path.read_bytes())
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def now():
+    return datetime.now(UTC).isoformat()
+
+
+def save(path, data):
+    with path.open("xb") as stream:
+        stream.write(data)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def dump(path, obj):
+    save(path, (json.dumps(obj, ensure_ascii=False, indent=2, allow_nan=False) + "\n").encode())
+
+
+decision = read(OUT / "decision.json")
+proposal_path = ROOT / decision["proposal_path"]
+assert sha(proposal_path.read_bytes()) == decision["proposal_sha256"]
+proposal = read(proposal_path)
+assert decision["authorization_recorded"] is True and decision["allow_dry_run"] is True
+assert decision["allow_bigquery"] is False and decision["scope_sql_count"] == 118
+scope_path = ROOT / proposal["original_scope_path"]
+assert sha(scope_path.read_bytes()) == proposal["original_scope_sha256"]
+scope = read(scope_path)
+previous_summary = read(ROOT / "docs/evidence/t54-phase-a-2026-10-24/dry-run-summary.json")
+assert [ref["original_scope_index"] for ref in proposal["queries"]] == list(range(25, 143))
+assert [ref["sql_sha256"] for ref in proposal["queries"]] == previous_summary[
+    "unattempted_sql_sha256"
+]
+assert (
+    sha((ROOT / proposal["stopped_journal_path"]).read_bytes())
+    == proposal["stopped_journal_sha256"]
+)
+assert read(OUT / "billing-refresh.json")["billingEnabled"] is False
+assert not (OUT / "dry-run-journal.jsonl").exists(), "No automatic resume or retry"
+allowed = {}
+for ref in proposal["queries"]:
+    query = scope["queries"][ref["original_scope_index"]]
+    assert query["sql_sha256"] == ref["sql_sha256"] == sha(query["sql"].encode())
+    validate_sql_text(query["sql"])
+    allowed[ref["sql_sha256"]] = ref
+assert len(allowed) == 118
+config = bigquery.QueryJobConfig(
+    dry_run=True, use_legacy_sql=False, use_query_cache=False, maximum_bytes_billed=24 * 1024**3
+)
+config_api = config.to_api_repr()
+assert config_api == {
+    "query": {"useLegacySql": False, "useQueryCache": False, "maximumBytesBilled": "25769803776"},
+    "dryRun": True,
+}
+(OUT / "raw-response").mkdir(exist_ok=True)
+
+
+class DryRunSession(AuthorizedSession):
+    """Refuse all requests except one exact approved dry-run per SQL hash."""
+
+    def __init__(self, credentials):
+        super().__init__(credentials, max_refresh_attempts=0)
+        self.sent = set()
+        self.current_hash = None
+        self.last_response = None
+
+    def request(self, method, url, *args, **kwargs):
+        assert method.upper() == "POST", "Unexpected request method"
+        assert (
+            url.split("?")[0]
+            == "https://bigquery.googleapis.com/bigquery/v2/projects/nl2sparql-thesis/jobs"
+        ), "Unexpected endpoint"
+        body = kwargs.get("data")
+        if isinstance(body, bytes):
+            body = body.decode()
+        body = json.loads(body) if isinstance(body, str) else kwargs.get("json", body)
+        assert isinstance(body, dict), "Request body not inspectable"
+        config = body["configuration"]
+        assert config["dryRun"] is True, "Live requests are forbidden"
+        query = config["query"]
+        assert query["useLegacySql"] is False and query["useQueryCache"] is False
+        assert int(query["maximumBytesBilled"]) == 24 * 1024**3
+        digest = sha(query["query"].encode())
+        assert digest == self.current_hash and digest in allowed
+        assert digest not in self.sent and len(self.sent) < 118, "Duplicate or excessive request"
+        assert body["jobReference"]["projectId"] == "nl2sparql-thesis"
+        assert body["jobReference"]["location"] == "US"
+        self.sent.add(digest)
+        response = super().request(method, url, *args, **kwargs)
+        path = OUT / "raw-response" / f"{digest}.body"
+        save(path, response.content)
+        self.last_response = {
+            "path": str(path.relative_to(ROOT)),
+            "sha256": sha(response.content),
+            "status_code": response.status_code,
+            "content_type": response.headers.get("Content-Type"),
+        }
+        return response
+
+
+credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+session = DryRunSession(credentials)
+client = bigquery.Client(
+    project="nl2sparql-thesis", location="US", credentials=credentials, _http=session
+)
+dump(
+    OUT / "request-policy.json",
+    {
+        "created_at_utc": now(),
+        "decision_sha256": sha((OUT / "decision.json").read_bytes()),
+        "proposal_sha256": decision["proposal_sha256"],
+        "scope_sha256": proposal["original_scope_sha256"],
+        "client_version": bigquery.__version__,
+        "request_configuration": config_api,
+        "requests_max": 118,
+        "no_repeat_previous_25": True,
+        "http_retry": None,
+        "job_retry": None,
+        "auth_refresh_retry": 0,
+        "continue_over_cap_estimates": True,
+        "live_cap_unchanged": True,
+        "raw_http_response_bodies_recorded": True,
+    },
+)
+records = []
+previous_hash = "0" * 64
+event_index = 0
+with (OUT / "dry-run-journal.jsonl").open("x") as journal:
+
+    def append(payload):
+        global previous_hash, event_index
+        envelope = {"index": event_index, "previous_sha256": previous_hash, "payload": payload}
+        digest = sha(
+            json.dumps(envelope, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+        )
+        journal.write(json.dumps(envelope | {"record_sha256": digest}, ensure_ascii=False) + "\n")
+        journal.flush()
+        os.fsync(journal.fileno())
+        previous_hash = digest
+        event_index += 1
+
+    for ref in proposal["queries"]:
+        index = ref["original_scope_index"]
+        query = scope["queries"][index]
+        digest = query["sql_sha256"]
+        session.current_hash = digest
+        session.last_response = None
+        started_at = now()
+        append(
+            {
+                "kind": "dry_run_intent",
+                "scope_index": index,
+                "sql_sha256": digest,
+                "at_utc": started_at,
+                "dry_run": True,
+                "project": "nl2sparql-thesis",
+                "location": "US",
+            }
+        )
+        start = time.monotonic()
+        record = {
+            "scope_index": index,
+            "sql_sha256": digest,
+            "started_at_utc": started_at,
+            "client_version": bigquery.__version__,
+            "dry_run": True,
+            "estimated_bytes": None,
+            "logical_use_counts": dict(Counter(use["role"] for use in query["uses"])),
+        }
+        try:
+            job = client.query(
+                query["sql"],
+                job_config=config,
+                project="nl2sparql-thesis",
+                location="US",
+                job_id="t54phasea2_20261024_" + digest[:40],
+                retry=None,
+                job_retry=None,
+                timeout=120,
+                api_method=bigquery.enums.QueryApiMethod.INSERT,
+            )
+            record["job_configuration_snapshot"] = job.to_api_repr()
+            estimate = job.total_bytes_processed
+            assert record["job_configuration_snapshot"]["configuration"]["dryRun"] is True
+            if job.errors:
+                record.update(status="dry_run_error", provider_errors=job.errors)
+            elif not isinstance(estimate, int) or isinstance(estimate, bool) or estimate < 0:
+                record.update(status="unknown_estimate_requires_review")
+            else:
+                record.update(
+                    estimated_bytes=estimate,
+                    status="estimate_above_24_GiB"
+                    if estimate > 24 * 1024**3
+                    else "zero_estimate_requires_review"
+                    if estimate == 0
+                    else "ok",
+                )
+        except Exception as exc:
+            record.update(
+                status="dry_run_error",
+                exception_type=type(exc).__name__,
+                error_message=str(exc),
+                provider_errors=getattr(exc, "errors", None),
+            )
+        record.update(
+            raw_http_response=session.last_response,
+            finished_at_utc=now(),
+            elapsed_seconds=time.monotonic() - start,
+        )
+        append({"kind": "dry_run_outcome", **record})
+        records.append(record)
+        print(
+            json.dumps(
+                {
+                    "attempted_this_batch": len(records),
+                    "scope_index": index,
+                    "status": record["status"],
+                    "estimated_bytes": record["estimated_bytes"],
+                }
+            ),
+            flush=True,
+        )
+        if record["status"] == "dry_run_error":
+            break
+    append(
+        {
+            "kind": "terminal_seal",
+            "at_utc": now(),
+            "attempted": len(records),
+            "http_requests_sent": len(session.sent),
+            "live_requests": 0,
+            "outcome_counts": dict(Counter(r["status"] for r in records)),
+            "unattempted": 118 - len(records),
+        }
+    )
+summary = {
+    "kind": "phase_A_continuation_not_live_evidence",
+    "finished_at_utc": now(),
+    "attempted_requests": len(records),
+    "http_requests_sent": len(session.sent),
+    "authorized_requests_max": 118,
+    "status_counts": dict(Counter(r["status"] for r in records)),
+    "unattempted_sql_sha256": [
+        r["sql_sha256"]
+        for r in proposal["queries"]
+        if r["sql_sha256"] not in {r["sql_sha256"] for r in records}
+    ],
+    "stop_reason": "scope_exhausted" if len(records) == 118 else records[-1]["status"],
+    "journal_sha256": sha((OUT / "dry-run-journal.jsonl").read_bytes()),
+    "terminal_record_sha256": previous_hash,
+    "live_requests": 0,
+    "free_allowance_remaining_bytes": None,
+    "execution_accuracy": None,
+}
+dump(OUT / "dry-run-summary.json", summary)
+print(
+    json.dumps(
+        {
+            "attempted": len(records),
+            "http_sent": len(session.sent),
+            "stop_reason": summary["stop_reason"],
+        }
+    ),
+    flush=True,
+)

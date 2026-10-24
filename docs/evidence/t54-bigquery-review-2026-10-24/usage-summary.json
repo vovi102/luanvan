@@ -1,0 +1,59 @@
+{
+  "observed_at_utc": "2026-10-23T18:09:16.151111+00:00",
+  "method": "jobs.list GET full projection; no INFORMATION_SCHEMA query",
+  "lower_bound_utc": "2026-09-30T00:00:00+00:00",
+  "upper_bound_utc": "2026-10-23T18:09:16.151129+00:00",
+  "all_users": true,
+  "complete_pagination": true,
+  "not_authoritative_free_quota_balance": true,
+  "sum_observed_billed_bytes": 1459720552448,
+  "sum_observed_processed_bytes": 1457494173013,
+  "nonterminal_jobs": 0,
+  "missing_billed_counts": 0,
+  "job_count": 675,
+  "by_day": {
+    "2026-10-02": {
+      "jobs": 100,
+      "processed_bytes": 559415583941,
+      "billed_bytes": 559593553920
+    },
+    "2026-10-03": {
+      "jobs": 100,
+      "processed_bytes": 559416698795,
+      "billed_bytes": 559594602496
+    },
+    "2026-10-10": {
+      "jobs": 11,
+      "processed_bytes": 183441677,
+      "billed_bytes": 193986560
+    },
+    "2026-10-11": {
+      "jobs": 15,
+      "processed_bytes": 2487486342,
+      "billed_bytes": 2529165312
+    },
+    "2026-10-12": {
+      "jobs": 1,
+      "processed_bytes": 190675508,
+      "billed_bytes": 190840832
+    },
+    "2026-10-13": {
+      "jobs": 14,
+      "processed_bytes": 1710723160,
+      "billed_bytes": 1759510528
+    },
+    "2026-10-14": {
+      "jobs": 182,
+      "processed_bytes": 173910238612,
+      "billed_bytes": 174669692928
+    },
+    "2026-10-15": {
+      "jobs": 252,
+      "processed_bytes": 160179324978,
+      "billed_bytes": 161189199872
+    }
+  },
+  "free_allowance_remaining_bytes": null,
+  "invoice_charge_usd": null,
+  "limitation": "Historical gross job bytes are not a free-tier balance or invoice. Billing may have differed at job time; no basis to infer charges or a quota bypass. No active jobs observed; quota must be checked again before live work."
+}

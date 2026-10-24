@@ -1,0 +1,26 @@
+{
+  "kind": "phase_A_entire_survey_final_verification",
+  "verified_at_utc": "2026-10-24T07:43:26.379107+00:00",
+  "prior_payload_counts_unchanged": [
+    19,
+    31,
+    85
+  ],
+  "native_runs_and_native_output_hashes_verified": 12,
+  "all_three_journals_sealed_and_valid": true,
+  "unique_scope_indices_attempted_once": 143,
+  "raw_HTTP_bodies_verified": 118,
+  "raw_estimates_verified": 115,
+  "scalar_only_first_batch_estimates": 25,
+  "unique_SQL_with_estimates": 140,
+  "original_provider_compilation_errors_verified": 3,
+  "logical_estimate_uses": 1320,
+  "logical_error_uses": 9,
+  "logical_unattempted_uses": 0,
+  "logical_rows": 1329,
+  "local_link_targets_checked": 63,
+  "full_raw_campaign_estimate": null,
+  "free_monthly_balance": null,
+  "live_queries": 0,
+  "scientific_complete": false
+}

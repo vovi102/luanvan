@@ -1,0 +1,7 @@
+{
+  "kind": "read_only_quota_probe_not_balance",
+  "project_lookup_status": 403,
+  "pages": [],
+  "free_allowance_remaining_bytes": null,
+  "note": "Quota limits and gross job history alone do not establish remaining monthly sandbox allowance. No service enablement or quota/IAM change."
+}

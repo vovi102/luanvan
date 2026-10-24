@@ -20,6 +20,7 @@ from nl2sparql.evaluation.executor import (
     ExecutionJournal,
     QueryExecutor,
     QueryRequest,
+    QueryValidationError,
     deterministic_job_id,
 )
 from nl2sparql.evaluation.result_semantics import canonicalize_result
@@ -55,6 +56,23 @@ def _estimated_cost(billed_bytes: int | None, policy: ExecutionPolicy) -> CostEv
         policy.pricing.currency,
         f"pricing-policy:{policy.pricing.policy_id}",
     )
+
+
+def _runtime_error_code(exc: Exception) -> str:
+    """Isolate only structured, known SQL/resource rejections from completed jobs."""
+    from google.api_core.exceptions import BadRequest, NotFound
+
+    reasons = {item.get("reason") for item in getattr(exc, "errors", ())}
+    isolated = {
+        "invalidQuery",
+        "notFound",
+        "resourcesExceeded",
+        "billingTierLimitExceeded",
+        "maximumBytesBilledExceeded",
+    }
+    if isinstance(exc, (BadRequest, NotFound)) and reasons and reasons <= isolated:
+        return sorted(reasons)[0]
+    return type(exc).__name__
 
 
 class BigQueryExecutor:
@@ -113,11 +131,25 @@ class BigQueryExecutor:
     def dry_run(self, request: QueryRequest, policy: ExecutionPolicy) -> DryRunEvidence:
         self._validate_policy(policy)
         self._require_bound_policy(policy)
-        job = self._client.query(  # type: ignore[attr-defined]
-            request.sql,
-            job_config=self._config(dry_run=True, policy=policy),
-            location=policy.location,
-        )
+        try:
+            job = self._client.query(  # type: ignore[attr-defined]
+                request.sql,
+                job_config=self._config(dry_run=True, policy=policy),
+                location=policy.location,
+                retry=None,
+            )
+        except Exception as exc:
+            # Do not classify auth, quota, transport or arbitrary 400/404 errors as SQL failures.
+            from google.api_core.exceptions import BadRequest, NotFound
+
+            reasons = {item.get("reason") for item in getattr(exc, "errors", ())}
+            if (
+                isinstance(exc, (BadRequest, NotFound))
+                and reasons
+                and reasons <= {"invalidQuery", "notFound"}
+            ):
+                raise QueryValidationError(sorted(reasons)[0], str(exc)) from exc
+            raise
         processed = _non_negative_stat(job, "total_bytes_processed")
         if processed is None:
             raise EvaluationError("BigQuery dry-run did not provide total_bytes_processed")
@@ -157,6 +189,7 @@ class BigQueryExecutor:
                 location=policy.location,
                 job_id=submitted_job_id,
                 job_retry=None,
+                retry=None,
             )
         except Exception as exc:
             return QueryExecution(
@@ -213,7 +246,7 @@ class BigQueryExecutor:
                 billed_bytes=billed,
                 cost=_estimated_cost(billed, policy),
                 result=None,
-                error_code=type(exc).__name__,
+                error_code=_runtime_error_code(exc),
                 processed_bytes=_non_negative_stat(job, "total_bytes_processed"),
                 cache_hit=getattr(job, "cache_hit", None),
                 submission_attempted=True,
