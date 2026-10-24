@@ -1,0 +1,2005 @@
+{
+  "kind": "read_only_quota_limits_probe_not_balance",
+  "official_method_source": "https://docs.cloud.google.com/service-usage/docs/reference/rest/v1beta1/services.consumerQuotaMetrics/list",
+  "prior_v1_probe": "Response JSON parsing failed; HTTP status/body not captured by that probe. No successful quota observation inferred. Correct v1beta1 method verified against official reference before this request.",
+  "pages": [
+    {
+      "observed_at_utc": "2026-10-24T07:00:39.074530+00:00",
+      "url": "https://serviceusage.googleapis.com/v1beta1/projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics",
+      "method": "GET",
+      "status_code": 200,
+      "body": {
+        "metrics": [
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fiam_policy_requests",
+            "displayName": "IamPolicy requests",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fiam_policy_requests/limits/%2Fmin%2Fproject%2Fuser",
+                "unit": "1/min/{project}/{user}",
+                "metric": "bigquery.googleapis.com/iam_policy_requests",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "1500",
+                    "defaultLimit": "1500"
+                  }
+                ]
+              },
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fiam_policy_requests/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/iam_policy_requests",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "3000",
+                    "defaultLimit": "3000"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/iam_policy_requests"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fextract%2Fbytes",
+            "displayName": "Extract bytes",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fextract%2Fbytes/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/extract/bytes",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "54975581388800",
+                    "defaultLimit": "54975581388800"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/extract/bytes",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fextract%2Fcount",
+            "displayName": "Extract jobs",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fextract%2Fcount/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/extract/count",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "100000",
+                    "defaultLimit": "100000"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/extract/count",
+            "unit": "1"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fai_input_tokens",
+            "displayName": "AI input tokens",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fai_input_tokens/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/query/ai_input_tokens",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "200000000000",
+                    "defaultLimit": "200000000000"
+                  }
+                ]
+              },
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fai_input_tokens/limits/%2Fd%2Fproject%2Fuser",
+                "unit": "1/d/{project}/{user}",
+                "metric": "bigquery.googleapis.com/quota/query/ai_input_tokens",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "150000000000",
+                    "defaultLimit": "150000000000"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/query/ai_input_tokens"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fai_output_tokens",
+            "displayName": "AI output tokens",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fai_output_tokens/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/query/ai_output_tokens",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "20000000000",
+                    "defaultLimit": "20000000000"
+                  }
+                ]
+              },
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fai_output_tokens/limits/%2Fd%2Fproject%2Fuser",
+                "unit": "1/d/{project}/{user}",
+                "metric": "bigquery.googleapis.com/quota/query/ai_output_tokens",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "15000000000",
+                    "defaultLimit": "15000000000"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/query/ai_output_tokens"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Falloydb_federated_query_cross_region_bytes",
+            "displayName": "AlloyDB federated query cross region bytes",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Falloydb_federated_query_cross_region_bytes/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/query/alloydb_federated_query_cross_region_bytes",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "1099511627776",
+                    "defaultLimit": "1099511627776"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/query/alloydb_federated_query_cross_region_bytes",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fcloud_sql_federated_query_cross_region_bytes",
+            "displayName": "Cloud SQL federated query cross region bytes",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fcloud_sql_federated_query_cross_region_bytes/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/query/cloud_sql_federated_query_cross_region_bytes",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "1099511627776",
+                    "defaultLimit": "1099511627776"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/query/cloud_sql_federated_query_cross_region_bytes",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fcross_cloud_transfer_bytes",
+            "displayName": "Cross cloud transferred bytes",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fcross_cloud_transfer_bytes/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/query/cross_cloud_transfer_bytes",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "2089072092774",
+                    "defaultLimit": "2089072092774"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/query/cross_cloud_transfer_bytes",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fomni_query_bytes",
+            "displayName": "BigQuery Omni materialized query bytes",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fomni_query_bytes/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/query/omni_query_bytes",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "1099511627776",
+                    "defaultLimit": "1099511627776"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/query/omni_query_bytes",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fusage",
+            "displayName": "Query usage",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fusage/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/quota/query/usage",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "209715200",
+                    "defaultLimit": "209715200"
+                  }
+                ]
+              },
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fquery%2Fusage/limits/%2Fd%2Fproject%2Fuser",
+                "unit": "1/d/{project}/{user}",
+                "metric": "bigquery.googleapis.com/quota/query/usage",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "9223372036854775807",
+                    "defaultLimit": "9223372036854775807"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/query/usage",
+            "unit": "MiBy"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Froutine%2Fpython_udf_image_storage_bytes",
+            "displayName": "Total size of Python UDF images",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Froutine%2Fpython_udf_image_storage_bytes/limits/%2Fproject%2Fregion",
+                "unit": "1/{project}/{region}",
+                "isPrecise": true,
+                "metric": "bigquery.googleapis.com/quota/routine/python_udf_image_storage_bytes",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240"
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "africa-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-east2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-northeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-northeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-northeast3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-south2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-southeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-southeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "asia-southeast3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "australia-southeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "australia-southeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-central2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-north1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-north2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-southwest1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west10"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west12"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west4"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west6"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west8"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "europe-west9"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "me-central1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "me-central2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "me-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "northamerica-northeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "northamerica-northeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "northamerica-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "southamerica-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "southamerica-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-central1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-east4"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-east5"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-west2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-west3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240",
+                    "dimensions": {
+                      "region": "us-west4"
+                    }
+                  }
+                ],
+                "supportedLocations": [
+                  "africa-south1",
+                  "asia-east1",
+                  "asia-east2",
+                  "asia-northeast1",
+                  "asia-northeast2",
+                  "asia-northeast3",
+                  "asia-south1",
+                  "asia-south2",
+                  "asia-southeast1",
+                  "asia-southeast2",
+                  "asia-southeast3",
+                  "australia-southeast1",
+                  "australia-southeast2",
+                  "europe-central2",
+                  "europe-north1",
+                  "europe-north2",
+                  "europe-southwest1",
+                  "europe-west1",
+                  "europe-west10",
+                  "europe-west12",
+                  "europe-west2",
+                  "europe-west3",
+                  "europe-west4",
+                  "europe-west6",
+                  "europe-west8",
+                  "europe-west9",
+                  "me-central1",
+                  "me-central2",
+                  "me-west1",
+                  "northamerica-northeast1",
+                  "northamerica-northeast2",
+                  "northamerica-south1",
+                  "southamerica-east1",
+                  "southamerica-west1",
+                  "us-central1",
+                  "us-east1",
+                  "us-east4",
+                  "us-east5",
+                  "us-south1",
+                  "us-west1",
+                  "us-west2",
+                  "us-west3",
+                  "us-west4"
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/routine/python_udf_image_storage_bytes",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Froutine%2Fpython_udf_image_storage_bytes_eu",
+            "displayName": "Total size of Python UDF images",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Froutine%2Fpython_udf_image_storage_bytes_eu/limits/%2Fproject",
+                "unit": "1/{project}",
+                "isPrecise": true,
+                "metric": "bigquery.googleapis.com/quota/routine/python_udf_image_storage_bytes_eu",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/routine/python_udf_image_storage_bytes_eu",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Froutine%2Fpython_udf_image_storage_bytes_us",
+            "displayName": "Total size of Python UDF images",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Froutine%2Fpython_udf_image_storage_bytes_us/limits/%2Fproject",
+                "unit": "1/{project}",
+                "isPrecise": true,
+                "metric": "bigquery.googleapis.com/quota/routine/python_udf_image_storage_bytes_us",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "10737418240",
+                    "defaultLimit": "10737418240"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/routine/python_udf_image_storage_bytes_us",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fstreaming%2Finsert_bytes",
+            "displayName": "Streaming insert bytes",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fstreaming%2Finsert_bytes/limits/%2Fmin%2Fproject%2Fregion",
+                "unit": "1/min/{project}/{region}",
+                "metric": "bigquery.googleapis.com/quota/streaming/insert_bytes",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000"
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "africa-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-east2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-northeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-northeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-northeast3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-south2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-southeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-southeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "asia-southeast3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "australia-southeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "australia-southeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-central2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-north1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-north2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-southwest1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west10"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west12"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west4"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west6"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west8"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "europe-west9"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "me-central1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "me-central2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "me-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "northamerica-northeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "northamerica-northeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "northamerica-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "southamerica-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "southamerica-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-central1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-east4"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-east5"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-west2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-west3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "18874368000",
+                    "defaultLimit": "18874368000",
+                    "dimensions": {
+                      "region": "us-west4"
+                    }
+                  }
+                ],
+                "supportedLocations": [
+                  "africa-south1",
+                  "asia-east1",
+                  "asia-east2",
+                  "asia-northeast1",
+                  "asia-northeast2",
+                  "asia-northeast3",
+                  "asia-south1",
+                  "asia-south2",
+                  "asia-southeast1",
+                  "asia-southeast2",
+                  "asia-southeast3",
+                  "australia-southeast1",
+                  "australia-southeast2",
+                  "europe-central2",
+                  "europe-north1",
+                  "europe-north2",
+                  "europe-southwest1",
+                  "europe-west1",
+                  "europe-west10",
+                  "europe-west12",
+                  "europe-west2",
+                  "europe-west3",
+                  "europe-west4",
+                  "europe-west6",
+                  "europe-west8",
+                  "europe-west9",
+                  "me-central1",
+                  "me-central2",
+                  "me-west1",
+                  "northamerica-northeast1",
+                  "northamerica-northeast2",
+                  "northamerica-south1",
+                  "southamerica-east1",
+                  "southamerica-west1",
+                  "us-central1",
+                  "us-east1",
+                  "us-east4",
+                  "us-east5",
+                  "us-south1",
+                  "us-west1",
+                  "us-west2",
+                  "us-west3",
+                  "us-west4"
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/streaming/insert_bytes",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fstreaming%2Finsert_bytes_eu",
+            "displayName": "Streaming insert bytes in EU",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fstreaming%2Finsert_bytes_eu/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/quota/streaming/insert_bytes_eu",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "62914560000",
+                    "defaultLimit": "62914560000"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/streaming/insert_bytes_eu",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fstreaming%2Finsert_bytes_us",
+            "displayName": "Streaming insert bytes in US",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Fstreaming%2Finsert_bytes_us/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/quota/streaming/insert_bytes_us",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "62914560000",
+                    "defaultLimit": "62914560000"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/streaming/insert_bytes_us",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Ftabledata%2Flist_bytes_eu",
+            "displayName": "Tabledata List bytes in EU",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Ftabledata%2Flist_bytes_eu/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/quota/tabledata/list_bytes_eu",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/tabledata/list_bytes_eu",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Ftabledata%2Flist_bytes_regional",
+            "displayName": "Tabledata List bytes",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Ftabledata%2Flist_bytes_regional/limits/%2Fmin%2Fproject%2Fregion",
+                "unit": "1/min/{project}/{region}",
+                "metric": "bigquery.googleapis.com/quota/tabledata/list_bytes_regional",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800"
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "africa-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-east2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-northeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-northeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-northeast3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-south2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-southeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-southeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "asia-southeast3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "australia-southeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "australia-southeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-central2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-north1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-north2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-southwest1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west10"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west12"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west4"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west6"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west8"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "europe-west9"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "me-central1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "me-central2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "me-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "northamerica-northeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "northamerica-northeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "northamerica-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "southamerica-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "southamerica-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-central1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-east4"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-east5"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-west2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-west3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800",
+                    "dimensions": {
+                      "region": "us-west4"
+                    }
+                  }
+                ],
+                "supportedLocations": [
+                  "africa-south1",
+                  "asia-east1",
+                  "asia-east2",
+                  "asia-northeast1",
+                  "asia-northeast2",
+                  "asia-northeast3",
+                  "asia-south1",
+                  "asia-south2",
+                  "asia-southeast1",
+                  "asia-southeast2",
+                  "asia-southeast3",
+                  "australia-southeast1",
+                  "australia-southeast2",
+                  "europe-central2",
+                  "europe-north1",
+                  "europe-north2",
+                  "europe-southwest1",
+                  "europe-west1",
+                  "europe-west10",
+                  "europe-west12",
+                  "europe-west2",
+                  "europe-west3",
+                  "europe-west4",
+                  "europe-west6",
+                  "europe-west8",
+                  "europe-west9",
+                  "me-central1",
+                  "me-central2",
+                  "me-west1",
+                  "northamerica-northeast1",
+                  "northamerica-northeast2",
+                  "northamerica-south1",
+                  "southamerica-east1",
+                  "southamerica-west1",
+                  "us-central1",
+                  "us-east1",
+                  "us-east4",
+                  "us-east5",
+                  "us-south1",
+                  "us-west1",
+                  "us-west2",
+                  "us-west3",
+                  "us-west4"
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/tabledata/list_bytes_regional",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Ftabledata%2Flist_bytes_us",
+            "displayName": "Tabledata List bytes in US",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fquota%2Ftabledata%2Flist_bytes_us/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/quota/tabledata/list_bytes_us",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "11324620800",
+                    "defaultLimit": "11324620800"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/quota/tabledata/list_bytes_us",
+            "unit": "By"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests",
+            "displayName": "SetIAMPolicy requests",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests/limits/%2Fmin%2Fproject%2Fregion",
+                "unit": "1/min/{project}/{region}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000"
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "africa-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-east2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-northeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-northeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-northeast3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-south2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-southeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-southeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "asia-southeast3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "australia-southeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "australia-southeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-central2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-north1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-north2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-southwest1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west10"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west12"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west4"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west6"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west8"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "europe-west9"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "me-central1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "me-central2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "me-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "northamerica-northeast1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "northamerica-northeast2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "northamerica-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "southamerica-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "southamerica-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-central1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-east1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-east4"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-east5"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-south1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-west1"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-west2"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-west3"
+                    }
+                  },
+                  {
+                    "effectiveLimit": "1000",
+                    "defaultLimit": "1000",
+                    "dimensions": {
+                      "region": "us-west4"
+                    }
+                  }
+                ],
+                "supportedLocations": [
+                  "africa-south1",
+                  "asia-east1",
+                  "asia-east2",
+                  "asia-northeast1",
+                  "asia-northeast2",
+                  "asia-northeast3",
+                  "asia-south1",
+                  "asia-south2",
+                  "asia-southeast1",
+                  "asia-southeast2",
+                  "asia-southeast3",
+                  "australia-southeast1",
+                  "australia-southeast2",
+                  "europe-central2",
+                  "europe-north1",
+                  "europe-north2",
+                  "europe-southwest1",
+                  "europe-west1",
+                  "europe-west10",
+                  "europe-west12",
+                  "europe-west2",
+                  "europe-west3",
+                  "europe-west4",
+                  "europe-west6",
+                  "europe-west8",
+                  "europe-west9",
+                  "me-central1",
+                  "me-central2",
+                  "me-west1",
+                  "northamerica-northeast1",
+                  "northamerica-northeast2",
+                  "northamerica-south1",
+                  "southamerica-east1",
+                  "southamerica-west1",
+                  "us-central1",
+                  "us-east1",
+                  "us-east4",
+                  "us-east5",
+                  "us-south1",
+                  "us-west1",
+                  "us-west2",
+                  "us-west3",
+                  "us-west4"
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-ap-northeast-2",
+            "displayName": "SetIAMPolicy requests in aws-ap-northeast-2",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-ap-northeast-2/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-ap-northeast-2",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "600",
+                    "defaultLimit": "600"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-ap-northeast-2"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-ap-southeast-2",
+            "displayName": "SetIAMPolicy requests in aws-ap-southeast-2",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-ap-southeast-2/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-ap-southeast-2",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "600",
+                    "defaultLimit": "600"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-ap-southeast-2"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-eu-central-1",
+            "displayName": "SetIAMPolicy requests in aws-eu-central-1",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-eu-central-1/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-eu-central-1",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "600",
+                    "defaultLimit": "600"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-eu-central-1"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-eu-west-1",
+            "displayName": "SetIAMPolicy requests in aws-eu-west-1",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-eu-west-1/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-eu-west-1",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "600",
+                    "defaultLimit": "600"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-eu-west-1"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-us-east-1",
+            "displayName": "SetIAMPolicy requests in aws-us-east-1",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-us-east-1/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-us-east-1",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "600",
+                    "defaultLimit": "600"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-us-east-1"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-us-west-2",
+            "displayName": "SetIAMPolicy requests in aws-us-west-2",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_aws-us-west-2/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-us-west-2",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "600",
+                    "defaultLimit": "600"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_aws-us-west-2"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_azure-eastus2",
+            "displayName": "SetIAMPolicy requests in azure-eastus2",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_azure-eastus2/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_azure-eastus2",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "600",
+                    "defaultLimit": "600"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_azure-eastus2"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_azure-westus2",
+            "displayName": "SetIAMPolicy requests in azure-westus2",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_azure-westus2/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_azure-westus2",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "600",
+                    "defaultLimit": "600"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_azure-westus2"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_global",
+            "displayName": "Global SetIAMPolicy requests",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Fset_iam_policy_requests_global/limits/%2Fmin%2Fproject",
+                "unit": "1/min/{project}",
+                "metric": "bigquery.googleapis.com/set_iam_policy_requests_global",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "2000",
+                    "defaultLimit": "2000"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/set_iam_policy_requests_global"
+          },
+          {
+            "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Funlimited_requests",
+            "displayName": "Requests",
+            "consumerQuotaLimits": [
+              {
+                "name": "projects/934597675670/services/bigquery.googleapis.com/consumerQuotaMetrics/bigquery.googleapis.com%2Funlimited_requests/limits/%2Fd%2Fproject",
+                "unit": "1/d/{project}",
+                "metric": "bigquery.googleapis.com/unlimited_requests",
+                "quotaBuckets": [
+                  {
+                    "effectiveLimit": "9223372036854775807",
+                    "defaultLimit": "9223372036854775807"
+                  }
+                ]
+              }
+            ],
+            "metric": "bigquery.googleapis.com/unlimited_requests"
+          }
+        ]
+      }
+    }
+  ],
+  "free_allowance_remaining_bytes": null
+}

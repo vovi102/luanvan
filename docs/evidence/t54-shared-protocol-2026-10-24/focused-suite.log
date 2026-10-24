@@ -1,0 +1,9 @@
+........................................................................ [ 85%]
+............                                                             [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/google/api_core/_python_version_support.py:255
+  /home/khoavd/WORKSPACE/LuanVan/.venv/lib/python3.11/site-packages/google/api_core/_python_version_support.py:255: FutureWarning: You are using a Python version (3.11.15) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2027-10-24). Please upgrade to the latest Python version, or at least Python 3.12, to continue receiving updates for google.api_core past that date.
+    warnings.warn(message, FutureWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+84 passed, 1 warning in 5.31s

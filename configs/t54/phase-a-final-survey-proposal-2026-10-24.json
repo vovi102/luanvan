@@ -1,0 +1,234 @@
+{
+  "kind": "unsigned_phase_A_final_survey_proposal_not_authorization",
+  "prepared_at_utc": "2026-10-24T07:25:00.356538+00:00",
+  "allow_dry_run": false,
+  "allow_bigquery": false,
+  "authorization": null,
+  "paid_spend_authorized_usd": "0.00",
+  "project": "nl2sparql-thesis",
+  "location": "US",
+  "previous_decision_path": "docs/evidence/t54-phase-a-continuation-2026-10-24/decision.json",
+  "previous_decision_sha256": "7cc77639d9cb52304f6a704c3bcdfa99a25d7cc81386773ed9534d714668d0ff",
+  "stopped_journal_path": "docs/evidence/t54-phase-a-continuation-2026-10-24/dry-run-journal.jsonl",
+  "stopped_journal_sha256": "e946c9cf582e369bdbb0cc823aef2e521ba3584aa97c670a92e3e8dc64c5555a",
+  "original_scope_path": "docs/evidence/t54-bigquery-review-2026-10-24/dry-run-scope.json",
+  "original_scope_sha256": "2246cb0d79a19e40733574558f642c41056037dbe6282cb4c8aec533791149ae",
+  "requests_max": 44,
+  "unique_sql_by_role": {
+    "prediction": 16,
+    "gold": 28
+  },
+  "logical_uses": {
+    "prediction": 48,
+    "gold": 336
+  },
+  "automatic_retries": 0,
+  "repeat_previous_99_requests": false,
+  "required_request": {
+    "dry_run": true,
+    "use_legacy_sql": false,
+    "use_query_cache": false,
+    "maximum_bytes_billed": 25769803776
+  },
+  "already_approved_behavior": "For preparatory dry-runs, record estimates above 24 GiB and continue; live cap unchanged.",
+  "proposed_change_requiring_user_approval": "Record per-SQL compilation errors (HTTP 400/404 with provider reasons invalidQuery or notFound) and continue the remaining pinned dry-run survey. Preserve original SQL/error and null estimates; never repair SQL or infer execution evidence.",
+  "continue_only_on_validation_errors": {
+    "http_statuses": [
+      400,
+      404
+    ],
+    "provider_reasons": [
+      "invalidQuery",
+      "notFound"
+    ]
+  },
+  "stop_on": [
+    "source_hash_mismatch",
+    "unexpected_object_scope",
+    "unexpected_non_dry_run_request_or_response",
+    "authentication_or_permission_failure",
+    "quota_or_rate_limit",
+    "network_error_or_HTTP_5xx",
+    "other_unclassified_error",
+    "user_stop"
+  ],
+  "zero_or_unknown_estimates": "Preserve as unknown/review-required; do not count as zero scan or free live execution.",
+  "queries": [
+    {
+      "original_scope_index": 99,
+      "sql_sha256": "bd6d31982e8fe46df399ccad1de356f3cc88e2dc00ada914dddcca6e60b3c0fe"
+    },
+    {
+      "original_scope_index": 100,
+      "sql_sha256": "bd9fe245f650a5569b75d3ee54c0df3142ae706cd9146950b0fc46b5597df6e9"
+    },
+    {
+      "original_scope_index": 101,
+      "sql_sha256": "be751814f1653c08d3249fb498c63ded9f967856f5b3e03ead182e1945b900e2"
+    },
+    {
+      "original_scope_index": 102,
+      "sql_sha256": "bf3798acdf81022097a0c8c39acf4032adee63aa2599ed33f2b2a6b5f56c112f"
+    },
+    {
+      "original_scope_index": 103,
+      "sql_sha256": "c0b68efc789863b708ca51a6c38a9ef5810a0bb0dde809aaaeae2ee2486ff90f"
+    },
+    {
+      "original_scope_index": 104,
+      "sql_sha256": "c103d2596b8013d1c641263e20eeb555707e3717f2be28c268a2b5f83b879e71"
+    },
+    {
+      "original_scope_index": 105,
+      "sql_sha256": "c485aaf82fe1eedd20883d4598b5a3c767585ae267d8b92c42239859ef996a74"
+    },
+    {
+      "original_scope_index": 106,
+      "sql_sha256": "c8214b03c8c2a0470d7c0227879a87e5a190ef669b5c6ee2ef5c6e749ab7fc84"
+    },
+    {
+      "original_scope_index": 107,
+      "sql_sha256": "c9339af76f2a39ea14962c67439d91b8f5ce525b62d24be3c70ef74d770844ce"
+    },
+    {
+      "original_scope_index": 108,
+      "sql_sha256": "ca0018f11d89176674f581460e733520c59a64517522952ae64d58cbb4b1529b"
+    },
+    {
+      "original_scope_index": 109,
+      "sql_sha256": "cac598aaf6de45e476c1cd61f69302974c75321347705b6dc6d36df2483e4d00"
+    },
+    {
+      "original_scope_index": 110,
+      "sql_sha256": "cb004e39213e81d127408572a52c3d42da2ad1d01faadc344c8bdb2baaa830b0"
+    },
+    {
+      "original_scope_index": 111,
+      "sql_sha256": "cd408b4d8790c11cb12df93690b417c5316ebfae0ea2a5c3fda20b95ae78bf9d"
+    },
+    {
+      "original_scope_index": 112,
+      "sql_sha256": "cf4a04ba6fd1a6307657e66e47e49fc6d7d0e5d9dbf3136819a37914f1cf8ece"
+    },
+    {
+      "original_scope_index": 113,
+      "sql_sha256": "cfd07066a5fe496eac0e332b5cb1bcc06888f90c1a5845ac3a43e6305cc1ce17"
+    },
+    {
+      "original_scope_index": 114,
+      "sql_sha256": "d1bb127602b4bba18164bfa1c7b72b4559a1536b36c55e875bc69f93f9d5592e"
+    },
+    {
+      "original_scope_index": 115,
+      "sql_sha256": "d6ae7b6b499fe8f47d2fe7ce0734743b566e95994e082859aa9d70a61e93c13f"
+    },
+    {
+      "original_scope_index": 116,
+      "sql_sha256": "d6e7d4fc7715573981749f6a5ec049475cbc506ec1645edb0f3bd18f1272c877"
+    },
+    {
+      "original_scope_index": 117,
+      "sql_sha256": "d7c8eefe38ea61315f2be521b21b347a46d16a142fa9f9d63c86b81d26613ef5"
+    },
+    {
+      "original_scope_index": 118,
+      "sql_sha256": "dbda1064e92ad944612dc083855cc8c199d77c3acc6a6b0cc745f01736116809"
+    },
+    {
+      "original_scope_index": 119,
+      "sql_sha256": "dc25cf366a347792d7f610ea7a5042cd7bcf9bc080c45621428fbc1d645bc87b"
+    },
+    {
+      "original_scope_index": 120,
+      "sql_sha256": "dd62a89cfdbd2746035baac2af011073d2357732096e1bef53e5c559517dd2bc"
+    },
+    {
+      "original_scope_index": 121,
+      "sql_sha256": "e195cc932e7326317bb391e469f97de17a587ceb5f2fc5d960f1562117a04384"
+    },
+    {
+      "original_scope_index": 122,
+      "sql_sha256": "e19d92b86659f59316b743bd7210229eeaab49d845cdb2fbdd9a3115a8e1c234"
+    },
+    {
+      "original_scope_index": 123,
+      "sql_sha256": "e3e3cb40366ba545dffc04d956c2e210a35b1a4e2b2ad1fbf5fa6812650ba6f2"
+    },
+    {
+      "original_scope_index": 124,
+      "sql_sha256": "e4c94027388e99c5cbe712410e9ff3c69a200a4aebc66996959e780ba74a25a8"
+    },
+    {
+      "original_scope_index": 125,
+      "sql_sha256": "e64447069347c289a4e7869f5ca0d25f1dfde8b9a8bc8e48fd79051c974433eb"
+    },
+    {
+      "original_scope_index": 126,
+      "sql_sha256": "e68d2aeb6a75491467d04476fd316badd1c67d8d370b375b5b527e1d832c446d"
+    },
+    {
+      "original_scope_index": 127,
+      "sql_sha256": "e73aa09f3bf3346bdcfbbdf6d0d39771c5bda1f8b6fd4cd8fa1ec564ec356dbe"
+    },
+    {
+      "original_scope_index": 128,
+      "sql_sha256": "e85b75566c72086f85b15f4ec3924a543ed066197a15b35c509ba6f41ec2434c"
+    },
+    {
+      "original_scope_index": 129,
+      "sql_sha256": "e9504074cd1e39906638f6272ba826efbb10e739673bee95d9d928adce03906d"
+    },
+    {
+      "original_scope_index": 130,
+      "sql_sha256": "edb791ff2dbc2f8f2b4262aa706f59855d836248fed3718fd27b85c18b557678"
+    },
+    {
+      "original_scope_index": 131,
+      "sql_sha256": "ee1bfb82961fefeb6e8e3b4aa54599dbbf8240b1f371bbef04706df3e287defd"
+    },
+    {
+      "original_scope_index": 132,
+      "sql_sha256": "f1afdbf081ce7874bc061780e521f83ad606f9daa647f0f28a36bf08b94c9049"
+    },
+    {
+      "original_scope_index": 133,
+      "sql_sha256": "f1e9743136bd939aec62ffb21c00afbfc24fa4979d574f2df34815af3ac2f086"
+    },
+    {
+      "original_scope_index": 134,
+      "sql_sha256": "f2eb39fd5e2fbe6135c0cd52a58282587075027c0a79fcf7bf1967c84982ab5c"
+    },
+    {
+      "original_scope_index": 135,
+      "sql_sha256": "f3dca4fc2f8adb771ff2d8fc9894f35908ce4c066c1a44c69bd45fc908286be2"
+    },
+    {
+      "original_scope_index": 136,
+      "sql_sha256": "f4328202c3a65751291166ff77b14d3f87c98942327c1bb1c2fb4562bb2d03a8"
+    },
+    {
+      "original_scope_index": 137,
+      "sql_sha256": "fb24d0bce7f94ed85f2044083687495c898dfa737e58084600ab84f8e9970207"
+    },
+    {
+      "original_scope_index": 138,
+      "sql_sha256": "fb9e497d7dea6b3cec3adfb928810fd20a98ef6f0ba6575950d393dd5d36c2e9"
+    },
+    {
+      "original_scope_index": 139,
+      "sql_sha256": "fbe1c1d68b6cbc0b4cda11ad8d8c768cabe5cef581ecc4d8eec283cd6e37cc14"
+    },
+    {
+      "original_scope_index": 140,
+      "sql_sha256": "fe177ac7f918df10fdd6054a79cc5acaf59edb0fb54bb548e3c88277e2094cec"
+    },
+    {
+      "original_scope_index": 141,
+      "sql_sha256": "fe1f2e6749372d0d538363270b7a6350fbad0bc6f29f0dc8199e9f4554819bae"
+    },
+    {
+      "original_scope_index": 142,
+      "sql_sha256": "fe34def443e97f9d9e1f1e617683744f59e7b5f33f3cc58e8566c420392c3bf2"
+    }
+  ]
+}

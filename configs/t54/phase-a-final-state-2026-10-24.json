@@ -1,0 +1,34 @@
+{
+  "kind": "phase_A_final_operational_checkpoint",
+  "recorded_at_utc": "2026-10-24T07:38:09.784155+00:00",
+  "status": "entire_143_SQL_survey_attempted",
+  "decision_path": "docs/evidence/t54-phase-a-final-2026-10-24/decision.json",
+  "privacy_sidecars": 4,
+  "privacy_bound_runs": 12,
+  "dry_run_requests_total": 143,
+  "dry_run_requests_this_batch": 44,
+  "unique_SQL_with_estimates": 140,
+  "unique_compilation_errors": 3,
+  "unattempted_SQL": 0,
+  "allow_dry_run_now": false,
+  "allow_bigquery": false,
+  "automatic_retry": false,
+  "free_allowance_remaining_bytes": null,
+  "gold_estimated_bytes_per_run": 571956810459,
+  "gold_estimated_bytes_all_12_runs": 6863481725508,
+  "known_estimate_sum_all_logical_uses": 7661703754356,
+  "full_protocol_estimate_bytes": null,
+  "full_protocol_estimate_null_reason": "Three predicted SQL compile errors have no valid estimate; preserve nine logical uses as error/null.",
+  "live_approval": "not_granted",
+  "live_blockers": [
+    "monthly_free_balance_unverified",
+    "any_initial_over_cap_query_blocks_whole_B2_EN_run_under_CLI19",
+    "estimated_gold_per_run_exceeds_half_nominal_monthly_allowance",
+    "fixed_reservation_768_GiB_per_run_and_source_expiry_require_new_calendar_or_protocol_decision"
+  ],
+  "hypothetical_protocol_math_not_approved": {
+    "gold_reuse_only_with_original_predicted_repeats_known_bytes": 1370178839307,
+    "dedup_both_gold_and_predicted_exact_SQL_known_bytes": 838030820075,
+    "note": "Comparison arithmetic only; no evidence reuse, deduplication of live requests, materialization or protocol change authorized."
+  }
+}

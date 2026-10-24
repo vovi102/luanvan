@@ -1,0 +1,18 @@
+{
+  "kind": "phase_A_final_survey_not_live_evidence",
+  "finished_at_utc": "2026-10-24T07:34:43.233376+00:00",
+  "attempted_requests": 44,
+  "http_requests_sent": 44,
+  "authorized_requests_max": 44,
+  "status_counts": {
+    "ok": 42,
+    "compile_error": 2
+  },
+  "unattempted_sql_sha256": [],
+  "stop_reason": "scope_exhausted",
+  "journal_sha256": "baebfa85ffda80c5b572c33ad35dbda85a3e7f44c752c0faddc8c6f2dcce1284",
+  "terminal_record_sha256": "31cb2e94bbf487938d67ef2a0a40ced5a8b81a0a006bd1801fa4e97732b4dc52",
+  "live_requests": 0,
+  "free_allowance_remaining_bytes": null,
+  "execution_accuracy": null
+}

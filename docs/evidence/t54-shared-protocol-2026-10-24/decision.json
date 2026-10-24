@@ -1,0 +1,19 @@
+{
+  "kind": "conversation_protocol_approval_not_live_authorization",
+  "recorded_at_utc": "2026-10-24 11:41:08 UTC",
+  "approved_at_utc": null,
+  "reviewer_id": "conversation-user",
+  "approval_source": "actual user message in this conversation",
+  "user_message": "oke duyệt chạy 2 phânGiữ SQL lỗi/vượt cap là failure, cho các truy vấn hợp lệ tiếp tục.\nCho dùng chung execution evidence của SQL giống hệt nhau giữa các runs",
+  "approved_protocol_changes": [
+    "Isolate predicted SQL compilation/per-query cap failures while preserving full denominator",
+    "Reuse exact UTF-8 SQL physical outcomes across logical runs within a single source-context-bound campaign"
+  ],
+  "per_query_byte_cap": 25769803776,
+  "benchmark_sql_changed": false,
+  "allow_bigquery": false,
+  "live_approval": null,
+  "verified_free_allowance_bytes": null,
+  "paid_spend_authorized_usd": "0",
+  "note": "recorded_at is the assistant observation time, not an invented approval timestamp; final live scope and verified free allowance remain required."
+}
