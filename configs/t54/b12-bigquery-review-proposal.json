@@ -1,97 +1,44 @@
 {
-  "schema_version": 2,
-  "kind": "T5.4_free_only_review_proposal_not_execution_authorization",
-  "prepared_date_local": "2026-10-24",
-  "timezone": "Asia/Saigon",
-  "current_phase": "A_privacy_and_dry_run_review",
+  "schema_version": 1,
+  "kind": "T5.4_review_proposal_not_execution_authorization",
   "allow_bigquery": false,
   "allow_dry_run": false,
   "authorization": null,
-  "paid_spend_authorized_usd": "0.00",
-  "job_project": "nl2sparql-thesis",
-  "billing_project": "nl2sparql-thesis",
-  "location": "US",
-  "billing_state": {
-    "billing_enabled": false,
-    "observation_path": "docs/evidence/t54-bigquery-review-2026-10-24/billing.json",
-    "refresh_before_live": true,
-    "if_billing_enabled": "stop; no billing mutation authorized"
-  },
-  "privacy_review_status": "prepared_pending_reviewer_decision",
-  "privacy": {
-    "policy_path": "docs/planning/t54-bigquery-privacy-policy-2026-10-24.md",
-    "policy_sha256": "80f70422d9b2a95db7d9ee5417b6ded0a4a18fdfae54c91fca8bc7adfd5ac861",
-    "worksheets_path": "configs/t54/privacy-review-drafts.json",
-    "worksheets_sha256": "102ce5b613a6e3347641cce5846effbc690bff18a86368e7dcb11e27ccbf411d",
-    "canonical_sidecars_published": false,
-    "reviewer_id": null,
-    "reviewed_at": null
-  },
+  "billing_project": null,
+  "location": null,
+  "project_candidate_from_historical_evidence": "nl2sparql-thesis",
+  "location_candidate_from_historical_evidence": "US",
+  "privacy_review_status": "pending_human_review",
   "pricing": {
-    "status": "current_public_source_pinned_gross_list_price_reference_only",
-    "policy_id": "bigquery-on-demand-usd-us-reference-2026-10-24",
-    "currency": "USD",
-    "amount_per_tib": "6.25",
-    "source_sha256": "dc2a71bca37d22d4c8370de11e8512b1956cded37292641d22dabe5810fa212d",
-    "source_snapshot_path": "docs/evidence/t54-bigquery-review-2026-10-24/sources/pricing.html.gz",
-    "source_url": "https://cloud.google.com/bigquery/pricing",
-    "minimum_billed_bytes": 10485760,
-    "billing_increment_bytes": 1048576,
-    "multi_table_floor_review": "not fully represented by current CLI19 estimator; no invoice guarantee",
-    "free_tier_deduction_implemented_by_CLI19": false,
-    "estimated_cost_semantics": "gross list-price equivalent, not incremental or observed invoice charge; positive CLI guard is not permission to spend"
+    "status": "requires_current_review_and_pin",
+    "policy_id": null,
+    "amount_per_tib": null,
+    "source_sha256": null,
+    "historical_reference_only": {
+      "amount_per_tib": "6.25",
+      "billing_increment_bytes": 1048576,
+      "currency": "USD",
+      "minimum_billed_bytes": 10485760,
+      "policy_id": "bigquery-on-demand-usd-us-2026-10-03",
+      "source_sha256": "0997852dca48e55a15eda18843cb825d06a76e94e2fdffaed9ecbea6c3365a04"
+    }
   },
-  "free_only_policy": {
-    "mode": "sandbox_keep_billing_disabled",
-    "monthly_free_query_bytes": 1099511627776,
-    "free_allowance_remaining_bytes": null,
-    "quota_authority": "platform sandbox quota and current billing state; historical job totals are a cross-check only",
-    "usage_summary_path": "docs/evidence/t54-bigquery-review-2026-10-24/usage-summary.json",
-    "usage_exceeds_nominal_monthly_allowance": true,
-    "usage_reconciliation_status": "unknown; historical billing state and exact quota accounting not inferred",
-    "enable_billing": false,
-    "create_new_project": false,
-    "auto_upgrade": false,
-    "stop_if_quota_unknown_or_exhausted": true,
-    "do_not_assume_month_reset_date_or_full_allowance": true
-  },
-  "phase_a": {
-    "status": "ready_for_review_not_authorized",
-    "purpose": "free dry-run validation and current scan estimates only",
-    "scope_path": "docs/evidence/t54-bigquery-review-2026-10-24/dry-run-scope.json",
-    "scope_file_sha256": "2246cb0d79a19e40733574558f642c41056037dbe6282cb4c8aec533791149ae",
-    "unique_sql_count": 143,
-    "dry_run_requests_max": 143,
-    "automatic_retries": 0,
-    "allow_live_execution": false,
-    "result_rows_requested": false,
-    "required_request_dry_run": true,
-    "required_request_use_legacy_sql": false,
-    "required_request_use_query_cache": false,
-    "maximum_bytes_billed": 25769803776,
-    "stop_on": [
-      "source_hash_mismatch",
-      "dry_run_error",
-      "estimate_above_24_GiB",
-      "unexpected_object_scope",
-      "user_stop"
-    ],
-    "deduplication": "exact SQL bytes for preparatory estimate only; preserve 1329 logical request references"
-  },
-  "proposed_live_limits_not_authorized": {
+  "proposed_limits": {
     "timeout_seconds": 120,
     "per_query_byte_cap": 25769803776,
     "aggregate_byte_cap_per_run": 798863917056,
     "aggregate_billed_byte_cap_per_run": 798863917056,
-    "gross_list_price_guard_usd_per_run": "4.75",
-    "reservation_processed_bytes_per_run": 824633720832,
-    "reservation_billed_bytes_per_run": 824633720832,
-    "overshoot_reserve_bytes": 25769803776,
+    "estimated_cost_cap_usd_per_run": "4.75",
+    "campaign_processed_byte_cap": 9895604649984,
+    "campaign_billed_byte_cap": 9895604649984,
+    "campaign_estimated_cost_cap_usd": "60.00",
     "parallel_runs": 1,
     "automatic_retries": 0,
     "query_cache": false,
-    "campaign_paid_spend_authorized_usd": "0.00",
-    "campaign_monthly_reservation_must_fit_verified_free_allowance": true
+    "reservation_bytes_per_run": 824633720832,
+    "reservation_usd_per_run": "5.00",
+    "overshoot_reserve_bytes_per_run": 25769803776,
+    "overshoot_reserve_usd_per_run": "0.25"
   },
   "historical_budget_basis": {
     "path": "data/eval/evidence/b0-exec-01.json",
@@ -100,13 +47,6 @@
     "gold_billed_bytes": 559594602496,
     "max_gold_billed_bytes": 22305308672,
     "is_current_estimate": false
-  },
-  "historical_campaign_extrapolation": {
-    "gold_billed_bytes_per_historical_run": 559594602496,
-    "twelve_gold_runs_bytes": 6715135229952,
-    "current_estimate": false,
-    "does_not_include_predicted_queries": true,
-    "fits_one_month_free_allowance": false
   },
   "execution_scope": {
     "gold_queries_max": 1200,
@@ -254,51 +194,32 @@
       "transaction_facts"
     ],
     "dataset": "nl2sparql-thesis.nl2sparql_analytics",
-    "transitive_view_tvf_dependencies": "managed definitions read; public view definitions unavailable; complete transitive scope unverified",
-    "metadata_path": "docs/evidence/t54-bigquery-review-2026-10-24/metadata.json"
+    "transitive_view_tvf_dependencies": "unresolved_offline"
   },
-  "permissions": {
-    "metadata_reads_succeeded": true,
-    "job_create_verified": false,
-    "probe_path": "docs/evidence/t54-bigquery-review-2026-10-24/permissions.json",
-    "probe_status": "403 on projects.testIamPermissions; does not prove jobs.create is denied"
-  },
-  "phase_a_required_approval": [
-    "reviewer identity and real approval of hash-pinned project privacy policy",
-    "explicit dry-run-only authorization for exact 143-SQL scope; no live execution or billing change"
-  ],
-  "phase_b_required_before_live": [
-    "four real PrivacyReview sidecars and fresh canonical hashes",
-    "phase A dry-run estimates; no missing or unreliable estimate treated as zero cost",
-    "refresh billing state and authoritative available free allowance; stop if unknown/exhausted",
-    "reserve a complete run from verified remaining allowance; no paid fallback",
-    "check source expiry and data drift; do not change snapshot/protocol silently",
-    "approve final live config hash and immutable IDs/journals separately"
+  "required_before_any_bigquery_request": [
+    "approve exact billing project and matching dataset location",
+    "approve privacy scope, access, provider policy, private journal/result-hash retention and reviewer identity",
+    "publish four genuine PrivacyReview sidecars (B1/B2 x EN/VI); re-adapt and pin new canonical hashes",
+    "pin current pricing source and review floor/rounding for underlying multi-table TVF/view queries",
+    "approve both gold and predicted scope plus query/run/campaign bytes and USD caps",
+    "approve immutable execution IDs, sequential reservation ledger owner and stop/cancel procedure",
+    "explicitly authorize dry-runs and live execution against final configuration hash"
   ],
   "campaign_budget_mechanism": {
-    "status": "manual_free_byte_reservation_required_not_implemented_by_CLI19",
-    "template_path": "configs/t54/free-tier-ledger.template.json",
-    "paid_budget_required": false,
-    "gross_USD_guard_is_spending_authorization": false,
+    "status": "manual_reservation_required_not_implemented_by_CLI19",
+    "rule": "reserve full 768 GiB processed + 768 GiB billed + USD 5 before each serial run, with CLI guards at 744 GiB and USD 4.75; no automatic release; reserve 24 GiB/USD 0.25 for one final job overshoot",
     "stop_on": [
       "gold_failure",
-      "quota_exhausted_or_unknown",
-      "billing_enabled",
       "policy_breach",
-      "unresolved_submission",
+      "unresolved_billing",
       "timeout_or_unknown_cancel",
       "missing_terminal_journal",
-      "missing_free_byte_reservation",
+      "missing_budget_reservation",
       "user_stop"
     ],
-    "after_stop": "retain IDs; reconcile terminal metadata, no retry, paid fallback, next run or quota/billing changes",
-    "free_sandbox_quota_error_is_negative_operational_evidence": true
+    "after_stop": "retain submission IDs; reconcile status and billing read-only only after authorization; no retry or next run",
+    "pricing_precondition": "pinned conservative cost for one maximum-24-GiB query including reviewed billing floors must be <= USD 0.25; otherwise stop for a revised proposal",
+    "limitation": "CLI aggregate guards can detect overshoot after a submitted job; server maximum_bytes_billed bounds that final job; no invoice-level campaign cap is implemented"
   },
-  "supersedes_paid_proposal": {
-    "path": "docs/evidence/t54-bigquery-review-2026-10-24/historical-paid-proposal.json",
-    "file_sha256": "726b3f4a0d04d28251e13c81e14b6762fc0f098d7ab4f0f0d0480f90abd1f09a",
-    "old_60_USD_9_TiB_plan_active": false
-  },
-  "execution_commands_enabled": false,
-  "review_document": "docs/planning/t54-bigquery-approval-2026-10-24.md"
+  "execution_commands_enabled": false
 }

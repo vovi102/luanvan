@@ -17,14 +17,6 @@ from nl2sparql.evaluation.contracts import (
 )
 
 
-class QueryValidationError(EvaluationError):
-    """Known SQL compilation rejection; infrastructure errors use their original type."""
-
-    def __init__(self, reason: str, message: str) -> None:
-        super().__init__(message)
-        self.reason = reason
-
-
 @dataclass(frozen=True)
 class QueryRequest:
     """One gold or predicted query with its result-order semantics."""

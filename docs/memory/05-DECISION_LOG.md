@@ -6,16 +6,6 @@
 
 ---
 
-
-## 2026-10-24 — Duyệt shared exact-SQL và cô lập prediction failures cho T5.4
-
-- **Decision:** Người dùng duyệt giữ SQL prediction lỗi/vượt cap là failure, cho SQL hợp lệ tiếp tục; cho dùng chung execution evidence của exact SQL giữa các runs trong cùng campaign/source context.
-- **Constraints:** Giữ SQL, 24 GiB/query, N=100/run/language và 12 generation runs; gold/global/infrastructure uncertainty vẫn dừng. Không đếm lặp physical job cost/latency hoặc coi reuse là generation replicates mới.
-- **Authorization:** Duyệt protocol/implementation trong conversation; `conversation-user`, không suy đoán timestamp duyệt. Live chưa được duyệt theo final config/hash, allowance còn chưa xác minh; paid spend 0 USD, không bật billing.
-- **Evidence:** [Implementation và plan offline](../research/t54-shared-protocol-2026-10-24.md), [config mới](../../configs/t54/shared-campaign-2026-10-24.json). Các proposal/checkpoint cũ giữ lịch sử bất biến.
-- **Consequence:** 1.329 logical uses → 143 unique SQL; survey cũ cho 139 SQL đủ cap (~752,10 GiB). Forecast không phải monthly allowance hoặc live result. B3 QLoRA giữ nguyên hướng chính.
-
-
 ## Template entry
 
 ```markdown
@@ -33,94 +23,6 @@
 ---
 
 ## Entries
-
-### 2026-10-24 — Duyệt survey cuối; đủ 143 SQL, giữ ba lỗi TVF-as-table
-
-- **Decision:** Người dùng nói “oke kiểm tra lỗi đii” để duyệt 44 SQL cuối và
-  cho ghi compilation errors rồi tiếp tục, không sửa SQL hoặc mở live.
-- **Evidence:** 44 requests mới, 42 estimates và hai HTTP 404. Tổng ba đợt:
-  143 SQL đã gửi, 140 estimates, ba compile errors ở B2 EN `t35-006/015/110`.
-  Metadata/AST cho thấy cả ba dùng TVF `transaction_facts` như bảng. Giữ nguyên
-  errors/SQL/native statuses; một prediction `t35-028` vẫn vượt cap 24 GiB.
-- **Consequences:** Đủ mapping 1.329 logical uses, 1.320 estimates và chín
-  compile-error uses. Known scan components khoảng 6,968 TiB, full estimate
-  null vì SQL lỗi; không phải observed processed bytes/invoice. Survey hết
-  scope; monthly free balance, live cap/calendar/protocol chưa giải quyết.
-- **Revisit:** Review feasibility note, chốt quota authority và phương án live
-  được duyệt riêng. Không tự reuse gold, dedup live, materialize, tăng cap,
-  sửa evaluator hoặc bỏ B3 QLoRA.
-- **Linked:** [Survey/diagnosis](../research/t54-phase-a-final-2026-10-24.md),
-  [free-only feasibility](../planning/t54-phase-b-feasibility-2026-10-24.md).
-
-### 2026-10-24 — Duyệt dry-run tiếp; tổng 99 SQL rồi dừng ở compile-error
-
-- **Decision:** Người dùng nói “oke” để duyệt 118 SQL còn lại, cho ghi estimate
-  vượt cap rồi tiếp tục; dry-run errors vẫn phải dừng, live cap/quyền giữ nguyên.
-- **Evidence:** 74 requests mới, 73 estimates và một HTTP 404 ở B2 EN `t35-006`;
-  SQL tham chiếu TVF như bảng. Tổng hai đợt: 99 SQL đã gửi, 98 estimates,
-  một compile-error, 44 chưa gửi. Không retry, sửa SQL hoặc chạy live.
-- **Consequences:** 942 logical uses có estimates, ba có lỗi và 384 chưa khảo
-  sát; full campaign estimate và monthly free balance còn null. Chuẩn bị đề
-  xuất 44 SQL cuối cho ghi per-SQL compile errors rồi tiếp tục, chưa duyệt.
-  B3 QLoRA vẫn là hướng chính; không đổi protocol/executor để né live guards.
-- **Linked:** [Checkpoint](../research/t54-phase-a-continuation-2026-10-24.md),
-  [đề xuất](../../configs/t54/phase-a-final-survey-proposal-2026-10-24.json).
-
-### 2026-10-24 — Duyệt privacy/giai đoạn A; dry-run dừng ở request 25
-
-- **Context:** Người dùng nói “Oke duyệt” sau giải thích giai đoạn A; khi hỏi
-  reviewer ID trả lời “không cần”. Không yêu cầu tên cá nhân thêm.
-- **Decision:** Ghi reviewer role `conversation-user` với nguồn quyết định thật,
-  không giả tên đã xác minh. Tạo bốn privacy sidecars và 12 canonical runs mới.
-  Chạy scope dry-run đã pin, giữ live unauthorized và paid spend 0 USD.
-- **Evidence:** 25 requests trả estimates; request 25 (prediction B2 EN,
-  `t35-028`) có 30.470.124.008 bytes, vượt cap 24 GiB nên dừng. 118 SQL còn lại
-  chưa gửi, không retry hoặc sửa SQL. Chain/seal và 16 canonical artifacts
-  validate pass; nguồn cũ giữ nguyên. Billing refresh vẫn disabled.
-- **Consequences:** Chỉ 246/1.329 logical uses có estimates; full campaign
-  estimate còn null. Quota API đọc được daily limits, chưa biết số dư miễn phí
-  tháng. Chuẩn bị đề xuất riêng tiếp tục 118 dry-runs, chưa được duyệt.
-- **Revisit:** Khi người dùng quyết định thay điều kiện dừng riêng cho khảo sát
-  dry-run; live vẫn cần estimates/quota/reservation và phê duyệt độc lập.
-- **Linked:** [Kết quả giai đoạn A](../research/t54-phase-a-2026-10-24.md),
-  [state](../../configs/t54/phase-a-state-2026-10-24.json).
-
-### 2026-10-24 — T5.5 chốt kế hoạch khả thi, giữ B3 QLoRA cho RQ1
-
-- **Context:** Ticket/backlog cũ đặt bỏ fine-tuning ngang hàng với full B3 và
-  scope-down. Người dùng yêu cầu tiếp tục giữ B3 làm mục tiêu nghiên cứu chính.
-- **Decision:** T5.5 chốt cấu hình/kế hoạch B3 QLoRA khả thi. Nếu có bằng chứng
-  thiếu tài nguyên, scope-down vẫn train QLoRA, chỉ giảm sweep/phần thực nghiệm
-  không thiết yếu. Bỏ B3 là thay đổi scope cần người dùng quyết định riêng.
-- **Rationale:** RQ1 đo cải thiện của fine-tuning so với zero-shot/five-shot.
-  B1/B2 yếu hoặc quota BigQuery không tự chứng minh fine-tuning không khả thi.
-- **Consequences:** Đồng bộ phần chỉ dẫn hiện hành của ticket và backlog; giữ
-  lịch sử. Chưa chốt hyperparameter/lịch GPU hoặc mở training. Execution/answer
-  metrics còn thiếu giữ null; privacy/dry-run và live vẫn cần duyệt riêng.
-- **Revisit:** Khi có T5.4-B reports/comparison và bằng chứng compute/timeline;
-  không tự reframe RQ1 hoặc thay B3 bằng B2.
-- **Linked:** [T5.5](../tasks/phase-5-baselines/05-pivot-decision.md),
-  [backlog](../planning/prioritized-backlog-2026-09-21.md).
-
-### 2026-10-24 — T5.4-B dùng sandbox, không yêu cầu ngân sách trả phí
-
-- **Context:** Người dùng yêu cầu hoàn thiện gói duyệt BigQuery và tận dụng miễn
-  phí. Metadata hiện tại xác nhận `billingEnabled=false`, dataset location US.
-- **Options considered:** Giữ đề xuất 9 TiB/60 USD; giữ protocol nhưng chạy theo
-  quota sandbox; hoặc đổi protocol để reuse gold/materialize dữ liệu.
-- **Decision:** Chuẩn bị gói free-only, paid spend 0 USD, không bật billing;
-  143 exact-SQL dry-runs là bước duyệt trước. Người dùng chưa duyệt requests.
-  Đề xuất 60 USD cũ archive. Không đổi protocol hoặc ký privacy thay reviewer.
-- **Rationale:** Sandbox có 1 TiB/tháng và dry-run không bị tính phí; giới hạn
-  bytes vẫn cần để lập lịch complete runs. 12 lần gold theo B0 lịch sử khoảng
-  6,107 TiB, không bảo đảm campaign đủ trong một tháng miễn phí.
-- **Consequences:** Pricing dương là gross reference guard, không phải quyền
-  chi. Historical job bytes không phải quota balance; quota chưa xác minh thì
-  live còn blocked. Kiểm tra expiry/data drift nếu phải chia nhiều đợt.
-- **Revisit:** Sau privacy/dry-run review và current estimates/quota; mọi live
-  execution hoặc thay protocol cần quyết định riêng.
-- **Linked:** [Gói duyệt](../planning/t54-bigquery-approval-2026-10-24.md),
-  [proposal](../../configs/t54/b12-bigquery-review-proposal.json).
 
 ### 2026-10-14 — Beneficiary pool corrected; hard-intent coverage remains pending
 

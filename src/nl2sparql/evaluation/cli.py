@@ -21,7 +21,6 @@ from nl2sparql.evaluation.artifacts import (
     serialize_evaluation_report,
     serialize_execution_evidence,
     serialize_prediction_run,
-    serialize_shared_execution_evidence,
     validate_new_artifact_path,
     verify_execution_evidence_journal,
 )
@@ -33,17 +32,11 @@ from nl2sparql.evaluation.contracts import (
     ExecutionEvidence,
     ExecutionPolicy,
     PricingPolicy,
-    SharedExecutionEvidence,
 )
 from nl2sparql.evaluation.execution import execute_run
 from nl2sparql.evaluation.executor import QueryExecutor
 from nl2sparql.evaluation.failures import load_manual_failure_reviews
 from nl2sparql.evaluation.reporting import build_report, compare_reports
-from nl2sparql.evaluation.shared_config import load_shared_config, require_live_approval
-from nl2sparql.evaluation.shared_execution import (
-    execute_shared_campaign,
-    verify_shared_execution_journal,
-)
 
 BigQueryExecutorFactory = Callable[..., QueryExecutor]
 
@@ -74,15 +67,8 @@ def _publish(path: Path, payload: bytes, protected: Sequence[Path]) -> None:
 def _loaded(path: Path, expected: type[Any]) -> Any:
     artifact = load_and_verify_artifact(path)
     if not isinstance(artifact, expected):
-        raise EvaluationError(f"{path} has an unexpected artifact type; expected {expected}")
+        raise EvaluationError(f"{path} is not a {expected.__name__} artifact")
     return artifact
-
-
-def _verify_execution_journal(evidence, path):
-    if isinstance(evidence, SharedExecutionEvidence):
-        verify_shared_execution_journal(evidence, path)
-    else:
-        verify_execution_evidence_journal(evidence, path)
 
 
 def _decimal(value: str, field: str) -> Decimal:
@@ -276,69 +262,6 @@ def create_cli(*, bigquery_executor_factory: BigQueryExecutorFactory | None = No
         except (EvaluationError, OSError) as exc:
             raise click.ClickException(str(exc)) from exc
 
-    @cli.command("plan-shared")
-    @click.option("--config", type=click.Path(path_type=Path), required=True)
-    @click.option("--output", type=click.Path(path_type=Path), required=True)
-    def plan_shared_command(config: Path, output: Path) -> None:
-        """Pin unique SQL and every logical use offline; perform no network requests."""
-        try:
-            _, _, _, scope, digest, protected = load_shared_config(config)
-            _publish(
-                output,
-                canonical_json(
-                    {
-                        "kind": "shared_campaign_plan_not_execution_evidence",
-                        "scope_sha256": digest,
-                        "scope": scope,
-                    }
-                ),
-                protected,
-            )
-            _emit({"artifact": str(output), "scope_sha256": digest, "status": "planned"})
-        except (EvaluationError, OSError) as exc:
-            raise click.ClickException(str(exc)) from exc
-
-    @cli.command("execute-shared")
-    @click.option("--config", type=click.Path(path_type=Path), required=True)
-    @click.option("--allow-bigquery", is_flag=True)
-    @click.option("--output", type=click.Path(path_type=Path), required=True)
-    @click.option("--journal", type=click.Path(path_type=Path), required=True)
-    def execute_shared_command(
-        config: Path, allow_bigquery: bool, output: Path, journal: Path
-    ) -> None:
-        """Execute an approved free-only campaign with one job per exact SQL."""
-        if not allow_bigquery:
-            raise click.UsageError("BigQuery execution requires --allow-bigquery")
-        try:
-            settings, runs, policy, _, digest, protected = load_shared_config(config)
-            require_live_approval(settings, digest, policy)
-            protected = (*protected, Path(settings["free_only"]["evidence"]["path"]))
-            validate_new_artifact_path(output, protected_paths=(*protected, journal))
-            file_journal = FileExecutionJournal.create(
-                journal, header={"scope_sha256": digest}, protected_paths=(*protected, output)
-            )
-            factory = bigquery_executor_factory
-            if factory is None:
-                from nl2sparql.evaluation.bigquery import create_bigquery_executor
-
-                factory = create_bigquery_executor
-            live_executor = factory(policy, allow_bigquery=True)
-            evidence = execute_shared_campaign(
-                runs,
-                campaign_id=settings["campaign_id"],
-                source_context_sha256=settings["source_context"]["file_sha256"],
-                policy=policy,
-                executor=live_executor,
-                journal=file_journal,
-            )
-            verify_shared_execution_journal(evidence, journal)
-            _publish(output, serialize_shared_execution_evidence(evidence), (*protected, journal))
-            _emit({"artifact": str(output), "status": evidence.status})
-            if evidence.status != "complete":
-                raise click.exceptions.Exit(2)
-        except (EvaluationError, OSError) as exc:
-            raise click.ClickException(str(exc)) from exc
-
     @cli.command("report")
     @click.option("--primary-run", type=click.Path(path_type=Path), required=True)
     @click.option("--primary-evidence", type=click.Path(path_type=Path), required=True)
@@ -369,17 +292,14 @@ def create_cli(*, bigquery_executor_factory: BigQueryExecutorFactory | None = No
                     "replicate run/evidence/journal options must have equal counts"
                 )
             run = _loaded(primary_run, CanonicalPredictionRun)
-            evidence = _loaded(primary_evidence, (ExecutionEvidence, SharedExecutionEvidence))
-            _verify_execution_journal(evidence, primary_journal)
+            evidence = _loaded(primary_evidence, ExecutionEvidence)
+            verify_execution_evidence_journal(evidence, primary_journal)
             replicates = tuple(
-                (
-                    _loaded(run_path, CanonicalPredictionRun),
-                    _loaded(ev_path, (ExecutionEvidence, SharedExecutionEvidence)),
-                )
+                (_loaded(run_path, CanonicalPredictionRun), _loaded(ev_path, ExecutionEvidence))
                 for run_path, ev_path in zip(replicate_run, replicate_evidence, strict=True)
             )
             for (_, replicate), journal_path in zip(replicates, replicate_journal, strict=True):
-                _verify_execution_journal(replicate, journal_path)
+                verify_execution_evidence_journal(replicate, journal_path)
             reviews = (
                 load_manual_failure_reviews(manual_failure_reviews)
                 if manual_failure_reviews is not None
@@ -452,14 +372,12 @@ def create_cli(*, bigquery_executor_factory: BigQueryExecutorFactory | None = No
         try:
             artifacts = tuple(load_and_verify_artifact(path) for path in paths)
             execution_artifacts = tuple(
-                artifact
-                for artifact in artifacts
-                if isinstance(artifact, (ExecutionEvidence, SharedExecutionEvidence))
+                artifact for artifact in artifacts if isinstance(artifact, ExecutionEvidence)
             )
             if len(execution_artifacts) != len(journals):
                 raise EvaluationError("every execution evidence artifact requires one --journal")
             for evidence, journal_path in zip(execution_artifacts, journals, strict=True):
-                _verify_execution_journal(evidence, journal_path)
+                verify_execution_evidence_journal(evidence, journal_path)
             types = tuple(type(artifact).__name__ for artifact in artifacts)
             _emit({"artifact_types": types, "count": len(paths), "status": "valid"})
         except (EvaluationError, OSError) as exc:

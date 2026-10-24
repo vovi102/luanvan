@@ -185,16 +185,11 @@ def canonicalize_result(
     )
 
 
-def results_equal(
-    gold: QueryResultEvidence,
-    predicted: QueryResultEvidence,
-    *,
-    order_sensitive: bool | None = None,
-) -> bool:
+def results_equal(gold: QueryResultEvidence, predicted: QueryResultEvidence) -> bool:
     """Compare result values under the gold query's order semantics."""
     if gold.arity != predicted.arity or gold.row_count != predicted.row_count:
         return False
-    if gold.order_sensitive if order_sensitive is None else order_sensitive:
+    if gold.order_sensitive:
         return gold.row_digests == predicted.row_digests
     return Counter(gold.row_digests) == Counter(predicted.row_digests)
 

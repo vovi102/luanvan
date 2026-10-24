@@ -1,7 +1,0 @@
-{
-  "billingEnabled": false,
-  "projectId": "nl2sparql-thesis",
-  "observed_at_utc": "2026-10-23T18:12:08.402803+00:00",
-  "observation_time_basis": "saved gcloud response file modification time",
-  "method": "gcloud billing projects describe; read-only"
-}
