@@ -19,7 +19,7 @@ Không dùng mô hình qua API. Contribution thực nghiệm là so sánh zero-s
 few-shot và fine-tuned trong cùng phạm vi small LLM, đồng thời đo đóng góp của
 schema/entity/class linking.
 
-## Snapshot
+## Snapshot — cập nhật 2026-10-24 (Asia/Saigon)
 
 | Nhóm | Trạng thái | Hành động |
 |---|---|---|
@@ -32,10 +32,11 @@ schema/entity/class linking.
 | T4.1–T4.3 | Hoàn tất development evaluation | Giữ snapshot/hash immutable; không claim independent holdout |
 | T5.1/B0 | Genuine English negative result hoàn tất (`0/100`) | Giữ làm English lower bound; không tự dùng làm Vietnamese control, không tune trên test set |
 | T3.3 → B2 | Offline integration hoàn tất tại `9adf02c`; lossless train export 7.208 rows, exact fingerprint | Giữ development ngoài retrieval; bundle pinned source files cho Kaggle |
-| T5.2/B1–B2 | T4 smoke COMPLETE; genuine B1/B2 × EN/VI r01 COMPLETE, N=100 each, artifact/runtime verified | 11/12 native processes complete; all original slots attempted; B2 EN r03 setup ERROR, replacement decision pending. B1 VI r03: 100 unsafe, P95 31.101s. B1 EN r03: 99 unsafe / 1 invalid, P95 45.922s. B2 VI r02: 12 ok / 88 prose, P95 72.962s. B2 EN r02: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 51.300s. B1 VI r02: 100 unsafe, P95 29.532s. B1 EN r02: 99 unsafe / 1 invalid, P95 48.809s. B2 VI: 12 ok / 88 prose, P95 73.590s. B2 EN: 31 ok / 60 prose / 8 unsafe / 1 invalid, P95 52.987s. B1 EN: 99 unsafe / 1 invalid, P95 49.107s; VI: 100 unsafe, P95 30.376s. Scientific gates remain blocked |
-| B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI implemented offline | Giữ nguồn/hash/lineage và exact reused evidence; B1/B2 VI r01 verified, r02/r03 pending |
-| T5.4 | Framework hoàn tất; comparison chưa đủ input | Ingest B1–B3 genuine runs và làm failure analysis |
-| T5.5 | Chưa quyết định scope fine-tuning | Quyết định full B3, scope-down B3 hoặc full-system không fine-tune từ số liệu B1/B2 |
+| T5.2/B1–B2 | Generation hoàn tất: 12/12 genuine native runs, B1/B2 × EN/VI × 3, N=100/run/language; B2 EN r03 dùng replacement02 | Giữ 14 attempted IDs gồm hai setup failures; không cần thêm generation. Native scientific blockers và latency gate fail giữ nguyên |
+| B1/B2 Vietnamese consumer | Typed finalized paired consumer + CLI17/CLI25 EN/VI hoàn tất; toàn bộ VI r01/r02/r03 verified | Giữ nguồn/hash/paired lineage và exact reused English gold evidence; không coi là execution evidence mới |
+| T5.4-A / offline adaptation | Framework hoàn tất; 12 canonical runs và 1.200 case traces đã xuất/validate, đối chiếu static hoàn tất tại `1f2f9da` | Giữ artifacts immutable; exact/structural match và agreement không thay execution accuracy |
+| T5.4-B | Privacy/survey đã duyệt; 4 sidecars + 12 privacy-bound runs; đủ 143 SQL: 140 estimates, 3 compile errors; không live | Review errors/live feasibility → verified free allowance và giải quyết cap/calendar/protocol → duyệt live riêng → evidence/reports/comparison |
+| T5.5 | Giữ B3 QLoRA là hướng chính cho RQ1; chưa chốt cấu hình/lịch | Chốt kế hoạch khả thi từ evidence B1/B2 và tài nguyên; scope-down vẫn giữ fine-tuning, bỏ B3 cần quyết định riêng của người dùng |
 | Phase 6–7 | Ticket cũ còn SPARQL | Redesign sang NL2SQL trước khi implement |
 
 ## Thứ tự thực hiện
@@ -61,37 +62,54 @@ schema/entity/class linking.
 
 ### P1 — Baseline small LLM và quyết định scope
 
-4. **B1/B2 genuine run.** [Runner/bundle EN/VI](kaggle-b12-runbook-2026-10-16.md)
-   đã chuẩn bị offline: input allowlist/hash, deterministic archive, data/runtime
-   preflight, notebook với execution mặc định tắt. Model/encoder đã pin và cache
-   Kaggle version 5 đã xác minh; full Python 3.11.15 environment đã cài thành công
-   ở phiên riêng. Non-test T4 smoke v2 đã COMPLETE, 10/10 genuine processes,
-   không OOM. Giữ negative observations: median generation B1 20,95s/B2 20,01s
-   vượt target, B1 5 unsafe_sql; không tune theo output. Notebook benchmark 16 và
-   [campaign offline](kaggle-b12-benchmark-campaign-2026-10-18.md) đã chuẩn bị;
-   chốt campaign/caps/budget và quota mới trước khi cho phép 12 genuine processes.
-   B1 EN và VI r01 đã COMPLETE (mỗi ngôn ngữ 100/100 genuine); 10 process
-   còn lại chưa khởi chạy. Giữ native outputs/blockers nguyên trạng.
-   Ba compatible process runs cho mỗi (baseline, language): EN+VI tổng 12 processes.
-   VI đã có typed paired consumer và source-bound native/T5.4 artifacts; metric N=100
-   riêng mỗi language, không pooling. [Offline handoff](../research/b12-bilingual-consumer-2026-10-16.md).
-5. **T5.4 comparison vòng 1.** So sánh B0/B1/B2, báo execution accuracy,
-   exact/structural match, answer metrics, latency, cost, reproducibility và
-   failure modes với CI/bootstrap đã chốt.
-6. **T5.5 decision.** Chọn full B3, scope-down B3 hoặc bỏ fine-tuning. Quyết định
-   dựa trên B1/B2 genuine metrics và linker deltas, không dựa trên fixture.
+4. **B1/B2 genuine generation — hoàn tất (2026-10-23).** Đủ ba compatible
+   runs cho mỗi (baseline, language), tổng 12 runs, N=100/run/language.
+   B2 EN r03 dùng replacement02; hai setup failures giữ riêng, tổng 14 attempted
+   IDs. Native outputs/runtime/source hashes đã verified; không lên lịch thêm
+   replicate hoặc retry. Extraction OK/run: B1 EN/VI 0/100, B2 EN 31/100,
+   B2 VI 12/100; không phải execution accuracy. Native scientific blockers và
+   latency gate fail giữ nguyên.
+   [Ma trận và per-run evidence](../research/kaggle-b12-generation-matrix-2026-10-23.md).
+5. **T5.4 comparison vòng 1 — đang mở.** Framework và offline adaptation đã
+   hoàn tất: 12 canonical runs, 1.200 case traces, static SQL checks và
+   exact/structural match riêng từng run. Scientific completion chưa đạt.
+   [Offline evidence và handoff](../research/t54-offline-2026-10-24.md).
+   - [Giai đoạn A sau duyệt](../research/t54-phase-a-2026-10-24.md): privacy
+     đã ghi nhận, 4 sidecars và 12 privacy-bound runs mới hợp lệ. Billing vẫn
+     tắt; paid spend 0 USD. Đủ 143 SQL đã khảo sát: 140 estimates và ba compile
+     errors, giữ nguyên SQL/lỗi. Một prediction vượt cap 24 GiB. Daily limits đã
+     đọc được, monthly free balance chưa biết; chưa có quyền live.
+     [Kết quả đầy đủ](../research/t54-phase-a-final-2026-10-24.md).
+   - Sau khi đủ estimates/quota và được duyệt live gold/predicted scope riêng
+     theo cấu hình cuối: chạy nối tiếp với reservation ledger, giữ genuine
+     execution evidence và sealed journals; không tự retry hoặc tăng cap.
+   - Tạo bốn reports B1/B2 × EN/VI, primary r01 và r02/r03 làm replicates;
+     compare B1–B2 riêng từng language, N=100. Báo execution accuracy,
+     exact/structural match, answer metrics, latency, cost, reproducibility,
+     breakdowns và failure analysis. Kiểm tra đơn vị resampling trước khi công
+     bố CI reproducibility; ba replicates không phải ba mẫu câu hỏi độc lập.
+   - Chỉ thêm B0 English nếu snapshot/policy/evidence tương thích đã được kiểm
+     tra; không suy ra Vietnamese B0. Execution/answer metrics hiện vẫn null.
+6. **T5.5 — chốt cấu hình/kế hoạch B3 QLoRA khả thi sau T5.4-B.** Giữ
+   fine-tuning làm hướng chính để trả lời RQ1. Dùng genuine B1/B2 metrics, linker
+   deltas và bằng chứng calendar/GPU/memory để chọn full B3 hoặc scope-down vẫn
+   train QLoRA; chỉ giảm sweep/phần không thiết yếu khi có bằng chứng thiếu tài
+   nguyên. B1/B2 yếu hoặc quota BigQuery không tự chứng minh nên bỏ B3. Bỏ
+   fine-tuning cần quyết định riêng của người dùng. Ghi kế hoạch tại
+   `docs/pivot-decision-2.md`, đồng bộ Phase 6–7 và RQ/contribution claims.
+   Có thể rà tài nguyên/chuẩn bị offline trong lúc chờ; chưa mở training B3.
 
 ### P2 — Hệ thống đề xuất
 
-7. **T6.1-SQL — B3 QLoRA** nếu T5.5 chọn fine-tuning; target là GoogleSQL từ
-   accepted deterministic bilingual artifact.
+7. **T6.1-SQL — B3 QLoRA** theo cấu hình/kế hoạch T5.5; target là GoogleSQL từ
+   accepted deterministic bilingual artifact. Fine-tuning vẫn là mục tiêu chính.
 8. **T6.2-SQL — Constrained generation.** Grammar/safety target GoogleSQL; đo
    syntax/safety rate, execution accuracy và latency overhead.
 9. **T6.3-SQL — Ablation.** Ưu tiên `no_schema`, `no_entity`, `no_class` và
    `no_constraint`; báo CI 95% và paired significance trên cùng test snapshot.
-10. **T5.4 comparison cuối.** Tổng hợp B0–B3 và failure analysis; nếu bỏ
-    fine-tuning thì thay B3 bằng full-system B2 + linkers + validator và ghi rõ
-    B3 không được thực hiện.
+10. **T5.4 comparison cuối.** Tổng hợp B0–B3 và failure analysis từ genuine
+    evidence; không tự thay B3 bằng B2 + linkers + validator. Mọi thay đổi bỏ
+    fine-tuning cần quyết định riêng và cập nhật RQ/contribution claims.
 
 ### P3 — Demo và luận văn
 
@@ -109,11 +127,13 @@ schema/entity/class linking.
 
 - **Lane A — Evidence:** Stage A/T3.3/data integration và Vietnamese review/
   finalization đã xong; giữ các snapshots/hash immutable.
-- **Lane B — Model:** cache/runtime và T4 compatibility smoke đã xác minh;
-  genuine benchmark B1/B2 còn pending. Giữ quan sát latency/unsafe_sql và
-  kiểm tra lại quota, campaign/timeout trước khi chạy.
+- **Lane B — Evaluation:** generation B1/B2 và T5.4 offline đã xong; privacy
+  đã duyệt và đủ 143 SQL đã khảo sát, giữ ba compile errors. Chờ quota/cap/
+  calendar/protocol cho phương án free-only; live T5.4-B vẫn chưa duyệt. Giữ latency/native scientific blockers; chưa mở
+  thêm GPU generation hoặc B3 training.
 - **Lane C — Writing:** cập nhật RQ/contributions sang small-LLM-only, viết Plan A
-  negative finding và methodology; không điền metrics chưa chạy.
+  negative finding, methodology và kết quả generation/static đã có evidence;
+  execution/answer metrics chưa chạy giữ null, chưa kết luận B3.
 
 WIP limit: một task implementation lớn và một external-evidence task đang active.
 
@@ -135,25 +155,58 @@ WIP limit: một task implementation lớn và một external-evidence task đan
 
 ## Công việc kế tiếp
 
-Runner/input bundle EN/VI và cache Llama/MiniLM đã sẵn sàng. Private Kaggle
-notebook `aohkvd/nl2sql-environment-cache`, version 5, đã COMPLETE: 24 files,
-16.161.347.681 bytes, đúng hash qua hai lượt kiểm tra. Full environment đã cài
-thành công riêng; cache output không chứa runtime đầy đủ.
+**Ưu tiên hiện tại: chốt tính khả thi live free-only của T5.4-B.** Privacy đã
+duyệt, bốn sidecars và 12 privacy-bound runs mới hợp lệ. Đã khảo sát đủ 143 SQL:
+140 estimates, ba compile errors và một prediction vượt cap. Không sửa SQL
+hoặc chạy live; chưa có monthly free balance hoặc calendar khả thi.
 
-T4 smoke version 2 đã COMPLETE ngày 2026-10-18: 10/10 genuine native
-processes trên Tesla T4 ×2, không OOM; original BF16/4-bit settings giữ nguyên.
-Median generation B1 20,95s/B2 20,01s vượt target hiện tại. B1 5 unsafe_sql;
-B2 5 extraction ok không phải accuracy. Smoke dùng năm câu train, không phải test.
+1. Review [kết quả/diagnosis](../research/t54-phase-a-final-2026-10-24.md) và
+   [live feasibility](t54-phase-b-feasibility-2026-10-24.md). Known scan components
+   khoảng 6,968 TiB; chỉ reuse gold theo số học vẫn trên 1 TiB. Không tự đổi
+   protocol, sửa evaluator, tăng cap hoặc lặp dry-runs đã hết scope.
+2. Xác minh số dư miễn phí tháng và chốt calendar/expiry cùng cách xử lý live
+   guards. Nếu cần đổi protocol/reuse/materialize phải có đề xuất riêng; quota
+   API daily limits không phải số dư miễn phí tháng.
+3. Chốt reservation/expiry/data drift và xin duyệt live riêng; genuine sealed
+   evidence → reports/comparison riêng EN/VI → failure analysis → T5.5 B3 QLoRA.
 
-Tiếp theo chốt campaign, caps và quota hiện tại cho ba processes mỗi
-(baseline, language), tổng 12 genuine benchmark processes, N=100 riêng EN/VI.
-Chưa chạy benchmark hay BigQuery mới. Sau đó T5.4 comparison → T5.5 quyết định B3.
-[Smoke result và evidence](../research/kaggle-t4-smoke-2026-10-17.md).
+### Trình tự lúc chuẩn bị gói — đã có checkpoint mới ở trên
+
+1. Reviewer duyệt [privacy policy](t54-bigquery-privacy-policy-2026-10-24.md)
+   và [scope 143 dry-runs](t54-bigquery-approval-2026-10-24.md). Bốn worksheets
+   có provider/policy hash nhưng chưa ký. Giai đoạn này không có live query.
+2. Sau duyệt: dry-run exact SQL để lấy current scan estimates, kiểm tra compile/
+   quyền và ghi errors nguyên trạng. Project `nl2sparql-thesis`, dataset US và
+   billing tắt đã kiểm chứng qua metadata; chưa xác minh hết public view dependencies.
+3. Đối chiếu quota miễn phí hiện tại. Sandbox có 1 TiB/tháng; historical usage
+   không phải số dư quota. Giữ billing tắt, paid spend 0 USD; không có phương án
+   tự nâng cấp trả phí. 9 TiB/60 USD cũ đã được archive, không còn active.
+4. Khi đủ quota cho complete run, chốt free-byte reservation và xin duyệt live
+   riêng với canonical đã bind privacy/hash mới. CLI19 chỉ guard theo run,
+   chưa có monthly free-tier ledger tự động. Protocol vẫn tối đa 1.200 gold +
+   129 predicted live queries, không reuse gold cross-run; có thể cần chia đợt,
+   phải kiểm tra source expiry/data drift trước khi chốt lịch.
+5. Genuine evidence + sealed journals → bốn reports → comparison B1–B2 riêng
+   EN/VI và failure analysis → T5.5 chốt cấu hình/kế hoạch B3 QLoRA khả thi.
+
+Nguồn hiện tại: [ma trận generation](../research/kaggle-b12-generation-matrix-2026-10-23.md),
+[T5.4 offline và execution handoff](../research/t54-offline-2026-10-24.md),
+[gói duyệt free-only](t54-bigquery-approval-2026-10-24.md),
+[proposal lúc chuẩn bị](../../configs/t54/b12-bigquery-review-proposal.json),
+[privacy worksheets gốc](../../configs/t54/privacy-review-drafts.json) và
+[checkpoint survey đầy đủ](../research/t54-phase-a-final-2026-10-24.md).
+Đồng bộ backlog không cấp quyền BigQuery hoặc thay đổi scientific readiness.
+
+[Rà local mới ngày 2026-10-24](../research/t54-local-review-2026-10-24.md):
+hash/mapping và tái tạo offline khớp; reservation 768 GiB/run còn vướng lịch
+miễn phí và source expiry. Đây là checkpoint trước phê duyệt; trạng thái mới
+nằm tại kết quả giai đoạn A ở trên.
 
 ## Historical local-preparation checkpoint — 2026-10-17
 
-> Checkpoint lịch sử trước khi user được cấp quyền; trạng thái hiện tại nằm ở
-> checkpoint genuine cache bên dưới. Không dùng đoạn này làm gate hiện tại.
+> Toàn bộ checkpoint từ đây là lịch sử tại thời điểm ghi, giữ để truy xuất
+> quyết định và failures. Trạng thái hiện tại nằm ở Snapshot và Công việc kế tiếp
+> phía trên; không dùng chỉ dẫn pending/launch cũ làm gate hiện tại.
 
 [Setup handoff](kaggle-environment-cache-2026-10-17.md): exact model/encoder
 revisions pinned from anonymous public metadata; genuine MiniLM cache bytes
@@ -545,3 +598,54 @@ User requests next process, but previous scope excluded EN retry. Disabled new-I
 B2 EN replacement proposal prepared, not implemented/submitted; explicit scope
 exception and bounded identity support/tests required before any new run.
 [Final VI](../research/kaggle-b12-benchmark-b2-vi-r03-2026-10-22.md).
+
+### 2026-10-23 — generation matrix hoàn tất với replacement02
+
+B2 EN r03 replacement02 COMPLETE, đủ 100 genuine cases; 31 extraction OK,
+60 prose, 8 unsafe, 1 invalid; P95 50,256s. Toàn bộ 12 generation roles đã đủ:
+B1 EN3/VI3, B2 EN3/VI3, N=100/run/language. Tổng 14 attempted IDs gồm hai setup
+failures giữ riêng, không có accuracy denominator cho failure trước inference.
+Không cần thêm generation; scientific blockers và latency gate fail giữ nguyên.
+[Ma trận verified](../research/kaggle-b12-generation-matrix-2026-10-23.md).
+
+### 2026-10-24 — T5.4 offline hoàn tất; gate tiếp theo là execution review
+
+Tại `1f2f9da`, đã xuất/validate 12 canonical runs và 1.200 case traces, giữ
+source hashes và paired VI lineage. Mỗi replicate: B1 EN/VI exact/structural 0/100;
+B2 EN exact 2/100, structural 6/100; B2 VI exact 0/100, structural 1/100.
+Agreement raw output/canonical observation là 100/100 trong từng nhóm ba runs;
+không pooling languages/replicates và chưa công bố CI reproducibility.
+Execution accuracy/answer metrics vẫn null, inference cost unmeasured.
+Privacy worksheets chưa ký, proposal BigQuery disabled; chưa có T5.4-B execution,
+reports/comparisons hoặc quyết định B3. Backlog đã đồng bộ để ưu tiên gói duyệt
+BigQuery, giữ nguyên mọi native artifact và historical checkpoint.
+[Handoff và kiểm chứng](../research/t54-offline-2026-10-24.md).
+
+### 2026-10-24 — gói duyệt BigQuery chuyển sang free-only
+
+Theo yêu cầu người dùng, thay đề xuất trả phí bằng sandbox giữ billing tắt và
+paid spend 0 USD. Metadata xác minh project/dataset US, direct objects và usage
+history; chưa query/dry-run. Pin nguồn pricing/sandbox và scope 143 unique SQL
+cho bước dry-run miễn phí, giữ đủ 1.329 logical references. Bốn privacy
+worksheets đã điền provider/policy hash, reviewer/time vẫn chờ quyết định thật.
+Số dư quota chưa biết; full protocol có thể vượt một tháng miễn phí, không tự
+reuse gold, bật billing hoặc thay protocol. Đề xuất 60 USD cũ lưu lịch sử.
+[Gói duyệt và điều kiện live riêng](t54-bigquery-approval-2026-10-24.md).
+
+### 2026-10-24 — T5.5 giữ B3 QLoRA làm mục tiêu chính
+
+Người dùng xác nhận giữ fine-tuning để trả lời RQ1. Đồng bộ snapshot, thứ tự
+thực hiện và ticket T5.5: full B3 hoặc scope-down có genuine QLoRA; giảm sweep/
+phần không thiết yếu khi có bằng chứng thiếu tài nguyên. B1/B2 yếu và quota
+BigQuery không tự chứng minh nên bỏ B3. Việc bỏ B3 là thay đổi scope cần người
+dùng quyết định riêng. Cách diễn đạt cũ liệt kê bỏ fine-tuning ngang hàng được
+giữ trong lịch sử Git; chưa có quyết định bỏ B3 hoặc quyền mở training mới.
+
+## T5.4 shared protocol — cập nhật 2026-10-24
+
+Đã duyệt hai thay đổi: cô lập prediction SQL lỗi/vượt 24 GiB thành failure và dùng
+chung execution evidence cho exact SQL trong một campaign. Giữ N=100, EN/VI riêng,
+12 generation runs và B3 QLoRA. Implementation/offline scope xem
+[checkpoint shared protocol](../research/t54-shared-protocol-2026-10-24.md).
+Live vẫn chờ verified free allowance/reservation và final config/hash approval;
+không dùng forecast ~752,10 GiB làm quota balance hoặc claim scientific complete.

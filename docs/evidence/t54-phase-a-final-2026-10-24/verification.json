@@ -1,0 +1,26 @@
+{
+  "unique_SQL": {
+    "scope": 143,
+    "attempted": 143,
+    "estimated": 140,
+    "compile_error": 3,
+    "unattempted": 0,
+    "over_cap_estimates": 1
+  },
+  "logical_uses": {
+    "gold": {
+      "estimated": 1200,
+      "error": 0,
+      "unattempted": 0
+    },
+    "prediction": {
+      "estimated": 120,
+      "error": 9,
+      "unattempted": 0
+    }
+  },
+  "known_component_estimated_bytes": 7661703754356,
+  "full_campaign_estimate": null,
+  "journal_checks": "pass",
+  "logical_rows": 1329
+}

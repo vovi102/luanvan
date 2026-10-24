@@ -1,0 +1,179 @@
+{
+  "observed_at_utc": "2026-10-23T18:08:05.821842+00:00",
+  "method": "metadata GET only; no query/dry-run/job submitted",
+  "project": "nl2sparql-thesis",
+  "dataset": {
+    "id": "nl2sparql-thesis:nl2sparql_analytics",
+    "location": "US",
+    "default_table_expiration_ms": 5184000000
+  },
+  "objects": [
+    {
+      "id": "nl2sparql-thesis.nl2sparql_analytics.block_facts",
+      "kind": "TABLE_VALUED_FUNCTION",
+      "definition": "SELECT\n  b.number AS block_number,\n  LOWER(b.hash) AS block_hash,\n  b.timestamp AS block_timestamp,\n  LOWER(b.miner) AS beneficiary_address,\n  b.gas_used AS gas_used,\n  b.transaction_count AS transaction_count,\n  b.base_fee_per_gas AS base_fee_per_gas_wei\nFROM `bigquery-public-data.crypto_ethereum.blocks` AS b\nCROSS JOIN (\n  SELECT IF(\n    start_date IS NOT NULL\n      AND end_date IS NOT NULL\n      AND start_date < end_date\n      AND DATE_DIFF(end_date, start_date, DAY) <= 31,\n    TRUE,\n    ERROR('Date bounds must form a non-empty half-open window of at most 31 days')\n  ) AS bounds_valid\n) AS bounds\nWHERE bounds.bounds_valid\n  AND b.timestamp >= TIMESTAMP(start_date)\n  AND b.timestamp < TIMESTAMP(end_date)",
+      "language": "SQL",
+      "definition_sha256": "d704329af5264bbc08872bf0738ded8502c2e306314b69fc89a2bee9fd216cc9"
+    },
+    {
+      "id": "nl2sparql-thesis.nl2sparql_analytics.contract_dimension",
+      "kind": "TABLE_VALUED_FUNCTION",
+      "definition": "SELECT\n  LOWER(c.address) AS address,\n  c.is_erc20 AS is_erc20,\n  c.is_erc721 AS is_erc721,\n  c.block_timestamp AS created_at,\n  c.block_number AS block_number,\n  LOWER(c.block_hash) AS block_hash\nFROM `bigquery-public-data.crypto_ethereum.contracts` AS c\nCROSS JOIN (\n  SELECT IF(\n    end_date IS NOT NULL,\n    TRUE,\n    ERROR('end_date must not be NULL')\n  ) AS bounds_valid\n) AS bounds\nWHERE bounds.bounds_valid\n  AND c.block_timestamp < TIMESTAMP(end_date)\nQUALIFY ROW_NUMBER() OVER (\n  PARTITION BY LOWER(c.address)\n  ORDER BY c.block_timestamp DESC, c.block_number DESC, c.block_hash DESC\n) = 1",
+      "language": "SQL",
+      "definition_sha256": "9204f26d151db29c92be0b101e27ce248e0cc7d933d456e8dcf63de655c89bad"
+    },
+    {
+      "id": "nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1",
+      "kind": "VIEW",
+      "location": "US",
+      "num_bytes": 0,
+      "num_rows": 0,
+      "expires": "2026-12-09 13:28:38.878000+00:00",
+      "definition": "SELECT\n  address,\n  chain_id,\n  primary_label,\n  owner,\n  category,\n  concept_class,\n  address_role,\n  aliases,\n  confidence,\n  verified_date,\n  sources,\n  dictionary_sha256\nFROM `nl2sparql-thesis.nl2sparql_analytics.entity_labels_snapshot_cdc7856df81f`",
+      "schema": [
+        {
+          "name": "address",
+          "type": "STRING"
+        },
+        {
+          "name": "chain_id",
+          "type": "INTEGER"
+        },
+        {
+          "name": "primary_label",
+          "type": "STRING"
+        },
+        {
+          "name": "owner",
+          "type": "STRING"
+        },
+        {
+          "name": "category",
+          "type": "STRING"
+        },
+        {
+          "name": "concept_class",
+          "type": "STRING"
+        },
+        {
+          "name": "address_role",
+          "type": "STRING"
+        },
+        {
+          "name": "aliases",
+          "type": "STRING"
+        },
+        {
+          "name": "confidence",
+          "type": "STRING"
+        },
+        {
+          "name": "verified_date",
+          "type": "DATE"
+        },
+        {
+          "name": "sources",
+          "type": "RECORD"
+        },
+        {
+          "name": "dictionary_sha256",
+          "type": "STRING"
+        }
+      ],
+      "definition_sha256": "7a71cf192dad487a5eece1b061bf7fd86a0c3e26ac1f9578162f28126d8e098d"
+    },
+    {
+      "id": "nl2sparql-thesis.nl2sparql_analytics.token_transfer_facts",
+      "kind": "TABLE_VALUED_FUNCTION",
+      "definition": "SELECT\n  LOWER(tt.transaction_hash) AS transaction_hash,\n  tt.log_index AS log_index,\n  tt.block_timestamp AS block_timestamp,\n  tt.block_number AS block_number,\n  LOWER(tt.block_hash) AS block_hash,\n  LOWER(tt.token_address) AS token_address,\n  LOWER(tt.from_address) AS from_address,\n  LOWER(tt.to_address) AS to_address,\n  tt.value AS value_raw,\n  SAFE_CAST(tt.value AS BIGNUMERIC) AS value_bignumeric,\n  tt.value IS NOT NULL\n    AND SAFE_CAST(tt.value AS BIGNUMERIC) IS NOT NULL AS value_cast_valid,\n  c.is_erc20 AS is_erc20,\n  c.is_erc721 AS is_erc721,\n  tok.symbol AS token_symbol,\n  tok.name AS token_name,\n  tok.decimals AS token_decimals,\n  CASE\n    WHEN c.is_erc20 IS TRUE\n      AND COALESCE(c.is_erc721, FALSE) IS FALSE\n      AND SAFE_CAST(tok.decimals AS INT64) BETWEEN 0 AND 38\n    THEN SAFE_DIVIDE(\n      SAFE_CAST(tt.value AS BIGNUMERIC),\n      POW(BIGNUMERIC '10', SAFE_CAST(tok.decimals AS INT64))\n    )\n  END AS normalized_amount\nFROM `bigquery-public-data.crypto_ethereum.token_transfers` AS tt\nCROSS JOIN (\n  SELECT IF(\n    start_date IS NOT NULL\n      AND end_date IS NOT NULL\n      AND start_date < end_date\n      AND DATE_DIFF(end_date, start_date, DAY) <= 31,\n    TRUE,\n    ERROR('Date bounds must form a non-empty half-open window of at most 31 days')\n  ) AS bounds_valid\n) AS bounds\nLEFT JOIN `nl2sparql-thesis.nl2sparql_analytics.contract_dimension`(end_date) AS c\n  ON LOWER(tt.token_address) = c.address\nLEFT JOIN `nl2sparql-thesis.nl2sparql_analytics.token_dimension` AS tok\n  ON LOWER(tt.token_address) = tok.address\nWHERE bounds.bounds_valid\n  AND tt.block_timestamp >= TIMESTAMP(start_date)\n  AND tt.block_timestamp < TIMESTAMP(end_date)",
+      "language": "SQL",
+      "definition_sha256": "58153ad4f3232dac5d4aae1bbb9f442e2fd0b4bc5180052a128132cca5bf60ce"
+    },
+    {
+      "id": "nl2sparql-thesis.nl2sparql_analytics.transaction_facts",
+      "kind": "TABLE_VALUED_FUNCTION",
+      "definition": "SELECT\n  LOWER(t.hash) AS transaction_hash,\n  t.transaction_index AS transaction_index,\n  t.block_timestamp AS block_timestamp,\n  t.block_number AS block_number,\n  LOWER(t.block_hash) AS block_hash,\n  LOWER(t.from_address) AS from_address,\n  LOWER(t.to_address) AS to_address,\n  t.value AS value_wei,\n  t.gas AS gas_limit,\n  t.gas_price AS gas_price_wei,\n  t.receipt_gas_used AS receipt_gas_used,\n  t.receipt_status AS receipt_status,\n  t.receipt_status = 1 AS is_success,\n  t.input AS input,\n  LOWER(t.receipt_contract_address) AS receipt_contract_address,\n  t.transaction_type AS transaction_type\nFROM `bigquery-public-data.crypto_ethereum.transactions` AS t\nCROSS JOIN (\n  SELECT IF(\n    start_date IS NOT NULL\n      AND end_date IS NOT NULL\n      AND start_date < end_date\n      AND DATE_DIFF(end_date, start_date, DAY) <= 31,\n    TRUE,\n    ERROR('Date bounds must form a non-empty half-open window of at most 31 days')\n  ) AS bounds_valid\n) AS bounds\nWHERE bounds.bounds_valid\n  AND t.block_timestamp >= TIMESTAMP(start_date)\n  AND t.block_timestamp < TIMESTAMP(end_date)",
+      "language": "SQL",
+      "definition_sha256": "44aa80642ce488f4d8b34c1245873f8fd34530100b467d119b0a9f7f8dbb5923"
+    },
+    {
+      "id": "nl2sparql-thesis.nl2sparql_analytics.labeled_token_transfers",
+      "kind": "TABLE_VALUED_FUNCTION",
+      "definition": "SELECT\n  facts.transaction_hash AS transaction_hash,\n  facts.log_index AS log_index,\n  facts.block_timestamp AS block_timestamp,\n  facts.block_number AS block_number,\n  facts.block_hash AS block_hash,\n  facts.token_address AS token_address,\n  facts.from_address AS from_address,\n  facts.to_address AS to_address,\n  facts.value_raw AS value_raw,\n  facts.value_bignumeric AS value_bignumeric,\n  facts.value_cast_valid AS value_cast_valid,\n  facts.is_erc20 AS is_erc20,\n  facts.is_erc721 AS is_erc721,\n  facts.token_symbol AS token_symbol,\n  facts.token_name AS token_name,\n  facts.token_decimals AS token_decimals,\n  facts.normalized_amount AS normalized_amount,\n  from_label.primary_label AS from_primary_label,\n  from_label.owner AS from_owner,\n  from_label.category AS from_category,\n  from_label.concept_class AS from_concept_class,\n  from_label.address_role AS from_address_role,\n  from_label.confidence AS from_confidence,\n  to_label.primary_label AS to_primary_label,\n  to_label.owner AS to_owner,\n  to_label.category AS to_category,\n  to_label.concept_class AS to_concept_class,\n  to_label.address_role AS to_address_role,\n  to_label.confidence AS to_confidence,\n  token_label.primary_label AS token_primary_label,\n  token_label.owner AS token_owner,\n  token_label.category AS token_category,\n  token_label.concept_class AS token_concept_class,\n  token_label.address_role AS token_address_role,\n  token_label.confidence AS token_confidence\nFROM `nl2sparql-thesis.nl2sparql_analytics.token_transfer_facts`(start_date, end_date) AS facts\nLEFT JOIN `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1` AS from_label\n  ON facts.from_address = from_label.address\nLEFT JOIN `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1` AS to_label\n  ON facts.to_address = to_label.address\nLEFT JOIN `nl2sparql-thesis.nl2sparql_analytics.entity_labels_v1` AS token_label\n  ON facts.token_address = token_label.address",
+      "language": "SQL",
+      "definition_sha256": "89f6c2f0d331e7abb30877a65eac61e98407814d8b0d593b860cb09be52269a1"
+    },
+    {
+      "id": "bigquery-public-data.crypto_ethereum.blocks",
+      "kind": "VIEW",
+      "location": "US",
+      "num_bytes": 0,
+      "num_rows": 0,
+      "expires": null,
+      "definition": null,
+      "row_policy_metadata_unverified": true
+    },
+    {
+      "id": "bigquery-public-data.crypto_ethereum.contracts",
+      "kind": "VIEW",
+      "location": "US",
+      "num_bytes": 0,
+      "num_rows": 0,
+      "expires": null,
+      "definition": null,
+      "row_policy_metadata_unverified": true
+    },
+    {
+      "id": "nl2sparql-thesis.nl2sparql_analytics.entity_labels_snapshot_cdc7856df81f",
+      "kind": "TABLE",
+      "location": "US",
+      "num_bytes": 2316320,
+      "num_rows": 5135,
+      "expires": "2026-12-09T13:28:34.529000+00:00",
+      "definition": null,
+      "row_policy_metadata_unverified": true
+    },
+    {
+      "id": "bigquery-public-data.crypto_ethereum.token_transfers",
+      "kind": "VIEW",
+      "location": "US",
+      "num_bytes": 0,
+      "num_rows": 0,
+      "expires": null,
+      "definition": null,
+      "row_policy_metadata_unverified": true
+    },
+    {
+      "id": "nl2sparql-thesis.nl2sparql_analytics.token_dimension",
+      "kind": "VIEW",
+      "location": "US",
+      "num_bytes": 0,
+      "num_rows": 0,
+      "expires": "2026-12-09T13:28:40.220000+00:00",
+      "definition": "SELECT\n  LOWER(tok.address) AS address,\n  tok.symbol AS symbol,\n  tok.name AS name,\n  SAFE_CAST(tok.decimals AS INT64) AS decimals\nFROM `bigquery-public-data.crypto_ethereum.amended_tokens` AS tok",
+      "row_policy_metadata_unverified": true,
+      "definition_sha256": "74933da1811883e5adf3b30d0a0ab09c58e1c53130e4a9a2c90788f2a6a9100b"
+    },
+    {
+      "id": "bigquery-public-data.crypto_ethereum.transactions",
+      "kind": "VIEW",
+      "location": "US",
+      "num_bytes": 0,
+      "num_rows": 0,
+      "expires": null,
+      "definition": null,
+      "row_policy_metadata_unverified": true
+    },
+    {
+      "id": "bigquery-public-data.crypto_ethereum.amended_tokens",
+      "kind": "VIEW",
+      "location": "US",
+      "num_bytes": 0,
+      "num_rows": 0,
+      "expires": null,
+      "definition": null,
+      "row_policy_metadata_unverified": true
+    }
+  ],
+  "finished_at_utc": "2026-10-23T18:09:16.149421+00:00"
+}

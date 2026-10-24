@@ -52,6 +52,10 @@ from nl2sparql.evaluation.contracts import (
     Readiness,
     ResultField,
     RunProvenance,
+    SharedCaseBinding,
+    SharedExecutionEvidence,
+    SharedQueryExecution,
+    SharedRunReference,
     TranslationEvidence,
 )
 
@@ -63,6 +67,7 @@ _ZERO_DIGEST = "0" * 64
 _ARTIFACT_TYPES: dict[str, type[Any]] = {
     "nl2sql_prediction_run": CanonicalPredictionRun,
     "nl2sql_execution_evidence": ExecutionEvidence,
+    "nl2sql_shared_execution_evidence": SharedExecutionEvidence,
     "nl2sql_evaluation_report": EvaluationReport,
     "nl2sql_comparison_report": ComparisonReport,
     "nl2sql_privacy_review": PrivacyReview,
@@ -107,6 +112,10 @@ _KNOWN_DATACLASSES = {
         Readiness,
         ResultField,
         RunProvenance,
+        SharedCaseBinding,
+        SharedExecutionEvidence,
+        SharedQueryExecution,
+        SharedRunReference,
         TranslationEvidence,
     )
 }
@@ -165,6 +174,10 @@ def _serialize(artifact: CanonicalArtifact) -> bytes:
             raise EvaluationError("execution evidence is missing required audit fields")
         if artifact.policy_sha256 != _digest(artifact.policy):
             raise EvaluationError("execution evidence policy hash mismatch")
+    if isinstance(artifact, SharedExecutionEvidence) and artifact.policy_sha256 != _digest(
+        artifact.policy
+    ):
+        raise EvaluationError("shared execution policy hash mismatch")
     base = {
         "artifact_type": artifact_type,
         "schema_version": SCHEMA_VERSION,
@@ -178,6 +191,13 @@ def serialize_prediction_run(run: CanonicalPredictionRun) -> bytes:
 
 
 def serialize_execution_evidence(evidence: ExecutionEvidence) -> bytes:
+    return _serialize(evidence)
+
+
+def serialize_shared_execution_evidence(evidence: SharedExecutionEvidence) -> bytes:
+    """Serialize a shared campaign without changing legacy evidence contracts."""
+    if evidence.policy_sha256 != _digest(evidence.policy):
+        raise EvaluationError("shared execution policy hash mismatch")
     return _serialize(evidence)
 
 

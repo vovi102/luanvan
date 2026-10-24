@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": 404,
+    "message": "Not found: Table nl2sparql-thesis:nl2sparql_analytics.transaction_facts was not found in location US",
+    "errors": [
+      {
+        "message": "Not found: Table nl2sparql-thesis:nl2sparql_analytics.transaction_facts was not found in location US",
+        "domain": "global",
+        "reason": "notFound"
+      }
+    ],
+    "status": "NOT_FOUND"
+  }
+}

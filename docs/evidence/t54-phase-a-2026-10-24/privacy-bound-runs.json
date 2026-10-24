@@ -1,0 +1,126 @@
+{
+  "kind": "privacy_rebind_mapping_not_execution_evidence",
+  "decision_path": "docs/evidence/t54-phase-a-2026-10-24/decision.json",
+  "runs": [
+    {
+      "run_id": "b12-envi-20261018-c01-b1-en-r02",
+      "baseline": "b1",
+      "language": "en",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b1-en-r02.json",
+      "canonical_file_sha256": "8aaeaeb7968b7f3075b67b1b3a34d992a9e2a1166ae0aaa6f0023443691a967d",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-en-r02.json",
+      "original_canonical_sha256": "f5dcc629358d2aac60d9ea7b5d141c5dad951be11258c9cabbceccf0331ea926",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b1-en.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-en-r03",
+      "baseline": "b1",
+      "language": "en",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b1-en-r03.json",
+      "canonical_file_sha256": "716b21fbad4a966d5dd26a9f347133faad4ff5316f9336810fa545e508f5335c",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-en-r03.json",
+      "original_canonical_sha256": "6164788aeae02910b3b0cd56cfbfbcd273ddeb3ff059afa478a2146c04a12682",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b1-en.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-vi-r01",
+      "baseline": "b1",
+      "language": "vi",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b1-vi-r01.json",
+      "canonical_file_sha256": "6b95b8fd190e30e4435a459414591c09fda44a129318b520969391d25ae6d339",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-vi-r01.json",
+      "original_canonical_sha256": "5dd0c62d36c2731bae8d9af575f4746a8f436a9d25f35339d5faf199f21bd693",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b1-vi.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-vi-r02",
+      "baseline": "b1",
+      "language": "vi",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b1-vi-r02.json",
+      "canonical_file_sha256": "f4c7a653ae5dcabca67523117cdf8b6b4db985825f9bfa040069a1eabecf3966",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-vi-r02.json",
+      "original_canonical_sha256": "9bd3001f330530a699b8214f828ad89e344ee394ca8742620bafbba95ab115ba",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b1-vi.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-vi-r03",
+      "baseline": "b1",
+      "language": "vi",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b1-vi-r03.json",
+      "canonical_file_sha256": "221447fb5006f879aea01eef0041ef05fc89ac4ff519035458fa77a2574bf0f0",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-vi-r03.json",
+      "original_canonical_sha256": "ff2aa01a6796aafbc3a1ac3f1533a15937ee0266a69732a15c8e599ed5f0a0d1",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b1-vi.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-en-r01",
+      "baseline": "b2",
+      "language": "en",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b2-en-r01.json",
+      "canonical_file_sha256": "02d52ae50a74c187436e676b78964c742c41ca85149db3dc9f91f52051531d84",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-en-r01.json",
+      "original_canonical_sha256": "08c3c92aab5e17a94035a1e06c0c5c29378d063be64cb0f05c31ce1b26c59b8d",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b2-en.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-en-r02",
+      "baseline": "b2",
+      "language": "en",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b2-en-r02.json",
+      "canonical_file_sha256": "9497db0c53213a7cd8c1d7754b5452b773bf585089f3c4d5f25b478b9531e452",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-en-r02.json",
+      "original_canonical_sha256": "def4ba47bcd8df2a3d3bbfc68d451a40427b1e00088ed8243bcb0877d9f276e7",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b2-en.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-vi-r01",
+      "baseline": "b2",
+      "language": "vi",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b2-vi-r01.json",
+      "canonical_file_sha256": "4287228906b58999c77c39493cd8fa8a48564cc9d7c9c696896cbed56d9d3151",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-vi-r01.json",
+      "original_canonical_sha256": "23a271ea49af920b5c4c292b964d75e2351ab034a7b944ba88697fad2716d795",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b2-vi.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-vi-r02",
+      "baseline": "b2",
+      "language": "vi",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b2-vi-r02.json",
+      "canonical_file_sha256": "306c4ce665c8fad6a192a12b6e84836104917c9610f66ab6ce91e23d597a228f",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-vi-r02.json",
+      "original_canonical_sha256": "0d1123d7d6b5ebb07ed179bcd5e0325a75bc8763f0c7fb79aa013d93ed463b03",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b2-vi.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b2-vi-r03",
+      "baseline": "b2",
+      "language": "vi",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b2-vi-r03.json",
+      "canonical_file_sha256": "cca85f149331b2f1021fe167f13a60afb9d21e13a7bb03d98e0e421e342543bd",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b2-vi-r03.json",
+      "original_canonical_sha256": "76c04dfbfccad64dc40c28920c055983c17be003ef2a1c643fd8a29bae674a76",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b2-vi.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-b1-en-r01",
+      "baseline": "b1",
+      "language": "en",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-b1-en-r01.json",
+      "canonical_file_sha256": "c04afb2f799ad64eb489b337c226125a21a951d09c6797d2b3061fe2b056ea2c",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-b1-en-r01.json",
+      "original_canonical_sha256": "69e24108d7f6eb43f1ac4d00f174c9afcc90f58826c851b71d7962d5bb7dda6a",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b1-en.json"
+    },
+    {
+      "run_id": "b12-envi-20261018-c01-replacement02-b2-en-r03",
+      "baseline": "b2",
+      "language": "en",
+      "canonical_path": "docs/evidence/t54-phase-a-2026-10-24/canonical/b12-envi-20261018-c01-replacement02-b2-en-r03.json",
+      "canonical_file_sha256": "f95a24329836c7f552d628a4e75e73197f24523c6bced4637fb9d348b2cdd78f",
+      "original_canonical_path": "docs/evidence/t54-offline-2026-10-23/canonical/b12-envi-20261018-c01-replacement02-b2-en-r03.json",
+      "original_canonical_sha256": "1e779b5ffdcf237d8443ad0132afbad8fb08c395026aa338e28e9554cd68e53c",
+      "privacy_path": "docs/evidence/t54-phase-a-2026-10-24/privacy/b2-en.json"
+    }
+  ]
+}
